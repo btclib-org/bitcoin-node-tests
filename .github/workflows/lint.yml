@@ -1,0 +1,31 @@
+---
+name: lint
+
+# the fast gate, kept apart from the test workflow: a style error is not
+# worth discovering at the end of a suite, and a workflow each means a
+# badge each and a line each in the checks list. docs.yml is apart for the
+# same reason: whether the documentation builds is a third verdict.
+#
+# The checkout, the uv setup, the hook cache and the pre-commit run are
+# btclib-org/.github's: reusable-lint.yml, called at @main so a fix there
+# reaches this tree in one landing (section 10 of its README.md). What runs
+# is .pre-commit-config.yaml itself rather than a second list of the same
+# tools, so CI enforces exactly what a local run of it enforces
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    uses: btclib-org/.github/.github/workflows/reusable-lint.yml@main

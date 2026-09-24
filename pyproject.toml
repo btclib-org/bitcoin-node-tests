@@ -1,0 +1,301 @@
+# The configuration of every tool that can be configured in one file.
+
+[build-system]
+# the floor is where the sdist's own pyproject.toml becomes a normalized
+# copy of this file with the verbatim one kept beside it as
+# pyproject.toml.orig; the ceiling is the next minor, this backend
+# releasing with uv and versioned by it
+requires = ["uv_build>=0.12.0,<0.13"]
+build-backend = "uv_build"
+
+[project]
+name = "bitcoin-node-tests"
+# a placeholder, and the reason is CONTRIBUTING.md's "A version, and no
+# release": nothing here is released yet (issue btclib-org/btclib#2220,
+# step 2 of 5). Section 12's calendar versioning applies to what a
+# release publishes, from step 4 on
+version = "0"
+description = "Bitcoin Core's functional test suite, rewritten on btclib, run against any node that speaks bitcoin's RPC and p2p"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE", "AUTHORS.md"]
+authors = [{ name = "The btclib developers", email = "devs@btclib.org" }]
+# an application takes the newest interpreter its dependencies allow and
+# runs on it alone (section 1): .python-version and requires-python
+# name the same release
+requires-python = ">=3.15"
+dependencies = [
+    # the two packages tf2 imports, and no third: it reaches a node over
+    # a socket, never through an in-process import (issue
+    # btclib-org/btclib#2220, rule 1)
+    "btclib>=2026.9.24",
+    "bitcoin-core-rpc>=2026.9.24",
+]
+keywords = [
+    # by relevance rather than alphabetical: PyPI shows keywords as they
+    # are given, and the first few are read as what the package is
+    "bitcoin",
+    "bitcoin-core",
+    "conformance-testing",
+    "functional-tests",
+    "p2p",
+    "rpc",
+]
+classifiers = [
+    # not a library (section 1): no `Topic :: Software Development ::
+    # Libraries :: Python Modules`, and one interpreter rather than a
+    # window
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.15",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
+]
+
+[project.urls]
+# no `documentation` and no `changelog`: this tree publishes nothing yet,
+# no site stands behind it, and `changelog` is the name a publisher here
+# gives `RELEASE_NOTES.md`, which section 2 gives a tier-1 tree alone
+# (section 3). `homepage` and `download` have a referent regardless: a
+# releasing tree's `homepage` is its own documentation site, and this
+# tree has none of its own, so its home is the organization's own site,
+# the same choice btclib-benchmarks makes for the same reason -- and
+# `repository` below already carries this repository's own page, which a
+# reader following the *About* link is already looking at
+homepage = "https://btclib.org"
+download = "https://github.com/btclib-org/bitcoin-node-tests/releases"
+repository = "https://github.com/btclib-org/bitcoin-node-tests"
+issues = "https://github.com/btclib-org/bitcoin-node-tests/issues"
+pull_requests = "https://github.com/btclib-org/bitcoin-node-tests/pulls"
+
+[dependency-groups]
+harness = [
+    "coverage>=7.16.0",
+    "hypothesis>=6.168.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "pytest-randomly>=5.0.0",
+    "pytest-xdist>=3.8.0",
+]
+test = [{ include-group = "harness" }]
+lint = ["mypy>=2.3.1", "pre-commit>=4.6.2", "ruff>=0.16.7"]
+docs = [
+    "furo>=2025.12.19",
+    "myst-parser>=5.1.0",
+    "sphinx>=9.1.0",
+]
+dev = [
+    { include-group = "test" },
+    { include-group = "lint" },
+    { include-group = "docs" },
+]
+
+[tool.uv]
+required-version = ">=0.12.17"
+
+[tool.uv.build-backend]
+# `module-name` is not written: it defaults to `project.name` normalized,
+# which is `bitcoin_node_tests` already.
+source-include = [
+    "*.md",
+    "*.toml",
+    "*.yaml",
+    "*.jsonc",
+    ".python-version",
+    ".secrets.baseline",
+    "uv.lock",
+    "docs/**",
+    "tests/**",
+]
+source-exclude = [
+    "/docs/build",
+    "/docs/**/.*",
+    "/src/bitcoin_node_tests/**/.*",
+    "/tests/**/.*",
+    "*.egg-info",
+    ".gitignore",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --cov --durations=8 -n auto --dist worksteal --strict-config --strict-markers"
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.codespell]
+skip = ".secrets.baseline,uv.lock"
+ignore-regex = '`[^`]*`'
+
+[tool.typos.files]
+extend-exclude = [".secrets.baseline", "uv.lock"]
+
+[tool.typos.default]
+extend-ignore-re = ['[0-9A-Za-z+/]{26,}={0,2}']
+
+[tool.typos.type.verbatim]
+extend-glob = ["CHANGELOG.md", ".pre-commit-config.yaml", "TF2.md"]
+extend-ignore-re = ['`[^`]*`']
+
+[tool.coverage.run]
+source = ["bitcoin_node_tests", "tests"]
+omit = ["*/site-packages/*"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+precision = 2
+fail_under = 100.0
+
+[tool.mypy]
+strict = true
+show_column_numbers = true
+enable_error_code = [
+    "deprecated",
+    "exhaustive-match",
+    "explicit-override",
+    "ignore-without-code",
+    "mutable-override",
+    "possibly-undefined",
+    "redundant-expr",
+    "redundant-self",
+    "truthy-bool",
+    "truthy-iterable",
+    "unimported-reveal",
+    "unused-awaitable",
+]
+warn_unreachable = true
+python_version = "3.15"
+exclude = ["^build/"]
+
+[tool.ruff]
+force-exclude = true
+
+[tool.ruff.format]
+exclude = ["CHANGELOG.md"]
+
+[tool.ruff.lint]
+preview = true
+explicit-preview-rules = true
+select = ["ALL"]
+extend-select = ["unspecified-encoding"]
+ignore = [
+    "tab-indentation",
+    "indentation-with-invalid-multiple",
+    "indentation-with-invalid-multiple-comment",
+    "over-indented",
+    "docstring-tab-indentation",
+    "triple-single-quotes",
+    "bad-quotes-inline-string",
+    "bad-quotes-multiline-string",
+    "bad-quotes-docstring",
+    "avoidable-escaped-quote",
+    "unnecessary-escaped-quote",
+    "missing-trailing-comma",
+    "prohibited-trailing-comma",
+    "undocumented-magic-method",
+    "undocumented-public-init",
+    "line-too-long",
+    "too-many-arguments",
+    "too-many-statements",
+    "too-many-positional-arguments",
+    "magic-value-comparison",
+    "raise-vanilla-args",
+    "raw-string-in-exception",
+    "f-string-in-exception",
+    "dot-format-in-exception",
+    "boolean-type-hint-positional-argument",
+    "boolean-default-value-positional-argument",
+    "boolean-positional-value-in-call",
+    "unused-function-argument",
+    "unused-method-argument",
+    "unused-class-method-argument",
+    "unused-static-method-argument",
+    "unused-lambda-argument",
+    "typing-only-first-party-import",
+    "typing-only-third-party-import",
+    "typing-only-standard-library-import",
+    "runtime-cast-value",
+    "invalid-function-name",
+    "invalid-argument-name",
+    "non-lowercase-variable-in-function",
+    "constant-imported-as-non-constant",
+    "mixed-case-variable-in-global-scope",
+    "try-except-in-loop",
+    "any-type",
+    "private-member-access",
+    # zero-finding for a construct this codebase does not contain
+    "DTZ",
+    "G",
+    "LOG",
+    "ASYNC",
+    "NPY",
+    "EXE",
+    "AIR",
+    "DJ",
+    "FAST",
+    "ICN",
+    "INT",
+    "PD",
+    "YTT",
+    "invalid-todo-tag",
+    "missing-todo-author",
+    "missing-todo-link",
+    "missing-todo-colon",
+    "missing-todo-description",
+    "invalid-todo-capitalization",
+    "missing-space-after-todo-colon",
+]
+
+[tool.ruff.lint.per-file-ignores]
+".github/scripts/*.py" = [
+    "INP001",
+] # entry points a workflow step invokes by path
+"docs/source/conf.py" = ["INP001"]
+"**/__init__.py" = ["F401"] # re-exported imports
+# T20 is selected for the package, which writes to no stream of its own;
+# a script whose caller is a workflow step is the case it is not about.
+# The vendored-vector checker: BEHIND, SKIPPED and the all-clear line are
+# what a weekly run's log says happened, the issue it opens or closes
+# being the same report a second way
+".github/scripts/check_vendored_vectors.py" = ["T201"]
+# the ledger census script: GAINED, REMOVED and the all-clear line are
+# the same kind of log, for the directory read rather than the per-pin one
+".github/scripts/tf2_ledger_census.py" = ["T201"]
+"tests/**" = [
+    "S101",   # assert
+    "S311",   # non-cryptographic random: fine in tests
+    "B017",   # assert-raises-exception
+    "PT011",  # pytest-raises-too-broad
+    "PT012",  # pytest-raises-with-multiple-statements
+    "PT018",  # pytest-composite-assertion
+    "RUF043", # pytest-raises-ambiguous-pattern
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 80
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.flake8-pytest-style]
+parametrize-names-type = "csv"
+
+[tool.ruff.lint.flake8-copyright]
+notice-rgx = "^# Copyright \\(c\\) The btclib developers\\n# Distributed under the MIT software license, see the accompanying\\n# LICENSE file or https://opensource\\.org/license/mit for the full text\\."
+
+[tool.pydoclint]
+style = "google"
+arg-type-hints-in-docstring = false
+check-return-types = false
+skip-checking-short-docstrings = true
+allow-init-docstring = true
+skip-checking-raises = true

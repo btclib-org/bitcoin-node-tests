@@ -1,0 +1,42 @@
+---
+name: Feature request
+description: Add something to bitcoin-node-tests, or change how it works
+labels: [enhancement]
+
+body:
+  - type: markdown
+    attributes:
+      value: >
+        bitcoin-node-tests is Bitcoin Core's functional test suite,
+        rewritten on [btclib](https://github.com/btclib-org/btclib), run
+        against any node that speaks bitcoin's RPC and p2p. An encoding,
+        a consensus rule or a signature scheme belongs in btclib instead;
+        what only a node can answer belongs on that node's own tracker.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What is missing
+      description: >
+        A Core functional test not yet ported, a capability the adapter
+        does not expose, or a change to how the suite runs.
+    validations:
+      required: true
+
+  - type: input
+    id: reference
+    attributes:
+      label: The corresponding Core test
+      description: >
+        The path under Core's `test/functional/`, where there is one.
+      placeholder: "test/functional/p2p_invalid_locator.py"
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it belongs here
+      description: >
+        What cannot be tested today with what this package already
+        exposes.
+    validations:
+      required: true

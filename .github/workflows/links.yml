@@ -1,0 +1,33 @@
+---
+name: links
+
+# every link the tree's markdown and reStructuredText carry, fetched:
+# lychee over the files `targets` names, with --include-fragments, so a
+# link into a heading is checked as an anchor. Nothing else fetches a URL
+# -- `sphinx-build -n -W` resolves cross-references and fetches none -- so
+# a page that moved is found here or by a reader.
+#
+# The checkout, the lychee run and its token are btclib-org/.github's
+# reusable-links.yml, called at @main (section 10 of its README.md)
+
+on:
+  schedule:
+    - cron: "44 4 * * 6"
+  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+    paths:
+      - .github/workflows/links.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: links-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ !(github.event.action == 'closed' && github.event.pull_request.merged) }}
+
+jobs:
+  links:
+    uses: btclib-org/.github/.github/workflows/reusable-links.yml@main
+    with:
+      targets: '"**/*.md" ".github/**/*.md" ".claude/**/*.md" "docs/**/*.rst"'

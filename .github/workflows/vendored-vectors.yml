@@ -1,0 +1,92 @@
+---
+name: vendored vectors
+
+# TF2.md pins each entry of Bitcoin Core's
+# `test/functional/test_framework/` to a commit and carries a documented
+# manual procedure to re-check one pin. This runs that procedure once a
+# week, over every pin the script can check, and opens or updates an
+# issue on drift rather than fixing anything: what to do about a pin
+# that has moved is a decision the script does not get to make.
+#
+# The checkout, the optional interpreter setup and the per-pin re-check
+# itself are btclib-org/.github's: reusable-vendored-vectors.yml, called
+# at @main so a fix there reaches this tree in one landing (section 10
+# of its README.md). What stays here is the trigger, the cron minute,
+# the concurrency group, the ledger this tree checks, and the census job
+# below, which that reusable workflow does not carry.
+#
+# The census is this tree's own: whether Core has *gained* a file the
+# ledger has no entry for is invisible to a per-pin re-check, which
+# walks only the entries a ledger already carries (issue
+# btclib-org/btclib#1751). `.github/scripts/tf2_ledger_census.py` reads
+# the directory itself, recursively and at a fresh commit, and reports
+# under a title distinct from the per-pin drift issue's own.
+#
+# issues: write here is granted by no other workflow in this tree.
+
+on:
+  schedule:
+    # section 10's grid in btclib-org/.github: Monday 03, this tree's own
+    # minute. Only the default branch schedules workflows, so on any
+    # other branch this is reachable through the dispatch below, and
+    # through the pull_request trigger further down.
+    - cron: "44 3 * * 1"
+  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+    paths:
+      - .github/workflows/vendored-vectors.yml
+      - .github/scripts/check_vendored_vectors.py
+      - .github/scripts/tf2_ledger_census.py
+      - TF2.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vendored-vectors-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ !(github.event.action == 'closed' && github.event.pull_request.merged) }}
+
+jobs:
+  vectors:
+    uses: btclib-org/.github/.github/workflows/reusable-vendored-vectors.yml@main
+    permissions:
+      contents: read
+      issues: write # gh issue create/edit/close, in the called workflow
+    with:
+      # cardinality 1: this tree pins one ledger, TF2.md
+      ledgers: >-
+        [{"ledger": "TF2.md",
+        "title": "TF2.md pins behind upstream"}]
+      python-version: "3.15"
+
+  census:
+    name: Check TF2.md's census against Core's directory
+    if: ${{ !github.event.pull_request.draft && github.event.action != 'closed' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write # gh issue create/edit/close, in the step below
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # --dry-run on everything but the schedule trigger, the same
+      # guarantee reusable-vendored-vectors.yml's own job gives: a pull
+      # request or a dispatch testing a change to this script or to the
+      # ledger must not close or edit whatever tracking issue is open at
+      # the time
+      - name: Re-read test_framework and compare it to TF2.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ github.event_name != 'schedule' && '--dry-run' || '' }}
+        run: |
+          args=()
+          if [ -n "$DRY_RUN" ]; then
+            args=(--dry-run)
+          fi
+          python3 .github/scripts/tf2_ledger_census.py \
+            TF2.md "test_framework has files TF2.md has no entry for" \
+            "${args[@]}"

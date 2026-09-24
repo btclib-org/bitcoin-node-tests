@@ -1,0 +1,95 @@
+---
+name: test
+
+# the suite under coverage: the question a pull request is gated on
+# beyond the hooks and the documentation build, which lint.yml and
+# docs.yml ask. No `dist` job: this tree publishes nothing yet (tier 2,
+# section 2 of the organization standard -- "no release before step 4",
+# issue btclib-org/btclib#2220), so it owes no packaging check.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # the cheapest job in the workflow, and the one that decides whether the
+  # rest of it runs: a pull request that edits only prose changes nothing
+  # the jobs below read. The event handling and the decision are
+  # btclib-org/.github's, called at @main (section 10 of its README.md);
+  # what stays here is which files are this tree's own prose
+  changes:
+    name: Decide whether the jobs below have anything to check
+    uses: btclib-org/.github/.github/workflows/reusable-changes.yml@main
+    permissions:
+      contents: read
+      pull-requests: read # the callee's own job needs it to list a pull request's files
+    with:
+      prose-pattern: |-
+        ^(AUTHORS|CHANGELOG|CLAUDE|CONTRIBUTING|REPOSITORY|REVIEWING)\.md$|^\.github/[^/]*\.md$|^\.secrets\..*baseline$
+
+  coverage:
+    name: Measure coverage, gated at 100%
+    if: >-
+      ${{ !github.event.pull_request.draft
+      && github.event.action != 'closed'
+      && needs.changes.outputs.code == 'true' }}
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+          # section 1 counts a release candidate as released; unlike
+          # actions/setup-python, setup-uv needs no allow-prereleases
+          # flag for one -- there is none in its own action.yml, and a
+          # release candidate resolves the same way a release would,
+          # measured on a real run before this comment was written
+          python-version: "3.15"
+      - name: Run pytest under coverage
+        run: uv run --locked --no-default-groups --group test pytest
+
+  test-passed:
+    name: "test: every job passed"
+    needs: [changes, coverage]
+    if: ${{ !cancelled() && !github.event.pull_request.draft && github.event.action != 'closed' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail unless every job above succeeded or was legitimately skipped
+        run: | # zizmor: ignore[template-injection]
+          results='${{ join(needs.*.result, ',') }}'
+          echo "results: $results"
+          case ",$results," in
+            *,,*)
+              echo "::error::a job this gate depends on reported no result"
+              exit 1
+              ;;
+          esac
+          IFS=,
+          for result in $results; do
+            case "$result" in
+              success | skipped) ;;
+              *)
+                echo "::error::a job this gate depends on reported $result"
+                exit 1
+                ;;
+            esac
+          done

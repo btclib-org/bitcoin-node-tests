@@ -1,0 +1,64 @@
+---
+name: Bug report
+description: Something in bitcoin-node-tests does not work as documented
+labels: [bug]
+
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Not every bug reachable from bitcoin-node-tests is
+        bitcoin-node-tests's bug: the keys, scripts, transactions and
+        signatures it builds on are
+        [btclib](https://github.com/btclib-org/btclib/issues)'s, the rpc
+        client is
+        [bitcoin-core-rpc](https://github.com/btclib-org/bitcoin-core-rpc/issues)'s,
+        and a disagreement between two nodes is a finding on the node's
+        own tracker rather than a bug here (rule 3 of issue
+        btclib-org/btclib#2220). If in doubt, report it here.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: What you observed, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce it
+      description: >
+        The test that fails, or the shortest Python that shows it, and
+        the full traceback if there is one.
+      render: python
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: The node, and its version
+      description: bitcoind, btclib-node, or another, and which release.
+      placeholder: "bitcoind v29.0"
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: Platform and interpreter
+      description: >
+        `python -VV` and the operating system, architecture included.
+      placeholder: "CPython 3.15.0, macOS 26.0 arm64"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: >
+        The Bitcoin Core functional test this corresponds to, where there
+        is one, and the version this last worked on.

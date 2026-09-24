@@ -1,0 +1,32 @@
+---
+name: docs
+
+# the third gate: does the documentation build. Without it nothing in CI
+# builds it but read the docs, after the merge, so invalid
+# reStructuredText in a docstring would fail on a service whose failure is
+# not a check on the pull request -- a name ending in an underscore, which
+# rst reads as a reference to a link target, or a title underline left
+# too short by a rename.
+#
+# The checkout, the build with -n -W and the unresolved-link check on the
+# built pages are btclib-org/.github's: reusable-docs.yml, called at @main
+# so a fix there reaches this tree in one landing (section 10 of its
+# README.md)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    uses: btclib-org/.github/.github/workflows/reusable-docs.yml@main

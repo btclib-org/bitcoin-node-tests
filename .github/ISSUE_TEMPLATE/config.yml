@@ -1,0 +1,31 @@
+---
+# the forms above are the two kinds of issue this repository handles;
+# everything else has a better address than a blank issue, and the links
+# below are those addresses. A vulnerability in particular must not be
+# filed as an issue at all, which is why SECURITY.md is the first of
+# them where this tree carries one. Blank issues are off because a
+# question has a form of its own: discussions are not enabled here, so
+# without it a question would have nowhere to go but a bug report
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/btclib-org/bitcoin-node-tests/security/advisories/new
+    about: >
+      Never a public issue. This opens a private advisory, visible to the
+      maintainers alone.
+  - name: Bug in a key, a script, a transaction or a signature
+    url: https://github.com/btclib-org/btclib/issues
+    about: >
+      The protocol this package builds on is btclib's: the encodings, the
+      consensus rules and the signature schemes.
+  - name: Bug in Bitcoin Core's rpc client
+    url: https://github.com/btclib-org/bitcoin-core-rpc/issues
+    about: What talks to a node over JSON-RPC is bitcoin-core-rpc's.
+  - name: A disagreement between two nodes
+    url: https://github.com/btclib-org/btclib-node/issues
+    about: >
+      A test passing on bitcoind and failing elsewhere is a finding on
+      the other node's own tracker (rule 3 of issue btclib-org/btclib#2220).
+  - name: Chat with the developers
+    url: https://bbt-training.slack.com/archives/C01CCJ85AES
+    about: The Slack channel, for what is faster asked than written up.

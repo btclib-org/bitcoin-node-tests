@@ -1,0 +1,62 @@
+---
+name: claude-review
+
+# Claude reading a pull request against REVIEWING.md, which is the standard
+# a review here is written against: section 11 of the organization's
+# standard makes this workflow's verdict the ack of record, and a tree
+# whose every change reaches a node's wire and a maintainer's forge token
+# wants a reading before a merge. The prompt, the credential guard, the
+# action, the verdict check and the @claude answer are
+# `btclib-org/.github`'s `reusable-claude-review.yml`, called at `@main`
+# so a fix there reaches this tree in one landing. What stays here is the
+# trigger, the concurrency group, the permissions, the paragraph about
+# what this tree ships and this header.
+#
+# Not a required check, and it must not become one. What it produces is a
+# review of type COMMENT, an opinion for the author to weigh, and a review
+# that gates a merge would make a model's judgement a branch rule.
+#
+# One calling job: a `uses:` job invokes the whole called workflow, so it
+# reaches both the callee's `review` and `mention`, and each declines the
+# events that are not its own.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: >-
+    claude-review-${{ github.event_name == 'pull_request'
+    && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  claude-review:
+    permissions:
+      contents: read
+      pull-requests: write # posting the review, and the reply to a mention
+      id-token: write # the OIDC token the action mints at its own startup
+    uses: btclib-org/.github/.github/workflows/reusable-claude-review.yml@main
+    with:
+      extra-prompt: |
+        This package runs a process, opens an RPC socket and a p2p
+        socket against a node it does not control, and offers back a
+        suite Bitcoin Core is meant to be able to run: a change that
+        widens what is accepted from a node, or that imports the node
+        itself rather than reaching it over a socket (rule 1 of issue
+        btclib-org/btclib#2220), is a finding until its test says
+        otherwise. A rule that is stated without the reason that chose
+        it, a claim no command re-derives, a count of anything, a second
+        wording of a fact stated elsewhere, and a rule whose own
+        repository does not keep it are the defects the organization's
+        standard names, and they are what to look for beside anything
+        specific to this package.
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

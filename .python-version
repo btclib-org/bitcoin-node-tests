@@ -1,0 +1,11 @@
+# An application takes the newest interpreter its dependencies allow,
+# not being there to be imported (section 1 of the organization
+# standard): this tree has no matrix and runs on one interpreter, so
+# .python-version and requires-python name the same release. 3.15 is
+# the newest with a release candidate out, which counts here, and
+# btclib and bitcoin-core-rpc, this tree's only two dependencies, both
+# install on it.
+#
+# A whole-line comment only: a trailing comment on the version line
+# makes uv ignore the file and fall back to a default interpreter.
+3.15

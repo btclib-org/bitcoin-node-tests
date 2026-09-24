@@ -1,0 +1,62 @@
+---
+# two of the three ecosystems this repository has: the pre-commit hook
+# revisions are left out because dependabot has no pre-commit ecosystem;
+# pre-commit.ci updates them instead, weekly, as configured in the ci:
+# block of .pre-commit-config.yaml -- except a hook whose repo: is local,
+# which autoupdate does not reach: typos moves by a hand edit of its
+# additional_dependencies.
+#
+# every pull request here runs the whole merge gate, so each ecosystem
+# groups its updates into a single pull request rather than paying for
+# that once each. Neither declares a target-branch: without one dependabot
+# opens against the default branch, which is the only branch a change
+# lands on -- and a target-branch naming a branch that is not there is
+# not an error anywhere, it is a repository where nothing is proposed.
+#
+# The seven day cooldown is what the interval trades against: a
+# compromised release is usually yanked within days, so nothing is offered
+# before it has been public a week.
+#
+# The uv ecosystem's own scheduled run fails here, on this repository
+# alone of the organization's: `requires-python = ">=3.15"`, a release
+# candidate decided by the maintainer 2026-09-24, and Dependabot's own
+# Python-version detection tops out at 3.14 (`tool_version_not_supported`,
+# read from a run's own job log,
+# `gh run view <id> --log-failed`) -- a gap in the service and not in
+# this file, left as a decision rather than worked around by lowering the
+# floor.
+version: 2
+updates:
+  # every action is pinned to a commit SHA, which nothing but this
+  # moves: without it a pin is frozen, and a fix (or a security advisory)
+  # upstream would never reach this repository
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      # thursday: section 10 of the organization's standard gives every
+      # repository this day for Dependabot, a slot rather than a census --
+      # a tree with no deps-latest of its own still runs on it
+      day: thursday
+    groups:
+      actions:
+        patterns: ["*"]
+    cooldown:
+      default-days: 7
+
+  # uv.lock is committed and the workflows install from it with --locked,
+  # while the dependency groups declare a floor and no ceiling: the drift
+  # of btclib, bitcoin-core-rpc and the tooling above those floors lives
+  # in the lock file, and this is the only thing that moves it. The
+  # uv-lock pre-commit hook re-locks what pyproject.toml changed and
+  # upgrades nothing on its own
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: thursday
+    groups:
+      dev-tooling:
+        patterns: ["*"]
+    cooldown:
+      default-days: 7

@@ -51,3 +51,9 @@ on bitcoind, fails on btclib-node (issue btclib-org/btclib-node#1072).
 Both link `GOVERNANCE.md`, how the organization decides, and `ROADMAP.md`, what
 it intends to do, one copy of each in btclib-org/.github (issue
 btclib-org/.github#1359).
+
+### The first family joins `p2p_getdata`, and a capability for `sendmsgtopeer`
+
+`p2p_block_sync`, `p2p_compactblocks_hb`, `p2p_invalid_locator` and
+`p2p_net_deadlock` join `p2p_getdata`, against bitcoind and btclib-node.
+(closes #2)

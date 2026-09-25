@@ -9,14 +9,16 @@ node declares its capabilities, a test needing one the node lacks skips,
 and the run prints a skip count per capability -- a number the node's own
 tracker can read, never a silent pass. A capability names what a node
 *can do*, not how it spells the call that does it: `Capability.CONNECT`
-covers `addnode`/`getnetworkinfo` today because that is the one spelling
-both adapters share, and a node reaching it another way would still
-declare the same member.
+covers what `node.connect_nodes` does today because that is the one way
+both adapters answer it alike, and a node reaching it another way would
+still declare the same member.
 
-`p2p_getdata`, this step's own test, needs neither member below: it asks
-only for what every adapter provides unconditionally -- a running node,
-its RPC and its p2p port -- so `require` is exercised by
-`tests/capability_test.py` rather than by that test.
+`p2p_getdata`, step 3's own test, needs none of the members below: it
+asks only for what every adapter provides unconditionally -- a running
+node, its RPC and its p2p port -- so `require` is exercised by
+`tests/capability_test.py` rather than by that test. The first family's
+other four tests, step 4's, are what exercises `MINE`, `CONNECT` and
+`RAW_MESSAGE` each.
 
 **This module imports no test runner.** `pyproject.toml`'s own
 `[project] dependencies` name two packages and no third (this
@@ -66,11 +68,16 @@ class Capability(Enum):
     tip, however it gets there: `generatetoaddress` for a node with a
     wallet, a client-built block over `submitblock` for one without.
     `CONNECT` -- accept a second node of its own kind as a peer, the way
-    Core's `connect_nodes` does with `addnode` and `getnetworkinfo`.
+    `node.connect_nodes` dials and waits for one.
+    `RAW_MESSAGE` -- send an arbitrary p2p message to an already-connected
+    peer, named by that peer's own index, the way Core's `sendmsgtopeer`
+    does on the node under test's behalf; `p2p_net_deadlock`'s own
+    subject needs a node that offers it, and today only bitcoind does.
     """
 
     MINE = "mine"
     CONNECT = "connect"
+    RAW_MESSAGE = "raw_message"
 
 
 class SkipCounts:

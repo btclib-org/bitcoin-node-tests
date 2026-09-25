@@ -22,9 +22,11 @@ from collections.abc import Iterator
 
 import pytest
 from btclib.block import genesis_block
+from btclib.exceptions import BTClibValueError
 from btclib.p2p import (
     BlockPayload,
     GetData,
+    GetHeaders,
     Inventory,
     Message,
     Ping,
@@ -33,6 +35,7 @@ from btclib.p2p import (
     Version,
     WtxidRelay,
 )
+from btclib.p2p.limits import MAX_LOCATOR_SZ
 from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.node import free_port
@@ -268,6 +271,36 @@ def test_fake_node_receive_raises_when_the_peer_closes_first(
     peer.close()
     with pytest.raises(Exception):
         fake_node._receive()
+
+
+def test_send_check_validity_false_reaches_to_message_not_only_serialize(
+    fake_node: _FakeNode,
+) -> None:
+    """`check_validity=False` is what lets an over-long locator be sent at all.
+
+    `p2p_invalid_locator`'s own subject: `GetHeaders.assert_valid` refuses
+    a locator over `MAX_LOCATOR_SZ`, which is the wire behaviour the test
+    is about, so sending one needs the construction and the framing both
+    to skip that check -- not only `Payload.serialize`, which
+    `to_message` already forwards this to.
+    """
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=fake_node.answer_handshake)
+        server_thread.start()
+        peer.handshake()
+        server_thread.join(timeout=5.0)
+
+        locator = [secrets.token_bytes(32) for _ in range(MAX_LOCATOR_SZ + 1)]
+        message = GetHeaders(locator=locator, check_validity=False)
+        with pytest.raises(BTClibValueError, match="locator"):
+            peer.send(message)
+
+        peer.send(message, check_validity=False)
+        received = fake_node._receive()
+        assert received.command == "getheaders"
+    finally:
+        peer.close()
 
 
 def test_context_manager_closes_the_socket(fake_node: _FakeNode) -> None:

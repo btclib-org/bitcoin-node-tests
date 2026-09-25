@@ -732,9 +732,35 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 
 | Core test | pin | read at | bitcoind | btclib-node |
 | --- | --- | --- | --- | --- |
+| `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
+| `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) |
+| `p2p_invalid_locator.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
+| `p2p_net_deadlock.py` | `a0473442d1c2` | 2024-07-16 | pass | skip (raw_msg) |
 
 `p2p_getdata.py`'s row is a smaller claim than Core's own test: Core
 asks its "later valid `getdata`" question of a mined tip, and this asks
 it of genesis instead, `Capability.MINE` not being every node's fact
 yet. The invalid-`getdata`-then-`ping` half is unchanged from Core's.
+Step 4 ([ISS bitcoin-node-tests#2](https://github.com/btclib-org/bitcoin-node-tests/issues/2))
+re-asked whether that claim should widen now that `Capability.MINE`
+exists: it does not, because the reason it was narrowed is unchanged --
+`BtclibNodeAdapter` still does not declare `Capability.MINE`
+([ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
+is still open) -- and widening only the bitcoind half of this row would
+leave its own column and btclib-node's answering a different question
+about the same test.
+
+The rows besides `p2p_getdata.py`'s are Core's own claim in full,
+`bitcoind`'s pass being the whole of it: none narrows what Core asks,
+each needing `Capability.MINE` (`p2p_block_sync.py`,
+`p2p_compactblocks_hb.py`, `p2p_invalid_locator.py`, to reach a chain
+tall enough to mine or to name) or `Capability.RAW_MESSAGE`
+(`p2p_net_deadlock.py`, Core's own `sendmsgtopeer`) that
+`BtclibNodeAdapter` does not declare, so every `btclib-node` cell is a
+counted skip rather than a run -- naming the capability rather than the
+RPC, since a node offering the same fact under another name would still
+answer `pass`. `p2p_compactblocks_hb.py` identifies each of the node
+under test's own peers by connection order rather than by the
+`-uacomment` Core's own `TestNode` sets, this adapter carrying no
+per-node command-line option; every other assertion is unchanged.

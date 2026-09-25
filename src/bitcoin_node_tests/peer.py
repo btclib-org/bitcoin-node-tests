@@ -83,9 +83,18 @@ class Peer:
     def __exit__(self, *exc_info: object) -> None:
         self.close()
 
-    def send(self, payload: Payload) -> None:
-        """Frame `payload` for this connection's own network, and send it."""
-        self._socket.sendall(payload.to_message(self._magic).serialize())
+    def send(self, payload: Payload, *, check_validity: bool = True) -> None:
+        """Frame `payload` for this connection's own network, and send it.
+
+        :param payload: the message to send.
+        :param check_validity: forwarded to `Payload.to_message`.
+            `False` is what `p2p_invalid_locator`'s own subject needs: a
+            locator over `MAX_LOCATOR_SZ` is exactly the octets a node's
+            own refusal is asked about, and `assert_valid` refuses to
+            build one at all where this stayed `True`.
+        """
+        message = payload.to_message(self._magic, check_validity=check_validity)
+        self._socket.sendall(message.serialize())
 
     def receive(self, *, timeout: float | None = None) -> Message:
         """Return the next whole message, reading more off the socket as needed.

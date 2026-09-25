@@ -62,11 +62,11 @@ jobs:
       integration-env-var: TF2_INTEGRATION
       bitcoind-path-env-var: TF2_BITCOIND
       # this job's own environment has no btclib-node interpreter to
-      # point TF2_BTCLIB_NODE_PYTHON at, so `p2p_getdata_btclib_node_test.py`
+      # point TF2_BTCLIB_NODE_PYTHON at, so every `*_btclib_node_test.py`
       # skips here rather than running -- a legitimate skip the reusable
       # job's own "did the node tests run" check would otherwise flag.
-      # A JUnit classname is a module's, which is why that test stands in
-      # a module of its own rather than beside bitcoind's
+      # A JUnit classname is a module's, which is why each of those tests
+      # stands in a module of its own rather than beside bitcoind's
       exclude-classname: btclib_node
 
   btclib-node:
@@ -98,11 +98,11 @@ jobs:
           BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
         run: |
           "$BTCLIB_NODE_PYTHON" -m pip install --disable-pip-version-check btclib-node
-      - name: Run the integration test against btclib-node
+      - name: Run the integration tests against btclib-node
         env:
           BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
         run: |
           export TF2_INTEGRATION=1
           export TF2_BTCLIB_NODE_PYTHON="$BTCLIB_NODE_PYTHON"
           uv run --locked --no-default-groups --group test \
-            pytest tests/integration/p2p_getdata_btclib_node_test.py
+            pytest tests/integration/*_btclib_node_test.py

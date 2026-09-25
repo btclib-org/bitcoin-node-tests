@@ -20,7 +20,13 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 
 from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import NodeAdapter, connect_nodes, free_port
+from bitcoin_node_tests.node import (
+    NodeAdapter,
+    connect_nodes,
+    disconnect_nodes,
+    free_port,
+    wait_until_tips_agree,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
@@ -180,16 +186,147 @@ def test_rpc_property_returns_a_fresh_client_each_time(tmp_path: Path) -> None:
     assert len(calls) == 2
 
 
-def test_connect_nodes_addnodes_and_waits_for_a_connection(tmp_path: Path) -> None:
-    """`connect_nodes` dials over `addnode` and polls `getnetworkinfo`.
+class _PeerInfoSequenceRpc(_FakeRpc):
+    """Answers `getpeerinfo` with each of `answers` in turn, holding the last.
 
-    `getnetworkinfo` answers no connection on its first poll, so the wait
-    also covers the loop's own retry -- `time.sleep` between one poll and
-    the next -- rather than only the immediate-success and the
-    never-succeeds paths.
+    Every other method answers `_FakeRpc`'s own default, `addnode`
+    included -- this is a fake for `connect_nodes`'s own `getpeerinfo`
+    polls, not for the one `addnode` call ahead of them.
     """
 
-    class _NetworkInfoRpc(_FakeRpc):
+    def __init__(self, answers: list[object]) -> None:
+        super().__init__()
+        self._answers = answers
+        self._index = 0
+
+    @override
+    def call(self, method: str, params: list[object] | None = None) -> object:
+        super().call(method, params)
+        if method != "getpeerinfo":
+            return None
+        answer = self._answers[min(self._index, len(self._answers) - 1)]
+        self._index += 1
+        return answer
+
+
+def test_connect_nodes_addnodes_then_waits_on_both_sides_and_their_handshake(
+    tmp_path: Path,
+) -> None:
+    """`connect_nodes` dials over `addnode onetry`, then waits three times.
+
+    `first`'s own `getpeerinfo` answers a non-list once (an RPC hiccup,
+    covering the branch a `list` answer never reaches), then a peer
+    that is not the one dialled ahead of one that is -- `getpeerinfo`
+    naming more than the one peer a call is about -- still short of a
+    `pong`, then the same pair again past it: bitcoind's own shape, a
+    peer short of `verack` listed regardless of state. `second`'s own
+    answers no peer at all, then one -- btclib-node's own shape, a peer
+    only ever listed once its handshake is already done, `pong` absent
+    from an entry `_wait_for_handshake` reads as already complete.
+    """
+    address = "127.0.0.1:2222"
+    first_rpc = _PeerInfoSequenceRpc(
+        [
+            {"chain": "regtest"},
+            [
+                {"id": 50, "addr": "127.0.0.1:5000", "inbound": False},
+                {
+                    "id": 7,
+                    "addr": address,
+                    "inbound": False,
+                    "bytesrecv_per_msg": {"pong": 0},
+                },
+            ],
+            [
+                {"id": 99, "addr": "127.0.0.1:8888", "inbound": True},
+                {
+                    "id": 7,
+                    "addr": address,
+                    "inbound": False,
+                    "bytesrecv_per_msg": {"pong": 29},
+                },
+            ],
+        ]
+    )
+    second_rpc = _PeerInfoSequenceRpc(
+        [
+            [],  # before_second: nothing connected yet
+            [],  # first poll after dialling: still nothing
+            [{"id": 3, "addr": "127.0.0.1:9999", "inbound": True}],
+        ]
+    )
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=first_rpc)
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=second_rpc)
+    connect_nodes(first, second)
+    assert first_rpc.calls[0] == ("addnode", [address, "onetry"])
+
+
+def test_connect_nodes_raises_on_a_timeout(tmp_path: Path) -> None:
+    """A connection that never shows on either side is a `TimeoutError`."""
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
+    with pytest.raises(TimeoutError, match="never reported a connection to"):
+        connect_nodes(first, second, timeout=0.0)
+
+
+def test_connect_nodes_raises_where_only_second_never_shows_the_peer(
+    tmp_path: Path,
+) -> None:
+    """`first` matching but `second` never showing it is `second`'s error."""
+    address = "127.0.0.1:2222"
+    first_rpc = _PeerInfoSequenceRpc([[{"id": 1, "addr": address, "inbound": False}]])
+    second_rpc = _PeerInfoSequenceRpc([[]])
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=first_rpc)
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=second_rpc)
+    with pytest.raises(TimeoutError, match="never reported a connection from"):
+        connect_nodes(first, second, timeout=0.15)
+
+
+def test_connect_nodes_raises_where_the_handshake_never_completes(
+    tmp_path: Path,
+) -> None:
+    """Both sides showing the peer, but no `pong`, is its own `TimeoutError`.
+
+    `first`'s own handshake wait sees a non-list answer once, then a
+    peer that is not the one dialled, before settling on the one that
+    is with its own `pong` stuck below the bound -- every shape a poll
+    can answer without ever completing the handshake.
+    """
+    address = "127.0.0.1:2222"
+    matching_peer = {
+        "id": 1,
+        "addr": address,
+        "inbound": False,
+        "bytesrecv_per_msg": {"pong": 0},
+    }
+    first_rpc = _PeerInfoSequenceRpc(
+        [
+            [matching_peer],  # first_peer's own match, for `_wait_for_peer`
+            {"chain": "regtest"},  # handshake poll: not a list at all
+            [{"id": 88, "addr": "127.0.0.1:7777", "inbound": True}],  # no match
+            [matching_peer],  # held: matches, but its own `pong` never arrives
+        ]
+    )
+    second_rpc = _PeerInfoSequenceRpc(
+        [[], [{"id": 3, "addr": "127.0.0.1:9999", "inbound": True}]]
+    )
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=first_rpc)
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=second_rpc)
+    with pytest.raises(TimeoutError, match="never completed its own handshake"):
+        connect_nodes(first, second, timeout=0.5)
+
+
+def test_disconnect_nodes_disconnectnodes_and_waits_for_the_peer_to_go(
+    tmp_path: Path,
+) -> None:
+    """`disconnect_nodes` calls `disconnectnode` and polls `getpeerinfo`.
+
+    `getpeerinfo` still names the peer on its first poll, so the wait
+    also covers the loop's own retry, matching
+    `test_connect_nodes_addnodes_and_waits_for_a_connection` above.
+    """
+
+    class _PeerInfoRpc(_FakeRpc):
         def __init__(self) -> None:
             super().__init__()
             self._polls = 0
@@ -197,22 +334,73 @@ def test_connect_nodes_addnodes_and_waits_for_a_connection(tmp_path: Path) -> No
         @override
         def call(self, method: str, params: list[object] | None = None) -> object:
             super().call(method, params)
-            if method == "getnetworkinfo":
+            if method == "getpeerinfo":
                 self._polls += 1
-                return {"connections": 1 if self._polls > 1 else 0}
+                if self._polls == 1:
+                    return [{"addr": "127.0.0.1:2222"}]
+                return []
             return None
 
-    first = _FakeAdapter(
-        "fake-node", tmp_path / "first", 0, 1111, rpc=_NetworkInfoRpc()
-    )
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_PeerInfoRpc())
     second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
-    connect_nodes(first, second)
-    assert first._rpc.calls[0] == ("addnode", ["127.0.0.1:2222", "add"])
+    disconnect_nodes(first, second)
+    assert first._rpc.calls[0] == ("disconnectnode", ["127.0.0.1:2222"])
 
 
-def test_connect_nodes_raises_on_a_timeout(tmp_path: Path) -> None:
-    """A connection that never shows in `getnetworkinfo` is a `TimeoutError`."""
+def test_disconnect_nodes_ignores_a_peer_at_a_different_address(
+    tmp_path: Path,
+) -> None:
+    """A `getpeerinfo` entry naming another address does not block the wait."""
+
+    class _OtherPeerRpc(_FakeRpc):
+        @override
+        def call(self, method: str, params: list[object] | None = None) -> object:
+            super().call(method, params)
+            if method == "getpeerinfo":
+                return [{"addr": "127.0.0.1:9999"}]
+            return None
+
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_OtherPeerRpc())
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
+    disconnect_nodes(first, second)
+
+
+def test_disconnect_nodes_raises_on_a_timeout(tmp_path: Path) -> None:
+    """A deadline already past skips the loop, matching `connect_nodes`."""
     first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
     second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
-    with pytest.raises(TimeoutError, match="never reported a connection"):
-        connect_nodes(first, second, timeout=0.0)
+    with pytest.raises(TimeoutError, match="still reports a peer"):
+        disconnect_nodes(first, second, timeout=0.0)
+
+
+def test_wait_until_tips_agree_returns_once_every_hash_matches(
+    tmp_path: Path,
+) -> None:
+    """The wait ends the moment every node's `getbestblockhash` agrees."""
+
+    class _TipRpc(_FakeRpc):
+        def __init__(self, hashes: list[str]) -> None:
+            super().__init__()
+            self._hashes = iter(hashes)
+
+        @override
+        def call(self, method: str, params: list[object] | None = None) -> object:
+            super().call(method, params)
+            assert method == "getbestblockhash"
+            return next(self._hashes)
+
+    first = _FakeAdapter(
+        "fake-node", tmp_path / "first", 0, 1111, rpc=_TipRpc(["a", "b"])
+    )
+    second = _FakeAdapter(
+        "fake-node", tmp_path / "second", 0, 2222, rpc=_TipRpc(["b", "b"])
+    )
+    wait_until_tips_agree([first, second])
+
+
+def test_wait_until_tips_agree_raises_on_a_timeout(tmp_path: Path) -> None:
+    """A deadline already past skips the loop, matching `connect_nodes`."""
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
+    with pytest.raises(TimeoutError, match="did not converge"):
+        wait_until_tips_agree([first, second], timeout=0.0)

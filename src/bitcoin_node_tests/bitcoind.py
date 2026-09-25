@@ -44,10 +44,15 @@ class BitcoindAdapter(NodeAdapter):
     creates on first use; `Capability.CONNECT` is `node.connect_nodes`
     (`node.py`), unconditional here since bitcoind answers `addnode` and
     `getnetworkinfo` the way every Core-compatible node does.
+    `Capability.RAW_MESSAGE` is `sendmsgtopeer`, a debug RPC this release
+    answers (measured against the pinned `31.1`: not in `help`'s own
+    listing, which is for discoverability rather than availability, but
+    `help sendmsgtopeer` answers its own signature) and which no other
+    adapter's node offers yet.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
-        {Capability.MINE, Capability.CONNECT}
+        {Capability.MINE, Capability.CONNECT, Capability.RAW_MESSAGE}
     )
 
     def __init__(

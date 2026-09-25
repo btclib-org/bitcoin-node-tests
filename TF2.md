@@ -743,6 +743,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_leak.py` (log) | `01b8a117d2c5` | 2026-06-04 | pass | skip |
 | `p2p_net_deadlock.py` | `a0473442d1c2` | 2024-07-16 | pass | skip (raw_msg) |
 | `feature_uacomment.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
+| `rpc_uptime.py` | `406c2348ddbf` | 2026-06-13 | pass | skip (clock) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -867,3 +868,8 @@ is what puts it in this family's own census, but the test also removes
 `datadir_path`/`blocks/` pattern does not match either -- so it needs
 the disk family regardless of what `-test` itself turns out to name,
 and belongs with ISS 14 rather than this one.
+
+`rpc_uptime.py`'s row is Core's own claim in full: a single node,
+`Capability.CLOCK` (Core's own `setmocktime`) the only fact it asks for,
+so `btclib-node`'s cell is a counted skip on that capability rather than
+a narrowed question.

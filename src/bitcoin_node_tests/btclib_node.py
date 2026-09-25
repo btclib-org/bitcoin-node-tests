@@ -40,6 +40,10 @@ p2p, which this repository's own `Capability.CONNECT` already reaches.
 `Capability.UA_COMMENT` is not declared: measured against `cli.py`'s
 own `_build_parser` at `btclib-node` `18b6ae1e`, `-uacomment` is not
 one of its registered flags.
+
+`Capability.CLOCK` is not declared: `setmocktime` names no callback in
+`src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at
+`btclib-node` `18b6ae1e2c74`.
 """
 
 from __future__ import annotations

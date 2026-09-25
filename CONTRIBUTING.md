@@ -335,6 +335,41 @@ TF2_INTEGRATION=1 uv run pytest tests/integration
 [tests/README.md](./tests/README.md) is where the suite and its
 convention tests are described.
 
+`TF2_BITCOIND` and `TF2_BTCLIB_NODE_PYTHON` name a node built or
+installed from a checkout of the developer's own -- a Bitcoin Core
+developer's `master`, a btclib-node developer's `main` -- commonly a
+clone beside this one (`../bitcoin`, `../btclib-node`) rather than a
+copy inside this tree.
+
+A Bitcoin Core developer, against a `bitcoind` built from `master`
+(Core's `src/CMakeLists.txt` sets `CMAKE_RUNTIME_OUTPUT_DIRECTORY` to
+the build directory's `bin/`):
+
+```shell
+cmake -S ../bitcoin -B ../bitcoin/build
+cmake --build ../bitcoin/build
+TF2_INTEGRATION=1 \
+    TF2_BITCOIND=../bitcoin/build/bin/bitcoind \
+    uv run pytest tests/integration
+```
+
+A btclib-node developer, against their own checkout's own environment,
+where `uv sync` installs `btclib-node` editable -- this project's own
+`requires-python` cannot satisfy `btclib-node`'s dependency on
+`rocksdict`, so it is never the interpreter running `pytest`:
+
+```shell
+uv sync --project ../btclib-node
+TF2_INTEGRATION=1 \
+    TF2_BTCLIB_NODE_PYTHON=../btclib-node/.venv/bin/python \
+    uv run pytest tests/integration
+```
+
+Both nodes at once run every test that needs one against both, a
+disagreement between them being a finding rather than a failure of the
+suite (rule 3 of
+[ISS 2220](https://github.com/btclib-org/btclib/issues/2220)).
+
 The gate is the suite, the hooks and the documentation build:
 
 ```shell

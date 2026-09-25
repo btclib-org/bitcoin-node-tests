@@ -792,6 +792,13 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_framework_miniwallet.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip |
 | `mempool_resurrect.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_spend_coinbase.py` | `6eca11175be6` | 2026-07-16 | pass | skip |
+| `feature_dersig.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
+| `feature_dersig.py` (wire) | same | same | pass | skip |
+| `feature_dersig.py` (log) | same | same | pass | skip |
+| `feature_cltv.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
+| `feature_cltv.py` (wire) | same | same | pass | skip |
+| `feature_cltv.py` (log) | same | same | pass | skip |
+| `feature_csv_activation.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1386,3 +1393,38 @@ MiniWallet-touching file asks for a wallet (`createwallet`, out for good,
 rule 3's own exclusion), the log, the disk or the clock alongside
 MiniWallet, or an option -- ISS 14's once every step-5 mechanism lands,
 the wallet files excepted.
+
+`feature_dersig.py`, `feature_cltv.py` and `feature_csv_activation.py`
+are ISS 14's own softfork-activation-height trio, the option and
+MiniWallet families' first tests to need both mechanisms together:
+`-testactivationheight=<deployment>@<height>` (`Capability.TEST_ACTIVATION_HEIGHT`,
+`capability.py`) holds one buried deployment inactive until a chosen
+height, and `MiniWallet.generate` (`Capability.MINE`) mines to it with
+no node wallet. Each is a smaller claim than Core's own file, declared
+rather than silent, its own `*_bitcoind_test.py` module docstring
+carrying the full argument: kept is `getdeploymentinfo`'s own transition
+one block before the configured height, and, for `feature_dersig.py`
+and `feature_cltv.py`, the buried-deployment version floor a too-low
+block version trips once the deployment is active -- `bad-version(0x...)`,
+`submitblock`'s own answer and, on a row of its own, the same wording in
+bitcoind's own debug log. Dropped from every one of them: every check
+needing a real signature or a caller-chosen tapscript leaf --
+`feature_dersig.py`'s own non-DER signature, `feature_cltv.py`'s own
+`OP_CHECKLOCKTIMEVERIFY` failure reasons, and the whole of
+`feature_csv_activation.py`'s own body, BIP68's relative locktimes,
+BIP112's `OP_CHECKSEQUENCEVERIFY` and BIP113's median-time-past cutover
+included -- `MiniWallet`'s own `ADDRESS_OP_TRUE` coins spend through one
+fixed tapscript leaf carrying neither opcode, and building one that does
+is a capability neither this trio nor the mechanisms it already
+combines reaches; each of these checks stays open under this issue.
+`feature_csv_activation.py` gains no version-floor row the way its
+siblings do: `src/validation.cpp`'s own `ContextualCheckBlockHeader`
+reads only `DEPLOYMENT_HEIGHTINCB`, `DEPLOYMENT_DERSIG` and
+`DEPLOYMENT_CLTV` for its version check, `DEPLOYMENT_CSV` never joining
+it, so there is no such refusal for CSV's own activation to produce.
+Every `btclib-node` cell across the trio is a counted skip on
+`Capability.TEST_ACTIVATION_HEIGHT` alone, ahead of `Capability.MINE`
+which every row also needs: measured against `cli.py`'s own
+`_build_parser`, `-testactivationheight` is not one of its registered
+flags on the build this repository's own `TF2_BTCLIB_NODE_PYTHON` names,
+so `require` never reaches the second capability at all.

@@ -49,6 +49,24 @@ disabling anything the way Core's own negation does
 `BtclibNodeAdapter` never declares the capability, on either build, so
 this test's own row here is a counted skip.
 
+`-rpcuser`/`-rpcpassword` and `-norpccookiefile` are recognised on the
+same build `-rpcauth` is, `cli.py`'s own `_RECOGNIZED_KEYS` naming all
+of them from the same commit -- measured live at `main`
+`cd61579e634787829206dc336c94affa0b58f5cf`, unrecognised entirely on the
+released build named above, so both are ported here gated on
+`Capability.RPC_AUTH_CONFIG` too. A build past
+[ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070)
+writes no cookie for either, exactly as bitcoind does not
+([ISS bitcoin-node-tests#34](https://github.com/btclib-org/bitcoin-node-tests/issues/34)),
+so `_rpc_client()`'s own default (`btclib_node.py`) would wait on a
+file the node never writes; `rpc_auth` (`NodeAdapter.__init__`,
+`node.py`) is what lets the tests below pass the credential they
+configured straight to the adapter instead. Of Core's own `test_auth`
+combinations, the `-rpcuser`/`-rpcpassword` test checks the right
+credential and a wrong password only: the wrong user and the wrong pair
+are left to `test_rpcauth_via_config_authenticates_and_refuses`, which
+drives all four through the same authentication.
+
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/rpc_users_btclib_node_test.py
 """
@@ -246,6 +264,54 @@ def test_norpcauth_disables_previous_rpcauth(
     try:
         assert _call(rpc_port, "user1", "bitcoin", "getbestblockhash") == 401
         assert _call(rpc_port, "user2", "bitcoin", "getbestblockhash") == 401
+    finally:
+        adapter.stop()
+
+
+def test_rpcuser_rpcpassword_authenticates_without_a_cookie(
+    btclib_node_python: str, tmp_path: Path, skip_counts: SkipCounts
+) -> None:
+    """`-rpcuser`/`-rpcpassword` authenticates; no cookie is ever written."""
+    datadir = tmp_path / "datadir"
+    rpc_port = free_port()
+    adapter = BtclibNodeAdapter(
+        btclib_node_python,
+        datadir,
+        rpc_port,
+        free_port(),
+        extra_args=("-rpcuser=bob", "-rpcpassword=bobpw"),
+        rpc_auth=("bob", "bobpw"),
+    )
+    require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
+    adapter.start()
+    try:
+        assert _call(rpc_port, "bob", "bobpw", "getbestblockhash") == 200
+        assert _call(rpc_port, "bob", "wrongpw", "getbestblockhash") == 401
+        assert not (datadir / "regtest" / ".cookie").exists()
+    finally:
+        adapter.stop()
+
+
+def test_norpccookiefile_writes_no_cookie_and_rpcauth_still_authenticates(
+    btclib_node_python: str, tmp_path: Path, skip_counts: SkipCounts
+) -> None:
+    """`-norpccookiefile` writes no cookie; a paired `-rpcauth` still works."""
+    datadir = tmp_path / "datadir"
+    rpc_port = free_port()
+    adapter = BtclibNodeAdapter(
+        btclib_node_python,
+        datadir,
+        rpc_port,
+        free_port(),
+        extra_args=(_RPCAUTH_USER1, "-norpccookiefile"),
+        rpc_auth=("user1", "bitcoin"),
+    )
+    require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
+    adapter.start()
+    try:
+        assert _call(rpc_port, "user1", "bitcoin", "getbestblockhash") == 200
+        assert _call(rpc_port, "user1", "wrongpw", "getbestblockhash") == 401
+        assert not (datadir / "regtest" / ".cookie").exists()
     finally:
         adapter.stop()
 

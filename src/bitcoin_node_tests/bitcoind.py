@@ -95,8 +95,9 @@ class BitcoindAdapter(NodeAdapter):
         rpc_port: int,
         p2p_port: int,
         extra_args: Sequence[str] = (),
+        rpc_auth: tuple[str, str] | None = None,
     ) -> None:
-        super().__init__(executable, datadir, rpc_port, p2p_port, extra_args)
+        super().__init__(executable, datadir, rpc_port, p2p_port, extra_args, rpc_auth)
         self._miner_wallet: str | None = None
 
     @override
@@ -135,11 +136,21 @@ class BitcoindAdapter(NodeAdapter):
 
     @override
     def _rpc_client(self) -> BitcoinCoreRpcClient:
-        """Return a client authenticating by the cookie `-datadir` writes."""
+        """Return a client authenticating the way this node was configured.
+
+        The cookie `-datadir` writes, unless `rpc_auth` (`NodeAdapter.__init__`)
+        names a credential instead: a node started with `-rpcuser`/
+        `-rpcpassword` or `-norpccookiefile` (`extra_args`) writes no
+        cookie at all, so nothing here can wait on a file that never
+        appears -- the caller that put either flag on the command line is
+        the one that already knows the credential to authenticate with.
+        """
+        url = f"http://127.0.0.1:{self._rpc_port}"
+        if self._rpc_auth is not None:
+            user, password = self._rpc_auth
+            return BitcoinCoreRpcClient(url, user=user, password=password)
         cookie_path = self._datadir / "regtest" / ".cookie"
-        return BitcoinCoreRpcClient(
-            f"http://127.0.0.1:{self._rpc_port}", cookie_path=cookie_path
-        )
+        return BitcoinCoreRpcClient(url, cookie_path=cookie_path)
 
     @property
     def debug_log_path(self) -> Path:

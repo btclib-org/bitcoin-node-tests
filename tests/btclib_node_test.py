@@ -68,6 +68,18 @@ def test_rpc_client_authenticates_with_a_placeholder_credential_pre_1070(
     assert client.url == "http://127.0.0.1:18443"
 
 
+def test_rpc_client_authenticates_with_rpc_auth_where_given(tmp_path: Path) -> None:
+    """`rpc_auth` overrides both the cookie and the placeholder credential."""
+    adapter = BtclibNodeAdapter(
+        sys.executable, tmp_path, 18443, 18444, rpc_auth=("bob", "bobpw")
+    )
+    with patch.object(btclib_node_module, "_writes_auth_cookie", return_value=True):
+        client = adapter._rpc_client()
+    assert client.cookie_path is None
+    assert client.user == "bob"
+    assert client.url == "http://127.0.0.1:18443"
+
+
 def test_init_refuses_extra_args_naming_port_the_command_sets(tmp_path: Path) -> None:
     """`-port`, this adapter's own p2p option, is refused rather than reused."""
     with pytest.raises(ValueError, match=r"^extra_args reuses -port\b"):

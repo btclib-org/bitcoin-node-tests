@@ -20,19 +20,33 @@ subprocess to generate two of its four credentials, and the
 `SystemRandom`-chosen username -- both a claim about that script rather
 than about `Capability.RPC_AUTH_CONFIG`, which `_rpcauth_line` below
 generates a credential for the same way `rpc_whitelist_bitcoind_test.py`
-already does. Dropped too: `-rpcuser`/`-rpcpassword` themselves and
-`-norpccookiefile`, and for the same reason. Core writes the RPC cookie
-unless `-rpcpassword` is set or `-norpccookiefile` is given, measured
-live against the pinned `31.1` -- `rpcauth` given alongside either does
-not bring the cookie back. `NodeAdapter.start` (`node.py`) waits for a
-freshly spawned node with the adapter's own `_rpc_client()`, which for
-`BitcoindAdapter` is always the cookie: a node configured either way
-never satisfies that wait, and `start` times out rather than the node
-ever answering RPC. Core's own equivalent test hits the identical gap
-and works around it with `busy_wait_for_debug_log`, an alternate
-readiness wait keyed on the debug log rather than RPC, which this
-repository's `NodeAdapter` does not build -- a mechanism for a later
-issue, not this one's. Ported, against its own capability rather than
+already does. `-rpcuser`/`-rpcpassword` and `-norpccookiefile` each
+write no RPC cookie, measured live against the pinned `31.1` --
+`rpcauth` given alongside either does not bring the cookie back -- so a
+client that waits on the cookie `_rpc_client()` (`bitcoind.py`)
+otherwise reads never sees one and `start` timed out rather than the
+node ever answering RPC
+([ISS bitcoin-node-tests#34](https://github.com/btclib-org/bitcoin-node-tests/issues/34)).
+`rpc_auth`
+(`NodeAdapter.__init__`, `node.py`) is what lets them back in: the
+caller that puts either flag in `extra_args` already knows the
+plaintext credential it chose there, exactly as Core's own harness
+knows the plaintext of whatever it wrote into `bitcoin.conf`, and
+passes it to the adapter instead of leaving the readiness wait on a
+cookie the node never writes. Core's own equivalent test hits the
+identical gap for `-norpccookiefile` alone and works around it with
+`busy_wait_for_debug_log`, an alternate readiness wait keyed on the
+debug log rather than RPC -- unneeded here, since `-norpccookiefile`
+below is paired with an `-rpcauth` value whose plaintext this file
+already holds, unlike Core's own `test_norpccookiefile`, which pairs it
+with a `-rpcauth` value `get_auth_cookie`
+(`test_framework/util.py`) has no way to recover the plaintext of from
+`bitcoin.conf` alone. Of Core's own `test_auth` combinations, the
+`-rpcuser`/`-rpcpassword` test checks the right credential and a wrong
+password only: the wrong user and the wrong pair go through the same
+comparison (`CheckUserAuthorized`, `httprpc.cpp`) that
+`test_rpcauth_via_config_authenticates_and_refuses` already drives
+through all four. Ported, against its own capability rather than
 `RPC_AUTH_CONFIG`: Core's own "-norpcauth disables previous -rpcauth
 params" check, `Capability.RPC_AUTH_NEGATION`
 (`capability.py`) -- a fact `BitcoindAdapter` declares unconditionally
@@ -245,6 +259,54 @@ def test_norpcauth_disables_previous_rpcauth(
         require(Capability.RPC_AUTH_NEGATION, adapter.capabilities, skip_counts)
         assert _call(rpc_port, "user1", "bitcoin", "getbestblockhash") == 401
         assert _call(rpc_port, "user2", "bitcoin", "getbestblockhash") == 401
+    finally:
+        adapter.stop()
+
+
+def test_rpcuser_rpcpassword_authenticates_without_a_cookie(
+    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+) -> None:
+    """`-rpcuser`/`-rpcpassword` authenticates; no cookie is ever written."""
+    datadir = tmp_path / "datadir"
+    rpc_port = free_port()
+    adapter = BitcoindAdapter(
+        bitcoind_path,
+        datadir,
+        rpc_port,
+        free_port(),
+        extra_args=("-rpcuser=bob", "-rpcpassword=bobpw"),
+        rpc_auth=("bob", "bobpw"),
+    )
+    adapter.start()
+    try:
+        require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
+        assert _call(rpc_port, "bob", "bobpw", "getbestblockhash") == 200
+        assert _call(rpc_port, "bob", "wrongpw", "getbestblockhash") == 401
+        assert not (datadir / "regtest" / ".cookie").exists()
+    finally:
+        adapter.stop()
+
+
+def test_norpccookiefile_writes_no_cookie_and_rpcauth_still_authenticates(
+    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+) -> None:
+    """`-norpccookiefile` writes no cookie; a paired `-rpcauth` still works."""
+    datadir = tmp_path / "datadir"
+    rpc_port = free_port()
+    adapter = BitcoindAdapter(
+        bitcoind_path,
+        datadir,
+        rpc_port,
+        free_port(),
+        extra_args=(_RPCAUTH_USER1, "-norpccookiefile"),
+        rpc_auth=("user1", "bitcoin"),
+    )
+    adapter.start()
+    try:
+        require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
+        assert _call(rpc_port, "user1", "bitcoin", "getbestblockhash") == 200
+        assert _call(rpc_port, "user1", "wrongpw", "getbestblockhash") == 401
+        assert not (datadir / "regtest" / ".cookie").exists()
     finally:
         adapter.stop()
 

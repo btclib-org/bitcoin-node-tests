@@ -147,3 +147,9 @@ builds a Core-style empty fork alongside it (issue #4).
 `test_size` disconnects like `test_magic_bytes`; most other new checks
 assert survival instead, and several rows fail on btclib-node, each
 against its own already-filed issue, `TF2.md` naming which. (issue #5)
+
+### README.md states the project's purpose, and how it is run
+
+A non-regression suite for any node, beside or replacing Core's own
+test framework; `CONTRIBUTING.md` gains the commands to run it
+against your own checkout (issue btclib-org/btclib#2220).

@@ -62,7 +62,10 @@ class BitcoindAdapter(NodeAdapter):
     `NodeAdapter.set_mock_time` (`node.py`) -- a regtest-only RPC in the
     same standing as `sendmsgtopeer` above (measured against the pinned
     `31.1`: also absent from `help`'s own listing, and also answering
-    `help setmocktime` directly).
+    `help setmocktime` directly). `Capability.RPC_AUTH_CONFIG` is
+    unconditional too: `rpcauth`, `rpcwhitelist` and
+    `rpcwhitelistdefault` are this binary's own `bitcoin.conf` keys,
+    read the same way regardless of which adapter wrote the file.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -74,6 +77,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.DEBUG_LOG,
             Capability.UA_COMMENT,
             Capability.CLOCK,
+            Capability.RPC_AUTH_CONFIG,
         }
     )
 

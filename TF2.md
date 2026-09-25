@@ -723,6 +723,12 @@ no test of this shape ever runs against one. `capability.py`'s own
 module docstring is the one place that states which options this
 covers, and does not decide it row by row here.
 
+A `btclib-node` cell may give a verdict on the build the row was
+measured against and another on a later build, where the capability it
+names is declared by a probe of the build rather than by the adapter's
+class: the row's own paragraph below names the probe and the issue it
+tracks.
+
 A pin or date cell reading **same** repeats the pin and date of the
 nearest row above it that names the same Core test file, the row width
 leaving no room to write them again.
@@ -743,6 +749,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | Core test | pin | read at | bitcoind | btclib-node |
 | --- | --- | --- | --- | --- |
 | `feature_blocksdir.py` | `0d1301b47a35` | 2026-03-24 | pass | skip (blk) |
+| `feature_filelock.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
+| `rpc_whitelist.py` | `fa24693819e0` | 2026-05-26 | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) |
@@ -788,6 +796,61 @@ bitcoind's carries.
 `RuntimeError` it raises on an early exit, which is what the tests above
 each check against
 ([ISS bitcoin-node-tests#19](https://github.com/btclib-org/bitcoin-node-tests/issues/19)).
+
+`feature_filelock.py`'s row is a smaller claim than Core's own file: the
+cookie- and PID-file persistence checks are dropped, being a fact about
+which files a refused second start happens to leave behind rather than
+about the lock itself, and the wallet-directory lock is dropped on the
+charter's own "wallet ... tests stay out". What is kept whole is the
+disk-family's own subject: a second process started over a datadir, or
+a blocksdir, a first one already holds is fatal on both nodes, matched
+against each one's own wording -- bitcoind's own "Cannot obtain a lock
+on directory ...", a clean init error, and btclib-node's own uncaught
+`Exception: IO error: While lock file: .../LOCK: Resource temporarily
+unavailable`, measured live rather than a friendly message this node
+does not write; the chainstate and the blocks databases are each their
+own `Rdict` (RocksDB), which is what raises it, not a lock this adapter
+or that one adds. That the second node crashes on an uncaught exception
+rather than exiting the way Core's own init error does is
+[ISS btclib-node#1147](https://github.com/btclib-org/btclib-node/issues/1147),
+filed on that repository's own tracker (rule 3): the row's verdict stays
+**pass** regardless, each node's stderr matched against its own wording
+rather than against a shared shape.
+
+`rpc_whitelist.py`'s row is a smaller claim than Core's own file: named
+users exercising `rpcwhitelist` and `rpcwhitelistdefault` rather than
+Core's own `strange_users` roster of malformed-input edge cases, a claim
+about that file's own hand-written config parser rather than about
+`rpcauth`/`rpcwhitelist`/`rpcwhitelistdefault` themselves, which is
+`Capability.RPC_AUTH_CONFIG` (`capability.py`) -- the disk family's own
+second capability, a `bitcoin.conf` key rather than a command-line
+option, written to `datadir_path` before a node ever starts with no
+adapter change needed. bitcoind declares it unconditionally;
+`BtclibNodeAdapter` declares it per instance rather than at the class
+level, and unlike every capability above this is not a fact about
+`btclib-node` itself fixed once and for all -- `cli.py`'s own
+`_RECOGNIZED_KEYS` already names `rpcauth`, `rpcwhitelist` and
+`rpcwhitelistdefault` on `main`, landed as
+[ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070)
+alongside the module `btclib_node.py`'s own `_writes_auth_cookie` already
+probes for cookie authentication; `__init__` declares the capability on
+an instance exactly where that same probe answers `True`, both facts
+landing in one commit. The build this repository's own
+`TF2_BTCLIB_NODE_PYTHON` names, the PyPI release `btclib_node.py`'s own
+docstring pins, predates that issue, so this row's `btclib-node` cell is
+a counted skip against it; an instance built with an executable naming a
+`main` build past #1070 declares the capability and runs the row's full
+assertions, matched against `rpc_whitelist_bitcoind_test.py`'s own
+claim.
+
+`rpc_users.py` needs the same `Capability.RPC_AUTH_CONFIG` and is not
+yet ported: Core's own file adds cookie-permission and
+platform-conditional checks (`test_rpccookieperms`, Windows's own open-fd
+branch in `feature_remove_pruned_files_on_startup.py`'s own neighbour)
+that `rpc_whitelist.py`'s own rows above do not carry, and sorting
+those into a further narrowed claim is
+[ISS bitcoin-node-tests#7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)'s
+own remaining work rather than this pull request's.
 
 `p2p_getdata.py`'s row is a smaller claim than Core's own test: Core
 asks its "later valid `getdata`" question of a mined tip, and this asks

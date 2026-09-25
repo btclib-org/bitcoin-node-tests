@@ -27,6 +27,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.DEBUG_LOG,
             Capability.UA_COMMENT,
             Capability.CLOCK,
+            Capability.RPC_AUTH_CONFIG,
         }
     )
 

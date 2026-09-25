@@ -23,6 +23,26 @@ def test_capabilities_are_connect_alone() -> None:
     assert BtclibNodeAdapter.capabilities == frozenset({Capability.CONNECT})
 
 
+def test_capabilities_gain_rpc_auth_config_where_the_build_writes_a_cookie(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a post-1070 executable declares both."""
+    with patch.object(btclib_node_module, "_writes_auth_cookie", return_value=True):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities == frozenset(
+        {Capability.CONNECT, Capability.RPC_AUTH_CONFIG}
+    )
+
+
+def test_capabilities_stay_connect_alone_where_the_build_does_not(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a pre-1070 executable keeps the class set."""
+    with patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities is BtclibNodeAdapter.capabilities
+
+
 def test_command_runs_python_dash_m_btclib_node(tmp_path: Path) -> None:
     """The argv is `python -m btclib_node ...`, never the console script."""
     adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)

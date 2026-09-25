@@ -134,6 +134,14 @@ class Capability(Enum):
     `TestNode.setmocktime`): every RPC and every p2p timeout this node
     reads the time through sees the caller's clock instead of the real
     one, until `0` is set to release it back.
+    `RPC_AUTH_CONFIG` -- recognise `rpcauth`, `rpcwhitelist` and
+    `rpcwhitelistdefault` written into `bitcoin.conf`, the way Core's
+    own `rpc_users` and `rpc_whitelist` add a credential or restrict its
+    RPC surface through the config file rather than the command line.
+    The disk family's own second capability
+    ([ISS bitcoin-node-tests#7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)):
+    the fact is `bitcoin.conf` itself, `datadir_path`'s own file, not a
+    fact the wire has a call for.
     """
 
     MINE = "mine"
@@ -143,6 +151,7 @@ class Capability(Enum):
     DEBUG_LOG = "debug_log"
     UA_COMMENT = "ua_comment"
     CLOCK = "clock"
+    RPC_AUTH_CONFIG = "rpc_auth_config"
 
 
 class SkipCounts:

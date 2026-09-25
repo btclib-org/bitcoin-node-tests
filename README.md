@@ -42,9 +42,12 @@ The adapter and the test families are later steps of that same issue.
 ## Contributing
 
 [CONTRIBUTING.md](./CONTRIBUTING.md) has the commands each CI job runs,
-verbatim. `uv sync` creates the environment; uv is the only tool that has
-to be installed. [REVIEWING.md](./REVIEWING.md) is what a pull request is
-answered against.
+verbatim. `uv sync` creates the environment; uv is the only tool that has to be
+installed. [REVIEWING.md](./REVIEWING.md) is what a pull request is answered
+against. How the organization decides, and who holds which role, is its
+[GOVERNANCE.md](https://github.com/btclib-org/.github/blob/main/GOVERNANCE.md);
+what it intends to do, and what it deliberately does not, is its
+[ROADMAP.md](https://github.com/btclib-org/.github/blob/main/ROADMAP.md).
 
 ## Links
 

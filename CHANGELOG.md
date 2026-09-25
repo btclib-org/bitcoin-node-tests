@@ -63,3 +63,9 @@ btclib-org/.github#1359).
 `NodeAdapter` gains `extra_args`; `Capability.BLK_FILES` names Core's
 `blk*.dat` layout, absent from btclib-node by decision (issue
 btclib-org/btclib-node#573). `feature_blocksdir` is ported (issue #7).
+
+### The printed skip count sums the whole run, not the controller's own
+
+Each `-n auto` worker hands its own tally to the controller through
+`workeroutput`, and the controller folds every one in before printing
+the total (closes #16).

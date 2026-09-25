@@ -44,7 +44,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Mapping
 
 __all__ = [
     "Capability",
@@ -117,6 +117,26 @@ class SkipCounts:
         if not lines:
             return "skips per capability: no test asked for one this run"
         return "skips per capability:\n" + "\n".join(lines)
+
+    def as_mapping(self) -> dict[str, int]:
+        """Return this tally as a plain `{capability.value: count}` mapping.
+
+        `tests/integration/conftest.py` is what this is for: an xdist
+        worker's own tally has to cross to the controller through
+        `workeroutput`, and the channel that carries it serializes plain
+        data, never an `Enum` member -- `add_mapping` is this method's
+        own inverse, on the controller's own tally.
+        """
+        return {capability.value: count for capability, count in self}
+
+    def add_mapping(self, mapping: Mapping[str, int]) -> None:
+        """Add counts from another tally's own `as_mapping` into this one.
+
+        :param mapping: a `{capability.value: count}` mapping, as
+            `as_mapping` returns.
+        """
+        for value, count in mapping.items():
+            self._counts[Capability(value)] += count
 
 
 def require(

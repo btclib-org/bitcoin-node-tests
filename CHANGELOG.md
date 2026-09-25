@@ -111,3 +111,9 @@ credential this adapter carried is used only where a build has none (closes #25)
 A `*_bitcoind_test.py` module with no `*_btclib_node_test.py` counterpart
 needs no `Capability`; `TF2.md`'s per-test ledger spells such a row
 `bitcoind only`. `feature_torcontrol` is the first (closes #23).
+
+### `p2p_invalid_messages` gains more `Misbehaving` checks in the log family
+
+Each is a wire disconnect and a `Capability.DEBUG_LOG`-gated log line;
+btclib-node's own oversized-`inv` check fails (issue
+btclib-org/btclib-node#1145). (issue #5)

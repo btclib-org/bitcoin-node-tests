@@ -44,12 +44,35 @@ one of its registered flags.
 `Capability.CLOCK` is not declared: `setmocktime` names no callback in
 `src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at
 `btclib-node` `18b6ae1e2c74`.
+
+`Capability.RPC_AUTH_CONFIG` is not a class-level fact the way the four
+above are, and unlike them this is not a fact about `btclib-node`
+itself: `cli.py`'s own `_RECOGNIZED_KEYS` at `18b6ae1e2c74` already names
+`rpcauth`, `rpcwhitelist` and `rpcwhitelistdefault`, landed by
+[ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070)
+alongside the cookie authentication `_writes_auth_cookie` above already
+probes for -- so it is a fact about which build the executable an
+instance is constructed with names, and `__init__` below declares it on
+that instance by riding on the same probe rather than by a second one:
+a build whose `btclib_node.rpc.auth` imports (`_writes_auth_cookie`
+returns `True`) also recognises those three keys, both having landed in
+the same commit. The class-level `capabilities` stays
+`frozenset({Capability.CONNECT})`, the fact true of every build; an
+instance built with an executable carrying `rpc.auth` gains
+`Capability.RPC_AUTH_CONFIG` on top of it. PyPI's `2026.9.24` release,
+what this repository's own `TF2_BTCLIB_NODE_PYTHON` names, predates that
+issue -- measured live to warn `ignoring unknown configuration value
+rpcauth` and start anyway rather than to enforce it -- so an instance
+built against it does not gain the capability; one built against a
+`main` carrying #1070 does.
 """
 
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Sequence
 from functools import lru_cache
+from pathlib import Path
 from typing import TYPE_CHECKING, override
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient
@@ -118,6 +141,32 @@ class BtclibNodeAdapter(NodeAdapter):
     """
 
     capabilities: AbstractSet[Capability] = frozenset({Capability.CONNECT})
+
+    @override
+    def __init__(
+        self,
+        executable: str,
+        datadir: Path,
+        rpc_port: int,
+        p2p_port: int,
+        extra_args: Sequence[str] = (),
+    ) -> None:
+        """Construct the adapter, then add `RPC_AUTH_CONFIG` where it holds.
+
+        `super().__init__` runs first -- `NodeAdapter.__init__`'s own
+        `_check_extra_args(self._command(), extra_args)` needs
+        `self._executable` set before `_command` above can be called, and
+        that guard is unaffected by which capabilities this instance ends
+        up declaring. `_writes_auth_cookie` is then the same probe
+        `_rpc_client` below already makes for cookie authentication, not
+        a second one: the module docstring's own paragraph on
+        `Capability.RPC_AUTH_CONFIG` is why one probe answers both. The
+        class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
+        is left untouched where the probe answers `False`.
+        """
+        super().__init__(executable, datadir, rpc_port, p2p_port, extra_args)
+        if _writes_auth_cookie(executable):
+            self.capabilities = type(self).capabilities | {Capability.RPC_AUTH_CONFIG}
 
     @override
     def _command(self) -> list[str]:

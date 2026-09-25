@@ -117,3 +117,9 @@ needs no `Capability`; `TF2.md`'s per-test ledger spells such a row
 Each is a wire disconnect and a `Capability.DEBUG_LOG`-gated log line;
 btclib-node's own oversized-`inv` check fails (issue
 btclib-org/btclib-node#1145). (issue #5)
+
+### `feature_filelock` and `rpc_whitelist` join the disk family
+
+`feature_filelock` passes on both nodes. `Capability.RPC_AUTH_CONFIG`
+names `bitcoin.conf`'s RPC-auth keys, absent from the pinned
+btclib-node build; `rpc_whitelist` is ported against it (issue #7).

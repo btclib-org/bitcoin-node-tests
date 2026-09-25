@@ -26,11 +26,14 @@ from bitcoin_node_tests.node import (
     connect_nodes,
     disconnect_nodes,
     free_port,
+    traced_transport,
     wait_until_tips_agree,
 )
+from bitcoin_node_tests.timeout_factor import set_factor
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
+    from urllib.request import Request
 
 
 class _FakeRpc:
@@ -93,6 +96,28 @@ def test_free_port_returns_a_bindable_port() -> None:
     port = free_port()
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", port))
+
+
+def test_traced_transport_prints_the_call_and_forwards_the_answer(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`--tracerpc`'s own wrapper prints both halves and changes nothing."""
+    from urllib.request import Request  # noqa: PLC0415
+
+    request = Request("http://127.0.0.1:1234", data=b'{"method": "getblockcount"}')
+
+    def _inner_transport(req: Request, timeout: float) -> tuple[int, bytes]:
+        assert req is request
+        assert timeout == 5.0
+        return 200, b'{"result": 1}'
+
+    traced = traced_transport(_inner_transport)
+    status, body = traced(request, 5.0)
+    assert (status, body) == (200, b'{"result": 1}')
+    printed = capsys.readouterr().out
+    assert "getblockcount" in printed
+    assert "200" in printed
+    assert "result" in printed
 
 
 def test_start_waits_for_the_rpc_and_creates_the_datadir(tmp_path: Path) -> None:
@@ -212,6 +237,22 @@ def test_start_raises_on_a_timeout(tmp_path: Path) -> None:
         adapter.start()
 
 
+def test_start_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
+    """`--timeout-factor` set to 0 collapses even a real startup timeout."""
+    adapter = _FakeAdapter(
+        "fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc(answers_after=10**6)
+    )
+    set_factor(0.0)
+    try:
+        with (
+            patch("subprocess.Popen", return_value=_FakeProcess()),
+            pytest.raises(TimeoutError, match="did not answer"),
+        ):
+            adapter.start()
+    finally:
+        set_factor(1.0)
+
+
 def test_stop_is_a_no_op_before_start(tmp_path: Path) -> None:
     """`stop` before `start` is a no-op, not a raise on a null process."""
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
@@ -229,6 +270,24 @@ def test_stop_terminates_and_waits(tmp_path: Path) -> None:
     process.terminate.assert_called_once()
     process.wait.assert_called_once_with(timeout=ANY)
     adapter.stop()  # a second stop is again a no-op, the process forgotten
+
+
+def test_stop_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
+    """`--timeout-factor` scales the wait for the process to exit too."""
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    process = MagicMock()
+    process.poll.return_value = None
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", return_value=process):
+        adapter.start()
+    set_factor(3.0)
+    try:
+        adapter.stop()
+    finally:
+        set_factor(1.0)
+    startup_timeout = node_module._STARTUP_TIMEOUT
+    process.wait.assert_called_once_with(timeout=3.0 * startup_timeout)
 
 
 def test_restart_stops_then_starts(tmp_path: Path) -> None:
@@ -358,6 +417,18 @@ def test_connect_nodes_raises_on_a_timeout(tmp_path: Path) -> None:
         connect_nodes(first, second, timeout=0.0)
 
 
+def test_connect_nodes_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
+    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
+    set_factor(0.0)
+    try:
+        with pytest.raises(TimeoutError, match="never reported a connection to"):
+            connect_nodes(first, second, timeout=1000.0)
+    finally:
+        set_factor(1.0)
+
+
 def test_connect_nodes_raises_where_only_second_never_shows_the_peer(
     tmp_path: Path,
 ) -> None:
@@ -462,6 +533,20 @@ def test_disconnect_nodes_raises_on_a_timeout(tmp_path: Path) -> None:
         disconnect_nodes(first, second, timeout=0.0)
 
 
+def test_disconnect_nodes_timeout_is_scaled_by_the_global_factor(
+    tmp_path: Path,
+) -> None:
+    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
+    set_factor(0.0)
+    try:
+        with pytest.raises(TimeoutError, match="still reports a peer"):
+            disconnect_nodes(first, second, timeout=1000.0)
+    finally:
+        set_factor(1.0)
+
+
 def test_wait_until_tips_agree_returns_once_every_hash_matches(
     tmp_path: Path,
 ) -> None:
@@ -493,3 +578,17 @@ def test_wait_until_tips_agree_raises_on_a_timeout(tmp_path: Path) -> None:
     second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
     with pytest.raises(TimeoutError, match="did not converge"):
         wait_until_tips_agree([first, second], timeout=0.0)
+
+
+def test_wait_until_tips_agree_timeout_is_scaled_by_the_global_factor(
+    tmp_path: Path,
+) -> None:
+    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
+    set_factor(0.0)
+    try:
+        with pytest.raises(TimeoutError, match="did not converge"):
+            wait_until_tips_agree([first, second], timeout=1000.0)
+    finally:
+        set_factor(1.0)

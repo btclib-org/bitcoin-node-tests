@@ -20,10 +20,22 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE", "AUTHORS.md"]
 authors = [{ name = "The btclib developers", email = "devs@btclib.org" }]
-# an application takes the newest interpreter its dependencies allow and
-# runs on it alone (section 1): .python-version and requires-python
-# name the same release
-requires-python = ">=3.15"
+# Departs from section 1's application rule (`.python-version` the
+# newest a dependency allows) and from btclib-org/.github#1324 (every
+# tree moves to 3.15 ahead of its release), by the maintainer's own
+# decision on issue bitcoin-node-tests#36: a Core developer runs this
+# suite with whatever Python they already have, and a release candidate
+# is one more interpreter to install for no dependency's sake. Measured
+# against this tree's own code and every dependency `uv.lock` resolves:
+# `typing.override` (PEP 698, used throughout the adapter) needs 3.12,
+# and so does `sphinx`, the tightest floor any group carries -- btclib
+# and bitcoin-core-rpc both allow back to 3.10, and nothing else in
+# `dev` asks for more than 3.12. `.python-version` and requires-python
+# still name the same release, this tree still running on one
+# interpreter (section 1); that interpreter is now the lowest one every
+# dependency and this tree's own syntax allow, not the newest one a
+# release candidate offers.
+requires-python = ">=3.12"
 dependencies = [
     # the two packages tf2 imports, and no third: it reaches a node over
     # a socket, never through an in-process import (issue
@@ -47,7 +59,7 @@ classifiers = [
     # window
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.15",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -105,14 +117,19 @@ docs = [
     "myst-parser>=5.1.0",
     "sphinx>=9.1.0",
 ]
-# btclib-node is not a dependency group of this project: measured live,
-# `uv sync` resolving it against this tree's own `requires-python =
-# ">=3.15"` fails outright -- its own dependency `rocksdict` ships no
-# `cp315` wheel yet, only up to `cp314`. So it needs its own
-# environment, on an interpreter of its own rather than this one, and
-# `tests/integration/conftest.py`'s `btclib_node_python` fixture is
-# where that interpreter is named (`TF2_BTCLIB_NODE_PYTHON`), never a
-# dependency group here.
+# btclib-node is not a dependency group of this project. Against this
+# tree's former `requires-python = ">=3.15"`, measured live, `uv sync`
+# resolving it failed outright: `rocksdict`, btclib-node's own
+# dependency, shipped no `cp315` wheel. That specific incompatibility is
+# gone now that requires-python reads ">=3.12" -- rocksdict ships a
+# `cp312` wheel, measured against its own PyPI listing -- but the
+# separation stays regardless: `tests/integration/conftest.py`'s
+# `btclib_node_python` fixture names an interpreter of its own
+# (`TF2_BTCLIB_NODE_PYTHON`) rather than this environment, so a
+# contributor who never touches `tests/integration` against btclib-node
+# never installs its compiled dependency either. Whether the two should
+# share one environment now that the version floor allows it is issue
+# bitcoin-node-tests#42.
 dev = [
     { include-group = "test" },
     { include-group = "lint" },
@@ -211,7 +228,7 @@ enable_error_code = [
     "unused-awaitable",
 ]
 warn_unreachable = true
-python_version = "3.15"
+python_version = "3.12"
 exclude = ["^build/"]
 
 [tool.ruff]

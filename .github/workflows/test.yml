@@ -61,12 +61,10 @@ jobs:
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
-          # section 1 counts a release candidate as released; unlike
-          # actions/setup-python, setup-uv needs no allow-prereleases
-          # flag for one -- there is none in its own action.yml, and a
-          # release candidate resolves the same way a release would,
-          # measured on a real run before this comment was written
-          python-version: "3.15"
+          # .python-version's own comment has the floor and why it is
+          # 3.12 rather than the newest interpreter a dependency allows
+          # (issue bitcoin-node-tests#36)
+          python-version: "3.12"
       - name: Run pytest under coverage
         run: uv run --locked --no-default-groups --group test pytest
 

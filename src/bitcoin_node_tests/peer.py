@@ -38,6 +38,8 @@ from btclib.p2p import (
     WtxidRelay,
 )
 
+from bitcoin_node_tests.timeout_factor import scaled
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -62,12 +64,14 @@ class Peer:
     :param magic: the four octets of the message start,
         `btclib.p2p.magic_from_chain("regtest")` for every node this
         step drives.
-    :param timeout: the default wait, on `handshake` and on `wait_for`.
+    :param timeout: the default wait, on `handshake` and on `wait_for`,
+        before `--timeout-factor`'s own scaling (`timeout_factor.scaled`).
     """
 
     def __init__(
         self, address: tuple[str, int], magic: bytes, *, timeout: float = 30.0
     ) -> None:
+        timeout = scaled(timeout)
         self._socket = socket.create_connection(address, timeout=timeout)
         self._magic = magic
         self._timeout = timeout
@@ -155,10 +159,14 @@ class Peer:
             beyond naming `command` -- matching a `pong`'s own nonce,
             say. Every message failing it is dropped exactly as one of
             the wrong command is.
-        :param timeout: how long to wait; `self._timeout` where `None`.
+        :param timeout: how long to wait, scaled by `--timeout-factor`
+            like every other explicit wait; `self._timeout` (scaled
+            already, at construction) where `None`.
         :raises TimeoutError: no matching message arrived in time.
         """
-        deadline = time.monotonic() + (self._timeout if timeout is None else timeout)
+        deadline = time.monotonic() + (
+            self._timeout if timeout is None else scaled(timeout)
+        )
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
@@ -183,11 +191,15 @@ class Peer:
         exactly as `wait_for` does, until either the socket closes or the
         deadline passes with it still open.
 
-        :param timeout: how long to wait; `self._timeout` where `None`.
+        :param timeout: how long to wait, scaled by `--timeout-factor`
+            like every other explicit wait; `self._timeout` (scaled
+            already, at construction) where `None`.
         :raises AssertionError: the connection was still open at the
             deadline.
         """
-        deadline = time.monotonic() + (self._timeout if timeout is None else timeout)
+        deadline = time.monotonic() + (
+            self._timeout if timeout is None else scaled(timeout)
+        )
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:

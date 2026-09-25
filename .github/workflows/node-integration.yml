@@ -22,12 +22,11 @@ name: node-integration
 # ordinary pull request already asks bitcoind the question, which is
 # most of what a weekly repeat would buy.
 #
-# `btclib-node` needs an interpreter this project's own `requires-python
-# = ">=3.15"` cannot give it: measured live, `uv sync` resolving
-# `btclib-node` against 3.15 fails outright on its own dependency
-# `rocksdict`, which ships no `cp315` wheel yet. So this job sets up a
-# second interpreter of its own, 3.14, installs `btclib-node` into that
-# one alone, and points `tests/integration/conftest.py`'s
+# `btclib-node` is kept out of this project's own environment regardless
+# of `requires-python` (issue bitcoin-node-tests#42's own question is
+# whether that should change now that the floor is 3.12). So this job
+# sets up a second interpreter of its own, 3.14, installs `btclib-node`
+# into that one alone, and points `tests/integration/conftest.py`'s
 # `TF2_BTCLIB_NODE_PYTHON` at it -- never at the interpreter running
 # `pytest` itself.
 #

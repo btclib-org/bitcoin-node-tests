@@ -22,6 +22,8 @@ from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 
+from bitcoin_node_tests.timeout_factor import scaled
+
 __all__ = [
     "assert_debug_log",
 ]
@@ -42,10 +44,12 @@ def assert_debug_log(
         since this context was entered, not against the whole file, so
         an earlier, unrelated line carrying the same words does not pass
         this.
-    :param timeout: how long to keep polling after the block exits.
+    :param timeout: how long to keep polling after the block exits,
+        before `--timeout-factor`'s own scaling (`timeout_factor.scaled`).
     :raises AssertionError: some substring never appeared within
         `timeout`.
     """
+    timeout = scaled(timeout)
     start_size = log_path.stat().st_size if log_path.exists() else 0
     yield
     deadline = time.monotonic() + timeout

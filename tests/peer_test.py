@@ -40,6 +40,7 @@ from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.node import free_port
 from bitcoin_node_tests.peer import Peer
+from bitcoin_node_tests.timeout_factor import set_factor
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -238,6 +239,48 @@ def test_wait_for_a_zero_timeout_never_reads_the_socket(fake_node: _FakeNode) ->
         peer.close()
 
 
+def test_wait_for_timeout_is_scaled_by_the_global_factor(fake_node: _FakeNode) -> None:
+    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=fake_node.answer_handshake)
+        server_thread.start()
+        peer.handshake()
+        server_thread.join(timeout=5.0)
+
+        set_factor(0.0)
+        try:
+            with pytest.raises(TimeoutError, match="never saw 'block'"):
+                peer.wait_for("block", timeout=1000.0)
+        finally:
+            set_factor(1.0)
+    finally:
+        peer.close()
+
+
+def test_peer_construction_timeout_is_scaled_by_the_global_factor(
+    fake_node: _FakeNode,
+) -> None:
+    """`--timeout-factor` reaches the constructor's own default too.
+
+    Inflating rather than collapsing here: `socket.create_connection`'s
+    own `timeout=0` puts the socket in non-blocking mode, which is not
+    what a factor of `0` means for a wait already past its deadline
+    (`wait_for`'s own tests, above) -- so this checks the multiplication
+    landed on the stored default directly rather than through a second
+    real connection attempt.
+    """
+    set_factor(100.0)
+    try:
+        peer = _connect_and_accept(fake_node)
+    finally:
+        set_factor(1.0)
+    try:
+        assert peer._timeout == pytest.approx(500.0)
+    finally:
+        peer.close()
+
+
 def test_receive_raises_on_a_closed_connection(fake_node: _FakeNode) -> None:
     """A socket closed mid-wait is a `ConnectionError`, not a silent hang."""
     peer = _connect_and_accept(fake_node)
@@ -388,5 +431,26 @@ def test_wait_for_disconnect_a_zero_timeout_never_reads_the_socket(
 
         with pytest.raises(AssertionError, match="not closed"):
             peer.wait_for_disconnect(timeout=0.0)
+    finally:
+        peer.close()
+
+
+def test_wait_for_disconnect_timeout_is_scaled_by_the_global_factor(
+    fake_node: _FakeNode,
+) -> None:
+    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=fake_node.answer_handshake)
+        server_thread.start()
+        peer.handshake()
+        server_thread.join(timeout=5.0)
+
+        set_factor(0.0)
+        try:
+            with pytest.raises(AssertionError, match="not closed"):
+                peer.wait_for_disconnect(timeout=1000.0)
+        finally:
+            set_factor(1.0)
     finally:
         peer.close()

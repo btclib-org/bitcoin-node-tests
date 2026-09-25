@@ -183,3 +183,9 @@ option and MiniWallet families, `TF2.md` naming what each drops (issue #14).
 `BitcoindAdapter` reads `Capability.MINE`'s own wallet dependency from the
 running binary; `feature_torcontrol` and the newly ported
 `p2p_bip434_feature` read the running build's own `getnetworkinfo` (closes #35).
+
+### A Core developer runs the suite with the options `test_framework` gives them
+
+`requires-python` moves to `3.12`. CONTRIBUTING.md maps `test_framework.py`
+and `test_runner.py`'s options to pytest's, `--nocleanup`, `--tracerpc`,
+`--timeout-factor` and `--v2transport` each gaining a real one (closes #36).

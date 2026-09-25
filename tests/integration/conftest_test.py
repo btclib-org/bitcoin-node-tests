@@ -113,3 +113,75 @@ def test_the_tally_is_unchanged_with_no_worker_split(
     result = _run(pytester, monkeypatch, "-p", "xdist", "-n", "0")
     result.assert_outcomes(passed=1, skipped=4)
     result.stdout.fnmatch_lines(["*skips per capability:", "mine: 3", "raw_message: 1"])
+
+
+# `--timeout-factor` and `--tracerpc` are `pytest_addoption`'s own, imported
+# here rather than restated: a nested session that never spawns a real node
+# still exercises the option's registration and, for `--timeout-factor`,
+# that `pytest_configure` actually sets `timeout_factor`'s own multiplier
+# -- issue bitcoin-node-tests#36
+_OPTION_CONFTEST = """
+    from tests.integration.conftest import pytest_addoption, pytest_configure
+"""
+
+_TIMEOUT_FACTOR_TEST = """
+    from bitcoin_node_tests.timeout_factor import scaled
+
+    def test_the_factor_option_reaches_the_module():
+        assert scaled(2.0) == 5.0
+"""
+
+
+def test_timeout_factor_option_sets_the_module_s_own_factor(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`--timeout-factor 2.5` is what `timeout_factor.scaled` then applies."""
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    pytester.makeconftest(_OPTION_CONFTEST)
+    pytester.makepyfile(_TIMEOUT_FACTOR_TEST)
+    result = pytester.runpytest_subprocess("--timeout-factor", "2.5")
+    result.assert_outcomes(passed=1)
+
+
+def test_timeout_factor_option_defaults_to_1x(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No `--timeout-factor` given: `1.0`, matching Core's own default."""
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    pytester.makeconftest(_OPTION_CONFTEST)
+    pytester.makepyfile("""
+        from bitcoin_node_tests.timeout_factor import scaled
+
+        def test_the_factor_is_unscaled():
+            assert scaled(2.0) == 2.0
+    """)
+    result = pytester.runpytest_subprocess()
+    result.assert_outcomes(passed=1)
+
+
+def test_tracerpc_option_defaults_to_false(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Unset, `--tracerpc` reads `False` -- Core's own `--tracerpc` default."""
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    pytester.makeconftest(_OPTION_CONFTEST)
+    pytester.makepyfile("""
+        def test_tracerpc_defaults_to_false(request):
+            assert request.config.getoption("--tracerpc") is False
+    """)
+    result = pytester.runpytest_subprocess()
+    result.assert_outcomes(passed=1)
+
+
+def test_tracerpc_option_is_recognized_when_given(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`--tracerpc` is a real option, not an "unrecognized arguments" error."""
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    pytester.makeconftest(_OPTION_CONFTEST)
+    pytester.makepyfile("""
+        def test_tracerpc_is_true(request):
+            assert request.config.getoption("--tracerpc") is True
+    """)
+    result = pytester.runpytest_subprocess("--tracerpc")
+    result.assert_outcomes(passed=1)

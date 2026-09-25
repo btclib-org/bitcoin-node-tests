@@ -75,6 +75,15 @@ it is refused as an unrecognised argument (the released build) or as an
 for a flag-shaped token no registered option names) rather than accepted
 and clearing every `-rpcauth` given before it. Filed as
 [ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176).
+
+`Capability.V2TRANSPORT` is never declared: `cli.py`'s own
+`_build_parser` names no `-v2transport` flag at all, measured at
+`btclib-node` `18b6ae1e2c74`, and `rpc/callbacks.py`'s own `addnode`
+reads a `v2transport` parameter only to discard it -- "`v2transport` is
+read and type-checked, matching Core's own optional third argument, and
+otherwise unused: BIP324 is not a transport this node speaks yet" is
+that module's own wording -- so there is no BIP324 codec behind either
+spelling for this capability to name.
 """
 
 from __future__ import annotations
@@ -86,9 +95,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, override
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient
+from bitcoin_core_rpc.transport import urlopen_transport
 
 from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import NodeAdapter
+from bitcoin_node_tests.node import NodeAdapter, traced_transport
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
@@ -161,6 +171,8 @@ class BtclibNodeAdapter(NodeAdapter):
         p2p_port: int,
         extra_args: Sequence[str] = (),
         rpc_auth: tuple[str, str] | None = None,
+        *,
+        trace_rpc: bool = False,
     ) -> None:
         """Construct the adapter, then add `RPC_AUTH_CONFIG` where it holds.
 
@@ -175,7 +187,15 @@ class BtclibNodeAdapter(NodeAdapter):
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
         is left untouched where the probe answers `False`.
         """
-        super().__init__(executable, datadir, rpc_port, p2p_port, extra_args, rpc_auth)
+        super().__init__(
+            executable,
+            datadir,
+            rpc_port,
+            p2p_port,
+            extra_args,
+            rpc_auth,
+            trace_rpc=trace_rpc,
+        )
         if _writes_auth_cookie(executable):
             self.capabilities = type(self).capabilities | {Capability.RPC_AUTH_CONFIG}
 
@@ -218,14 +238,27 @@ class BtclibNodeAdapter(NodeAdapter):
         `<datadir>/regtest/.cookie` layout, `chains.RegTest`'s own `name`
         matching bitcoind's `regtest` subdirectory. A build with no
         Core-style RPC authentication at all is given the placeholder
-        credential instead, which it never checks.
+        credential instead, which it never checks. `self._trace_rpc`
+        (`--tracerpc`) decides whether either path wraps its transport in
+        `traced_transport`'s own print, matching `BitcoindAdapter`.
         """
         url = f"http://127.0.0.1:{self._rpc_port}"
+        transport = (
+            traced_transport(urlopen_transport)
+            if self._trace_rpc
+            else urlopen_transport
+        )
         if self._rpc_auth is not None:
             user, password = self._rpc_auth
-            return BitcoinCoreRpcClient(url, user=user, password=password)
+            return BitcoinCoreRpcClient(
+                url, user=user, password=password, transport=transport
+            )
         if _writes_auth_cookie(self._executable):
             return BitcoinCoreRpcClient(
-                url, cookie_path=self._datadir / "regtest" / ".cookie"
+                url,
+                cookie_path=self._datadir / "regtest" / ".cookie",
+                transport=transport,
             )
-        return BitcoinCoreRpcClient(url, user=_RPC_USER, password=_RPC_PASSWORD)
+        return BitcoinCoreRpcClient(
+            url, user=_RPC_USER, password=_RPC_PASSWORD, transport=transport
+        )

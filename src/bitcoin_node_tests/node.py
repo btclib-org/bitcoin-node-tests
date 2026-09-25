@@ -26,8 +26,12 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
+from urllib.request import Request
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient
+from bitcoin_core_rpc.transport import HttpTransport
+
+from bitcoin_node_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -40,6 +44,7 @@ __all__ = [
     "connect_nodes",
     "disconnect_nodes",
     "free_port",
+    "traced_transport",
     "wait_until_tips_agree",
 ]
 
@@ -59,6 +64,30 @@ def free_port() -> int:
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         return int(probe.getsockname()[1])
+
+
+def traced_transport(transport: HttpTransport) -> HttpTransport:
+    """Wrap `transport`, printing every RPC exchange it carries.
+
+    Core's own `--tracerpc` (`test_framework.py`): "Print out all RPC
+    calls as they are made". `bitcoin_core_rpc.BitcoinCoreRpcClient`'s
+    own `transport=` is exactly the two-argument callable
+    (`bitcoin_core_rpc.transport.HttpTransport`) this wraps, an
+    already-built `Request` and a timeout answered with a status and a
+    body, so tracing needs no change to the client itself.
+
+    :param transport: the transport to wrap, `urlopen_transport`
+        (`bitcoin_core_rpc.transport`) unless a caller already passed
+        something else.
+    """
+
+    def _traced(request: Request, timeout: float) -> tuple[int, bytes]:
+        print(f"--> {request.full_url} {request.data!r}")  # noqa: T201
+        status, body = transport(request, timeout)
+        print(f"<-- {status} {body!r}")  # noqa: T201
+        return status, body
+
+    return _traced
 
 
 class _RpcProbe(Protocol):
@@ -224,6 +253,13 @@ class NodeAdapter(ABC):
     could derive from the command line after the fact: a `-rpcauth`
     value is a salted hash, and the plaintext behind it exists only where
     it was chosen.
+
+    `trace_rpc` is Core's own `--tracerpc`, restated per adapter rather
+    than as a global: a subclass's own `_rpc_client` reads
+    `self._trace_rpc` and wraps the transport it builds with
+    `traced_transport` where it is set, wrapping whichever client that
+    method already builds -- `rpc_auth`'s credential one included --
+    rather than this base class building the client itself.
     """
 
     capabilities: AbstractSet[Capability]
@@ -236,6 +272,8 @@ class NodeAdapter(ABC):
         p2p_port: int,
         extra_args: Sequence[str] = (),
         rpc_auth: tuple[str, str] | None = None,
+        *,
+        trace_rpc: bool = False,
     ) -> None:
         self._executable = executable
         self._datadir = datadir
@@ -244,6 +282,7 @@ class NodeAdapter(ABC):
         _check_extra_args(self._command(), extra_args)
         self._extra_args = tuple(extra_args)
         self._rpc_auth = rpc_auth
+        self._trace_rpc = trace_rpc
         self._process: subprocess.Popen[bytes] | None = None
 
     @abstractmethod
@@ -252,7 +291,11 @@ class NodeAdapter(ABC):
 
     @abstractmethod
     def _rpc_client(self) -> BitcoinCoreRpcClient:
-        """Return a fresh RPC client for this node, however it authenticates."""
+        """Return a fresh RPC client for this node, however it authenticates.
+
+        `self._trace_rpc` is what a subclass's own implementation wraps
+        the transport it builds with, through `traced_transport`.
+        """
 
     @property
     def p2p_address(self) -> tuple[str, int]:
@@ -292,7 +335,10 @@ class NodeAdapter(ABC):
                 stderr=stderr_file,
             )
         _wait_for_rpc(
-            self._rpc_client(), self._process, stderr_path, timeout=_STARTUP_TIMEOUT
+            self._rpc_client(),
+            self._process,
+            stderr_path,
+            timeout=scaled(_STARTUP_TIMEOUT),
         )
 
     def stop(self) -> None:
@@ -305,7 +351,7 @@ class NodeAdapter(ABC):
         if self._process is None:
             return
         self._process.terminate()
-        self._process.wait(timeout=_STARTUP_TIMEOUT)
+        self._process.wait(timeout=scaled(_STARTUP_TIMEOUT))
         self._process = None
 
     def restart(self) -> None:
@@ -438,10 +484,12 @@ def connect_nodes(
     :param first: the node asked to dial.
     :param second: the node dialled.
     :param timeout: how long to wait for both sides to report the
-        connection and its handshake.
+        connection and its handshake, before `--timeout-factor`'s own
+        scaling (`timeout_factor.scaled`).
     :raises TimeoutError: either side never reported the connection, or
         its handshake, in time.
     """
+    timeout = scaled(timeout)
     host, port = second.p2p_address
     address = f"{host}:{port}"
     before_second = _peer_ids(second.rpc.call("getpeerinfo"))
@@ -484,9 +532,11 @@ def disconnect_nodes(
 
     :param first: the node asked to drop the connection.
     :param second: the node dropped.
-    :param timeout: how long to wait for `first` to stop reporting it.
+    :param timeout: how long to wait for `first` to stop reporting it,
+        before `--timeout-factor`'s own scaling.
     :raises TimeoutError: `first` still reports the peer after `timeout`.
     """
+    timeout = scaled(timeout)
     host, port = second.p2p_address
     address = f"{host}:{port}"
     first.rpc.call("disconnectnode", [address])
@@ -512,9 +562,11 @@ def wait_until_tips_agree(
     rather than a race the assertion after it would otherwise be.
 
     :param nodes: the nodes to poll, at least one.
-    :param timeout: how long to wait for every hash to match.
+    :param timeout: how long to wait for every hash to match, before
+        `--timeout-factor`'s own scaling.
     :raises TimeoutError: the nodes never agreed within `timeout`.
     """
+    timeout = scaled(timeout)
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         hashes = {node.rpc.call("getbestblockhash") for node in nodes}

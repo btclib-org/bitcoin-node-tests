@@ -24,9 +24,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, override
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient
+from bitcoin_core_rpc.transport import urlopen_transport
 
 from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import NodeAdapter
+from bitcoin_node_tests.node import NodeAdapter, traced_transport
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
@@ -131,6 +132,16 @@ class BitcoindAdapter(NodeAdapter):
     read by `ArgsManager` before any deployment is checked, so nothing
     about which deployment or which height is named changes whether the
     flag itself is recognised.
+    `Capability.V2TRANSPORT` is unconditional too: `-v2transport` is
+    this binary's own flag, defaulting to `1` on the pinned `31.1`
+    (measured against `-help`'s own listing) -- node-to-node connections
+    already report `transport_protocol_type: v2` in `getpeerinfo` with
+    no argument at all, and `-v2transport=0` on either side falls back to
+    `v1`. This is a fact about a connection between two adapters of this
+    kind, not about a `Peer` (`peer.py`): that class speaks only the
+    plaintext v1 wire format, so a `Peer` reaches this node over v1
+    regardless of `-v2transport`, BIP324's own detection accepting a v1
+    handshake from either side.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -145,6 +156,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.RPC_AUTH_CONFIG,
             Capability.RPC_AUTH_NEGATION,
             Capability.TEST_ACTIVATION_HEIGHT,
+            Capability.V2TRANSPORT,
         }
     )
 
@@ -156,6 +168,8 @@ class BitcoindAdapter(NodeAdapter):
         p2p_port: int,
         extra_args: Sequence[str] = (),
         rpc_auth: tuple[str, str] | None = None,
+        *,
+        trace_rpc: bool = False,
     ) -> None:
         """Construct the adapter, then drop `MINE` where the build lacks it.
 
@@ -166,7 +180,15 @@ class BitcoindAdapter(NodeAdapter):
         `_has_wallet` is then this class's own per-build probe, read once
         per instance rather than once per `mine` call.
         """
-        super().__init__(executable, datadir, rpc_port, p2p_port, extra_args, rpc_auth)
+        super().__init__(
+            executable,
+            datadir,
+            rpc_port,
+            p2p_port,
+            extra_args,
+            rpc_auth,
+            trace_rpc=trace_rpc,
+        )
         self._miner_wallet: str | None = None
         if not _has_wallet(executable):
             self.capabilities = type(self).capabilities - {Capability.MINE}
@@ -215,13 +237,23 @@ class BitcoindAdapter(NodeAdapter):
         cookie at all, so nothing here can wait on a file that never
         appears -- the caller that put either flag on the command line is
         the one that already knows the credential to authenticate with.
+        `self._trace_rpc` (`--tracerpc`) wraps whichever transport that
+        choice builds in `traced_transport`'s own print, credential or
+        cookie alike.
         """
         url = f"http://127.0.0.1:{self._rpc_port}"
+        transport = (
+            traced_transport(urlopen_transport)
+            if self._trace_rpc
+            else urlopen_transport
+        )
         if self._rpc_auth is not None:
             user, password = self._rpc_auth
-            return BitcoinCoreRpcClient(url, user=user, password=password)
+            return BitcoinCoreRpcClient(
+                url, user=user, password=password, transport=transport
+            )
         cookie_path = self._datadir / "regtest" / ".cookie"
-        return BitcoinCoreRpcClient(url, cookie_path=cookie_path)
+        return BitcoinCoreRpcClient(url, cookie_path=cookie_path, transport=transport)
 
     @property
     def debug_log_path(self) -> Path:

@@ -16,7 +16,7 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability
 
 
-def test_capabilities_are_mine_connect_raw_message_blk_files_debug_log() -> None:
+def test_capabilities_are_mine_connect_raw_message_blk_files_log_uacomment() -> None:
     """Bitcoind offers each: wallet, `addnode`, `sendmsgtopeer`, disk, log."""
     assert BitcoindAdapter.capabilities == frozenset(
         {
@@ -25,6 +25,7 @@ def test_capabilities_are_mine_connect_raw_message_blk_files_debug_log() -> None
             Capability.RAW_MESSAGE,
             Capability.BLK_FILES,
             Capability.DEBUG_LOG,
+            Capability.UA_COMMENT,
         }
     )
 

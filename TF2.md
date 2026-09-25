@@ -742,6 +742,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_leak.py` (wire) | `01b8a117d2c5` | 2026-06-04 | pass | pass |
 | `p2p_leak.py` (log) | `01b8a117d2c5` | 2026-06-04 | pass | skip |
 | `p2p_net_deadlock.py` | `a0473442d1c2` | 2024-07-16 | pass | skip (raw_msg) |
+| `feature_uacomment.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -811,3 +812,58 @@ Neither ports the rest of its own Core file: `p2p_invalid_messages.py`'s
 own other assertions need a mined chain or an option this step does not
 register, and `p2p_leak.py`'s own earlier checks ask what a node sends
 before a handshake completes, neither an `assert_debug_log` subject.
+
+`feature_uacomment.py` is the option family's own first row
+([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)),
+a smaller claim than Core's own test: Core's harness sets its own
+`-uacomment=testnode{i}` on every node it starts, which this adapter
+does not, so the default subversion carries no parenthetical comment at
+all here rather than `(testnode0)`; the assertion this keeps is that a
+comment appears once `-uacomment` names one. The length-limit and
+unsafe-character checks are dropped -- both ask a node to fail its own
+startup on a bad value, a mechanism this issue's own capability check
+does not need and does not build. `Capability.UA_COMMENT`
+(`capability.py`) is the shape rule 4's "a capability per option" takes
+here: one member per Core option a ported test asks for, added the
+moment that test is ported rather than for the whole of Core's option
+surface up front -- `capability.py`'s own docstring has the case
+against a single parameterized capability instead, and the charter's
+own carve-out for a bitcoind-only option, which `-uacomment` is not.
+`-uacomment` is not one of `cli.py`'s registered flags at `btclib-node`'s
+current `main` (`btclib_node.py`'s own docstring has the measurement),
+so this row's `btclib-node` cell is a counted skip.
+
+No test measured for this family asks for an option `btclib-node` does
+register (`cli.py`'s own `_build_parser`) and needs nothing else from
+step 5, `MINE` or an outbound connection: `p2p_add_connections.py` is
+the one dedicated `-maxconnections` test and needs `Capability.CONNECT`
+throughout; `feature_discover.py`'s own `-discover` is neutered by this
+adapter's own fixed `-bind` -- measured against the pinned bitcoind
+binary, `getnetworkinfo`'s `localaddresses` answers empty whether
+`-discover` is passed bare or given its own disabling value, so the
+option has nothing to demonstrate under either adapter's own command
+line. So this row exercises the skip
+arm alone; the pass-through arm has no candidate yet, rather than one
+being skipped over.
+
+Most of the option family's remaining tests ask for another step-5
+mechanism alongside an option -- MiniWallet, `assert_debug_log`,
+`setmocktime` or the disk -- and are ISS 14's to port once every family
+lands, not this issue's. Of the rest, most name a wallet feature or an
+option only bitcoind has a reason to carry (`-torcontrol`, `-proxy`'s
+own Tor/I2P half), which the charter's own rule keeps out of this
+mechanism entirely. `btclib-node`'s own registered surface carries no
+dedicated Core test that both asks for nothing else and does not already
+write `bitcoin.conf` directly -- `rpc_whitelist.py` and `rpc_users.py`
+set `-rpcauth` and `-rpcwhitelist` through the config file rather than
+the command line, which is the disk family's own subject
+(`datadir_path`/`bitcoin.conf`) and not this one's, and a string-literal
+census such as ISS 3's own does not see a bare `key=value` config line
+naming an option this way. `feature_reindex_init.py` shows a different
+miss: the string literal `-test=reindex_after_failure_noninteractive_yes`
+is what puts it in this family's own census, but the test also removes
+`node.blocks_path / "index"` directly -- `blocks_path` being
+`TestNode`'s own property name, a string the disk family's own
+`datadir_path`/`blocks/` pattern does not match either -- so it needs
+the disk family regardless of what `-test` itself turns out to name,
+and belongs with ISS 14 rather than this one.

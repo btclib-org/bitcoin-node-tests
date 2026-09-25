@@ -20,6 +20,33 @@ node, its RPC and its p2p port -- so `require` is exercised by
 other four tests, step 4's, are what exercises `MINE`, `CONNECT` and
 `RAW_MESSAGE` each.
 
+`UA_COMMENT` is the first of the option family
+([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3),
+whose own body already answers the design question this way), and it
+sets the shape every later option takes: one member per Core option a
+ported test actually asks for, added the moment that test is ported
+rather than declared for the whole of Core's option surface up front,
+which is large and mostly untouched by any test this suite has ported.
+The rejected alternative is a single parameterized `Capability.OPTION`,
+keyed on the option's own name, with one node-side mapping of names to
+"has it"; rule 4's own count is what this file already prints one line
+per member of, sorted by value, and a parameterized capability would
+need to fold that back to one line itself rather than getting it from
+`SkipCounts.report` unchanged. One member per option is what keeps a
+name in the enum a name in the printed summary, at the cost this module
+already carries: a member added by hand, per option, per test ported. A
+member's own value is what that summary prints, so it is spelled the
+same as the member rather than shortened on its own, keeping the
+summary's own name for a capability the same as the code's.
+
+Not every Core option a test names earns a member here. Step 5's own
+charter carries the narrower rule first: "wallet and USDT tests stay
+out" and "a test of bitcoind's own options runs against bitcoind alone".
+An option only bitcoind has a reason to carry -- `-disablewallet`,
+`-torcontrol` -- is never declared or skipped by another node under this
+mechanism; it is a bitcoind-only test's subject, a shape this module
+does not build.
+
 **This module imports no test runner.** `pyproject.toml`'s own
 `[project] dependencies` name two packages and no third (this
 package's own `__init__.py` says so), and Core's own test framework
@@ -90,6 +117,10 @@ class Capability(Enum):
     not about what Core would have called it, so a byte-for-byte match
     against Core's own wording is a fact only bitcoind's own binary can
     supply.
+    `UA_COMMENT` -- append a caller-chosen comment to the subversion
+    string `getnetworkinfo` reports, the fact Core's own `-uacomment`
+    asks for. The first of the option family (rule 4,
+    [ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)).
     """
 
     MINE = "mine"
@@ -97,6 +128,7 @@ class Capability(Enum):
     RAW_MESSAGE = "raw_message"
     BLK_FILES = "blk_files"
     DEBUG_LOG = "debug_log"
+    UA_COMMENT = "ua_comment"
 
 
 class SkipCounts:

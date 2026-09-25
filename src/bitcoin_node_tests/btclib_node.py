@@ -262,3 +262,15 @@ class BtclibNodeAdapter(NodeAdapter):
         return BitcoinCoreRpcClient(
             url, user=_RPC_USER, password=_RPC_PASSWORD, transport=transport
         )
+
+    @property
+    def log_path(self) -> Path:
+        """Return this node's own `history.log`, the disk family's own fact.
+
+        Not `debug_log_path`: `BitcoindAdapter`'s own name is Core's file,
+        and this node writes no file of that name. `history.log` is
+        `btclib_node`'s own, under the same `<datadir>/regtest/` layout
+        the cookie file above reads from -- measured live, at the sha
+        this module's own docstring pins.
+        """
+        return self._datadir / "regtest" / "history.log"

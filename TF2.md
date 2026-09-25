@@ -753,6 +753,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_whitelist.py` | `fa24693819e0` | 2026-05-26 | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `rpc_users.py` | `faf993ee4421` | 2026-05-26 | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `rpc_users.py` (`-norpcauth`) | same | same | pass | skip (rpc_auth_negation), [ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176) |
+| `rpc_users.py` (`-rpcuser`/`-rpcpassword`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
+| `rpc_users.py` (`-norpccookiefile`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) |
@@ -900,26 +902,33 @@ it, on either build, `cli.py` having no registered flag for the
 cell is a counted skip on both builds, unlike the plain `rpc_users.py`
 row's, which turns to a run past ISS btclib-node#1070.
 
-Dropped: `-rpcuser`/`-rpcpassword` and `-norpccookiefile` themselves,
-and Core's own script-driven credential generation (`share/rpcauth/`,
-run as a subprocess) and its `SystemRandom`-chosen username, a claim
-about that script rather than about the mechanism, matching
-`rpc_whitelist.py`'s own reason for dropping Core's `strange_users`
-roster. Core writes no RPC cookie once `-rpcpassword` is set or
-`-norpccookiefile` is given, `-rpcauth` present or not -- measured live
-against the pinned bitcoind, and against `btclib-node`'s own
-`rpc/auth.py` docstring, which states the same rule for that node.
-`NodeAdapter.start` (`node.py`) waits for a freshly spawned node
-through the adapter's own `_rpc_client()`, which for both
-`BitcoindAdapter` and `BtclibNodeAdapter` is always the cookie; a node
-started either way never satisfies that wait, and `start` times out
-rather than the node ever answering RPC. Core's own equivalent test
-hits the identical gap and works around it with
-`busy_wait_for_debug_log`, an alternate readiness wait keyed on the
-debug log rather than RPC, which neither adapter's own `_rpc_client`
-builds -- a mechanism for a later issue, not this one's, and not a
-capability either node lacks, since the gap is this repository's own
-`NodeAdapter` rather than either node's.
+Ported with `rpc_auth` (`NodeAdapter.__init__`): `-rpcuser`/
+`-rpcpassword` and `-norpccookiefile`, gated on
+`Capability.RPC_AUTH_CONFIG` on btclib-node too -- `cli.py`'s own
+`_RECOGNIZED_KEYS` names both alongside `rpcauth` from the same commit
+([ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070)).
+Dropped still: Core's own script-driven credential generation
+(`share/rpcauth/`, run as a subprocess) and its `SystemRandom`-chosen
+username, a claim about that script rather than about the mechanism,
+matching `rpc_whitelist.py`'s own reason for dropping Core's
+`strange_users` roster. Core writes no RPC cookie once `-rpcpassword`
+is set or `-norpccookiefile` is given, `-rpcauth` present or not --
+measured live against the pinned bitcoind, and against `btclib-node`'s
+own `rpc/auth.py` docstring, which states the same rule for that node,
+so `_rpc_client()`'s own default on both adapters, a cookie, waits on a
+file the node configured either way never writes.
+`NodeAdapter.__init__`'s own `rpc_auth` parameter (`node.py`) is what
+makes this row's own port possible: the caller that configures a node
+with either flag already knows the plaintext credential, and passes it
+there instead of leaving the readiness wait on a cookie
+([ISS bitcoin-node-tests#34](https://github.com/btclib-org/bitcoin-node-tests/issues/34)).
+This is a smaller mechanism than Core's own `busy_wait_for_debug_log`,
+an alternate readiness wait keyed on the debug log rather than RPC:
+Core needs it because its own `test_norpccookiefile` pairs
+`-norpccookiefile` with an `-rpcauth` value `test_framework/util.py`'s
+own `get_auth_cookie` has no way to recover the plaintext of from
+`bitcoin.conf` alone, where this repository's own tests construct every
+`-rpcauth` value they use and so always hold the plaintext behind it.
 
 A cookie the node cannot write is a different failure from a malformed
 `-rpcauth`, and each answers with different wording on btclib-node:

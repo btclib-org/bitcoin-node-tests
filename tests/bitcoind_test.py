@@ -55,6 +55,17 @@ def test_rpc_client_authenticates_by_the_datadir_s_cookie(tmp_path: Path) -> Non
     assert client.url == "http://127.0.0.1:18443"
 
 
+def test_rpc_client_authenticates_with_rpc_auth_where_given(tmp_path: Path) -> None:
+    """`rpc_auth` overrides the cookie: no file is ever read for it."""
+    adapter = BitcoindAdapter(
+        "bitcoind", tmp_path, 18443, 18444, rpc_auth=("bob", "bobpw")
+    )
+    client = adapter._rpc_client()
+    assert client.cookie_path is None
+    assert client.user == "bob"
+    assert client.url == "http://127.0.0.1:18443"
+
+
 def test_debug_log_path_is_the_datadir_s_own_regtest_debug_log(
     tmp_path: Path,
 ) -> None:

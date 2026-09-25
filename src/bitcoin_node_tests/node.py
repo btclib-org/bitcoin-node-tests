@@ -208,6 +208,22 @@ class NodeAdapter(ABC):
     option a test happens to need. An entry naming an option `_command`
     already sets is refused at construction, rather than silently
     overriding it the way bitcoind's own last-one-wins parsing would.
+
+    `rpc_auth` is the credential a subclass's own `_rpc_client` builds
+    its readiness and its ordinary RPC client from instead of its own
+    default (a cookie, `BitcoindAdapter`'s and, where the build writes
+    one, `BtclibNodeAdapter`'s): a node started with `-rpcuser`/
+    `-rpcpassword` or `-norpccookiefile` writes no cookie at all
+    ([ISS bitcoin-node-tests#34](https://github.com/btclib-org/bitcoin-node-tests/issues/34)),
+    so a client waiting on one never sees it and `start` times out
+    rather than the node ever answering. The caller who put such a flag
+    in `extra_args` already knows the plaintext credential it configured
+    -- Core's own `rpc_users.py` builds its own `-rpcauth` lines the same
+    way, `rpcauth.py`'s own hash of a password it also keeps -- so it is
+    the caller's to pass here too, rather than something this class
+    could derive from the command line after the fact: a `-rpcauth`
+    value is a salted hash, and the plaintext behind it exists only where
+    it was chosen.
     """
 
     capabilities: AbstractSet[Capability]
@@ -219,6 +235,7 @@ class NodeAdapter(ABC):
         rpc_port: int,
         p2p_port: int,
         extra_args: Sequence[str] = (),
+        rpc_auth: tuple[str, str] | None = None,
     ) -> None:
         self._executable = executable
         self._datadir = datadir
@@ -226,6 +243,7 @@ class NodeAdapter(ABC):
         self._p2p_port = p2p_port
         _check_extra_args(self._command(), extra_args)
         self._extra_args = tuple(extra_args)
+        self._rpc_auth = rpc_auth
         self._process: subprocess.Popen[bytes] | None = None
 
     @abstractmethod

@@ -165,3 +165,9 @@ interaction with named entries and `-norpcauth`, each against
 `core-master` builds `bitcoind` from Core's `master` and classifies its
 own failures against `TF2.md`'s per-test ledger; `btclib-node-main`
 installs from that project's `main` (issue #8).
+
+### `NodeAdapter` waits for RPC by credential, not only by cookie
+
+`NodeAdapter.__init__` gains an `rpc_auth` parameter, the credential a
+caller already knows, so `start` waits on a node given `-rpcuser`/
+`-rpcpassword` or `-norpccookiefile`, neither writing a cookie (closes #34).

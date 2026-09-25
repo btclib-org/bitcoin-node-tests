@@ -160,6 +160,7 @@ class BtclibNodeAdapter(NodeAdapter):
         rpc_port: int,
         p2p_port: int,
         extra_args: Sequence[str] = (),
+        rpc_auth: tuple[str, str] | None = None,
     ) -> None:
         """Construct the adapter, then add `RPC_AUTH_CONFIG` where it holds.
 
@@ -174,7 +175,7 @@ class BtclibNodeAdapter(NodeAdapter):
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
         is left untouched where the probe answers `False`.
         """
-        super().__init__(executable, datadir, rpc_port, p2p_port, extra_args)
+        super().__init__(executable, datadir, rpc_port, p2p_port, extra_args, rpc_auth)
         if _writes_auth_cookie(executable):
             self.capabilities = type(self).capabilities | {Capability.RPC_AUTH_CONFIG}
 
@@ -204,7 +205,15 @@ class BtclibNodeAdapter(NodeAdapter):
     def _rpc_client(self) -> BitcoinCoreRpcClient:
         """Return a client authenticating the way this build actually checks.
 
-        Cookie authentication, `BitcoindAdapter`'s own mechanism, where
+        `rpc_auth` (`NodeAdapter.__init__`) first, where the caller named
+        one: a node started with `-rpcuser`/`-rpcpassword` or
+        `-norpccookiefile` (`extra_args`) writes no cookie at all, on a
+        build past
+        [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070)
+        exactly as bitcoind does not either, so nothing here can wait on
+        one -- the caller that put either flag on the command line already
+        knows the credential to authenticate with instead. Absent that,
+        cookie authentication, `BitcoindAdapter`'s own mechanism, where
         `_writes_auth_cookie` finds the build writes one -- the same
         `<datadir>/regtest/.cookie` layout, `chains.RegTest`'s own `name`
         matching bitcoind's `regtest` subdirectory. A build with no
@@ -212,6 +221,9 @@ class BtclibNodeAdapter(NodeAdapter):
         credential instead, which it never checks.
         """
         url = f"http://127.0.0.1:{self._rpc_port}"
+        if self._rpc_auth is not None:
+            user, password = self._rpc_auth
+            return BitcoinCoreRpcClient(url, user=user, password=password)
         if _writes_auth_cookie(self._executable):
             return BitcoinCoreRpcClient(
                 url, cookie_path=self._datadir / "regtest" / ".cookie"

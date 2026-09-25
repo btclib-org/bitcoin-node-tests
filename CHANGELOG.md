@@ -159,3 +159,9 @@ against your own checkout (issue btclib-org/btclib#2220).
 `-rpcauth`, `-rpccookieperms`, a malformed-`-rpcauth` roster, its own
 interaction with named entries and `-norpcauth`, each against
 `Capability.RPC_AUTH_CONFIG` or the new `RPC_AUTH_NEGATION` (closes #7).
+
+### `core-master` and `btclib-node-main` are informational, not required
+
+`core-master` builds `bitcoind` from Core's `master` and classifies its
+own failures against `TF2.md`'s per-test ledger; `btclib-node-main`
+installs from that project's `main` (issue #8).

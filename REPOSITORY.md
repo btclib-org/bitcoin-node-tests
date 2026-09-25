@@ -110,11 +110,17 @@ against Bitcoin Core` produces `bitcoind / Regtest against Bitcoin Core`.
 A context is matched by name, not by the workflow that reported it, so
 moving a job is free and renaming one is not.
 
-`node-integration.yml`'s other job, `btclib-node`, produces no required
-check: it runs with `continue-on-error: true` and reports rather than
-gates, a disagreement there being [ISS
+`node-integration.yml`'s other jobs -- `btclib-node`, `core-master` and
+`btclib-node-main` -- produce no required check: each runs with
+`continue-on-error: true` and reports rather than gates. `btclib-node`'s
+own disagreement is [ISS
 btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)
-and not a defect of this repository's own gates.
+and not a defect of this repository's own gates; `core-master` and
+`btclib-node-main` track Core's own `master` and btclib-node's own
+`main`, and a required check depending on either would fail a pull
+request for a reason outside it ([ISS
+8](https://github.com/btclib-org/bitcoin-node-tests/issues/8), decided
+2026-09-25).
 
 No sentinel appears in the rule, and none of them may: `links.yml` and
 `vendored-vectors.yml` can each go red for reasons no pull request

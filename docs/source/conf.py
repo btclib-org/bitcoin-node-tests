@@ -106,12 +106,30 @@ intersphinx_cache_limit = 0
 #   own type-to-xref splitter stops at the first nested bracket and
 #   reports the truncated fragment as the unresolved class, rather than
 #   resolving the pieces on either side of it
+# - a signature carrying a name bound only under `TYPE_CHECKING` --
+#   `NodeAdapter`, every adapter module's own convention for a type used
+#   in no other way -- beside one this project imports for real: autodoc
+#   resolves a signature's annotations together, and the one name
+#   `typing.get_type_hints` cannot evaluate at import time fails that
+#   evaluation for the whole signature, not only its own parameter, so
+#   every other annotation on the same line falls back to its bare source
+#   text and loses its cross-reference with it
 nitpick_ignore: list[tuple[str, str]] = [
     # the second shape above: `peer.py`'s `Peer.wait_for` takes
     # `predicate: Callable[[Message], bool] | None`, and the fragment the
     # splitter reports in `Message`'s own place -- not `Callable` itself --
     # is this inner class, one bracket past where it stops
     ("py:class", "Message"),
+    # the third shape above: `mini_wallet.py`'s own `build_fork` takes
+    # `node: NodeAdapter` beside `script_pub_key: ScriptPubKey`, and the
+    # `TYPE_CHECKING`-only `NodeAdapter` is what drags this bare, otherwise
+    # resolvable, class down with it
+    ("py:class", "ScriptPubKey"),
+    # the same function's own return, `list[Block]`: carried down by the
+    # same cascade rather than the second shape's own bracket-splitter --
+    # removing `node`'s own annotation alone, nothing else changed,
+    # resolves this and `ScriptPubKey` above together
+    ("py:class", "Block"),
 ]
 
 source_suffix = [".rst", ".md"]

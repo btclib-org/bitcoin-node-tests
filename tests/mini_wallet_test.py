@@ -23,7 +23,7 @@ from btclib.block.block import Block
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.mini_wallet import FEE, MiniWallet
+from bitcoin_node_tests.mini_wallet import FEE, MiniWallet, build_fork
 from bitcoin_node_tests.node import NodeAdapter
 
 if TYPE_CHECKING:
@@ -335,3 +335,177 @@ def test_send_self_transfer_refuses_a_mismatched_answer() -> None:
     wallet.generate(COINBASE_MATURITY + 1)
     with pytest.raises(TypeError, match="sendrawtransaction answered"):
         wallet.send_self_transfer()
+
+
+def test_generate_confirms_a_named_tx_only_in_the_first_block() -> None:
+    """`confirm` rides in the first of several blocks, not every one."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    tx = wallet.send_self_transfer()
+
+    wallet.generate(2, confirm=[tx])
+
+    first_block = Block.parse(bytes.fromhex(rpc.submitted[-2]), check_validity=False)
+    second_block = Block.parse(bytes.fromhex(rpc.submitted[-1]), check_validity=False)
+    assert tx.id in {carried.id for carried in first_block.transactions}
+    assert tx.id not in {carried.id for carried in second_block.transactions}
+
+
+def test_generate_confirms_nothing_by_default() -> None:
+    """A block `generate` mines with no `confirm` carries only its coinbase."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+
+    wallet.generate(1)
+
+    block = Block.parse(bytes.fromhex(rpc.submitted[0]), check_validity=False)
+    assert len(block.transactions) == 1
+
+
+def test_get_utxo_selects_the_named_coin_not_merely_the_oldest() -> None:
+    """`get_utxo` returns the coin `txid` names, not whichever is first."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(2)
+    second_block = Block.parse(bytes.fromhex(rpc.submitted[1]), check_validity=False)
+    txid = second_block.transactions[0].id.hex()
+
+    utxo = wallet.get_utxo(txid=txid)
+
+    assert utxo.outpoint.tx_id.hex() == txid
+    assert utxo.height == 2
+    # the first coin is still cached: only the named one was popped
+    assert wallet.get_balance() > 0
+
+
+def test_get_utxo_ignores_maturity() -> None:
+    """A coin one block deep is still returned when named by its own txid."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(1)
+    block = Block.parse(bytes.fromhex(rpc.submitted[0]), check_validity=False)
+
+    utxo = wallet.get_utxo(txid=block.transactions[0].id.hex())
+
+    assert utxo.coinbase is True
+
+
+def test_get_utxo_pops_the_coin_it_returns() -> None:
+    """A second call for the same txid finds nothing left to return."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(1)
+    txid = (
+        Block.parse(bytes.fromhex(rpc.submitted[0]), check_validity=False)
+        .transactions[0]
+        .id.hex()
+    )
+    wallet.get_utxo(txid=txid)
+    with pytest.raises(LookupError, match="no coin"):
+        wallet.get_utxo(txid=txid)
+
+
+def test_get_utxo_refuses_an_unknown_txid() -> None:
+    """A txid this wallet never cached is refused, not confused for one."""
+    wallet = MiniWallet(_FakeNode(_FakeRpc()))
+    with pytest.raises(LookupError, match="no coin"):
+        wallet.get_utxo(txid="00" * 32)
+
+
+def test_create_self_transfer_spends_the_named_utxo_regardless_of_maturity() -> None:
+    """A caller-named coin bypasses `_pop_mature_utxo`'s own maturity check."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(1)  # far short of COINBASE_MATURITY
+    coin = wallet.get_utxo(
+        txid=Block.parse(bytes.fromhex(rpc.submitted[0]), check_validity=False)
+        .transactions[0]
+        .id.hex()
+    )
+
+    tx = wallet.create_self_transfer(utxo_to_spend=coin)
+
+    assert tx.vin[0].prev_out == coin.outpoint
+
+
+def test_send_self_transfer_spends_the_named_utxo() -> None:
+    """`utxo_to_spend` reaches `create_self_transfer` through this call too."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(1)
+    coin = wallet.get_utxo(
+        txid=Block.parse(bytes.fromhex(rpc.submitted[0]), check_validity=False)
+        .transactions[0]
+        .id.hex()
+    )
+
+    tx = wallet.send_self_transfer(utxo_to_spend=coin)
+
+    assert tx.vin[0].prev_out == coin.outpoint
+    assert rpc.sent[0] == tx.serialize(True, check_validity=False).hex()
+
+
+def test_resync_picks_up_a_tip_this_wallet_did_not_mine() -> None:
+    """`generate` after `resync` extends the node's own tip, not a stale one."""
+    rpc = _FakeRpc(best_hash="11" * 32, height=5, median_time=1_000)
+    wallet = MiniWallet(_FakeNode(rpc))
+    # the chain moved by some other means -- an invalidateblock, a
+    # build_fork submission -- this wallet never saw
+    rpc._best_hash = "22" * 32
+    rpc._height = 9
+    rpc._median_time = 2_000
+
+    wallet.resync()
+    wallet.generate(1)
+
+    block = Block.parse(bytes.fromhex(rpc.submitted[0]), check_validity=False)
+    assert block.header.previous_block_hash == bytes.fromhex("22" * 32)
+
+
+def test_resync_leaves_the_coin_cache_untouched() -> None:
+    """`resync` moves the tip only: it has no `scantxoutset` to rescan with."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(1)
+    balance_before = wallet.get_balance()
+
+    wallet.resync()
+
+    assert wallet.get_balance() == balance_before
+
+
+def test_build_fork_extends_the_nodes_own_current_tip() -> None:
+    """The first fork block's own parent is the node's tip, not a fixed one."""
+    rpc = _FakeRpc(best_hash="33" * 32, height=4, median_time=500)
+    node = _FakeNode(rpc)
+    wallet = MiniWallet(node)
+
+    fork = build_fork(node, wallet.script_pub_key, 3)
+
+    assert len(fork) == 3
+    assert fork[0].header.previous_block_hash == bytes.fromhex("33" * 32)
+    assert not rpc.submitted  # nothing is submitted on the caller's behalf
+
+
+def test_build_fork_chains_each_block_to_the_previous_one() -> None:
+    """Blocks 2..N of a fork extend the fork itself, not the node's own tip."""
+    rpc = _FakeRpc()
+    node = _FakeNode(rpc)
+    wallet = MiniWallet(node)
+
+    fork = build_fork(node, wallet.script_pub_key, 3)
+
+    for index in range(1, len(fork)):
+        assert fork[index].header.previous_block_hash == fork[index - 1].header.hash
+
+
+def test_build_fork_pays_the_given_script_pub_key() -> None:
+    """Every block's own coinbase pays what the caller asked for."""
+    rpc = _FakeRpc()
+    node = _FakeNode(rpc)
+    wallet = MiniWallet(node)
+
+    fork = build_fork(node, wallet.script_pub_key, 1)
+
+    assert fork[0].transactions[0].vout[0].script_pub_key == wallet.script_pub_key

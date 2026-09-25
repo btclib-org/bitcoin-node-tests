@@ -48,10 +48,47 @@ bitcoind runs a `MiniWallet` test today: `BtclibNodeAdapter` does not
 declare it, and no way of delivering a solved block -- `submitblock` or
 the wire -- reaches around the reason, ISS btclib-node#1071 being about
 the node's own state machine and not about how a block arrives.
+
+[ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)'s own
+remaining ports add several things beyond the mechanism above. Two are
+read off Core's own `wallet.py` rather than invented: `get_utxo` finds a
+specific cached coin by its own txid, with no maturity filter -- a caller
+naming one by hand is presumed to know what it is asking for,
+`mempool_spend_coinbase.py`'s own subject being what a *node* does with an
+immature one; `create_self_transfer` and `send_self_transfer` both take an
+optional `utxo_to_spend`, spending the named coin in place of the next
+automatically matured one. The other two have no counterpart there.
+`resync` re-reads this wallet's own tip, height and median-time the way
+`__init__` does, for a chain an `invalidateblock` or a `build_fork`
+submission moved without this wallet's own `generate` doing it.
+`rescan_utxos` (`wallet.py`) is the shape not taken: it also rebuilds the
+coin cache from `scantxoutset`, which this module's own docstring already
+has why nothing here ever calls; `resync` moves only the tip a `generate`
+after it needs, leaving `_utxos` for the caller to reconcile against
+whatever the RPC that exposed the reorg already told it.
+
+`generate`'s own `confirm` is the second: no Core file has it, because
+Core's own node-side mining (`generatetodescriptor`) pulls the whole
+mempool into whatever it mines, and this class's mining reads no mempool
+back to do the same (this module's own docstring already has why). A
+caller that broadcast a transaction and wants it mined names it here,
+already knowing it -- `send_self_transfer`'s own return value, typically
+-- rather than this class fetching `getrawmempool` and
+`getrawtransaction` back to rediscover what it already handed the node.
+
+`build_fork`, alongside the class, is `create_empty_fork`
+(`test/functional/test_framework/blocktools.py`): unsubmitted blocks
+extending whatever tip the node it is given actually has, for a caller
+that wants to hold them back and submit them later, `mempool_resurrect.py`'s
+own subject. It shares no wallet state -- a fork is disposable by
+construction, spent by nobody -- so it reads the node fresh rather than a
+`MiniWallet` instance's own cache, and pays whichever `script_pub_key` its
+caller names, that caller's own wallet's `script_pub_key` ordinarily.
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
@@ -77,6 +114,7 @@ __all__ = [
     "FEE",
     "MiniWallet",
     "Utxo",
+    "build_fork",
 ]
 
 # Core's own ADDRESS_OP_TRUE internal key (`test_framework/address.py`'s
@@ -116,6 +154,117 @@ class Utxo:
     coinbase: bool
 
 
+def _read_tip(node: NodeAdapter) -> tuple[bytes, int, int]:
+    """Return `(tip, height, median_time)`, read fresh off `node`'s own RPC.
+
+    Shared by the constructor, `MiniWallet.resync` and `build_fork`: each
+    needs to know where the chain actually is right now rather than
+    trusting a cached view that an out-of-band `invalidateblock` or a
+    `build_fork` submission may have moved since it was last read.
+
+    :param node: the node to read.
+    :raises TypeError: `getbestblockhash`, `getblockcount` or
+        `getblockchaininfo` answered something this call cannot use.
+    """
+    best_hash = node.rpc.call("getbestblockhash")
+    if not isinstance(best_hash, str):
+        err_msg = f"getbestblockhash answered {best_hash!r}, not a hash string"
+        raise TypeError(err_msg)
+    height = node.rpc.call("getblockcount")
+    if not isinstance(height, int):
+        err_msg = f"getblockcount answered {height!r}, not an int"
+        raise TypeError(err_msg)
+    chain_info = node.rpc.call("getblockchaininfo")
+    median_time = chain_info.get("mediantime") if isinstance(chain_info, dict) else None
+    if not isinstance(median_time, int):
+        err_msg = f"getblockchaininfo answered {chain_info!r}, no int mediantime"
+        raise TypeError(err_msg)
+    return bytes.fromhex(best_hash), height, median_time
+
+
+def _mine_one(
+    tip: bytes,
+    height: int,
+    min_time: int,
+    script_pub_key: ScriptPubKey,
+    extra_transactions: Sequence[Tx] = (),
+) -> tuple[Block, int]:
+    """Build, solve and return one block extending `tip`, and its own time.
+
+    Shared by `MiniWallet.generate` and `build_fork`: both mine a block
+    through the same client-side path -- `build_coinbase` and
+    `build_block` (`btclib.block.build`), then `mine`
+    (`btclib.block.mining`) -- differing in what becomes of the result
+    afterwards, submitted and cached by one and held for later submission
+    by the other, and in whether anything beyond the coinbase rides along.
+
+    :param tip: the previous block's own header hash.
+    :param height: this block's own height.
+    :param min_time: this block's own time must exceed this -- the
+        previous block's own time, or the chain's median-time-past for
+        the first block of a run.
+    :param script_pub_key: what this block's coinbase pays.
+    :param extra_transactions: already-broadcast transactions to carry
+        along, in the order given -- a caller's own to have ordered so
+        that a spend of one of them sits after it, since this class reads
+        no mempool back to order them itself. `MiniWallet.generate`'s own
+        `confirm` is the caller-facing name for this.
+    :returns: the solved block, and the time it carries.
+    :raises RuntimeError: `mine` exhausted its own search bound without
+        solving one -- regtest's own target is wide enough that this is
+        not expected to happen.
+    """
+    coinbase = build_coinbase(
+        height, script_pub_key, halving_interval=_REGTEST_SUBSIDY_HALVING_INTERVAL
+    )
+    block_time = max(int(datetime.now(UTC).timestamp()), min_time + 1)
+    candidate = build_block(
+        tip,
+        [coinbase, *extra_transactions],
+        datetime.fromtimestamp(block_time, UTC),
+        REGTEST_POW_LIMIT_BITS,
+    )
+    solved = mine(candidate.header)
+    if solved is None:
+        err_msg = f"no nonce solved height {height} within the search bound"
+        raise RuntimeError(err_msg)
+    return Block(solved, candidate.transactions, check_validity=False), block_time
+
+
+def build_fork(
+    node: NodeAdapter, script_pub_key: ScriptPubKey, length: int
+) -> list[Block]:
+    """Return `length` unsubmitted blocks extending `node`'s own current tip.
+
+    `create_empty_fork`
+    (`test/functional/test_framework/blocktools.py`): each block pays
+    `script_pub_key` and carries no other transaction, mined client-side
+    the same way `MiniWallet.generate` mines one, and none of them is
+    submitted -- the caller does that, in order, once it wants to test
+    what happens when this fork turns out to carry more work than
+    whatever the node accepted in the meantime.
+
+    Independent of any `MiniWallet` instance's own cache: a fork built
+    this way is spent by nobody, so nothing here needs one.
+
+    :param node: the node whose own current tip this fork extends.
+    :param script_pub_key: what every block of the fork pays.
+    :param length: how many blocks to build.
+    :raises RuntimeError: `_mine_one` could not solve one of them.
+    :raises TypeError: `node`'s own RPC answered something `_read_tip`
+        cannot use.
+    """
+    tip, height, median_time = _read_tip(node)
+    last_time = median_time
+    blocks = []
+    for _ in range(length):
+        height += 1
+        block, last_time = _mine_one(tip, height, last_time, script_pub_key)
+        blocks.append(block)
+        tip = block.header.hash
+    return blocks
+
+
 def _witness() -> Witness:
     """Return the script-path witness that spends `_ANYONE_CAN_SPEND`.
 
@@ -143,29 +292,26 @@ class MiniWallet:
     def __init__(self, node: NodeAdapter) -> None:
         self._node = node
         self._utxos: list[Utxo] = []
-        best_hash = node.rpc.call("getbestblockhash")
-        if not isinstance(best_hash, str):
-            err_msg = f"getbestblockhash answered {best_hash!r}, not a hash string"
-            raise TypeError(err_msg)
-        self._tip = bytes.fromhex(best_hash)
-        height = node.rpc.call("getblockcount")
-        if not isinstance(height, int):
-            err_msg = f"getblockcount answered {height!r}, not an int"
-            raise TypeError(err_msg)
-        self._height = height
-        chain_info = node.rpc.call("getblockchaininfo")
-        median_time = (
-            chain_info.get("mediantime") if isinstance(chain_info, dict) else None
-        )
-        if not isinstance(median_time, int):
-            err_msg = f"getblockchaininfo answered {chain_info!r}, no int mediantime"
-            raise TypeError(err_msg)
         # seeded from the existing chain's own median-time-past rather than
         # 0: a node this wallet did not mine into -- the session-scoped
         # `bitcoind_adapter` fixture hands more than one MiniWallet the same
         # node -- already has a tip whose median-time-past this wallet's
         # first block must exceed, `time-too-old` otherwise
-        self._last_time = median_time
+        self._tip, self._height, self._last_time = _read_tip(node)
+
+    def resync(self) -> None:
+        """Re-read this wallet's own tip, height and median-time from the node.
+
+        For a chain move this wallet did not itself make -- an
+        `invalidateblock`, or a `build_fork` a caller has just submitted --
+        so that the next `generate` extends the chain that is actually
+        there instead of a tip this wallet last saw before it moved.
+        `_utxos` is left untouched: this class has no `scantxoutset` to
+        rebuild it from (this module's own docstring has why), so a coin
+        the move spent or unspent again is the caller's own to reconcile,
+        from whatever RPC told it the move happened.
+        """
+        self._tip, self._height, self._last_time = _read_tip(self._node)
 
     @property
     def script_pub_key(self) -> ScriptPubKey:
@@ -176,7 +322,7 @@ class MiniWallet:
         """Return the satoshi sum of every coin this wallet still holds."""
         return sum(utxo.value for utxo in self._utxos)
 
-    def generate(self, count: int) -> list[bytes]:
+    def generate(self, count: int, *, confirm: Sequence[Tx] = ()) -> list[bytes]:
         """Mine `count` blocks paying this wallet's own script, and cache them.
 
         Client-side start to finish: `build_coinbase` and `build_block`
@@ -193,6 +339,13 @@ class MiniWallet:
         carries from its very first block.
 
         :param count: how many blocks to mine.
+        :param confirm: already-broadcast transactions to carry in the
+            first of the `count` blocks -- `send_self_transfer`'s own
+            return value, typically. Bitcoind's own node-side mining pulls
+            the whole mempool in on every block; this class reads no
+            mempool back, so a caller names exactly what it wants
+            confirmed, in an order where a spend of one of them already
+            sits after it.
         :returns: the mined blocks' own header hashes, display order,
             oldest first.
         :raises RuntimeError: `mine` exhausted its own search bound
@@ -202,25 +355,16 @@ class MiniWallet:
             acceptance (`None`).
         """
         hashes = []
-        for _ in range(count):
+        for index in range(count):
             height = self._height + 1
-            coinbase = build_coinbase(
-                height,
-                _ANYONE_CAN_SPEND,
-                halving_interval=_REGTEST_SUBSIDY_HALVING_INTERVAL,
-            )
-            block_time = max(int(datetime.now(UTC).timestamp()), self._last_time + 1)
-            candidate = build_block(
+            extra_transactions = confirm if index == 0 else ()
+            block, block_time = _mine_one(
                 self._tip,
-                [coinbase],
-                datetime.fromtimestamp(block_time, UTC),
-                REGTEST_POW_LIMIT_BITS,
+                height,
+                self._last_time,
+                _ANYONE_CAN_SPEND,
+                extra_transactions,
             )
-            solved = mine(candidate.header)
-            if solved is None:
-                err_msg = f"no nonce solved height {height} within the search bound"
-                raise RuntimeError(err_msg)
-            block = Block(solved, candidate.transactions, check_validity=False)
             answer = self._node.rpc.call(
                 "submitblock", [block.serialize(check_validity=False).hex()]
             )
@@ -229,7 +373,7 @@ class MiniWallet:
                 raise TypeError(err_msg)
             self._utxos.append(
                 Utxo(
-                    outpoint=OutPoint(coinbase.id, 0),
+                    outpoint=OutPoint(block.transactions[0].id, 0),
                     value=subsidy(height, _REGTEST_SUBSIDY_HALVING_INTERVAL),
                     height=height,
                     coinbase=True,
@@ -240,6 +384,24 @@ class MiniWallet:
             self._last_time = block_time
             hashes.append(self._tip)
         return hashes
+
+    def get_utxo(self, *, txid: str) -> Utxo:
+        """Return and forget the cached coin `txid` paid, maturity aside.
+
+        `get_utxo` (`wallet.py`): a caller naming a coin by its own txid is
+        presumed to already know what it is, so this applies no maturity
+        filter -- `mempool_spend_coinbase.py`'s own subject is what the
+        *node* does when handed a spend of one that has not cleared
+        `COINBASE_MATURITY` yet, not a check this class should make first.
+
+        :param txid: the hex txid of the coin's own transaction.
+        :raises LookupError: no cached coin's own outpoint names `txid`.
+        """
+        for index, utxo in enumerate(self._utxos):
+            if utxo.outpoint.tx_id.hex() == txid:
+                return self._utxos.pop(index)
+        err_msg = f"no coin of this wallet was paid by txid {txid!r}"
+        raise LookupError(err_msg)
 
     def _pop_mature_utxo(self) -> Utxo:
         """Return and forget the first matured coin this wallet still holds.
@@ -259,14 +421,20 @@ class MiniWallet:
         err_msg = "no coin of this wallet has matured yet"
         raise LookupError(err_msg)
 
-    def create_self_transfer(self) -> Tx:
-        """Return an unbroadcast tx spending one matured coin, paid to itself.
+    def create_self_transfer(self, *, utxo_to_spend: Utxo | None = None) -> Tx:
+        """Return an unbroadcast tx spending one coin, paid to itself.
 
         `send_self_transfer` is the caller wanting it broadcast too.
 
-        :raises LookupError: no coin of this wallet has matured yet.
+        :param utxo_to_spend: the coin to spend, `get_utxo`'s own answer
+            typically; the next automatically matured one where `None`,
+            `_pop_mature_utxo`'s own maturity check applying only then --
+            a caller naming one by hand, immature or not, gets exactly
+            that one, `create_self_transfer` (`wallet.py`)'s own shape.
+        :raises LookupError: `utxo_to_spend` is `None` and no coin of this
+            wallet has matured yet.
         """
-        utxo = self._pop_mature_utxo()
+        utxo = utxo_to_spend if utxo_to_spend is not None else self._pop_mature_utxo()
         tx_in = TxIn(
             utxo.outpoint,
             script_sig=b"",
@@ -285,18 +453,20 @@ class MiniWallet:
         )
         return tx
 
-    def send_self_transfer(self) -> Tx:
+    def send_self_transfer(self, *, utxo_to_spend: Utxo | None = None) -> Tx:
         """Create, broadcast and cache a self-transfer; return the sent tx.
 
         The new coin `create_self_transfer` already cached is spendable
         the moment this returns: unlike a coinbase, `_pop_mature_utxo`
         never holds a non-coinbase coin back.
 
-        :raises LookupError: no coin of this wallet has matured yet.
+        :param utxo_to_spend: forwarded to `create_self_transfer`.
+        :raises LookupError: `utxo_to_spend` is `None` and no coin of this
+            wallet has matured yet.
         :raises TypeError: `sendrawtransaction` answered something other
             than the sent tx's own id.
         """
-        tx = self.create_self_transfer()
+        tx = self.create_self_transfer(utxo_to_spend=utxo_to_spend)
         tx_hex = tx.serialize(True, check_validity=False).hex()
         txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
         if txid != tx.id.hex():

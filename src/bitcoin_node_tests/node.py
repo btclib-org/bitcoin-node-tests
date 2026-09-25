@@ -73,6 +73,74 @@ class _Process(Protocol):
     def poll(self) -> int | None: ...
 
 
+def _option_name(token: str) -> str | None:
+    """Return the bare option name `token` spells, or `None` if it spells none.
+
+    `-opt`, `--opt`, `-opt=value` and `--opt=value` all name `opt`; a
+    token carrying no leading dash -- an executable path, a bare
+    positional -- names nothing, and neither does a lone `-`.
+
+    :param token: one argv entry.
+    """
+    if not token.startswith("-"):
+        return None
+    name = token.lstrip("-").split("=", 1)[0]
+    return name or None
+
+
+def _canonical_option_name(name: str) -> str:
+    """Collapse Core's own negated spelling onto the option it negates.
+
+    bitcoind treats `-noopt` as `-opt=0`
+    (`ArgsManager::GetBoolArg`, `src/util/args.cpp`), so `noopt` and
+    `opt` name the same knob and compare equal here.
+
+    :param name: an option name, as `_option_name` returns it.
+    """
+    if name.startswith("no") and len(name) > len("no"):
+        return name[len("no") :]
+    return name
+
+
+def _reserved_option_names(command: Sequence[str]) -> frozenset[str]:
+    """Return every option name `command` itself sets, canonicalized.
+
+    Read out of the adapter's own `_command()` rather than kept by hand
+    beside it: an argument `_command` grows is reserved from the commit
+    that adds it, with nothing else to update.
+
+    :param command: an adapter's own argv, `_command()`'s answer.
+    """
+    names = (_option_name(token) for token in command)
+    return frozenset(_canonical_option_name(name) for name in names if name is not None)
+
+
+def _check_extra_args(command: Sequence[str], extra_args: Sequence[str]) -> None:
+    """Refuse an `extra_args` entry naming an option `command` already sets.
+
+    bitcoind takes the last of a repeated option with no diagnostic
+    (measured against the pinned 31.1, given `-datadir` twice), so an
+    `extra_args` entry that names one of `command`'s own options
+    replaces it silently once appended after `command` -- refused here
+    instead, before either ever reaches a process.
+
+    :param command: the adapter's own argv, `_command()`'s answer.
+    :param extra_args: what a caller asks to append after it.
+    :raises ValueError: an entry of `extra_args` names an option
+        `command` already sets, spelled with one or two leading dashes,
+        with or without a `-no` negation.
+    """
+    reserved = _reserved_option_names(command)
+    for arg in extra_args:
+        name = _option_name(arg)
+        if name is None:
+            continue
+        canonical = _canonical_option_name(name)
+        if canonical in reserved:
+            err_msg = f"extra_args reuses -{canonical}, which this adapter sets itself"
+            raise ValueError(err_msg)
+
+
 def _wait_for_rpc(
     rpc: _RpcProbe,
     process: _Process,
@@ -133,11 +201,13 @@ class NodeAdapter(ABC):
     class reaching for a default any other instance on the same machine
     could collide on.
 
-    `extra_args` is appended after `_command`'s own argv, unexamined by
-    this class: a caller asking for a fact `_command` does not already
-    name -- a non-default `-blocksdir`, a `-conf` naming a file this
-    same caller wrote -- passes it here rather than a subclass growing a
-    parameter for every option a test happens to need.
+    `extra_args` is appended after `_command`'s own argv: a caller
+    asking for a fact `_command` does not already name -- a non-default
+    `-blocksdir`, a `-conf` naming a file this same caller wrote --
+    passes it here rather than a subclass growing a parameter for every
+    option a test happens to need. An entry naming an option `_command`
+    already sets is refused at construction, rather than silently
+    overriding it the way bitcoind's own last-one-wins parsing would.
     """
 
     capabilities: AbstractSet[Capability]
@@ -154,6 +224,7 @@ class NodeAdapter(ABC):
         self._datadir = datadir
         self._rpc_port = rpc_port
         self._p2p_port = p2p_port
+        _check_extra_args(self._command(), extra_args)
         self._extra_args = tuple(extra_args)
         self._process: subprocess.Popen[bytes] | None = None
 

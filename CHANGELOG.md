@@ -129,3 +129,9 @@ btclib-node build; `rpc_whitelist` is ported against it (issue #7).
 `p2p_compactblocks_blocksonly` and `rpc_echo_payload` each need an
 option alone; `TF2.md` names them, and why the rest of the re-measured
 census is not a candidate (issue #3).
+
+### The MiniWallet family's mechanism, and its first port
+
+`MiniWallet` feeds its own coin cache from blocks it mines itself, never
+`scantxoutset`. `feature_framework_miniwallet` is ported against
+bitcoind, and skips on btclib-node for `Capability.MINE` (issue #4).

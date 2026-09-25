@@ -16,14 +16,15 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability
 
 
-def test_capabilities_are_mine_connect_raw_message_and_blk_files() -> None:
-    """Bitcoind offers every one: a wallet, `addnode`, `sendmsgtopeer`, disk."""
+def test_capabilities_are_mine_connect_raw_message_blk_files_debug_log() -> None:
+    """Bitcoind offers each: wallet, `addnode`, `sendmsgtopeer`, disk, log."""
     assert BitcoindAdapter.capabilities == frozenset(
         {
             Capability.MINE,
             Capability.CONNECT,
             Capability.RAW_MESSAGE,
             Capability.BLK_FILES,
+            Capability.DEBUG_LOG,
         }
     )
 
@@ -39,6 +40,7 @@ def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:
     assert "-rpcbind=127.0.0.1" in command
     assert "-bind=127.0.0.1:18444" in command
     assert "-printtoconsole=0" in command
+    assert "-debug=net" in command
 
 
 def test_rpc_client_authenticates_by_the_datadir_s_cookie(tmp_path: Path) -> None:
@@ -47,6 +49,14 @@ def test_rpc_client_authenticates_by_the_datadir_s_cookie(tmp_path: Path) -> Non
     client = adapter._rpc_client()
     assert client.cookie_path == tmp_path / "regtest" / ".cookie"
     assert client.url == "http://127.0.0.1:18443"
+
+
+def test_debug_log_path_is_the_datadir_s_own_regtest_debug_log(
+    tmp_path: Path,
+) -> None:
+    """`Capability.DEBUG_LOG`'s own fact: bitcoind's own log, unwritten yet."""
+    adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
+    assert adapter.debug_log_path == tmp_path / "regtest" / "debug.log"
 
 
 class _FakeRpc:

@@ -52,7 +52,9 @@ class BitcoindAdapter(NodeAdapter):
     adapter's node offers yet. `Capability.BLK_FILES` is unconditional
     too: this is Core's own binary, so `blk*.dat` under `blocks/` is the
     format it already writes, not one this adapter has to add anything
-    for.
+    for. `Capability.DEBUG_LOG` is `debug_log_path` below, over the
+    node's own `-debug=net`: bitcoind's own binary is what writes Core's
+    own wording, which is the fact this capability names.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -61,6 +63,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.CONNECT,
             Capability.RAW_MESSAGE,
             Capability.BLK_FILES,
+            Capability.DEBUG_LOG,
         }
     )
 
@@ -86,7 +89,13 @@ class BitcoindAdapter(NodeAdapter):
         throwaway regtest node run from a test suite wants none of the
         three. `-fallbackfee` is set because a chain with no fee history
         refuses to fund a transaction without it, which `Capability.MINE`
-        meets the moment a caller spends what it mines.
+        meets the moment a caller spends what it mines. `-debug=net` is
+        `Capability.DEBUG_LOG`'s own condition: Core's own `net` category
+        log lines, the ones the log family's tests read, are
+        `LogDebug`'s (`src/util/log.h`) and print at all only where their
+        own category is enabled -- unconditional here rather than left to
+        a per-test option, `-debug` being a request no test of this
+        family needs to make for itself.
         """
         return [
             self._executable,
@@ -100,6 +109,7 @@ class BitcoindAdapter(NodeAdapter):
             "-listenonion=0",
             "-fallbackfee=0.0002",
             "-printtoconsole=0",
+            "-debug=net",
         ]
 
     @override
@@ -109,6 +119,16 @@ class BitcoindAdapter(NodeAdapter):
         return BitcoinCoreRpcClient(
             f"http://127.0.0.1:{self._rpc_port}", cookie_path=cookie_path
         )
+
+    @property
+    def debug_log_path(self) -> Path:
+        """Return this node's own `debug.log`, `Capability.DEBUG_LOG`'s fact.
+
+        `-datadir`'s own `regtest/debug.log`, the same layout the cookie
+        file above reads from -- bitcoind's own convention, not a name
+        this adapter invents.
+        """
+        return self._datadir / "regtest" / "debug.log"
 
     def mine(self, count: int = 1) -> list[str]:
         """Mine `count` blocks to this adapter's wallet, return their hashes.

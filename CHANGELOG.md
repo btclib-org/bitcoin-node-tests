@@ -69,3 +69,9 @@ btclib-org/btclib-node#573). `feature_blocksdir` is ported (issue #7).
 Each `-n auto` worker hands its own tally to the controller through
 `workeroutput`, and the controller folds every one in before printing
 the total (closes #16).
+
+### The log family: a wire half and a `Capability.DEBUG_LOG` half
+
+`test_magic_bytes` and `P2PLeakTest`'s obsolete-version check are each
+rewritten as a disconnect, passing on both nodes, and a log assertion,
+`Capability.DEBUG_LOG`-gated and skipping on btclib-node. (issue #5)

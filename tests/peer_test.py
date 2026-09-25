@@ -310,3 +310,83 @@ def test_context_manager_closes_the_socket(fake_node: _FakeNode) -> None:
     with Peer(("127.0.0.1", fake_node.port), _MAGIC, timeout=5.0) as peer:
         thread.join(timeout=5.0)
         assert peer is not None
+
+
+def test_send_raw_sends_already_serialized_bytes(fake_node: _FakeNode) -> None:
+    """The log family's own escape from `self._magic`: unframed, sent raw."""
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=fake_node.answer_handshake)
+        server_thread.start()
+        peer.handshake()
+        server_thread.join(timeout=5.0)
+
+        peer.send_raw(Ping(42).to_message(_MAGIC).serialize())
+        message = fake_node._receive()
+        assert message.command == "ping"
+        assert Ping.parse(message.payload).nonce == 42
+    finally:
+        peer.close()
+
+
+def test_wait_for_disconnect_returns_once_the_node_closes(
+    fake_node: _FakeNode,
+) -> None:
+    """The node hanging up is exactly what this call is waiting for."""
+    peer = _connect_and_accept(fake_node)
+    server_thread = threading.Thread(target=fake_node.answer_handshake)
+    server_thread.start()
+    peer.handshake()
+    server_thread.join(timeout=5.0)
+    fake_node.close()
+    peer.wait_for_disconnect(timeout=5.0)
+    peer.close()
+
+
+def test_wait_for_disconnect_drains_a_message_before_the_close(
+    fake_node: _FakeNode,
+) -> None:
+    """A message still in flight is drained, not mistaken for staying up."""
+    peer = _connect_and_accept(fake_node)
+    server_thread = threading.Thread(target=fake_node.answer_handshake)
+    server_thread.start()
+    peer.handshake()
+    server_thread.join(timeout=5.0)
+    fake_node.send_ping()
+    fake_node.close()
+    peer.wait_for_disconnect(timeout=5.0)
+    peer.close()
+
+
+def test_wait_for_disconnect_raises_when_the_node_never_closes(
+    fake_node: _FakeNode,
+) -> None:
+    """A node that stays up is a failed wait, not an endless one."""
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=fake_node.answer_handshake)
+        server_thread.start()
+        peer.handshake()
+        server_thread.join(timeout=5.0)
+
+        with pytest.raises(AssertionError, match="not closed"):
+            peer.wait_for_disconnect(timeout=0.2)
+    finally:
+        peer.close()
+
+
+def test_wait_for_disconnect_a_zero_timeout_never_reads_the_socket(
+    fake_node: _FakeNode,
+) -> None:
+    """A deadline already past is the loop's own exit, not a read timing out."""
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=fake_node.answer_handshake)
+        server_thread.start()
+        peer.handshake()
+        server_thread.join(timeout=5.0)
+
+        with pytest.raises(AssertionError, match="not closed"):
+            peer.wait_for_disconnect(timeout=0.0)
+    finally:
+        peer.close()

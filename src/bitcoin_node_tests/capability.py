@@ -78,12 +78,25 @@ class Capability(Enum):
     a fact the wire has no call for, unlike where the option that names
     the directory lives, which a node without this capability may still
     accept.
+    `DEBUG_LOG` -- write a debug log a caller can read and match Core's
+    own wording against, the way `assert_debug_log`
+    (`debug_log.py`) does. The log family (the third of step 5's five,
+    [ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5))
+    is what this names: where the fact an `assert_debug_log` call in
+    Core asks about is also observable on the wire -- a disconnect,
+    `getpeerinfo` -- the ported assertion reads the wire instead and
+    needs no capability at all; where only the log carries it, a test
+    needs this one. A node's own log is truthful about what *it* did,
+    not about what Core would have called it, so a byte-for-byte match
+    against Core's own wording is a fact only bitcoind's own binary can
+    supply.
     """
 
     MINE = "mine"
     CONNECT = "connect"
     RAW_MESSAGE = "raw_message"
     BLK_FILES = "blk_files"
+    DEBUG_LOG = "debug_log"
 
 
 class SkipCounts:

@@ -732,11 +732,15 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 
 | Core test | pin | read at | bitcoind | btclib-node |
 | --- | --- | --- | --- | --- |
-| `feature_blocksdir.py` | `0d1301b47a35` | 2026-03-24 | pass | skip blk_files |
+| `feature_blocksdir.py` | `0d1301b47a35` | 2026-03-24 | pass | skip (blk) |
 | `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) |
 | `p2p_invalid_locator.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
+| `p2p_invalid_messages.py` (wire) | `3fd68a95e68b` | 2026-04-07 | pass | pass |
+| `p2p_invalid_messages.py` (log) | `3fd68a95e68b` | 2026-04-07 | pass | skip |
+| `p2p_leak.py` (wire) | `01b8a117d2c5` | 2026-06-04 | pass | pass |
+| `p2p_leak.py` (log) | `01b8a117d2c5` | 2026-06-04 | pass | skip |
 | `p2p_net_deadlock.py` | `a0473442d1c2` | 2024-07-16 | pass | skip (raw_msg) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
@@ -766,16 +770,33 @@ is still open) -- and widening only the bitcoind half of this row would
 leave its own column and btclib-node's answering a different question
 about the same test.
 
-The other `p2p_*` rows are Core's own claim in full, `bitcoind`'s pass
+The first family's own rows -- `p2p_block_sync.py`,
+`p2p_compactblocks_hb.py`, `p2p_invalid_locator.py` and
+`p2p_net_deadlock.py` -- are Core's own claim in full, `bitcoind`'s pass
 being the whole of it: none narrows what Core asks, each needing
-`Capability.MINE` (`p2p_block_sync.py`,
-`p2p_compactblocks_hb.py`, `p2p_invalid_locator.py`, to reach a chain
-tall enough to mine or to name) or `Capability.RAW_MESSAGE`
-(`p2p_net_deadlock.py`, Core's own `sendmsgtopeer`) that
-`BtclibNodeAdapter` does not declare, so every `btclib-node` cell is a
-counted skip rather than a run -- naming the capability rather than the
-RPC, since a node offering the same fact under another name would still
-answer `pass`. `p2p_compactblocks_hb.py` identifies each of the node
-under test's own peers by connection order rather than by the
-`-uacomment` Core's own `TestNode` sets, this adapter carrying no
-per-node command-line option; every other assertion is unchanged.
+`Capability.MINE` (`p2p_block_sync.py`, `p2p_compactblocks_hb.py` and
+`p2p_invalid_locator.py`, to reach a chain tall enough to mine or to
+name) or `Capability.RAW_MESSAGE` (`p2p_net_deadlock.py`, Core's own
+`sendmsgtopeer`) that `BtclibNodeAdapter` does not declare, so every
+`btclib-node` cell is a counted skip rather than a run -- naming the
+capability rather than the RPC, since a node offering the same fact
+under another name would still answer `pass`. `p2p_compactblocks_hb.py`
+identifies each of the node under test's own peers by connection order
+rather than by the `-uacomment` Core's own `TestNode` sets, this adapter
+carrying no per-node command-line option; every other assertion is
+unchanged.
+
+The log family's own rows (issue #5) are each half of one Core test
+rather than the whole of it: `test_magic_bytes`
+(`p2p_invalid_messages.py`) and the closing check of `P2PLeakTest`
+(`p2p_leak.py`) each assert a disconnect *and* the log line Core's own
+binary writes for it, and the charter's own rule for this family is
+that a fact observable on the wire is asked for on the wire while a
+fact only the log carries asks for `Capability.DEBUG_LOG` instead --
+one mechanism, not one verdict, so the wire half and the log half of
+the same Core test get their own row rather than being folded into a
+single pass/skip that would hide which half a `skip` was ever about.
+Neither ports the rest of its own Core file: `p2p_invalid_messages.py`'s
+own other assertions need a mined chain or an option this step does not
+register, and `p2p_leak.py`'s own earlier checks ask what a node sends
+before a handshake completes, neither an `assert_debug_log` subject.

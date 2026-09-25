@@ -36,6 +36,10 @@ Core's `blk*.dat`, by the decision
 already made and closed on -- reading Core's own files was refused in
 favour of `-connect`/`-addnode` delivering the same blocks over loopback
 p2p, which this repository's own `Capability.CONNECT` already reaches.
+
+`Capability.UA_COMMENT` is not declared: measured against `cli.py`'s
+own `_build_parser` at `btclib-node` `18b6ae1e`, `-uacomment` is not
+one of its registered flags.
 """
 
 from __future__ import annotations

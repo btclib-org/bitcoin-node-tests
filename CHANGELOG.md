@@ -81,3 +81,9 @@ rewritten as a disconnect, passing on both nodes, and a log assertion,
 Redirected to a file rather than an unread `subprocess.PIPE`, so a
 long-running node cannot block on a full pipe buffer, and
 `feature_blocksdir`'s refusal half matches each node's own wording (closes #19).
+
+### The option family's mechanism, and `feature_uacomment` ported
+
+`Capability.UA_COMMENT` names Core's `-uacomment`, declared by bitcoind
+and absent from btclib-node's own registered flags. `feature_uacomment`
+is ported (issue #3).

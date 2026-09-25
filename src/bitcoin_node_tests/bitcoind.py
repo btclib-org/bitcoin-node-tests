@@ -55,6 +55,9 @@ class BitcoindAdapter(NodeAdapter):
     for. `Capability.DEBUG_LOG` is `debug_log_path` below, over the
     node's own `-debug=net`: bitcoind's own binary is what writes Core's
     own wording, which is the fact this capability names.
+    `Capability.UA_COMMENT` is unconditional too: `-uacomment` is Core's
+    own flag, so this is the one node under test that always has it,
+    whatever a later option capability turns out to name.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -64,6 +67,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.RAW_MESSAGE,
             Capability.BLK_FILES,
             Capability.DEBUG_LOG,
+            Capability.UA_COMMENT,
         }
     )
 

@@ -46,6 +46,14 @@ An option only bitcoind has a reason to carry -- `-disablewallet`,
 `-torcontrol` -- is never declared or skipped by another node under this
 mechanism; it is a bitcoind-only test's subject, a shape this module
 does not build.
+[ISS bitcoin-node-tests#23](https://github.com/btclib-org/bitcoin-node-tests/issues/23)
+gives that shape a place of its own, and this paragraph is the one rule
+that decides which option qualifies, rather than a decision made test by
+test: a `*_bitcoind_test.py` module with no `*_btclib_node_test.py`
+counterpart, asking `require` for nothing, is a bitcoind-only test.
+`TF2.md`'s own per-test ledger spells such a row `bitcoind only` in its
+`btclib-node` column rather than any `skip (...)` -- a cell nothing will
+ever turn into a `pass` or a `fail`, unlike an ordinary skip.
 
 **This module imports no test runner.** `pyproject.toml`'s own
 `[project] dependencies` name two packages and no third (this

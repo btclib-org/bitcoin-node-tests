@@ -105,3 +105,9 @@ negation -- is refused rather than silently overriding it (closes #18).
 A build gaining Core-style RPC authentication (btclib-node ISS #1070)
 writes a cookie `BitcoindAdapter` already reads; the placeholder
 credential this adapter carried is used only where a build has none (closes #25).
+
+### A bitcoind-only test has a place of its own; `feature_torcontrol` is first
+
+A `*_bitcoind_test.py` module with no `*_btclib_node_test.py` counterpart
+needs no `Capability`; `TF2.md`'s per-test ledger spells such a row
+`bitcoind only`. `feature_torcontrol` is the first (closes #23).

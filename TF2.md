@@ -717,6 +717,12 @@ the node does not declare. bitcoind is the oracle (rule 3): a **fail**
 on bitcoind is this repository's own defect rather than a finding for
 another tracker.
 
+A row whose subject is bitcoind's own option carries **bitcoind only**
+in its `btclib-node` column instead: not a verdict on that node, since
+no test of this shape ever runs against one. `capability.py`'s own
+module docstring is the one place that states which options this
+covers, and does not decide it row by row here.
+
 This table is not read by `.github/scripts/check_vendored_vectors.py`:
 that script's own docstring says so -- "this tree carrying no second
 ledger" -- and it reads `test/functional/test_framework/` alone, the
@@ -744,6 +750,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_net_deadlock.py` | `a0473442d1c2` | 2024-07-16 | pass | skip (raw_msg) |
 | `feature_uacomment.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `rpc_uptime.py` | `406c2348ddbf` | 2026-06-13 | pass | skip (clock) |
+| `feature_torcontrol.py` | `4556ef626754` | 2026-09-15 | pass | bitcoind only |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -873,3 +880,24 @@ and belongs with ISS 14 rather than this one.
 `Capability.CLOCK` (Core's own `setmocktime`) the only fact it asks for,
 so `btclib-node`'s cell is a counted skip on that capability rather than
 a narrowed question.
+
+`feature_torcontrol.py`'s row is the first of the bitcoind-only shape
+[ISS bitcoin-node-tests#23](https://github.com/btclib-org/bitcoin-node-tests/issues/23)
+builds: `-torcontrol`, the charter's own second named example of an
+option only bitcoind has a reason to carry, drives a real handshake
+against a mock Tor control server this test carries alongside itself
+rather than in this repository's own harness. A smaller claim than
+Core's own file, declared rather than silent: Core's own mock server
+negotiates proof-of-work defenses on `ADD_ONION`, a step the pinned
+release `bitcoind.py`'s own docstring names never takes -- its own
+`src/torcontrol.cpp`, read at that same release's tag, sends no such
+parameter, that negotiation having landed on Core's own `master`
+afterward. Kept whole: the sequence from `PROTOCOLINFO` through
+`ADD_ONION` a fresh onion service takes to come up. No other option of
+the first family's or the option family's own census names a fact only
+bitcoind's binary can answer without also asking for a mechanism this
+repository does not build -- `-disablewallet`, the charter's own other
+example, is a wallet feature by name and stays out on that ground alone;
+`-proxy`'s own Tor/I2P half needs the SOCKS5 harness `TF2.md`'s own
+framework-file ledger already marks `tf2's (harness)`, not built yet
+either.

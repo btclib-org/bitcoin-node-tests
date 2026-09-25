@@ -121,6 +121,11 @@ class Capability(Enum):
     string `getnetworkinfo` reports, the fact Core's own `-uacomment`
     asks for. The first of the option family (rule 4,
     [ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)).
+    `CLOCK` -- accept a caller-set wall clock, Core's `setmocktime`
+    (`test/functional/test_framework/test_node.py`'s own
+    `TestNode.setmocktime`): every RPC and every p2p timeout this node
+    reads the time through sees the caller's clock instead of the real
+    one, until `0` is set to release it back.
     """
 
     MINE = "mine"
@@ -129,6 +134,7 @@ class Capability(Enum):
     BLK_FILES = "blk_files"
     DEBUG_LOG = "debug_log"
     UA_COMMENT = "ua_comment"
+    CLOCK = "clock"
 
 
 class SkipCounts:

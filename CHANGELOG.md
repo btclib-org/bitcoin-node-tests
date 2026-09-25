@@ -87,3 +87,9 @@ long-running node cannot block on a full pipe buffer, and
 `Capability.UA_COMMENT` names Core's `-uacomment`, declared by bitcoind
 and absent from btclib-node's own registered flags. `feature_uacomment`
 is ported (issue #3).
+
+### The clock family's mechanism, and `rpc_uptime` ported
+
+`Capability.CLOCK` names Core's `setmocktime`, absent from btclib-node.
+`rpc_uptime` is ported: it is the one clock-family test needing the
+clock alone; every other one also needs another mechanism (closes #6).

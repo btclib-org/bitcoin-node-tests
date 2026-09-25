@@ -204,6 +204,14 @@ def test_restart_stops_then_starts(tmp_path: Path) -> None:
     process.terminate.assert_called_once()
 
 
+def test_set_mock_time_calls_setmocktime(tmp_path: Path) -> None:
+    """`set_mock_time` is `setmocktime`, the timestamp its own one argument."""
+    rpc = _FakeRpc()
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=rpc)
+    adapter.set_mock_time(1_700_000_000)
+    assert rpc.calls == [("setmocktime", [1_700_000_000])]
+
+
 def test_p2p_address_names_127_0_0_1_and_the_configured_port(tmp_path: Path) -> None:
     """`p2p_address` is `("127.0.0.1", p2p_port)`, the port this adapter got."""
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 4444, rpc=_FakeRpc())

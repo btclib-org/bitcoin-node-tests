@@ -58,6 +58,11 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.UA_COMMENT` is unconditional too: `-uacomment` is Core's
     own flag, so this is the one node under test that always has it,
     whatever a later option capability turns out to name.
+    `Capability.CLOCK` is `setmocktime`, wrapped by
+    `NodeAdapter.set_mock_time` (`node.py`) -- a regtest-only RPC in the
+    same standing as `sendmsgtopeer` above (measured against the pinned
+    `31.1`: also absent from `help`'s own listing, and also answering
+    `help setmocktime` directly).
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -68,6 +73,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.BLK_FILES,
             Capability.DEBUG_LOG,
             Capability.UA_COMMENT,
+            Capability.CLOCK,
         }
     )
 

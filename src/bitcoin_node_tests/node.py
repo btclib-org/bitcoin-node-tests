@@ -229,6 +229,20 @@ class NodeAdapter(ABC):
         self.stop()
         self.start()
 
+    def set_mock_time(self, timestamp: int) -> None:
+        """Set this node's own clock, over `setmocktime`.
+
+        Core's own `TestNode.setmocktime`
+        (`test/functional/test_framework/test_node.py`) wraps the same
+        RPC; `Capability.CLOCK` (`capability.py`) is what a caller checks
+        before calling this, a node not declaring it having no
+        `setmocktime` to wrap.
+
+        :param timestamp: the unix time this node's own clock reads from
+            now on; `0` releases it back to the wall clock.
+        """
+        self.rpc.call("setmocktime", [timestamp])
+
 
 def _peer_ids(peers: object) -> set[object]:
     """Return every `id` a `getpeerinfo` answer carries, or an empty set.

@@ -153,3 +153,9 @@ against its own already-filed issue, `TF2.md` naming which. (issue #5)
 A non-regression suite for any node, beside or replacing Core's own
 test framework; `CONTRIBUTING.md` gains the commands to run it
 against your own checkout (issue btclib-org/btclib#2220).
+
+### `rpc_users` completes the disk family
+
+`-rpcauth`, `-rpccookieperms`, a malformed-`-rpcauth` roster, its own
+interaction with named entries and `-norpcauth`, each against
+`Capability.RPC_AUTH_CONFIG` or the new `RPC_AUTH_NEGATION` (closes #7).

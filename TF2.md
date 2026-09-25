@@ -751,6 +751,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_blocksdir.py` | `0d1301b47a35` | 2026-03-24 | pass | skip (blk) |
 | `feature_filelock.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `rpc_whitelist.py` | `fa24693819e0` | 2026-05-26 | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
+| `rpc_users.py` | `faf993ee4421` | 2026-05-26 | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
+| `rpc_users.py` (`-norpcauth`) | same | same | pass | skip (rpc_auth_negation), [ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176) |
 | `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) |
@@ -860,14 +862,76 @@ a counted skip against it; an instance built with an executable naming a
 assertions, matched against `rpc_whitelist_bitcoind_test.py`'s own
 claim.
 
-`rpc_users.py` needs the same `Capability.RPC_AUTH_CONFIG` and is not
-yet ported: Core's own file adds cookie-permission and
-platform-conditional checks (`test_rpccookieperms`, Windows's own open-fd
-branch in `feature_remove_pruned_files_on_startup.py`'s own neighbour)
-that `rpc_whitelist.py`'s own rows above do not carry, and sorting
-those into a further narrowed claim is
-[ISS bitcoin-node-tests#7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)'s
-own remaining work rather than this pull request's.
+`rpc_users.py`'s row shares `Capability.RPC_AUTH_CONFIG` and its
+build-dependent cell with `rpc_whitelist.py`'s own row above, and is a
+smaller claim than Core's own file in the same way. Kept: `-rpcauth`
+authenticating a user given either through `bitcoin.conf` or on the
+command line, a wrong password or a wrong user refused where a correct
+one is accepted; `test_rpccookieperms`'s own POSIX permission bits
+(`-rpccookieperms=owner`/`group`/`all`, and the default with none
+given); a roster of Core's own malformed `-rpcauth` values, refused at
+startup and matched against each node's own wording; Core's own
+"interactions between blank and non-blank rpcauth" check, a blank
+`-rpcauth=` refusing startup wherever it sits among named entries, in
+every ordering Core's own file checks; and the "failure to write
+cookie file will abort the node" check, a resource conflict in
+the same shape `feature_filelock.py`'s own row is. `test_rpccookieperms`'s
+own `platform.system() == 'Windows'` branch is dropped: this repository
+gates on one image, `ubuntu-latest`
+(`CONTRIBUTING.md`'s own table), so that branch is never reached here,
+and the POSIX check is the whole of the row's own claim for it. The bare
+`-rpcauth`, with no value at all, is dropped from the malformed roster:
+it is `argparse`'s own "expected one argument" on btclib-node rather
+than a fact about `RpcAuthEntry.parse` (`btclib-node`'s own
+`rpc/auth.py`), which the roster's other values already exercise
+between them. Core's own "-norpcauth disables previous -rpcauth params"
+check is ported as its own test and its own row, gated on
+`Capability.RPC_AUTH_NEGATION` rather than folded into the plain
+`rpc_users.py` row's `RPC_AUTH_CONFIG` cell:
+`-norpcauth` is not one of `cli.py`'s own registered flags on either
+build measured, released or `main`, refused before a node ever starts
+rather than accepted and disabling anything the way Core's own negation
+does
+([ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176)).
+`BitcoindAdapter` declares the new capability unconditionally, the same
+way it declares `RPC_AUTH_CONFIG`; `BtclibNodeAdapter` never declares
+it, on either build, `cli.py` having no registered flag for the
+`-norpcauth` row's `btclib-node` cell to become build-dependent on. That
+cell is a counted skip on both builds, unlike the plain `rpc_users.py`
+row's, which turns to a run past ISS btclib-node#1070.
+
+Dropped: `-rpcuser`/`-rpcpassword` and `-norpccookiefile` themselves,
+and Core's own script-driven credential generation (`share/rpcauth/`,
+run as a subprocess) and its `SystemRandom`-chosen username, a claim
+about that script rather than about the mechanism, matching
+`rpc_whitelist.py`'s own reason for dropping Core's `strange_users`
+roster. Core writes no RPC cookie once `-rpcpassword` is set or
+`-norpccookiefile` is given, `-rpcauth` present or not -- measured live
+against the pinned bitcoind, and against `btclib-node`'s own
+`rpc/auth.py` docstring, which states the same rule for that node.
+`NodeAdapter.start` (`node.py`) waits for a freshly spawned node
+through the adapter's own `_rpc_client()`, which for both
+`BitcoindAdapter` and `BtclibNodeAdapter` is always the cookie; a node
+started either way never satisfies that wait, and `start` times out
+rather than the node ever answering RPC. Core's own equivalent test
+hits the identical gap and works around it with
+`busy_wait_for_debug_log`, an alternate readiness wait keyed on the
+debug log rather than RPC, which neither adapter's own `_rpc_client`
+builds -- a mechanism for a later issue, not this one's, and not a
+capability either node lacks, since the gap is this repository's own
+`NodeAdapter` rather than either node's.
+
+A cookie the node cannot write is a different failure from a malformed
+`-rpcauth`, and each answers with different wording on btclib-node:
+a malformed `-rpcauth` is refused inside `cli.py`'s own `build_config`,
+before a process is ever spawned, with `rpc/auth.py`'s own
+`RpcAuthEntry.parse` raising "Invalid -rpcauth argument."; a cookie
+write failure happens inside `Node.run`, once `rpc_manager.start_listener`
+has already tried and failed, and `__init__.py`'s own `RPC_INIT_ERROR`
+constant is bitcoind's own generic wording verbatim -- measured live, a
+directory sitting where the cookie file must go refuses with `Error:
+Unable to start HTTP server. See debug log for details.` on both nodes,
+identically.
 
 `p2p_getdata.py`'s row is a smaller claim than Core's own test: Core
 asks its "later valid `getdata`" question of a mined tip, and this asks

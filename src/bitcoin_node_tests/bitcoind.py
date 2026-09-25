@@ -66,6 +66,12 @@ class BitcoindAdapter(NodeAdapter):
     unconditional too: `rpcauth`, `rpcwhitelist` and
     `rpcwhitelistdefault` are this binary's own `bitcoin.conf` keys,
     read the same way regardless of which adapter wrote the file.
+    `Capability.RPC_AUTH_NEGATION` is unconditional too: `-norpcauth`
+    disabling every `-rpcauth` given before it is `ArgsManager`'s own
+    generic negation of a list-type setting, not a fact `-rpcauth`
+    itself carries -- measured live against the pinned `31.1`, a request
+    authenticated with a credential named on the command line before
+    `-norpcauth` gets 401 once the node has started.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -78,6 +84,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.UA_COMMENT,
             Capability.CLOCK,
             Capability.RPC_AUTH_CONFIG,
+            Capability.RPC_AUTH_NEGATION,
         }
     )
 

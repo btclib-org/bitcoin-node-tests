@@ -142,6 +142,14 @@ class Capability(Enum):
     ([ISS bitcoin-node-tests#7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)):
     the fact is `bitcoin.conf` itself, `datadir_path`'s own file, not a
     fact the wire has a call for.
+    `RPC_AUTH_NEGATION` -- recognise `-norpcauth` on the command line,
+    disabling every `-rpcauth` value given before it, the way Core's own
+    `rpc_users` checks it. Not `RPC_AUTH_CONFIG` itself: a node can parse
+    `-rpcauth` and still have no `-no<name>` negation of any kind, which
+    is `btclib-node`'s own case
+    ([ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176)),
+    so a test asking for the negation needs its own capability rather
+    than riding on the one for the value it negates.
     """
 
     MINE = "mine"
@@ -152,6 +160,7 @@ class Capability(Enum):
     UA_COMMENT = "ua_comment"
     CLOCK = "clock"
     RPC_AUTH_CONFIG = "rpc_auth_config"
+    RPC_AUTH_NEGATION = "rpc_auth_negation"
 
 
 class SkipCounts:

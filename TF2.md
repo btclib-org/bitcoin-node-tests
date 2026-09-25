@@ -772,6 +772,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_uptime.py` | `406c2348ddbf` | 2026-06-13 | pass | skip (clock) |
 | `feature_torcontrol.py` | `4556ef626754` | 2026-09-15 | pass | bitcoind only |
 | `feature_framework_miniwallet.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip |
+| `mempool_resurrect.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
+| `mempool_spend_coinbase.py` | `6eca11175be6` | 2026-07-16 | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1091,10 +1093,63 @@ than one mechanism among several. This file answers yes, and so do
 [ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)'s own
 remaining ports, not
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
-once this row's mechanism lands. Several need a `MiniWallet` method this
-module does not yet build -- Core's own `get_utxo` and `send_to` among
-them -- which is theirs to add when ported, not a reason to hold them
-here. `mempool_cluster.py`, `mempool_sigoplimit.py` and `rpc_packages.py`
+once this row's mechanism lands.
+
+Reading the census's own remaining files against Core at the pins in
+their own rows or paragraphs below leaves that census whole: every file
+it names is still this issue's, several needing more than this round
+builds.
+
+`mempool_resurrect.py` and `mempool_spend_coinbase.py` are ported, their
+own rows above: `mini_wallet.py`'s own `get_utxo` (a cached coin by its
+own txid, maturity aside), `create_self_transfer` and `send_self_transfer`
+(`utxo_to_spend`, spending a caller-named coin in place of the next
+automatically matured one) and `resync` (re-reading the tip after a chain
+move this wallet did not itself make) are what `mempool_spend_coinbase.py`
+needed and `build_fork` (Core's own `create_empty_fork`, `blocktools.py`)
+is what `mempool_resurrect.py` needed beyond the mechanism above, each
+added to `mini_wallet.py` and unit-tested against the fake RPC.
+`mempool_resurrect.py`'s own reorg is a fork long enough to outweigh the
+chain this port also mines meanwhile -- `_FORK_LENGTH`, the integration
+module's own constant, narrower than Core's own fixed margin over its
+own intervening blocks, both clearing the same requirement: more work
+than what gets reorged away. `mempool_spend_coinbase.py` reaches the
+same mature/immature boundary by mining exactly `COINBASE_MATURITY`
+blocks from a chain that starts at height zero, rather than
+`invalidateblock`ing blocks off the chain Core's own fixture already
+starts every test deep into; this node carries no such fixture, so this
+port never calls `invalidateblock` at all, a narrower claim than Core's
+own file in the RPCs it exercises, not in the boundary it checks.
+
+`rpc_generate.py`, `rpc_scantxoutset.py`, `rpc_signrawtransactionwithkey.py`
+and `mining_template_verification.py` stay open under this issue, as the
+census above has them. Each drives
+`generatetoaddress`/`generateblock`/`generate`, `scantxoutset`,
+`signrawtransactionwithkey`, or `getblocktemplate` in proposal mode as
+its own subject, `MiniWallet` only funding a transaction
+the RPC under test then answers for. None of those RPCs is in
+`btclib_node`'s own dispatch table (`src/btclib_node/rpc/callbacks.py`).
+A port's `btclib-node` cell is the family's own skip on `Capability.MINE`
+all the same, so the missing RPC is a finding on btclib-node's tracker
+only once that node declares `MINE`.
+
+`mempool_accept_wtxid.py` needs `MiniWallet.create_self_transfer` plus a
+script-malleation helper this repository does not yet build -- Core's own
+`build_malleated_tx_package` (`test_framework/script_util.py`), a pair of
+children of one parent sharing a txid and differing only in the witness
+that satisfies it -- and a peer connection watching which one the node
+rebroadcasts by wtxid. `rpc_orphans.py` needs
+`create_self_transfer(utxo_to_spend=...)` chained into orphan pairs,
+`getorphantxs` (absent from `btclib_node`'s own dispatch, so `bitcoind
+only` the way `feature_torcontrol.py`'s row already is), and separate
+`peer.py` connections, each sending an unconfirmed child ahead of its own
+parent. Both ask for MiniWallet alone in step 5's own sense -- no node
+wallet, no log, no mocktime, no disk, one node, no option beyond the
+adapters' -- so
+neither is ISS 14's; both stay open under this issue, unported this
+round.
+
+`mempool_cluster.py`, `mempool_sigoplimit.py` and `rpc_packages.py`
 also drive MiniWallet alone at first read, but each also restarts its
 node with an option -- `-limitclustersize`/`-limitclustercount`,
 `-bytespersigop`/`-permitbaremultisig`, and

@@ -135,3 +135,9 @@ census is not a candidate (issue #3).
 `MiniWallet` feeds its own coin cache from blocks it mines itself, never
 `scantxoutset`. `feature_framework_miniwallet` is ported against
 bitcoind, and skips on btclib-node for `Capability.MINE` (issue #4).
+
+### `mempool_resurrect` and `mempool_spend_coinbase` join the MiniWallet family
+
+`MiniWallet` gains `get_utxo`, a caller-named coin on
+`create_self_transfer`/`send_self_transfer`, and `resync`; `build_fork`
+builds a Core-style empty fork alongside it (issue #4).

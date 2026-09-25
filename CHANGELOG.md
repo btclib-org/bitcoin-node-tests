@@ -57,3 +57,9 @@ btclib-org/.github#1359).
 `p2p_block_sync`, `p2p_compactblocks_hb`, `p2p_invalid_locator` and
 `p2p_net_deadlock` join `p2p_getdata`, against bitcoind and btclib-node.
 (closes #2)
+
+### The disk family's mechanism, and `feature_blocksdir` ported
+
+`NodeAdapter` gains `extra_args`; `Capability.BLK_FILES` names Core's
+`blk*.dat` layout, absent from btclib-node by decision (issue
+btclib-org/btclib-node#573). `feature_blocksdir` is ported (issue #7).

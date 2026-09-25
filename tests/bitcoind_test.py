@@ -16,10 +16,15 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability
 
 
-def test_capabilities_are_mine_connect_and_raw_message() -> None:
-    """Bitcoind offers all three: a wallet, `addnode`, `sendmsgtopeer`."""
+def test_capabilities_are_mine_connect_raw_message_and_blk_files() -> None:
+    """Bitcoind offers every one: a wallet, `addnode`, `sendmsgtopeer`, disk."""
     assert BitcoindAdapter.capabilities == frozenset(
-        {Capability.MINE, Capability.CONNECT, Capability.RAW_MESSAGE}
+        {
+            Capability.MINE,
+            Capability.CONNECT,
+            Capability.RAW_MESSAGE,
+            Capability.BLK_FILES,
+        }
     )
 
 

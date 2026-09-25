@@ -73,11 +73,17 @@ class Capability(Enum):
     peer, named by that peer's own index, the way Core's `sendmsgtopeer`
     does on the node under test's behalf; `p2p_net_deadlock`'s own
     subject needs a node that offers it, and today only bitcoind does.
+    `BLK_FILES` -- write its chain to disk the way Core does, `blk*.dat`
+    files under a `blocks/` directory that a caller may read directly:
+    a fact the wire has no call for, unlike where the option that names
+    the directory lives, which a node without this capability may still
+    accept.
     """
 
     MINE = "mine"
     CONNECT = "connect"
     RAW_MESSAGE = "raw_message"
+    BLK_FILES = "blk_files"
 
 
 class SkipCounts:

@@ -96,6 +96,18 @@ class Peer:
         message = payload.to_message(self._magic, check_validity=check_validity)
         self._socket.sendall(message.serialize())
 
+    def send_raw(self, data: bytes) -> None:
+        """Send already-serialized bytes, bypassing this peer's own magic.
+
+        `send` above always frames for `self._magic`, this connection's
+        own network; a caller building a message with a *different*
+        magic on purpose -- the log family's own tests, provoking the
+        node's "wrong network" refusal -- serializes it directly
+        (`payload.to_message(bad_magic).serialize()`) and hands the
+        octets here instead.
+        """
+        self._socket.sendall(data)
+
     def receive(self, *, timeout: float | None = None) -> Message:
         """Return the next whole message, reading more off the socket as needed.
 
@@ -161,6 +173,33 @@ class Peer:
                 return message
         err_msg = f"never saw {command!r} within the wait"
         raise TimeoutError(err_msg)
+
+    def wait_for_disconnect(self, *, timeout: float | None = None) -> None:
+        """Block until the node closes this connection, or raise.
+
+        The log family's own wire-observable half: a disconnect is a
+        `ConnectionError` out of `receive`, so this drains and drops
+        whatever the node still sends first -- a `ping`, an `addr` --
+        exactly as `wait_for` does, until either the socket closes or the
+        deadline passes with it still open.
+
+        :param timeout: how long to wait; `self._timeout` where `None`.
+        :raises AssertionError: the connection was still open at the
+            deadline.
+        """
+        deadline = time.monotonic() + (self._timeout if timeout is None else timeout)
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            try:
+                self.receive(timeout=remaining)
+            except ConnectionError:
+                return
+            except TimeoutError:
+                break
+        err_msg = "connection was not closed within the wait"
+        raise AssertionError(err_msg)
 
     def handshake(self) -> Version:
         """Exchange `version`/`verack`, and return the node's own `version`.

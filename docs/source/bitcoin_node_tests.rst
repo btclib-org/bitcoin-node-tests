@@ -25,6 +25,13 @@ bitcoin\_node\_tests.capability module
    :members:
    :show-inheritance:
 
+bitcoin\_node\_tests.debug\_log module
+--------------------------------------
+
+.. automodule:: bitcoin_node_tests.debug_log
+   :members:
+   :show-inheritance:
+
 bitcoin\_node\_tests.node module
 --------------------------------
 

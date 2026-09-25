@@ -45,3 +45,9 @@ their first twelve characters print as two (issue btclib-org/.github#1343).
 A `NodeAdapter` and a `Peer`, and `p2p_getdata` rewritten on both: passes
 on bitcoind, fails on btclib-node (issue btclib-org/btclib-node#1072).
 (closes #1)
+
+### CONTRIBUTING.md and README.md link GOVERNANCE.md and ROADMAP.md
+
+Both link `GOVERNANCE.md`, how the organization decides, and `ROADMAP.md`, what
+it intends to do, one copy of each in btclib-org/.github (issue
+btclib-org/.github#1359).

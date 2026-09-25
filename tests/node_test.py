@@ -13,6 +13,7 @@ branch.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, override
 from unittest.mock import ANY, MagicMock, patch
@@ -101,7 +102,7 @@ def test_start_waits_for_the_rpc_and_creates_the_datadir(tmp_path: Path) -> None
     adapter = _FakeAdapter("fake-node", datadir, 0, 0, rpc=rpc)
     with patch("subprocess.Popen", return_value=_FakeProcess()) as popen:
         adapter.start()
-    popen.assert_called_once_with(["fake-node", f"-datadir={datadir}"])
+    popen.assert_called_once_with(["fake-node", f"-datadir={datadir}"], stderr=ANY)
     assert datadir.is_dir()
     assert rpc.calls == [("getblockchaininfo", None)] * 3
 
@@ -115,7 +116,7 @@ def test_start_appends_extra_args_after_the_command(tmp_path: Path) -> None:
     with patch("subprocess.Popen", return_value=_FakeProcess()) as popen:
         adapter.start()
     popen.assert_called_once_with(
-        ["fake-node", f"-datadir={datadir}", "-blocksdir=/elsewhere"]
+        ["fake-node", f"-datadir={datadir}", "-blocksdir=/elsewhere"], stderr=ANY
     )
 
 
@@ -126,6 +127,34 @@ def test_start_raises_if_the_process_exits_first(tmp_path: Path) -> None:
         patch("subprocess.Popen", return_value=_FakeProcess(exit_after=0)),
         pytest.raises(RuntimeError, match="exited with 1"),
     ):
+        adapter.start()
+
+
+def test_start_raises_carrying_a_real_process_s_own_stderr(tmp_path: Path) -> None:
+    """A real, short-lived process's own stderr rides in the `RuntimeError`.
+
+    A real `subprocess.Popen` rather than a mock: the capture this tests
+    is the redirection `start` itself sets up, which a mocked `Popen`
+    never exercises.
+    """
+
+    class _StderrAdapter(_FakeAdapter):
+        @override
+        def _command(self) -> list[str]:
+            return [
+                sys.executable,
+                "-c",
+                "import sys; sys.stderr.write('blocksdir missing'); sys.exit(1)",
+            ]
+
+    adapter = _StderrAdapter(
+        sys.executable,
+        tmp_path / "node",
+        free_port(),
+        free_port(),
+        rpc=_FakeRpc(answers_after=10**6),
+    )
+    with pytest.raises(RuntimeError, match="exited with 1.*blocksdir missing"):
         adapter.start()
 
 

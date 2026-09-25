@@ -75,3 +75,9 @@ the total (closes #16).
 `test_magic_bytes` and `P2PLeakTest`'s obsolete-version check are each
 rewritten as a disconnect, passing on both nodes, and a log assertion,
 `Capability.DEBUG_LOG`-gated and skipping on btclib-node. (issue #5)
+
+### `NodeAdapter.start` carries a process's own stderr into its `RuntimeError`
+
+Redirected to a file rather than an unread `subprocess.PIPE`, so a
+long-running node cannot block on a full pipe buffer, and
+`feature_blocksdir`'s refusal half matches each node's own wording (closes #19).

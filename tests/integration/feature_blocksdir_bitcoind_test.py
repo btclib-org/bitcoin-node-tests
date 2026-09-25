@@ -53,7 +53,9 @@ def test_nonexistent_blocksdir_refuses_to_start(
         free_port(),
         extra_args=(f"-blocksdir={tmp_path / 'nonexistent'}",),
     )
-    with pytest.raises(RuntimeError, match="exited"):
+    with pytest.raises(
+        RuntimeError, match='Specified blocks directory ".*" does not exist'
+    ):
         adapter.start()
 
 

@@ -700,3 +700,41 @@ bitcoin/bips files, and btclib vendors the bips originals instead, each
 pinned against bitcoin/bips in its own `tests/_data/README.md`. No entry
 above pins Core's copy, on purpose: pinning a copy of an upstream makes a
 record drift for a reason that is not its subject's.
+
+## The per-test ledger
+
+Rule 5 of [ISS btclib-org/btclib#2220](https://github.com/btclib-org/btclib/issues/2220):
+"The ledger gains a second table in tf2: one row per Core test, pinned,
+with its verdict on each node." This is that table -- Core's own
+functional tests, `test/functional/*.py`, each pinned the way the ledger
+above pins a framework file, and each given one verdict per node this
+repository's adapter reaches.
+
+A verdict is **pass**; **fail**, naming the issue a disagreement is
+filed as on `btclib-node`'s own tracker (rule 3); or **skip**, naming
+the capability ([`capability.py`](./src/bitcoin_node_tests/capability.py))
+the node does not declare. bitcoind is the oracle (rule 3): a **fail**
+on bitcoind is this repository's own defect rather than a finding for
+another tracker.
+
+This table is not read by `.github/scripts/check_vendored_vectors.py`:
+that script's own docstring says so -- "this tree carrying no second
+ledger" -- and it reads `test/functional/test_framework/` alone, the
+directory the ledger above pins. A pin here is re-checked the same way,
+by hand:
+
+```shell
+entry_path=test/functional/<test>.py
+gh api --method GET repos/bitcoin/bitcoin/commits \
+    -f "path=${entry_path:?}" -f per_page=1 \
+    --jq '.[0].sha + "  " + .[0].commit.committer.date[:10]'
+```
+
+| Core test | pin | read at | bitcoind | btclib-node |
+| --- | --- | --- | --- | --- |
+| `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) |
+
+`p2p_getdata.py`'s row is a smaller claim than Core's own test: Core
+asks its "later valid `getdata`" question of a mined tip, and this asks
+it of genesis instead, `Capability.MINE` not being every node's fact
+yet. The invalid-`getdata`-then-`ping` half is unchanged from Core's.

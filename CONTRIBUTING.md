@@ -291,11 +291,13 @@ and no alias layer (rule 2).
 
 ### The public surface
 
-This step of ISS 2220 ships one module, the package root, with an empty
-`__all__`: the adapter and the test families of later steps are what
-gives this rule real content. **Every module and every package declares
-`__all__`**, at every depth of the tree, and `tests/all_test.py` is the
-census.
+Step 3 of ISS 2220 is the adapter -- `bitcoind`, `btclib_node`,
+`capability`, `node`, `peer` -- each its own submodule with its own
+`__all__`; the test families of later steps are what adds to the tree
+this rule already covers. The package root re-exports none of them and
+keeps an empty `__all__` by decision, a caller importing the submodule
+it needs instead. **Every module and every package declares `__all__`**,
+at every depth of the tree, and `tests/all_test.py` is the census.
 
 ### The environment and the gates
 
@@ -306,8 +308,23 @@ linters and packaging tools itself. `uv sync` creates the environment.
 uv sync
 ```
 
-No test reaches the network or needs a node: this step carries no
-integration layer yet.
+The unit suite reaches no network and starts no node: `tests/integration/`
+is the one part of the tree that does, gated on `TF2_INTEGRATION` and
+skipping itself without it, matching the switch btclib's own
+`tests/integration/` carries -- named `TF2_INTEGRATION` here rather than
+`BTCLIB_INTEGRATION`, tf2 being this repository's own label.
+`TF2_BITCOIND` and `TF2_BTCLIB_NODE_PYTHON` name the two nodes:
+a `bitcoind` on `PATH` or named directly, and the interpreter
+`btclib-node` is importable by -- never this project's own, whose
+`requires-python = ">=3.15"` its dependency `rocksdict` cannot yet
+satisfy (measured live: `uv sync` resolving it fails outright). Both
+skip cleanly, naming what to set, rather than failing on a program this
+repository does not ship.
+
+```shell
+TF2_INTEGRATION=1 uv run pytest tests/integration
+```
+
 [tests/README.md](./tests/README.md) is where the suite and its
 convention tests are described.
 
@@ -316,9 +333,13 @@ The gate is the suite, the hooks and the documentation build:
 ```shell
 uv run pytest
 uv run pre-commit run --all-files
-uv run --locked --no-default-groups --group docs \
+uv run --locked --exact --no-default-groups --group docs \
     sphinx-build -n -W -b html docs/source docs/build/html
 ```
+
+`uv run pytest` above never reaches `tests/integration`'s own bodies:
+`TF2_INTEGRATION` is unset, so each skips itself and `[tool.coverage.run]`'s
+`omit` leaves the ratchet measuring what that run actually executed.
 
 `--cov` is in `addopts`, so the bare `pytest` above is the coverage gate
 and `fail_under` is what it answers against -- 100%, and coverage takes
@@ -331,6 +352,13 @@ reStructuredText: a docstring docutils cannot parse fails it with every
 hook green. `-n` turns an unresolved cross-reference into a warning for
 `-W` to fail on, and `conf.py`'s `intersphinx_mapping` is what resolves a
 reference into the standard library, btclib or bitcoin-core-rpc.
+
+**`--exact` above is not optional.** `uv sync` (this section's first
+command) installs `dev`, which carries `pytest`; `--no-default-groups
+--group docs` alone only adds what `docs` needs to that same venv and
+prunes nothing, so a module importing `pytest` builds locally with no
+warning while CI's own job, a fresh venv per run, fails on it
+(`CLAUDE.md`'s own note on this has the case that happened).
 
 **Check exit codes, not filtered output.** `pre-commit run ... | grep -v
 Passed` hides a failure, and `grep` finding nothing exits 1, which is not
@@ -406,10 +434,13 @@ uv run --locked --only-group lint \
 ```
 
 `docs.yml`, the `docs` job -- the build, and then a read of the pages it
-wrote:
+wrote. `reusable-docs.yml`'s own command carries no `--exact`, needing
+none: a job's venv is fresh per run, which is what `--exact` reproduces
+locally, added below for that reason and not present in the workflow
+itself:
 
 ```shell
-uv run --locked --no-default-groups --group docs \
+uv run --locked --exact --no-default-groups --group docs \
     sphinx-build -n -W -b html docs/source docs/build/html
 if grep -rn 'href="#\.\.\?/' docs/build/html --include='*.html'; then
     echo "::error::the links above resolve to no page (unresolved relative path)"
@@ -438,6 +469,15 @@ python .github/scripts/tf2_ledger_census.py \
 none of the workflows this step ships run a tool with no `uv run` of its
 own.
 
+`node-integration.yml`, the `bitcoind` job -- btclib-org/.github's
+`reusable-integration-bitcoind.yml` is what runs it, so there is no
+second command beyond the one above: `TF2_INTEGRATION=1 uv run pytest
+tests/integration` against a bitcoind that job installs and verifies.
+The `btclib-node` job needs the second interpreter the workflow's own
+header explains, so reproducing it is that same command with
+`TF2_BTCLIB_NODE_PYTHON` pointed at a 3.14 (or later, once `rocksdict`
+ships one) interpreter `btclib-node` was installed into.
+
 ### What gates a merge, and what only reports
 
 `lint.yml`, `test.yml` and `docs.yml` produce the required checks, and
@@ -446,10 +486,19 @@ restating it. So a diff does not reach a review without having passed
 them or passing them beside it on the same sha, which is the reliance
 `REVIEWING.md` provides for.
 
+`node-integration.yml`'s `bitcoind` job is not among them yet: this step
+adds the workflow, and making its check required is a branch-protection
+change `REPOSITORY.md` records when it lands, matching how
+`integration-bitcoind` became required in `btclib`. Its `btclib-node`
+job gates nothing anywhere -- `continue-on-error: true` in the workflow
+itself says so -- a disagreement there being ISS btclib-node#1072, filed
+on that repository's own tracker, and not a defect of this one's gates.
+
 | workflow | when | what it varies |
 | --- | --- | --- |
 | `test` | pull request, push | -- |
 | `lint`, `docs` | pull request, push | -- |
+| `node-integration` | pull request, push | -- |
 | `claude-review` | pull request, and `@claude` in a comment | -- |
 | `links` | weekly | -- |
 | `vendored-vectors` | weekly | the pins in `TF2.md`, and the census |

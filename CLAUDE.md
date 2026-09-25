@@ -179,6 +179,20 @@ Do not use Fable unless explicitly instructed.
   at the time this repository was created; `btclib-org/.github`'s own
   `README.md` is the record once its own pull request lands one, this
   tree's `REPOSITORY.md` in the meantime.
+- **`uv run` syncs inexactly by default, and a local gate can pass on
+  that alone.** `--no-default-groups --group docs` only adds what that
+  group needs to whatever venv already exists; a group installed
+  earlier in the same venv (`test`, pulling in `pytest`) is left in
+  place rather than pruned, so a local docs build can import a module
+  the `docs` group never installed, where CI's fresh venv per job
+  cannot. Measured: `capability.py` imported `pytest` directly, the
+  local docs gate passed regardless, and CI's `docs` job failed with
+  `ModuleNotFoundError: No module named 'pytest'`. `--exact` prunes the
+  venv to the requested groups before the command runs, so it is what
+  actually reproduces CI:
+  `uv run --locked --exact --no-default-groups --group docs
+  sphinx-build -n -W -b html docs/source docs/build/html` --
+  confirmed to build the same tree that failed without `--exact`.
 
 ## Conventions to match
 

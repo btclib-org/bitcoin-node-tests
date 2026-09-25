@@ -39,3 +39,9 @@ rebuilt with a census script for [ISS btclib-org/btclib#1751][1751].
 `check_vendored_vectors.py` prints the pinned commit and upstream's tip as
 full shas, in its output and in the tracking issue, so two commits alike in
 their first twelve characters print as two (issue btclib-org/.github#1343).
+
+### The adapter: bitcoind first, btclib-node second
+
+A `NodeAdapter` and a `Peer`, and `p2p_getdata` rewritten on both: passes
+on bitcoind, fails on btclib-node (issue btclib-org/btclib-node#1072).
+(closes #1)

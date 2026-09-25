@@ -17,11 +17,16 @@ ci:
   # lands on
   autoupdate_commit_msg: "Update the pinned pre-commit hook revisions"
   autoupdate_schedule: weekly
-  # the hooks that shell out to uv, which is not installed on
+  # mypy and pyroma shell out to uv, which is not installed on
   # pre-commit.ci: the lint workflow covers both. check-sdist is not
   # among them -- --installer=pip and --inject-junk are what let it run
-  # there with no isolated environment to build in
-  skip: [mypy, pyroma]
+  # there with no isolated environment to build in. uv-lock resolves
+  # against the interpreter .python-version names, which pre-commit.ci's
+  # image does not carry, and its own environment has no network to
+  # fetch one: the hook fails there with a DNS error trying to download
+  # it. The lint workflow runs it too, where a network and the right
+  # interpreter both exist
+  skip: [mypy, pyroma, uv-lock]
 
 repos:
   # this file checking itself, and the only two hooks here with no

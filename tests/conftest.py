@@ -14,15 +14,36 @@ and this file is the second of the two: such a run is refused
 """
 
 import os
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Protocol
 
 import pytest
 from hypothesis import settings
 
+from bitcoin_node_tests.capability import MissingCapabilityError
+
 settings.register_profile("default", deadline=None, max_examples=500)
 settings.register_profile("thorough", deadline=None, max_examples=2_000)
 settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
+
+
+@pytest.fixture(autouse=True)
+def _translate_missing_capability() -> Iterator[None]:
+    """Turn `capability.require`'s own exception into an actual skip.
+
+    `capability.py` raises `MissingCapabilityError` rather than calling
+    `pytest.skip` itself, so that importing it -- `sphinx-build`'s own
+    `autodoc`, among others -- never needs `pytest` installed; this is
+    the one place that exception meets a pytest session, a yield fixture
+    wrapping every test's own call so that an exception the test body
+    raises is caught here exactly where a `try`/`except` around a
+    generator's `yield` always catches one.
+    """
+    try:
+        yield
+    except MissingCapabilityError as exc:
+        pytest.skip(str(exc))
 
 
 def asks_for_everything(

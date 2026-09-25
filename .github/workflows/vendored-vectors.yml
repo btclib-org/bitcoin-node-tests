@@ -58,7 +58,7 @@ jobs:
       ledgers: >-
         [{"ledger": "TF2.md",
         "title": "TF2.md pins behind upstream"}]
-      python-version: "3.15"
+      python-version: "3.12"
 
   census:
     name: Check TF2.md's census against Core's directory

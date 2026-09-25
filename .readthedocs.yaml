@@ -29,17 +29,18 @@ version: 2
 # and by docs.yml, and one interpreter is what keeps the build read on the
 # website and the build that gates a merge from being two questions.
 #
-# "latest" and not "3.15": check-jsonschema's pinned rev (0.38.0) ships a
-# schema whose `build.tools.python` enum stops at "3.14", `.python-version`
-# naming a release candidate the schema predates. "latest" is the nearest
-# valid spelling until either the schema or a released 3.15 catches up.
+# "latest" rather than naming `.python-version`'s own value: whichever
+# interpreter this key names only runs build.commands below, starting
+# with "pip install uv" -- "uv sync --locked" takes no --python there,
+# so it resolves .python-version and fetches that interpreter itself,
+# same as a local uv sync. build.tools.python is not what builds the
+# project, so naming it here would be one more place to keep in step
+# with .python-version for no build this key actually decides.
 #
 # Read back now that Read the Docs is subscribed (REPOSITORY.md's own
-# section): "latest" resolves to CPython 3.14.6, and that interpreter
-# only runs build.commands below, starting with "pip install uv" --
-# "uv sync --locked" takes no --python there, so it resolves
-# .python-version and fetches CPython 3.15 itself, same as a local
-# uv sync. build.tools.python is not what builds the project.
+# section): "latest" resolved to CPython 3.14.6 while `.python-version`
+# named 3.15, confirming the paragraph above -- the two disagreeing and
+# the build succeeding regardless is the proof that this key is inert.
 build:
   os: ubuntu-24.04
   tools:

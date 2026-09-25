@@ -53,6 +53,13 @@ bitcoin\_node\_tests.peer module
    :members:
    :show-inheritance:
 
+bitcoin\_node\_tests.timeout\_factor module
+--------------------------------------------
+
+.. automodule:: bitcoin_node_tests.timeout_factor
+   :members:
+   :show-inheritance:
+
 Module contents
 ----------------
 

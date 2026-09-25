@@ -19,6 +19,12 @@ tf2 writes its own adapter), where btclib's fixture spawns `bitcoind` by
 hand, having no adapter of its own to reach for.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
+
+`--tracerpc` and `--timeout-factor` are Core's own `test_framework.py`
+options, restated as pytest ones -- CONTRIBUTING.md's own *Running
+against a Core developer's own build* has the full mapping, and
+`--nocleanup`, `--v2transport` and `--v1transport` are named there too,
+neither needing a flag of its own here.
 """
 
 from __future__ import annotations
@@ -35,6 +41,7 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import SkipCounts
 from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.timeout_factor import set_factor
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -111,6 +118,50 @@ def pytest_testnodedown(node: object, error: object | None) -> None:
         _skip_counts.add_mapping(workeroutput.get("skip_counts", {}))
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Add Core's own `--tracerpc` and `--timeout-factor`, spelled Core's way.
+
+    Only reached on an invocation naming `tests/integration` on the
+    command line, pytest's initial-conftest collection running ahead of
+    argument parsing over the paths given rather than over `testpaths`:
+    measured live, a bare `uv run pytest --tracerpc` from the repository
+    root answers "unrecognized arguments", where
+    `uv run pytest tests/integration --tracerpc` does not. That matches
+    every documented invocation of this module, which always names the
+    path.
+    """
+    parser.addoption(
+        "--tracerpc",
+        action="store_true",
+        default=False,
+        help="print every RPC call this suite's adapters make, and its reply",
+    )
+    parser.addoption(
+        "--timeout-factor",
+        type=float,
+        default=1.0,
+        help="scale every wait this suite's adapters and Peer make by this factor",
+    )
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Set this process's own `--timeout-factor`, before any node starts.
+
+    One call per process, matching `_skip_counts`'s own scope above: an
+    xdist worker runs its own `pytest_configure`, and every worker is
+    handed the same command line, so every process scales the same way.
+
+    :param config: the pytest session configuration.
+    """
+    set_factor(config.getoption("--timeout-factor"))
+
+
+@pytest.fixture(scope="session")
+def trace_rpc(request: pytest.FixtureRequest) -> bool:
+    """Return whether `--tracerpc` was given, for a fixture to pass on."""
+    return bool(request.config.getoption("--tracerpc"))
+
+
 def _require_integration() -> None:
     if not os.environ.get("TF2_INTEGRATION"):
         pytest.skip("set TF2_INTEGRATION=1 to run the integration tests")
@@ -128,11 +179,15 @@ def bitcoind_path() -> str:
 
 @pytest.fixture(scope="session")
 def bitcoind_adapter(
-    bitcoind_path: str, tmp_path_factory: pytest.TempPathFactory
+    bitcoind_path: str, tmp_path_factory: pytest.TempPathFactory, trace_rpc: bool
 ) -> Iterator[BitcoindAdapter]:
     """Yield a `BitcoindAdapter` over a regtest node started this session."""
     adapter = BitcoindAdapter(
-        bitcoind_path, tmp_path_factory.mktemp("bitcoind"), free_port(), free_port()
+        bitcoind_path,
+        tmp_path_factory.mktemp("bitcoind"),
+        free_port(),
+        free_port(),
+        trace_rpc=trace_rpc,
     )
     adapter.start()
     try:
@@ -143,7 +198,7 @@ def bitcoind_adapter(
 
 @pytest.fixture
 def bitcoind_cluster(
-    bitcoind_path: str, tmp_path_factory: pytest.TempPathFactory
+    bitcoind_path: str, tmp_path_factory: pytest.TempPathFactory, trace_rpc: bool
 ) -> Iterator[Callable[[int], list[BitcoindAdapter]]]:
     """Yield a factory for `count` fresh `BitcoindAdapter`s, stopped after.
 
@@ -162,6 +217,7 @@ def bitcoind_cluster(
                 tmp_path_factory.mktemp("bitcoind"),
                 free_port(),
                 free_port(),
+                trace_rpc=trace_rpc,
             )
             adapter.start()
             started.append(adapter)
@@ -179,12 +235,11 @@ def btclib_node_python() -> str:
     """Return the interpreter to run btclib-node with, skipping without one.
 
     `TF2_BTCLIB_NODE_PYTHON` names it; `sys.executable` where unset. This
-    project carries no dependency group installing `btclib-node`:
-    measured live, `uv sync` resolving it against this project's own
-    `requires-python = ">=3.15"` fails outright on its own dependency
-    `rocksdict`, which ships no `cp315` wheel yet -- `pyproject.toml`'s
-    own comment on `[dependency-groups]` says so. So `btclib-node` needs
-    an interpreter of its own, installed into some other environment by
+    project carries no dependency group installing `btclib-node`,
+    kept separate from this environment regardless of version (issue
+    bitcoin-node-tests#42) -- `pyproject.toml`'s own comment on
+    `[dependency-groups]` has the reason. So `btclib-node` needs an
+    interpreter of its own, installed into some other environment by
     hand, and named here rather than assumed. Probed by actually
     importing the package under that interpreter rather than by
     `shutil.which`: there is no console script this adapter runs
@@ -206,7 +261,7 @@ def btclib_node_python() -> str:
 
 @pytest.fixture(scope="session")
 def btclib_node_adapter(
-    btclib_node_python: str, tmp_path_factory: pytest.TempPathFactory
+    btclib_node_python: str, tmp_path_factory: pytest.TempPathFactory, trace_rpc: bool
 ) -> Iterator[BtclibNodeAdapter]:
     """Yield a `BtclibNodeAdapter`, a regtest node started this session."""
     adapter = BtclibNodeAdapter(
@@ -214,6 +269,7 @@ def btclib_node_adapter(
         tmp_path_factory.mktemp("btclib-node"),
         free_port(),
         free_port(),
+        trace_rpc=trace_rpc,
     )
     adapter.start()
     try:

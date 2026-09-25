@@ -180,11 +180,18 @@ class Capability(Enum):
     inactive until a caller-chosen height, Core's own debug-only
     `-testactivationheight=<deployment>@<height>`. Regtest's own chain
     parameters activate every buried deployment -- BIP34, BIP66, BIP65,
-    CSV -- from height 0 or 1 otherwise (`src/kernel/chainparams.cpp`'s
+    CSV -- from height 1 otherwise (`src/kernel/chainparams.cpp`'s
     own comment on each, "Always active unless overridden", measured
     against the pinned `31.1`), so this is what lets a test hold one of
     them back long enough to observe the boundary at all
     ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
+    `V2TRANSPORT` -- accept BIP324 v2 connections *from another node of
+    this kind*, the way Core's own `-v2transport` does: `getpeerinfo`'s
+    `transport_protocol_type` reads `v2` on such a connection. Not a fact
+    about a `Peer` (`peer.py`): that class speaks only the plaintext v1
+    wire format, so this capability is unconditional on node-to-node
+    connections alone -- issue
+    [bitcoin-node-tests#36](https://github.com/btclib-org/bitcoin-node-tests/issues/36).
     """
 
     MINE = "mine"
@@ -197,6 +204,7 @@ class Capability(Enum):
     RPC_AUTH_CONFIG = "rpc_auth_config"
     RPC_AUTH_NEGATION = "rpc_auth_negation"
     TEST_ACTIVATION_HEIGHT = "test_activation_height"
+    V2TRANSPORT = "v2transport"
 
 
 class SkipCounts:

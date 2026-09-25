@@ -322,11 +322,10 @@ skipping itself without it, matching the switch btclib's own
 `BTCLIB_INTEGRATION`, tf2 being this repository's own label.
 `TF2_BITCOIND` and `TF2_BTCLIB_NODE_PYTHON` name the two nodes:
 a `bitcoind` on `PATH` or named directly, and the interpreter
-`btclib-node` is importable by -- never this project's own, whose
-`requires-python = ">=3.15"` its dependency `rocksdict` cannot yet
-satisfy (measured live: `uv sync` resolving it fails outright). Both
-skip cleanly, naming what to set, rather than failing on a program this
-repository does not ship.
+`btclib-node` is importable by -- never this project's own, kept
+separate from it regardless of what `requires-python` names (issue
+bitcoin-node-tests#42). Both skip cleanly, naming what to set, rather
+than failing on a program this repository does not ship.
 
 ```shell
 TF2_INTEGRATION=1 uv run pytest tests/integration
@@ -354,9 +353,9 @@ TF2_INTEGRATION=1 \
 ```
 
 A btclib-node developer, against their own checkout's own environment,
-where `uv sync` installs `btclib-node` editable -- this project's own
-`requires-python` cannot satisfy `btclib-node`'s dependency on
-`rocksdict`, so it is never the interpreter running `pytest`:
+where `uv sync` installs `btclib-node` editable -- kept separate from
+the interpreter running `pytest` regardless of version (issue
+bitcoin-node-tests#42):
 
 ```shell
 uv sync --project ../btclib-node
@@ -435,6 +434,111 @@ Read the resulting diff before committing it. That is the whole point of
 a baseline rather than an exclusion: what appears in it is what nobody
 has looked at yet, so regenerating without reading turns the review into
 a formality.
+
+### Running against a Core developer's own build
+
+Issue [bitcoin-node-tests#36](https://github.com/btclib-org/bitcoin-node-tests/issues/36):
+a Core developer runs this suite beside `test/functional`, or in place
+of it, with the options `test_framework.py` and `test_runner.py` give
+them.
+
+**The interpreter.** `requires-python` is `>=3.12`, by the maintainer's
+own decision departing from section 1 of the organization standard and
+from btclib-org/.github#1324 -- `pyproject.toml`'s own comment on
+`requires-python` has the measurement, `typing.override` and `sphinx`
+both needing 3.12 and nothing here needing more. `uv run` fetches that
+interpreter on its own where none is on `PATH`, whatever floor is
+named: measured under `UV_PYTHON_PREFERENCE=only-managed` and a fresh
+`UV_PYTHON_INSTALL_DIR`, with no matching interpreter visible anywhere
+first, `uv run` downloaded the interpreter `.python-version` names and
+ran on it. So a Core developer needs no interpreter of their own either
+way; lowering the floor is what lets one who already has 3.12 or newer
+skip that download.
+
+**Options.** Core's own option is the row's key, every one either file
+takes at Core's `master` or at the pinned `v31.1`; `--` is a cell this
+suite has nothing under.
+
+| Core's option | this suite's equivalent |
+| --- | --- |
+| `--nocleanup` | pytest's own `--basetemp=<dir>`; see below |
+| `--cachedir` | -- (no pregenerated-datadir cache exists) |
+| `--tmpdir` | pytest's own `--basetemp=<dir>` |
+| `-l`, `--loglevel` | -- (no central logger to set a level on) |
+| `--tracerpc` | `--tracerpc`, `tests/integration/conftest.py` |
+| `--portseed` | -- (`node.free_port` asks the OS, never a seed) |
+| `--previous-releases` | -- (no previous-release binaries mechanism) |
+| `--coveragedir` | -- (no RPC-coverage instrumentation) |
+| `--configfile` | belongs to issue bitcoin-node-tests#53 |
+| `--pdbonfailure` | pytest's own `--pdb` |
+| `--usecli` | -- (rule 1 reaches a node only over RPC) |
+| `--valgrind` | through the adapter; see below |
+| `--randomseed` | `pytest-randomly`'s own `--randomly-seed` |
+| `--timeout-factor` | `--timeout-factor`, `tests/integration/conftest.py` |
+| `--v2transport` | through the adapter; see below |
+| `--v1transport` | through the adapter; see below |
+| `--test_methods` | pytest's own node ids, or `-k` |
+| `-f`, `--fff` | -- (Core's dummy argument for IPython) |
+| `--perf` (`v31.1` only) | -- (a `TF2_BITCOIND` wrapper, as `--valgrind`) |
+| `--ansi` | pytest's own `--color=yes\|no\|auto` |
+| `--combinedlogslen`, `-c` | -- (no combined log; `--basetemp` names each) |
+| `--coverage` | -- (paired with `--coveragedir` above) |
+| `--exclude`, `-x` | pytest's own `--deselect`, `--ignore`, or `-k 'not ...'` |
+| `--extended` | -- (every family runs; no extended/basic split) |
+| `--help`, `-h`, `-?` | pytest's own `-h` |
+| `--jobs`, `-j` | `pytest-xdist`'s own `-n` |
+| `--keepcache`, `-k` (`v31.1` only) | -- (no cache, as `--cachedir`) |
+| `--quiet`, `-q` | pytest's own `-q` |
+| `--tmpdirprefix`, `-t` | pytest's own `--basetemp=<dir>` |
+| `--failfast`, `-F` | pytest's own `-x` |
+| `--filter` | pytest's own `-k` |
+| `--resultsfile`, `-r` | pytest's own `--junitxml=<path>` |
+
+`--nocleanup`: nothing in this tree's own fixtures ever removes a
+node's datadir -- `NodeAdapter.stop` (`node.py`) only terminates the
+process -- and pytest's own `tmp_path`/`tmp_path_factory` do not delete
+a run's directories either when that run ends, only trimming older
+numbered ones (`tmp_path_retention_count`, default 3) the *next* time a
+run starts. `tests/integration/nocleanup_bitcoind_test.py` measures the
+first half directly; naming `--basetemp=<dir>` is what makes the
+directory a Core developer can find rather than one of the numbered
+`pytest-of-<user>` ones.
+
+`--tracerpc`: a `--tracerpc` flag on `tests/integration`'s own
+collection wraps every adapter's RPC transport
+(`bitcoin_core_rpc.BitcoinCoreRpcClient`'s own `transport=`) and prints
+each request and reply as it is made, matching Core's own wording.
+
+`--timeout-factor`: scales every wait this suite's own adapters and
+`Peer` make by default -- `NodeAdapter.start`'s own startup wait and
+`NodeAdapter.stop`'s own wait for the process to exit, `connect_nodes`,
+`disconnect_nodes`, `wait_until_tips_agree` and
+`assert_debug_log` in `node.py` and `debug_log.py`, and `Peer`'s own
+connection and per-call timeouts in `peer.py` -- through
+`timeout_factor.py`'s own `scaled`, set once per process by
+`tests/integration/conftest.py`'s own `pytest_configure`, the same
+per-process scope `SkipCounts` already carries for the same `-n auto`
+reason.
+
+`--v2transport` and `--v1transport`: through the adapter rather than a
+pytest option, since this suite has no central test-framework object
+for a flag like Core's own to set a default on. `BitcoindAdapter`'s own
+`extra_args=("-v2transport=1",)` or `("-v2transport=0",)` is Core's
+own flag, node by node;
+`tests/integration/v2transport_option_bitcoind_test.py` measures both
+directions against `getpeerinfo`'s own `transport_protocol_type`.
+`Capability.V2TRANSPORT` is declared by `BitcoindAdapter` alone: `Peer`
+(`peer.py`) speaks only the plaintext v1 wire format, so the capability
+covers node-to-node connections and not a `Peer`'s own, and
+`BtclibNodeAdapter` never declares it -- its own `addnode` reads and
+discards a `v2transport` parameter
+(`btclib_node.rpc.callbacks.addnode`), with no BIP324 codec behind it.
+
+`--valgrind`: no pytest option, since valgrind wraps a process rather
+than a test; a `TF2_BITCOIND` naming a wrapper script that execs the
+real binary under valgrind reaches the same effect through the adapter,
+`NodeAdapter` never inspecting the executable path it is given beyond
+passing it to `subprocess.Popen`.
 
 ### A version, and no release
 

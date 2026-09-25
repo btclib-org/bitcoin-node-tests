@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from bitcoin_node_tests.debug_log import _POLL_INTERVAL, assert_debug_log
+from bitcoin_node_tests.timeout_factor import set_factor
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -73,3 +74,18 @@ def test_raises_when_the_substring_never_appears(tmp_path: Path) -> None:
         assert_debug_log(log_path, ["missing"], timeout=-1),
     ):
         pass
+
+
+def test_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
+    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    log_path = tmp_path / "debug.log"
+    log_path.write_text("unrelated\n")
+    set_factor(0.0)
+    try:
+        with (
+            pytest.raises(AssertionError, match=r"\['missing'\] not found"),
+            assert_debug_log(log_path, ["missing"], timeout=1000.0),
+        ):
+            pass
+    finally:
+        set_factor(1.0)

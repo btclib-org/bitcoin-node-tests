@@ -1,11 +1,16 @@
-# An application takes the newest interpreter its dependencies allow,
-# not being there to be imported (section 1 of the organization
-# standard): this tree has no matrix and runs on one interpreter, so
-# .python-version and requires-python name the same release. 3.15 is
-# the newest with a release candidate out, which counts here, and
-# btclib and bitcoin-core-rpc, this tree's only two dependencies, both
-# install on it.
+# Departs from section 1's application rule and from
+# btclib-org/.github#1324, by the maintainer's own decision on issue
+# bitcoin-node-tests#36: a Core developer runs this suite with whatever
+# Python they already have, so this names the lowest interpreter every
+# dependency and this tree's own code allow, not the newest one a
+# release candidate offers. `pyproject.toml`'s own comment on
+# requires-python has the measurement: `typing.override` (PEP 698) and
+# `sphinx` both need 3.12, the tightest floor of anything this tree
+# depends on. `uv run` fetches 3.12 on its own where it is not already
+# installed, the same way it fetched 3.15 before this file changed --
+# measured live under `UV_PYTHON_PREFERENCE=only-managed` and a fresh
+# `UV_PYTHON_INSTALL_DIR`, with no 3.12 visible anywhere first.
 #
-# A whole-line comment only: a trailing comment on the version line
-# makes uv ignore the file and fall back to a default interpreter.
-3.15
+# A trailing comment on the version line below would make uv ignore
+# this file, so the explanation stays up here instead.
+3.12

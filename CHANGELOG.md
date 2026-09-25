@@ -33,3 +33,9 @@ organization's toolchain, lint gate and tests apparatus, plus `TF2.md`
 rebuilt with a census script for [ISS btclib-org/btclib#1751][1751].
 
 [1751]: https://github.com/btclib-org/btclib/issues/1751
+
+### `REVIEWING.md` links Conventional Comments at its GitLab Pages address
+
+`REVIEWING.md` links `https://conventionalcomments.gitlab.io/`, a name the
+`*.gitlab.io` certificate covers, which `conventionalcomments.org` can present
+and fail the TLS check (issue btclib-org/.github#1341).

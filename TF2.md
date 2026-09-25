@@ -1000,3 +1000,54 @@ example, is a wallet feature by name and stays out on that ground alone;
 `-proxy`'s own Tor/I2P half needs the SOCKS5 harness `TF2.md`'s own
 framework-file ledger already marks `tf2's (harness)`, not built yet
 either.
+
+Re-run against Core's own current tip rather than the census's own
+`cff00c5`, the family's own census gains one candidate neither of the
+paragraphs above names: `p2p_compactblocks_blocksonly.py`. `-blocksonly`
+is on neither adapter's own registered surface (`btclib-node`'s `cli.py`,
+checked against both the pinned PyPI build and its own `main`), and
+every other fact the test asks for -- `Capability.MINE`,
+`Capability.CONNECT`, and a raw peer connection -- is already the
+adapters' own rather than a step 5 mechanism, so this is the option
+family's own second candidate rather than ISS 14's. It is not the same
+shape `p2p_compactblocks_hb.py` already ported, though: Core delivers
+each block itself, over a synthetic connection it controls, so the peer
+whose `sendcmpct` renegotiation is under test is fixed rather than
+raced for one of several slots -- measured live against a pair of
+`BitcoindAdapter`s joined by `connect_nodes` instead, `bip152_hb_to` and
+`bip152_hb_from` stayed `False` on both sides through several relayed
+blocks, so the `getpeerinfo` shortcut `p2p_compactblocks_hb.py` used
+does not carry this row. It wants `peer.py`'s own wire instead --
+BIP152's `sendcmpct` and `cmpctblock`, which `btclib.p2p.compact_blocks`
+already carries -- and stays open under this issue.
+
+`rpc_echo_payload.py` is the family's other open candidate. Its subject
+is an RPC server's own, not bitcoind's alone: a payload of any size is
+either answered or refused, never left to time out, with `-rpcworkqueue`
+and `-rpcthreads` set low only so that concurrent callers fill the queue.
+Another node's RPC server could make the same promise, so the options
+are a capability `btclib-node` does not declare yet (neither is in its
+`cli.py`), not a bitcoind-only row, and the test stays open under this
+issue. Core's test sends each payload through `echo` or through
+`sendrawtransaction`, chosen at random; `btclib-node`'s
+`rpc/callbacks.py` has the second and not the first, so a port also
+needs `echo`, and accepts a refusal in the node's own wording rather
+than Core's `Work queue depth exceeded`.
+
+Of the rest of the family's own census, string-literal matches and
+nothing more: `feature_bind_extra.py` and `rpc_bind.py` read the
+sockets a running node has actually bound, over `lsof`
+(`test_framework.netutil.get_bind_addrs`), a fact no step 5 family
+names a mechanism for; `feature_bind_port_discover.py` and
+`feature_bind_port_externalip.py` need a routable, non-loopback address
+already configured on the host's own network interface, which the CI
+environment they were written for provides and this repository's own
+harness does not; `feature_help.py` reads a node's own stdout before
+its RPC ever answers, which `NodeAdapter.start` (`node.py`) never
+captures; `interface_gui.py` needs `bitcoin-gui`, a binary the pinned
+release this repository fetches does not carry;
+`feature_framework_startup_failures.py` relaunches Core's own Python
+harness to test its exception handling, never a node; and
+`tool_bench_sanity_check.py` sets `self.num_nodes` to none at all,
+swept in by the census's own file-prefix regex rather than by anything
+a node does.

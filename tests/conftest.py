@@ -14,7 +14,7 @@ and this file is the second of the two: such a run is refused
 """
 
 import os
-from collections.abc import Iterator
+from collections.abc import Generator
 from pathlib import Path
 from typing import Protocol
 
@@ -23,25 +23,38 @@ from hypothesis import settings
 
 from bitcoin_node_tests.capability import MissingCapabilityError
 
+pytest_plugins = ["pytester"]
+
 settings.register_profile("default", deadline=None, max_examples=500)
 settings.register_profile("thorough", deadline=None, max_examples=2_000)
 settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
 
 
-@pytest.fixture(autouse=True)
-def _translate_missing_capability() -> Iterator[None]:
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_call(item: pytest.Item) -> Generator[None, object, object]:
     """Turn `capability.require`'s own exception into an actual skip.
 
     `capability.py` raises `MissingCapabilityError` rather than calling
     `pytest.skip` itself, so that importing it -- `sphinx-build`'s own
     `autodoc`, among others -- never needs `pytest` installed; this is
-    the one place that exception meets a pytest session, a yield fixture
-    wrapping every test's own call so that an exception the test body
-    raises is caught here exactly where a `try`/`except` around a
-    generator's `yield` always catches one.
+    the one place that exception meets a pytest session. An autouse
+    fixture wrapping the test body in a `try`/`except` around its own
+    `yield` does not do this: pytest's fixture teardown calls `next` on
+    such a generator regardless of the test's own outcome, never
+    `throw`, so the test's exception never reaches that `except` clause
+    -- measured directly, a fixture of that shape read a raised
+    `MissingCapabilityError` as an ordinary failure, not a skip. A
+    `pytest_runtest_call` hookwrapper is what actually sees the test's
+    own exception, in `outcome.get_result()`'s propagation through the
+    `yield` below, because pytest calls exactly this hook to run the
+    test in the first place.
+
+    :param item: unused; the hook's own signature names it.
+    :returns: the wrapped call's own result, forwarded unchanged.
     """
+    del item
     try:
-        yield
+        return (yield)
     except MissingCapabilityError as exc:
         pytest.skip(str(exc))
 

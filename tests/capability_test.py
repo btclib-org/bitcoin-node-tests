@@ -14,7 +14,7 @@ from bitcoin_node_tests.capability import (
     SkipCounts,
     require,
 )
-from tests.conftest import _translate_missing_capability
+from tests.conftest import pytest_runtest_call
 
 
 def test_require_passes_through_a_declared_capability() -> None:
@@ -61,21 +61,52 @@ def test_report_names_every_recorded_capability() -> None:
     assert report == "skips per capability:\nconnect: 1\nmine: 1"
 
 
-def test_the_autouse_fixture_turns_the_exception_into_a_skip() -> None:
-    """`tests/conftest.py`'s own translation, driven directly as a generator.
+def test_the_hookwrapper_generator_converts_a_thrown_exception() -> None:
+    """`pytest_runtest_call`'s own generator, driven the way pluggy drives it.
 
-    A test that lets `MissingCapabilityError` escape uncaught -- rather than
-    catching it itself, as every test above does -- is what would
-    exercise this through an ordinary pytest run; driving the fixture's
-    own generator function is the same exception meeting the same
-    `except` clause, without a nested pytest session to read the
-    outcome of.
+    A `wrapper=True` hookimpl's generator is exactly what pluggy's own
+    `_multicall` sends a result into or throws an exception into at its
+    `yield` -- unlike a plain autouse fixture's teardown, which only ever
+    calls `next` regardless of the wrapped test's own outcome (the shape
+    this hook replaced, and the reason a manual `throw` on that one
+    would have proven nothing about a real pytest run).
     """
-    # pytest's own stubs type a fixture as `FixtureFunctionDefinition` and
-    # do not declare `__wrapped__`, though pytest always sets it to the
-    # undecorated generator function -- the same attribute
-    # `inspect.unwrap` and `functools.wraps` both rely on elsewhere.
-    fixture = _translate_missing_capability.__wrapped__()  # type: ignore[attr-defined]
-    next(fixture)
+    call = pytest_runtest_call(item=None)  # type: ignore[arg-type]
+    next(call)
     with pytest.raises(pytest.skip.Exception, match="mine"):
-        fixture.throw(MissingCapabilityError("node does not declare mine"))
+        call.throw(MissingCapabilityError("node does not declare mine"))
+
+
+def test_the_hookwrapper_turns_the_exception_into_a_skip(
+    pytester: pytest.Pytester,
+) -> None:
+    """`tests/conftest.py`'s own translation, driven through a real session.
+
+    The unit test above drives the generator directly, matching pluggy's
+    own protocol; this one confirms the same thing end to end, through
+    an actual nested pytest session.
+    """
+    pytester.makeconftest(
+        """
+        import pytest
+        from bitcoin_node_tests.capability import MissingCapabilityError
+
+        @pytest.hookimpl(wrapper=True)
+        def pytest_runtest_call(item):
+            del item
+            try:
+                return (yield)
+            except MissingCapabilityError as exc:
+                pytest.skip(str(exc))
+        """
+    )
+    pytester.makepyfile(
+        """
+        from bitcoin_node_tests.capability import MissingCapabilityError
+
+        def test_it():
+            raise MissingCapabilityError("node does not declare mine")
+        """
+    )
+    result = pytester.runpytest()
+    result.assert_outcomes(skipped=1)

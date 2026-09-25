@@ -37,7 +37,7 @@ from bitcoin_node_tests.capability import SkipCounts
 from bitcoin_node_tests.node import free_port
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
 # one tally for the whole session, shared by every fixture and test
 # below: `pytest_sessionfinish` prints it once, rather than once per
@@ -96,6 +96,39 @@ def bitcoind_adapter(
         yield adapter
     finally:
         adapter.stop()
+
+
+@pytest.fixture
+def bitcoind_cluster(
+    bitcoind_path: str, tmp_path_factory: pytest.TempPathFactory
+) -> Iterator[Callable[[int], list[BitcoindAdapter]]]:
+    """Yield a factory for `count` fresh `BitcoindAdapter`s, stopped after.
+
+    Function-scoped, unlike `bitcoind_adapter` above: the first family's
+    multi-node tests (`p2p_block_sync`, `p2p_compactblocks_hb`) each want
+    their own clean-chain topology rather than one node shared across the
+    whole session, and each call of the factory this yields starts one
+    more node over a fresh data directory and a fresh pair of ports.
+    """
+    started: list[BitcoindAdapter] = []
+
+    def _start(count: int) -> list[BitcoindAdapter]:
+        for _ in range(count):
+            adapter = BitcoindAdapter(
+                bitcoind_path,
+                tmp_path_factory.mktemp("bitcoind"),
+                free_port(),
+                free_port(),
+            )
+            adapter.start()
+            started.append(adapter)
+        return started
+
+    try:
+        yield _start
+    finally:
+        for adapter in reversed(started):
+            adapter.stop()
 
 
 @pytest.fixture(scope="session")

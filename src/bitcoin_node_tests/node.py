@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, Protocol
 from bitcoin_core_rpc import BitcoinCoreRpcClient
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
     from collections.abc import Set as AbstractSet
 
     from bitcoin_node_tests.capability import Capability
@@ -36,7 +37,9 @@ if TYPE_CHECKING:
 __all__ = [
     "NodeAdapter",
     "connect_nodes",
+    "disconnect_nodes",
     "free_port",
+    "wait_until_tips_agree",
 ]
 
 # how long a freshly spawned node is given to answer its first RPC call:
@@ -192,34 +195,193 @@ class NodeAdapter(ABC):
         self.start()
 
 
+def _peer_ids(peers: object) -> set[object]:
+    """Return every `id` a `getpeerinfo` answer carries, or an empty set.
+
+    :param peers: whatever `getpeerinfo` answered.
+    """
+    if not isinstance(peers, list):
+        return set()
+    return {peer["id"] for peer in peers if isinstance(peer, dict)}
+
+
+def _wait_for_peer(
+    node: NodeAdapter,
+    predicate: Callable[[dict[str, object]], bool],
+    deadline: float,
+    what: str,
+) -> dict[str, object]:
+    """Return the first `getpeerinfo` entry of `node` matching `predicate`.
+
+    :param node: the node whose own `getpeerinfo` is polled.
+    :param predicate: what the wanted entry looks like.
+    :param deadline: a `time.monotonic()` value, not a duration.
+    :param what: named in the exception, what this wait was for.
+    :raises TimeoutError: no matching entry appeared before `deadline`.
+    """
+    while time.monotonic() < deadline:
+        peers = node.rpc.call("getpeerinfo")
+        if isinstance(peers, list):
+            for peer in peers:
+                if isinstance(peer, dict) and predicate(peer):
+                    return peer
+        time.sleep(0.1)
+    err_msg = f"{node} never reported {what} within the wait"
+    raise TimeoutError(err_msg)
+
+
+def _wait_for_handshake(node: NodeAdapter, peer_id: object, deadline: float) -> None:
+    """Wait until `node`'s own peer `peer_id` completed its handshake.
+
+    `GetNodeStats` (`src/net.cpp`), what bitcoind's own `getpeerinfo`
+    reads, lists every entry of `m_nodes` regardless of state, a peer
+    short of `verack` included -- unlike btclib-node's own answer, whose
+    docstring is "one entry per handshake-complete peer", nothing short
+    of one ever reaching that list at all. `bytesrecv_per_msg` is
+    Core's own field this checks a `pong` of at least 29 bytes against,
+    the same wait Core's own `connect_nodes` makes for
+    `fSuccessfullyConnected`, since `m_ping_start` starts at the clock's
+    own epoch and so the first ping already goes out on the next
+    message loop; its absence is read as btclib-node's own guarantee
+    already met, rather than as a field to wait for.
+
+    :param node: the node whose own peer is polled.
+    :param peer_id: the `id` `getpeerinfo` gave that peer.
+    :param deadline: a `time.monotonic()` value, not a duration.
+    :raises TimeoutError: the handshake never completed before `deadline`.
+    """
+    while time.monotonic() < deadline:
+        peers = node.rpc.call("getpeerinfo")
+        if isinstance(peers, list):
+            for peer in peers:
+                if not isinstance(peer, dict) or peer.get("id") != peer_id:
+                    continue
+                counters = peer.get("bytesrecv_per_msg")
+                if not isinstance(counters, dict) or counters.get("pong", 0) >= 29:
+                    return
+                break
+        time.sleep(0.1)
+    err_msg = f"{node} never completed its own handshake with peer {peer_id!r}"
+    raise TimeoutError(err_msg)
+
+
 def connect_nodes(
     first: NodeAdapter, second: NodeAdapter, *, timeout: float = 30.0
 ) -> None:
-    """Connect `first` to `second`, over `addnode` and `getnetworkinfo`.
+    """Connect `first` to `second`, over `addnode onetry` and `getpeerinfo`.
 
-    Core's own `connect_nodes`
-    (`test/functional/test_framework/test_node.py`): `addnode` asks
-    `first` to dial `second`'s own p2p address, and polling
-    `getnetworkinfo`'s `connections` is how this waits for the dial to
-    land rather than assuming a fixed delay -- the same wait Core's own
-    helper makes, over the RPC both adapters already answer identically
-    (rule 4's "the adapter translates a spelling" has nothing to do here
-    yet, both nodes naming this one call the same way; a third node
-    spelling it otherwise is what would give this function a second
-    branch).
+    Core's own `connect_nodes` (`test/functional/test_framework.py`):
+    `addnode ... "onetry"` asks `first` to dial `second`'s own p2p
+    address once, immediately. Core then waits for `getpeerinfo` to show
+    the connection on *both* sides, matched by subversion, before
+    waiting for each side's own `pong` to confirm the handshake is
+    actually done; this matches the same three waits, by a criterion
+    each side can actually be read off rather than by subversion, since
+    this adapter's own nodes carry no per-node subversion tag to tell
+    one apart from another. `first`'s own outbound entry is matched by
+    address, `second`'s own p2p address being known and unique to it;
+    `second`'s own new inbound entry cannot be matched the same way --
+    its `addr` is `first`'s ephemeral outbound port, not the address
+    `first` itself is reachable at -- so it is matched by an `id` absent
+    from a `getpeerinfo` snapshot taken before the dial, the one entry a
+    single `connect_nodes` call can have added since (rule 4's "the
+    adapter translates a spelling" is why `_wait_for_handshake` reads
+    `bytesrecv_per_msg` rather than assuming every adapter answers it:
+    btclib-node's own `getpeerinfo` already withholds a peer until its
+    handshake is done, so nothing here is adapter-specific except which
+    of these waits is a no-op).
+
+    Checking only `first`'s own view is racy under load: `second` can
+    take longer to accept and register the same socket than `first`
+    takes to see its own outbound half of it, which is what lets
+    `sendmsgtopeer` on `second` answer "Could not send message to peer"
+    moments after `first` alone would already report the connection.
 
     :param first: the node asked to dial.
     :param second: the node dialled.
-    :param timeout: how long to wait for `first` to report the connection.
-    :raises TimeoutError: `first` never reported the connection.
+    :param timeout: how long to wait for both sides to report the
+        connection and its handshake.
+    :raises TimeoutError: either side never reported the connection, or
+        its handshake, in time.
     """
     host, port = second.p2p_address
-    first.rpc.call("addnode", [f"{host}:{port}", "add"])
+    address = f"{host}:{port}"
+    before_second = _peer_ids(second.rpc.call("getpeerinfo"))
+    first.rpc.call("addnode", [address, "onetry"])
+    deadline = time.monotonic() + timeout
+
+    first_peer = _wait_for_peer(
+        first,
+        lambda peer: peer.get("addr") == address and not peer.get("inbound"),
+        deadline,
+        f"a connection to {second}",
+    )
+    second_peer = _wait_for_peer(
+        second,
+        lambda peer: bool(peer.get("inbound")) and peer.get("id") not in before_second,
+        deadline,
+        f"a connection from {first}",
+    )
+    _wait_for_handshake(first, first_peer["id"], deadline)
+    _wait_for_handshake(second, second_peer["id"], deadline)
+
+
+def disconnect_nodes(
+    first: NodeAdapter, second: NodeAdapter, *, timeout: float = 30.0
+) -> None:
+    """Disconnect `first` from `second`, over `disconnectnode`.
+
+    Core's own `disconnect_nodes`
+    (`test/functional/test_framework/test_node.py`): `disconnectnode`
+    asks `first` to drop `second`'s own p2p address, and polling
+    `getpeerinfo` for that address to disappear is how this waits for the
+    drop to land, the same wait `connect_nodes` above makes for a
+    connection appearing rather than vanishing.
+
+    Matched against `connect_nodes(first, second)`: `first` is the side
+    that dialled, so `second`'s address is what its own outbound entry
+    was recorded under, and `disconnectnode`'s address form is what asks
+    for exactly that entry rather than one among several a node with
+    other peers also carries.
+
+    :param first: the node asked to drop the connection.
+    :param second: the node dropped.
+    :param timeout: how long to wait for `first` to stop reporting it.
+    :raises TimeoutError: `first` still reports the peer after `timeout`.
+    """
+    host, port = second.p2p_address
+    address = f"{host}:{port}"
+    first.rpc.call("disconnectnode", [address])
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        info = first.rpc.call("getnetworkinfo")
-        if isinstance(info, dict) and info.get("connections", 0) > 0:
+        peers = first.rpc.call("getpeerinfo")
+        if isinstance(peers, list) and address not in {peer["addr"] for peer in peers}:
             return
         time.sleep(0.1)
-    err_msg = f"{first} never reported a connection to {second} within {timeout} s"
+    err_msg = f"{first} still reports a peer at {address} after {timeout} s"
+    raise TimeoutError(err_msg)
+
+
+def wait_until_tips_agree(
+    nodes: Sequence[NodeAdapter], *, timeout: float = 30.0
+) -> None:
+    """Poll every node's `getbestblockhash` until they all agree.
+
+    Core's own `sync_blocks` (`test_framework.py`): propagation over p2p
+    relay is asynchronous, so a block one node just mined or received
+    reaches the rest of a topology on their own schedule, and this is the
+    wait that turns "eventually" into a deadline this suite holds to
+    rather than a race the assertion after it would otherwise be.
+
+    :param nodes: the nodes to poll, at least one.
+    :param timeout: how long to wait for every hash to match.
+    :raises TimeoutError: the nodes never agreed within `timeout`.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        hashes = {node.rpc.call("getbestblockhash") for node in nodes}
+        if len(hashes) == 1:
+            return
+        time.sleep(0.1)
+    err_msg = f"nodes did not converge on one tip within {timeout} s"
     raise TimeoutError(err_msg)

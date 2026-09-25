@@ -771,6 +771,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_uacomment.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `rpc_uptime.py` | `406c2348ddbf` | 2026-06-13 | pass | skip (clock) |
 | `feature_torcontrol.py` | `4556ef626754` | 2026-09-15 | pass | bitcoind only |
+| `feature_framework_miniwallet.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1051,3 +1052,65 @@ harness to test its exception handling, never a node; and
 `tool_bench_sanity_check.py` sets `self.num_nodes` to none at all,
 swept in by the census's own file-prefix regex rather than by anything
 a node does.
+
+`feature_framework_miniwallet.py`'s own row is the MiniWallet family's
+first ([ISS bitcoin-node-tests#4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)),
+and a smaller claim than Core's own file: `mini_wallet.py`'s own
+`MiniWallet` carries one of Core's own modes, the default
+`ADDRESS_OP_TRUE` -- a P2TR output whose internal key and single
+tapscript leaf `mini_wallet.py`'s own docstring has, needing no minimum
+scriptSig size or mempool policy flag `RAW_OP_TRUE` would -- and this
+row asks only the subject the issue is about: a coin mined without a
+node's own wallet, cached with no `scantxoutset`, and spendable. Dropped
+along with Core's other modes are `target_vsize` padding
+(`test_tx_padding`) and a second, tagged wallet instance
+(`test_wallet_tagging`), neither bearing on how the cache is fed.
+
+`Capability.MINE` is what this row's `btclib-node` cell skips on, the
+same shape the first family already takes rather than a new question:
+`mini_wallet.py`'s own mechanism produces exactly the fact `MINE` already
+names -- "a block the node accepts as its own new tip, however it gets
+there" -- by client-side construction over `submitblock` rather than a
+node's own wallet. No wire-only delivery avoids the skip:
+`btclib_node.py`'s own docstring already measured why a solo
+`btclib-node` never leaves `NodeStatus.SyncingHeaders`
+([ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071))
+-- a block it is handed never becomes its own tip whether it arrives over
+`submitblock` or the wire, the gap being the node's own state machine and
+not how the block is delivered.
+
+The census [ISS btclib-org/btclib#2135](https://github.com/btclib-org/btclib/issues/2135)
+counted is re-measured here, against Core's `test/functional/*.py` at
+`f6b19b19` (2026-09-25), asking that issue's own name-set of each file
+whether MiniWallet is the *whole* of what the file asks a node for rather
+than one mechanism among several. This file answers yes, and so do
+`mempool_accept_wtxid.py`, `mempool_resurrect.py`,
+`mempool_spend_coinbase.py`, `mining_template_verification.py`,
+`rpc_generate.py`, `rpc_orphans.py`, `rpc_scantxoutset.py` and
+`rpc_signrawtransactionwithkey.py` --
+[ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)'s own
+remaining ports, not
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
+once this row's mechanism lands. Several need a `MiniWallet` method this
+module does not yet build -- Core's own `get_utxo` and `send_to` among
+them -- which is theirs to add when ported, not a reason to hold them
+here. `mempool_cluster.py`, `mempool_sigoplimit.py` and `rpc_packages.py`
+also drive MiniWallet alone at first read, but each also restarts its
+node with an option -- `-limitclustersize`/`-limitclustercount`,
+`-bytespersigop`/`-permitbaremultisig`, and
+`-maxmempool`/`-persistmempool` in turn -- that `btclib-node`'s own
+`cli.py` does not register, so the option family's own exclusion reaches
+them too: ISS 14's, same as the wallet, log, disk and clock files below.
+
+`p2p_tx_privacy.py` (also pinned `fa5f29774872`) asks for MiniWallet
+alone too, driving a second p2p connection of its own alongside the
+first -- one held back from completing its handshake while the other
+already sends a transaction -- to assert a `wtxid` announcement is
+withheld from the second until its own handshake completes. `peer.py`'s
+own `handshake` is one blocking call from open to `verack`, with no step
+in between for a caller to hold a second connection at; unported for
+that reason, and left to ISS 14 once step 5 gives it one. Every other
+MiniWallet-touching file asks for a wallet (`createwallet`, out for good,
+rule 3's own exclusion), the log, the disk or the clock alongside
+MiniWallet, or an option -- ISS 14's once every step-5 mechanism lands,
+the wallet files excepted.

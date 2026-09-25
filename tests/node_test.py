@@ -108,7 +108,7 @@ def test_start_waits_for_the_rpc_and_creates_the_datadir(tmp_path: Path) -> None
 
 
 def test_start_appends_extra_args_after_the_command(tmp_path: Path) -> None:
-    """`extra_args` follows `_command`'s own argv, unexamined by this class."""
+    """`extra_args` follows `_command`'s own argv, naming no option of it."""
     datadir = tmp_path / "node"
     adapter = _FakeAdapter(
         "fake-node", datadir, 0, 0, extra_args=["-blocksdir=/elsewhere"], rpc=_FakeRpc()
@@ -118,6 +118,45 @@ def test_start_appends_extra_args_after_the_command(tmp_path: Path) -> None:
     popen.assert_called_once_with(
         ["fake-node", f"-datadir={datadir}", "-blocksdir=/elsewhere"], stderr=ANY
     )
+
+
+class _MultiOptionAdapter(_FakeAdapter):
+    """A `_command` naming several option shapes, for the checks below."""
+
+    @override
+    def _command(self) -> list[str]:
+        return ["fake-node", "-regtest", f"-datadir={self._datadir}", "--rpcport=0"]
+
+
+@pytest.mark.parametrize(
+    "extra_arg",
+    [
+        "-datadir=/elsewhere",
+        "--datadir=/elsewhere",
+        "-regtest",
+        "-noregtest",
+        "--noregtest",
+        "-rpcport=1",
+        "--rpcport=1",
+    ],
+)
+def test_init_refuses_extra_args_naming_a_reserved_option(
+    tmp_path: Path, extra_arg: str
+) -> None:
+    """Each shape `_command` could set an option in is refused the same way."""
+    with pytest.raises(ValueError, match=r"^extra_args reuses -"):
+        _MultiOptionAdapter(
+            "fake-node", tmp_path / "node", 0, 0, extra_args=[extra_arg], rpc=_FakeRpc()
+        )
+
+
+def test_init_accepts_extra_args_naming_no_reserved_option(tmp_path: Path) -> None:
+    """An option `_command` never sets, or no option at all, passes through."""
+    extra_args = ["-blocksdir=/elsewhere", "-no", "-", "positional"]
+    adapter = _MultiOptionAdapter(
+        "fake-node", tmp_path / "node", 0, 0, extra_args=extra_args, rpc=_FakeRpc()
+    )
+    assert adapter._extra_args == tuple(extra_args)
 
 
 def test_start_raises_if_the_process_exits_first(tmp_path: Path) -> None:

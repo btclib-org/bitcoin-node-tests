@@ -95,6 +95,24 @@ def test_mine_creates_a_wallet_once_and_generates_to_it(tmp_path: Path) -> None:
     assert ("generatetoaddress", [2, "bcrt1qexampleaddress"]) in rpc.calls
 
 
+def test_init_refuses_extra_args_naming_bind_the_command_sets(tmp_path: Path) -> None:
+    """`-bind`, this adapter's own p2p option, is refused rather than reused."""
+    with pytest.raises(ValueError, match=r"^extra_args reuses -bind\b"):
+        BitcoindAdapter(
+            "bitcoind", tmp_path, 18443, 18444, extra_args=["-bind=127.0.0.1:1"]
+        )
+
+
+def test_init_accepts_extra_args_naming_no_option_of_the_command(
+    tmp_path: Path,
+) -> None:
+    """`-uacomment`, an option this adapter never sets, still passes through."""
+    adapter = BitcoindAdapter(
+        "bitcoind", tmp_path, 18443, 18444, extra_args=["-uacomment=foo"]
+    )
+    assert adapter._extra_args == ("-uacomment=foo",)
+
+
 def test_mine_refuses_an_answer_that_is_not_a_list(tmp_path: Path) -> None:
     """A `generatetoaddress` answering anything but a list is refused."""
     adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)

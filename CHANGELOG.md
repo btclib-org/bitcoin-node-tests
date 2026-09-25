@@ -93,3 +93,9 @@ is ported (issue #3).
 `Capability.CLOCK` names Core's `setmocktime`, absent from btclib-node.
 `rpc_uptime` is ported: it is the one clock-family test needing the
 clock alone; every other one also needs another mechanism (closes #6).
+
+### `NodeAdapter` refuses an `extra_args` entry naming its own option
+
+Reserved names are read out of `_command()` itself, so `-datadir`,
+`-port`, `-rpcport` or `-regtest` -- any dash count, an `=value`, a `-no`
+negation -- is refused rather than silently overriding it (closes #18).

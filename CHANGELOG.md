@@ -189,3 +189,9 @@ running binary; `feature_torcontrol` and the newly ported
 `requires-python` moves to `3.12`. CONTRIBUTING.md maps `test_framework.py`
 and `test_runner.py`'s options to pytest's, `--nocleanup`, `--tracerpc`,
 `--timeout-factor` and `--v2transport` each gaining a real one (closes #36).
+
+### The disk and MiniWallet families gain three single-mechanism leftovers
+
+`feature_dirsymlinks` passes on both nodes; `feature_posix_fs_permissions`
+fails on btclib-node (btclib-org/btclib-node#1198); `rpc_createmultisig` is
+`bitcoind only`. (issue #4) (issue #6) (issue #7) (issue btclib-org/btclib#2220)

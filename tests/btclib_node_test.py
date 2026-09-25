@@ -109,6 +109,12 @@ def test_rpc_client_authenticates_by_the_datadir_s_cookie_post_1070(
     assert client.url == "http://127.0.0.1:18443"
 
 
+def test_log_path_is_the_datadir_s_own_regtest_history_log(tmp_path: Path) -> None:
+    """The disk family's own fact: `btclib_node`'s own log, unwritten yet."""
+    adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.log_path == tmp_path / "regtest" / "history.log"
+
+
 def test_writes_auth_cookie_reads_the_probe_s_own_return_code() -> None:
     """`_writes_auth_cookie` is `import btclib_node.rpc.auth` exiting zero."""
     btclib_node_module._writes_auth_cookie.cache_clear()

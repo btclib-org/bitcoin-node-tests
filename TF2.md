@@ -810,6 +810,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_cltv.py` (wire) | same | same | pass | skip |
 | `feature_cltv.py` (log) | same | same | pass | skip |
 | `feature_csv_activation.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
+| `feature_dirsymlinks.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
+| `feature_posix_fs_permissions.py` | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)) |
+| `rpc_createmultisig.py` | `771200ca4362` | 2026-06-30 | pass | bitcoind only |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1462,3 +1465,85 @@ which every row also needs: measured against `cli.py`'s own
 `_build_parser`, `-testactivationheight` is not one of its registered
 flags on the build this repository's own `TF2_BTCLIB_NODE_PYTHON` names,
 so `require` never reaches the second capability at all.
+
+`feature_dirsymlinks.py`'s row is Core's own claim in full
+([ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7),
+found by [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+census, disk-family mechanism alone): a node restarted over `blocks/`
+and `chainstate/` each replaced by a symlink to elsewhere starts exactly
+as it does over the plain directories, `NodeAdapter.start` (`node.py`)
+answering the same way whichever the OS resolves the path to. No
+`Capability` is asked for, the fact being about the operating system's
+own symlink resolution rather than about either node's own storage
+format; measured live, both `bitcoind` and `btclib-node`'s own RocksDB
+stores open through the symlink unchanged.
+
+`feature_posix_fs_permissions.py`'s row is a smaller claim than Core's
+own file ([ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)):
+the `wallets_path` permission check is dropped on the charter's own
+"wallet ... tests stay out" (step 5 of issue btclib-org/btclib#2220) --
+this repository starts no node wallet, so no `wallets/` directory of a
+node's own ever exists to check the permissions of. Kept whole: the
+node's own chain directory and its own log file refuse every permission
+bit but the owner's own read, write and, for the directory, execute. No
+`Capability` is asked for either -- the fact is not that `btclib-node`
+lacks a mechanism, but that it sets one it already has (a directory's
+own mode) differently from bitcoind, which is a disagreement rather than
+a missing capability. Measured live against `btclib-node` `main`
+`b853eb46`: the chain directory and every store directory under it, and
+`history.log` (`btclib_node.py`'s own `log_path`, the fact
+`debug_log_path` names for bitcoind), all come up at the operating
+system's own umask default -- group and other readable, the directories
+executable too -- rather than an owner-only mode either the directory
+creation or the store construction sets. Filed as
+[ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198).
+
+`rpc_createmultisig.py`'s row is a smaller claim than Core's own file
+([ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4),
+found by [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+census): Core's own file asks both that `createmultisig` construct the
+right address, redeemScript and descriptor, and that the address it
+constructs is actually spendable, through
+`signrawtransactionwithkey` and `combinerawtransaction` assembling real
+ECDSA signatures over a `MiniWallet`-funded coin. Only the first is
+kept: `MiniWallet`'s own coins carry no signature at all
+(`mini_wallet.py`'s own docstring), so a spend of a multisig output
+built for real keys is not a claim this repository's own mechanism can
+make, and rule 7 of issue btclib-org/btclib#2220 leaves btclib's own
+signing surface to btclib's own test suite. Dropped for that reason:
+`do_multisig`'s own spend/sign/combine/broadcast body,
+`test_combinerawtransaction_preconditions`, and
+`test_mixing_uncompressed_and_compressed_keys` (a claim about a spend's
+own address fallback, the same reason). Dropped for a second reason,
+independent of the first: `ScriptPubKey.p2ms` (`btclib.script.script_pub_key`)
+refuses a bare multisig script naming more keys than `OP_CHECKMULTISIG`'s
+own key count can hold pushed as a small integer, `OP_16` being the
+largest one a script has, by construction -- so `test_multisig_script_limit`'s
+own past-that-limit cases, and the "correct encoding" check past the
+same bound, have no btclib construction to compare bitcoind's own answer
+against; the "correct encoding" check is kept up to `OP_16`'s own bound
+instead. Dropped for a third reason:
+`test_sortedmulti_descriptors_bip67` reads its vectors from Core's own
+`data/rpc_bip67.json`, a vendored fixture this repository does not
+carry. What is kept -- `createmultisig`'s own construction, across
+every `(nsigs, nkeys, output_type)` Core's own `m_of_n` list names, the
+encoding check up to `OP_16`'s own bound, and the `bech32m` refusal --
+needs no coin, no mining and no node wallet, so the row carries no
+`Capability` at all.
+`createmultisig` is not in `btclib_node`'s own dispatch table
+(`src/btclib_node/rpc/callbacks.py`, measured at `main` `b853eb46`), the
+same "bitcoind only" shape `feature_torcontrol.py`'s own row already
+takes for a fact no other node under this repository's reach offers, so
+this module has no `_btclib_node_test.py` counterpart.
+
+[ISS 6](https://github.com/btclib-org/bitcoin-node-tests/issues/6)'s own
+remaining files, `p2p_fingerprint.py` and `p2p_invalid_block.py`, are
+not in this batch: each needs `Capability.MINE` and a raw peer
+conversation well beyond a handshake -- `p2p_fingerprint.py` a
+headers-first reorg onto a fork built and held back rather than
+submitted, `p2p_invalid_block.py` a legacy `OP_TRUE` bare coinbase and
+scriptSig distinct from `MiniWallet`'s own P2TR shape, plus merkle-root
+malleability and a `getdata`-driven send/reject cycle matched against
+`Capability.DEBUG_LOG`'s own wording. Neither mechanism is this batch's
+to build; both stay open under [ISS 6](https://github.com/btclib-org/bitcoin-node-tests/issues/6)
+for a later one, as its own comment already said they would.

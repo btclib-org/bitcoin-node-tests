@@ -765,6 +765,20 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_invalid_messages.py` (headers, log) | same | same | pass | skip |
 | `p2p_invalid_messages.py` (invalid pow, wire) | same | same | pass | pass |
 | `p2p_invalid_messages.py` (invalid pow, log) | same | same | pass | skip |
+| `p2p_invalid_messages.py` (size, wire) | same | same | pass | pass |
+| `p2p_invalid_messages.py` (size, log) | same | same | pass | skip |
+| `p2p_invalid_messages.py` (dup version, wire) | same | same | pass | fail ([ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)) |
+| `p2p_invalid_messages.py` (dup version, log) | same | same | pass | skip |
+| `p2p_invalid_messages.py` (checksum, wire) | same | same | pass | fail ([ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130)) |
+| `p2p_invalid_messages.py` (checksum, log) | same | same | pass | skip |
+| `p2p_invalid_messages.py` (msgtype, wire) | same | same | pass | fail ([ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130)) |
+| `p2p_invalid_messages.py` (msgtype, log) | same | same | pass | skip |
+| `p2p_invalid_messages.py` (addrv2 empty, wire) | same | same | pass | fail ([ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170)) |
+| `p2p_invalid_messages.py` (addrv2 empty, log) | same | same | pass | skip |
+| `p2p_invalid_messages.py` (addrv2 no addr, wire) | same | same | pass | pass |
+| `p2p_invalid_messages.py` (addrv2 no addr, log) | same | same | pass | skip |
+| `p2p_invalid_messages.py` (addrv2 long, wire) | same | same | pass | fail ([ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170)) |
+| `p2p_invalid_messages.py` (addrv2 long, log) | same | same | pass | skip |
 | `p2p_leak.py` (wire) | `01b8a117d2c5` | 2026-06-04 | pass | pass |
 | `p2p_leak.py` (log) | `01b8a117d2c5` | 2026-06-04 | pass | skip |
 | `p2p_net_deadlock.py` | `a0473442d1c2` | 2024-07-16 | pass | skip (raw_msg) |
@@ -922,6 +936,136 @@ dropped unread rather than refused
 The oversized-`getdata` and oversized-`headers` rows, and the
 invalid-PoW row, reach `GetData.parse`, `Headers.parse` and
 `assert_valid_pow` with no such guard in front of them, and pass.
+
+`p2p_invalid_messages.py` gains a size row of the same wire-and-log
+shape as `test_magic_bytes` (issue #5): Core's own `test_size` disconnects
+the peer exactly as a wrong network magic does --
+`V1Transport::readHeader` (`src/net.cpp`) refuses a header whose own
+declared length is over `MAX_PROTOCOL_MESSAGE_LENGTH` and returns before
+a message ever reaches `GetReceivedMessage`, the same early exit
+`test_magic_bytes`'s own row already reads --
+`tests/integration/p2p_invalid_messages_bitcoind_test.py`'s own docstring
+carries both rows now. Both the wire and the log tests build the same
+several-megabyte payload and tolerate a `ConnectionError` on the send
+itself, measured live: the node closes the socket before this side has
+finished writing it. btclib-node's own `frame_message` refuses the same
+octets through `btclib.p2p.Message.parse`'s own length check ahead of the
+network-magic one, so this row's `btclib-node` cell is `pass` on both
+halves' own wire fact for the same reason `test_magic_bytes`'s already is.
+
+More rows are the log family's own opposite wire fact:
+`test_duplicate_version_msg`, `test_checksum` and `test_msgtype` (its
+non-v2 branch, the only one this suite's `Peer` ever speaks) each reach
+`V1Transport::GetReceivedMessage` (`src/net.cpp`), which sets
+`reject_message` rather than returning early --
+`CNode::ReceiveMsgBytes`'s own comment: "Message deserialization failed.
+Drop the message but don't disconnect the peer." So each row's wire half
+asks the opposite question from `test_magic_bytes`'s: that the connection
+*survives*, read off a `ping`/`pong` round trip rather than
+`wait_for_disconnect`.
+`tests/integration/p2p_invalid_messages_dropped_bitcoind_test.py`'s own
+docstring has the full argument, including why Core's own
+`bytesrecv_per_msg` check on the checksum and msgtype rows is dropped.
+Every one of them disagrees on btclib-node, and by a single shared
+mechanism rather than a distinct one each: `Connection.run`'s own handler
+around `frame_message` (`connection.py`) discourages and stops on *any*
+`BTClibException`, where Core only logs and drops the one message --
+`btclib.p2p.message._command_from_bytes` raises the identical exception
+class for an invalid command that `Message.parse`'s own checksum check
+does, so the checksum and msgtype rows are the same defect measured
+again. [ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130)
+names it. The duplicate-version row fails for a different, adjacent
+reason: `handle_p2p_handshake`'s own dispatch (`p2p/main.py`) discourages
+and stops a `version`/`verack`/`wtxidrelay`/`sendaddrv2` arriving once the
+connection is already `Connected`, ahead of the `version` callback's own
+guard against a *pre-verack* repeat.
+[ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)
+names it.
+
+Most of Core's own `test_addrv2_*` checks join the same shape, through a
+raw `addrv2` message rather than through `btclib.p2p.AddrV2`'s own codec
+-- `test_addrv2_empty`, `test_addrv2_no_addresses` and
+`test_addrv2_too_long_address`, each asserting the connection survives a
+malformed or trivial payload the way the rows above do.
+`tests/integration/p2p_invalid_messages_addrv2_bitcoind_test.py`'s own
+docstring has the full argument, including why `SenderOfAddrV2`'s own
+explicit wait for the node's `sendaddrv2` needs no equivalent here: this
+suite's `Peer.handshake` already negotiates `WTXID_RELAY_VERSION`, the
+same floor BIP155's own `sendaddrv2` announcement is gated on.
+`test_addrv2_empty` and `test_addrv2_too_long_address` disagree on
+btclib-node, by a distinct but adjacent mechanism:
+`btclib_node.p2p.callbacks.addrv2` calls `AddrV2.parse` with no
+`try`/`except` of its own, and `handle_p2p`'s own `_drop` (`p2p/main.py`)
+discourages and stops the connection for any `BTClibException` a
+callback raises -- the dispatch-level path
+[ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170)
+names, rather than the checksum and msgtype rows' own frame-level one.
+`test_addrv2_no_addresses` raises nothing -- an empty list is valid --
+so it passes on both nodes.
+
+`test_addrv2_unrecognized_network` is not ported: Core's own assertion
+needs bitcoind's own `Added ... addresses (of ...) from ...` line, which
+is `LogDebug(BCLog::ADDRMAN, ...)` (`src/addrman.cpp`) rather than
+`BCLog::NET`, and `BitcoindAdapter._command`'s own `-debug=net` is fixed
+for the whole log family rather than adjustable per test. The one
+`NET`-category line the same code path also writes, `Received addr: ...
+addresses (... processed, ... rate-limited)`, does name a fact, but
+measured live over several runs it always answers with the same address
+processed and the other one rate-limited -- `peer.m_addr_token_bucket`'s
+own address-rate limiter deciding which entry goes through and which is
+deferred, not a fact about an unrecognized network or about `addrv2` at
+all. A row asserting it would test this connection's own initial
+token-bucket state rather than the claim `test_addrv2_unrecognized_network`
+is about, so it stays open rather than being ported against an accounting
+detail this test does not otherwise touch.
+
+`p2p_bip434_feature.py` is not ported at all: BIP434's own `FEATURE`
+message needs a later protocol version than the pinned bitcoind release
+this repository fetches ever advertises. `node/protocol_version.h`'s own
+`PROTOCOL_VERSION` constant, read at the pinned tag and at Core's
+`master`:
+
+```shell
+gh api repos/bitcoin/bitcoin/contents/src/node/protocol_version.h?ref=v31.1 \
+    -H 'Accept: application/vnd.github.raw' | grep PROTOCOL_VERSION
+gh api repos/bitcoin/bitcoin/contents/src/node/protocol_version.h?ref=master \
+    -H 'Accept: application/vnd.github.raw' | grep PROTOCOL_VERSION
+gh api repos/bitcoin/bitcoin/contents/src/protocol.h?ref=v31.1 \
+    -H 'Accept: application/vnd.github.raw' | grep -c FEATURE
+```
+
+confirms the gap and that `NetMsgType::FEATURE` itself is absent from the
+pinned tag's own header, gained only on `master` afterward. `doc/bips.md`
+at Core's `master` names BIP434 as landing only in the next major release
+after the one this repository pins, and the functional test itself
+postdates the pinned tag (`da74ff9ca4`, 2026-06-04, not an ancestor of
+it) -- so there is no release of the oracle this suite pins that ever
+sends or accepts a `FEATURE` message, and every one of the file's own
+methods would fail on `bitcoind` itself rather than surface a real
+disagreement. This is independent of the file's own `-peertimeout`
+argument: read at the pinned tag, it only raises the idle-peer timeout so
+a slow, synchronous test is not itself disconnected for want of traffic,
+which is a robustness setting rather than a fact any assertion is about
+-- so it changes nothing about whether the file can run, only how long a
+future attempt could take before this repository's own bitcoind speaks
+the protocol version the file needs. Revisiting this file waits on this
+repository's own pinned bitcoind release moving to the one BIP434 ships
+in (`.github/workflows/node-integration.yml`'s own `bitcoind-version`,
+`.github/actions/install-bitcoind/action.yml`'s the same argument's
+description), not on anything the log family's own mechanism is short
+of.
+
+The log family's own census is wider than `p2p_invalid_messages.py` and
+`p2p_leak.py`: re-run against Core's own current tip, `assert_debug_log`
+also appears in several `p2p_*`, `feature_*`, `interface_*` and `rpc_*`
+files that ask this step's charter for nothing else -- no option, no
+`MiniWallet`, no `setmocktime`, no disk read -- the same sweep method
+[ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)'s
+own re-derivation used against the option, MiniWallet, clock and disk
+census lists above. None of them is examined here: this round's own scope
+was `p2p_invalid_messages.py`'s remaining assertions and
+`p2p_bip434_feature.py` alone, named as such rather than as the whole of
+what the family still owes, and issue #5 stays open on that ground.
 
 `feature_uacomment.py` is the option family's own first row
 ([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)),

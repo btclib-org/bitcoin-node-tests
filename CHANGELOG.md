@@ -141,3 +141,9 @@ bitcoind, and skips on btclib-node for `Capability.MINE` (issue #4).
 `MiniWallet` gains `get_utxo`, a caller-named coin on
 `create_self_transfer`/`send_self_transfer`, and `resync`; `build_fork`
 builds a Core-style empty fork alongside it (issue #4).
+
+### `p2p_invalid_messages` gains its size, drop and `addrv2` checks
+
+`test_size` disconnects like `test_magic_bytes`; most other new checks
+assert survival instead, and several rows fail on btclib-node, each
+against its own already-filed issue, `TF2.md` naming which. (issue #5)

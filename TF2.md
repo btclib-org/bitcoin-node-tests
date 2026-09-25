@@ -732,11 +732,26 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 
 | Core test | pin | read at | bitcoind | btclib-node |
 | --- | --- | --- | --- | --- |
+| `feature_blocksdir.py` | `0d1301b47a35` | 2026-03-24 | pass | skip blk_files |
 | `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) |
 | `p2p_invalid_locator.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_net_deadlock.py` | `a0473442d1c2` | 2024-07-16 | pass | skip (raw_msg) |
+
+`feature_blocksdir.py`'s row is a smaller claim than Core's own test:
+Core also mines blocks through the framework's own deterministic wallet
+key before its disk read, which this drops -- a fresh node writes its
+genesis block to `blk00000.dat` before anything is mined, so the
+`-blocksdir` redirect this test is about needs nothing more than that
+to show. btclib-node's cell names the capability rather than the
+node's whole behaviour: a nonexistent `-blocksdir` is fatal there too,
+passing the same way it does on bitcoind, and it is reading the chain
+back in Core's own `blk*.dat` layout that is
+`Capability.BLK_FILES` (`capability.py`) -- a capability btclib-node
+never declares, not a gap its adapter is waiting on but the decision
+[ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)
+already closed on.
 
 `p2p_getdata.py`'s row is a smaller claim than Core's own test: Core
 asks its "later valid `getdata`" question of a mined tip, and this asks
@@ -751,9 +766,9 @@ is still open) -- and widening only the bitcoind half of this row would
 leave its own column and btclib-node's answering a different question
 about the same test.
 
-The rows besides `p2p_getdata.py`'s are Core's own claim in full,
-`bitcoind`'s pass being the whole of it: none narrows what Core asks,
-each needing `Capability.MINE` (`p2p_block_sync.py`,
+The other `p2p_*` rows are Core's own claim in full, `bitcoind`'s pass
+being the whole of it: none narrows what Core asks, each needing
+`Capability.MINE` (`p2p_block_sync.py`,
 `p2p_compactblocks_hb.py`, `p2p_invalid_locator.py`, to reach a chain
 tall enough to mine or to name) or `Capability.RAW_MESSAGE`
 (`p2p_net_deadlock.py`, Core's own `sendmsgtopeer`) that

@@ -106,6 +106,19 @@ def test_start_waits_for_the_rpc_and_creates_the_datadir(tmp_path: Path) -> None
     assert rpc.calls == [("getblockchaininfo", None)] * 3
 
 
+def test_start_appends_extra_args_after_the_command(tmp_path: Path) -> None:
+    """`extra_args` follows `_command`'s own argv, unexamined by this class."""
+    datadir = tmp_path / "node"
+    adapter = _FakeAdapter(
+        "fake-node", datadir, 0, 0, extra_args=["-blocksdir=/elsewhere"], rpc=_FakeRpc()
+    )
+    with patch("subprocess.Popen", return_value=_FakeProcess()) as popen:
+        adapter.start()
+    popen.assert_called_once_with(
+        ["fake-node", f"-datadir={datadir}", "-blocksdir=/elsewhere"]
+    )
+
+
 def test_start_raises_if_the_process_exits_first(tmp_path: Path) -> None:
     """A process gone before its RPC answers is a `RuntimeError`, not a hang."""
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())

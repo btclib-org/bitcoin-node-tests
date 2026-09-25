@@ -23,13 +23,14 @@ import socket
 import subprocess
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable
     from collections.abc import Set as AbstractSet
 
     from bitcoin_node_tests.capability import Capability
@@ -121,17 +122,29 @@ class NodeAdapter(ABC):
     `free_port` above, and a fixture's own `tmp_path` -- rather than this
     class reaching for a default any other instance on the same machine
     could collide on.
+
+    `extra_args` is appended after `_command`'s own argv, unexamined by
+    this class: a caller asking for a fact `_command` does not already
+    name -- a non-default `-blocksdir`, a `-conf` naming a file this
+    same caller wrote -- passes it here rather than a subclass growing a
+    parameter for every option a test happens to need.
     """
 
     capabilities: AbstractSet[Capability]
 
     def __init__(
-        self, executable: str, datadir: Path, rpc_port: int, p2p_port: int
+        self,
+        executable: str,
+        datadir: Path,
+        rpc_port: int,
+        p2p_port: int,
+        extra_args: Sequence[str] = (),
     ) -> None:
         self._executable = executable
         self._datadir = datadir
         self._rpc_port = rpc_port
         self._p2p_port = p2p_port
+        self._extra_args = tuple(extra_args)
         self._process: subprocess.Popen[bytes] | None = None
 
     @abstractmethod
@@ -167,7 +180,7 @@ class NodeAdapter(ABC):
         """
         self._datadir.mkdir(parents=True, exist_ok=True)
         self._process = subprocess.Popen(  # noqa: S603
-            self._command(),
+            [*self._command(), *self._extra_args],
         )
         _wait_for_rpc(self._rpc_client(), self._process, timeout=_STARTUP_TIMEOUT)
 

@@ -17,6 +17,7 @@ already installed, the same split
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, override
 
@@ -34,7 +35,7 @@ __all__ = [
 
 
 class BitcoindAdapter(NodeAdapter):
-    """A regtest `bitcoind`: cookie authentication, and both capabilities.
+    """A regtest `bitcoind`: cookie authentication, and every capability.
 
     RPC authenticates by cookie, the file `-datadir` writes once the
     node is listening -- rule 1's "how RPC authenticates", answered by a
@@ -48,17 +49,30 @@ class BitcoindAdapter(NodeAdapter):
     answers (measured against the pinned `31.1`: not in `help`'s own
     listing, which is for discoverability rather than availability, but
     `help sendmsgtopeer` answers its own signature) and which no other
-    adapter's node offers yet.
+    adapter's node offers yet. `Capability.BLK_FILES` is unconditional
+    too: this is Core's own binary, so `blk*.dat` under `blocks/` is the
+    format it already writes, not one this adapter has to add anything
+    for.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
-        {Capability.MINE, Capability.CONNECT, Capability.RAW_MESSAGE}
+        {
+            Capability.MINE,
+            Capability.CONNECT,
+            Capability.RAW_MESSAGE,
+            Capability.BLK_FILES,
+        }
     )
 
     def __init__(
-        self, executable: str, datadir: Path, rpc_port: int, p2p_port: int
+        self,
+        executable: str,
+        datadir: Path,
+        rpc_port: int,
+        p2p_port: int,
+        extra_args: Sequence[str] = (),
     ) -> None:
-        super().__init__(executable, datadir, rpc_port, p2p_port)
+        super().__init__(executable, datadir, rpc_port, p2p_port, extra_args)
         self._miner_wallet: str | None = None
 
     @override

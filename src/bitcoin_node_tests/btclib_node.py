@@ -28,6 +28,14 @@ Independently,
 is what makes `p2p_getdata` itself fail here: `block_db` never holds the
 genesis block, so neither `getblock` nor a p2p `getdata` can serve the
 one block a fresh regtest node -- mined or not -- starts at.
+
+`Capability.BLK_FILES` is not declared either, and is not a gap this
+adapter is waiting on: `block_db.BlockDB` is its own on-disk format, not
+Core's `blk*.dat`, by the decision
+[ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)
+already made and closed on -- reading Core's own files was refused in
+favour of `-connect`/`-addnode` delivering the same blocks over loopback
+p2p, which this repository's own `Capability.CONNECT` already reaches.
 """
 
 from __future__ import annotations

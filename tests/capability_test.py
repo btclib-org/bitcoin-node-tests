@@ -61,6 +61,40 @@ def test_report_names_every_recorded_capability() -> None:
     assert report == "skips per capability:\nconnect: 1\nmine: 1"
 
 
+def test_as_mapping_is_a_plain_dict_keyed_by_capability_value() -> None:
+    """`as_mapping` is what crosses an xdist worker boundary, so no `Enum`."""
+    counts = SkipCounts()
+    with pytest.raises(MissingCapabilityError):
+        require(Capability.MINE, frozenset(), counts)
+    with pytest.raises(MissingCapabilityError):
+        require(Capability.MINE, frozenset(), counts)
+    with pytest.raises(MissingCapabilityError):
+        require(Capability.CONNECT, frozenset(), counts)
+    assert counts.as_mapping() == {"mine": 2, "connect": 1}
+
+
+def test_add_mapping_is_as_mapping_s_own_inverse() -> None:
+    """A tally built from another's `as_mapping` reports the same counts."""
+    original = SkipCounts()
+    with pytest.raises(MissingCapabilityError):
+        require(Capability.MINE, frozenset(), original)
+    with pytest.raises(MissingCapabilityError):
+        require(Capability.RAW_MESSAGE, frozenset(), original)
+
+    rebuilt = SkipCounts()
+    rebuilt.add_mapping(original.as_mapping())
+    assert list(rebuilt) == list(original)
+
+
+def test_add_mapping_adds_onto_what_is_already_there() -> None:
+    """Folding a second worker's tally in credits both, not the last one."""
+    counts = SkipCounts()
+    with pytest.raises(MissingCapabilityError):
+        require(Capability.MINE, frozenset(), counts)
+    counts.add_mapping({"mine": 2, "connect": 1})
+    assert list(counts) == [(Capability.CONNECT, 1), (Capability.MINE, 3)]
+
+
 def test_the_hookwrapper_generator_converts_a_thrown_exception() -> None:
     """`pytest_runtest_call`'s own generator, driven the way pluggy drives it.
 

@@ -39,9 +39,13 @@ from bitcoin_node_tests.node import free_port
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
-# one tally for the whole session, shared by every fixture and test
-# below: `pytest_sessionfinish` prints it once, rather than once per
-# node this session happened to drive
+# one tally per process, shared by every fixture and test below:
+# `pytest_sessionfinish` reports it once, rather than once per node this
+# session happened to drive. Under `-n auto` this module loads once per
+# xdist worker and once in the controller, so this is one tally *per
+# process* rather than one for the run -- `pytest_sessionfinish` and
+# `pytest_testnodedown` below are what turn that into the single total
+# rule 4 asks for.
 _skip_counts = SkipCounts()
 
 
@@ -52,20 +56,59 @@ def skip_counts() -> SkipCounts:
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
-    """Print the session's skip tally where a bare run still shows it.
+    """Hand a worker's own tally to the controller, or report the total.
+
+    Every one of the processes `-n auto` starts runs this hook, and
+    `session.config.workeroutput` is what tells them apart: it exists
+    only inside an xdist worker (`xdist.remote` sets it at worker
+    start-up), never in the controller and never in a plain `-n 0` run.
+    A worker's own tally counts only the tests *it* ran, so a worker
+    stashes it there instead of reporting it -- the controller reads it
+    back through `node.workeroutput` in `pytest_testnodedown` below, and
+    folds it in before this same hook runs on the controller itself. A
+    plain run started with `-n 0` is not a worker either, and needs no
+    folding: it is the one process that ran every test, so the tally
+    below is already the whole run's.
 
     A fixture's own teardown print is captured with everything else a
     test writes and shown only where that test failed; this hook runs
-    once the whole session is over and is not subject to that capture --
-    rule 4's "the run prints a skip count" needs that, a green run that
-    skipped every `Capability.MINE` case otherwise printing nothing at
-    all.
+    once its own process's session is over and is not subject to that
+    capture -- rule 4's "the run prints a skip count" needs that, a
+    green run that skipped every `Capability.MINE` case otherwise
+    printing nothing at all.
 
-    :param session: unused; the hook's own signature names it.
+    :param session: whose `.config` says whether this process is an
+        xdist worker.
     :param exitstatus: unused; the hook's own signature names it.
     """
-    del session, exitstatus
+    del exitstatus
+    workeroutput = getattr(session.config, "workeroutput", None)
+    if workeroutput is not None:
+        workeroutput["skip_counts"] = _skip_counts.as_mapping()
+        return
     print(_skip_counts.report())  # noqa: T201
+
+
+def pytest_testnodedown(node: object, error: object | None) -> None:
+    """Fold one xdist worker's own tally into the controller's, as it exits.
+
+    xdist calls this hook only in the controller process, once per
+    worker as it goes down (finishes or crashes) -- and, for every
+    worker, before the controller reaches its own `pytest_sessionfinish`
+    above, which is what reports the sum. Absent under `-n 0`, there
+    being no worker to go down.
+
+    :param node: the worker that just finished; `node.workeroutput` is
+        what `pytest_sessionfinish` above stashed in its own process,
+        crossed over by xdist as plain data. Typed as `object` because
+        `xdist.workermanage.WorkerController` ships no `py.typed`
+        marker for this file's `strict = true` to check against.
+    :param error: unused; the hook's own signature names it.
+    """
+    del error
+    workeroutput = getattr(node, "workeroutput", None)
+    if workeroutput is not None:
+        _skip_counts.add_mapping(workeroutput.get("skip_counts", {}))
 
 
 def _require_integration() -> None:

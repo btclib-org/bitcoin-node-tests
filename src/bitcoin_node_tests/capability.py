@@ -150,6 +150,15 @@ class Capability(Enum):
     ([ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176)),
     so a test asking for the negation needs its own capability rather
     than riding on the one for the value it negates.
+    `TEST_ACTIVATION_HEIGHT` -- hold one buried soft fork's own deployment
+    inactive until a caller-chosen height, Core's own debug-only
+    `-testactivationheight=<deployment>@<height>`. Regtest's own chain
+    parameters activate every buried deployment -- BIP34, BIP66, BIP65,
+    CSV -- from height 0 or 1 otherwise (`src/kernel/chainparams.cpp`'s
+    own comment on each, "Always active unless overridden", measured
+    against the pinned `31.1`), so this is what lets a test hold one of
+    them back long enough to observe the boundary at all
+    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
     """
 
     MINE = "mine"
@@ -161,6 +170,7 @@ class Capability(Enum):
     CLOCK = "clock"
     RPC_AUTH_CONFIG = "rpc_auth_config"
     RPC_AUTH_NEGATION = "rpc_auth_negation"
+    TEST_ACTIVATION_HEIGHT = "test_activation_height"
 
 
 class SkipCounts:

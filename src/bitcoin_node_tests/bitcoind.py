@@ -72,6 +72,11 @@ class BitcoindAdapter(NodeAdapter):
     itself carries -- measured live against the pinned `31.1`, a request
     authenticated with a credential named on the command line before
     `-norpcauth` gets 401 once the node has started.
+    `Capability.TEST_ACTIVATION_HEIGHT` is unconditional too:
+    `-testactivationheight` is a debug-only flag of this binary's own,
+    read by `ArgsManager` before any deployment is checked, so nothing
+    about which deployment or which height is named changes whether the
+    flag itself is recognised.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -85,6 +90,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.CLOCK,
             Capability.RPC_AUTH_CONFIG,
             Capability.RPC_AUTH_NEGATION,
+            Capability.TEST_ACTIVATION_HEIGHT,
         }
     )
 

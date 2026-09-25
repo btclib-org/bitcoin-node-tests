@@ -171,3 +171,9 @@ installs from that project's `main` (issue #8).
 `NodeAdapter.__init__` gains an `rpc_auth` parameter, the credential a
 caller already knows, so `start` waits on a node given `-rpcuser`/
 `-rpcpassword` or `-norpccookiefile`, neither writing a cookie (closes #34).
+
+### The softfork activation-height trio joins the option and MiniWallet families
+
+`-testactivationheight` gains `Capability.TEST_ACTIVATION_HEIGHT`;
+`feature_dersig`, `feature_cltv` and `feature_csv_activation` join the
+option and MiniWallet families, `TF2.md` naming what each drops (issue #14).

@@ -29,6 +29,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.CLOCK,
             Capability.RPC_AUTH_CONFIG,
             Capability.RPC_AUTH_NEGATION,
+            Capability.TEST_ACTIVATION_HEIGHT,
         }
     )
 

@@ -816,6 +816,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_setban.py` (ban) | `fa21edddb272` | 2026-03-27 | pass | skip (ban) |
 | `rpc_setban.py` (restart) | same | same | pass | skip (ban) |
 | `rpc_setban.py` (non-IP) | same | same | pass | skip (ban) |
+| `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
+| `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
+| `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1413,13 +1416,14 @@ adapters' -- so
 neither is ISS 14's; both stay open under this issue, unported this
 round.
 
-`mempool_cluster.py`, `mempool_sigoplimit.py` and `rpc_packages.py`
-also drive MiniWallet alone at first read, but each also restarts its
-node with an option -- `-limitclustersize`/`-limitclustercount`,
-`-bytespersigop`/`-permitbaremultisig`, and
+`mempool_cluster.py` and `rpc_packages.py` also drive MiniWallet alone at
+first read, but each also restarts its node with an option --
+`-limitclustersize`/`-limitclustercount` and
 `-maxmempool`/`-persistmempool` in turn -- that `btclib-node`'s own
 `cli.py` does not register, so the option family's own exclusion reaches
 them too: ISS 14's, same as the wallet, log, disk and clock files below.
+`mempool_sigoplimit.py`, named alongside them for the same reason, is
+ported below, its own paragraph naming what of it is kept.
 
 `p2p_tx_privacy.py` (also pinned `fa5f29774872`) asks for MiniWallet
 alone too, driving a second p2p connection of its own alongside the
@@ -1684,3 +1688,70 @@ neither adapter speaks
 ([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190));
 `p2p_blockfilters.py` on `-blockfilterindex` and BIP157, neither
 adapter's own surface.
+
+`mempool_datacarrier.py`, `mempool_dust.py` and `mempool_sigoplimit.py`
+are ISS 14's own mempool-policy-option trio, each combining a
+relay-policy option with MiniWallet the same way the softfork-activation
+trio above combines one with `Capability.MINE`. Each needed a helper
+`mini_wallet.py` did not yet carry: `nulldata_script_pub_key`, an
+`OP_RETURN` scriptPubKey of any length (`ScriptPubKey.nulldata`'s own
+byte-length refusal is the historical "standard" bound, which a
+`-datacarriersize` test asks a node about rather than a fact this
+library should enforce before the request is ever sent), and
+`MiniWallet.send_to` (Core's own `wallet.py`), paying a second output
+while keeping a fixed-fee change output cached back to the wallet the
+way `create_self_transfer` already does. Both are unit-tested against
+the fake RPC alongside the rest of `mini_wallet_test.py`.
+
+`mempool_datacarrier.py`'s own row is a smaller claim than Core's own
+file: kept is that the default setting relays a sizeable `OP_RETURN`,
+`-datacarrier` disabled refuses one of any size (even a bare, empty
+one), a custom `-datacarriersize` bounds the payload at its own
+boundary, and `getmempoolinfo` reports bare multisig permitted by
+default, the check Core's own file carries for `mempool_dust.py`'s
+option. Dropped is Core's own extra node, a further custom
+`-datacarriersize` value, and its own sweep of `None`/empty/single-byte
+payloads across every node, neither reaching a boundary the kept
+configurations do not already cover.
+
+`mempool_dust.py`'s own row is a smaller claim than Core's own file too:
+kept is that a value clearly under the dust threshold is refused and one
+clearly over it is allowed, for every output shape Core's own list
+names that `ScriptPubKey` builds -- P2PK uncompressed and compressed,
+P2PKH, P2SH, P2WPKH, P2WSH, P2TR and the largest standard bare multisig
+-- and that `-dustrelayfee` disabled waives the check entirely. Dropped
+is Core's own file's exact per-byte threshold arithmetic
+(`GetDustThreshold`'s own formula), its future-witness-version rows,
+`ScriptPubKey` having no generic future-witness-version output of its
+own, its null data row, whose threshold is zero and so sits on neither
+side of a boundary, its own sweep of several
+other `-dustrelayfee` values, and its own ephemeral-dust scenario.
+Ephemeral dust is not the dust threshold at a coarser grain but its own
+acceptance rule, `src/policy/ephemeral_policy.cpp`'s
+`CheckEphemeralSpends`, exempting a dust output its package spends. It
+is the subject of Core's own `mempool_ephemeral_dust.py`, not yet ported.
+
+`mempool_sigoplimit.py`'s own row is a smaller claim than Core's own
+file: kept is `testmempoolaccept`'s own `vsize` floor, `max` of the
+sigop-equivalent size and the serialized one, at that boundary, a byte
+above it and a byte below it, for a witness script built directly
+(`OP_FALSE OP_IF <OP_CHECKSIG ...> OP_ENDIF OP_TRUE`: the branch
+carrying the sigops is never executed, legacy sigop counting being
+syntactic rather than a trace of execution, so no signature is ever
+needed), at one `-bytespersigop` and sigop count rather than Core's own
+sweep across both. Dropped is Core's own file's ancestor and descendant
+size accounting (`getmempoolentry`), its package-limit scenario
+(`submitpackage`, cluster limits) and its legacy P2SH sigops
+standardness test, all driving package or standardness mechanics beyond
+a single transaction's own accepted vsize. Measured live against the
+pinned release: `testmempoolaccept`'s own answer carries no
+`vsize_adjusted` or `vsize_bip141` field there, `vsize` alone already
+reflecting the sigop-adjusted floor.
+
+Every `btclib-node` cell across this trio is a counted skip on its own
+option capability alone, ahead of `Capability.MINE` which every row also
+needs: measured against `cli.py`'s registered options, `_build_parser`
+on the released build and `_OPTIONS` on `main`, none of `-datacarrier`,
+`-datacarriersize`, `-permitbaremultisig`, `-dustrelayfee` or
+`-bytespersigop` is one of its registered flags, so `require` never
+reaches `Capability.MINE` at all.

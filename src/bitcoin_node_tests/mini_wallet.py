@@ -100,6 +100,7 @@ from btclib.block.mining import mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS, subsidy
 from btclib.key import PubKeyData
+from btclib.script.script import serialize as script_serialize
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.script.taproot import input_script_sig
 from btclib.script.taproot import serialize as tapscript_serialize
@@ -115,6 +116,7 @@ __all__ = [
     "MiniWallet",
     "Utxo",
     "build_fork",
+    "nulldata_script_pub_key",
 ]
 
 # Core's own ADDRESS_OP_TRUE internal key (`test_framework/address.py`'s
@@ -263,6 +265,25 @@ def build_fork(
         blocks.append(block)
         tip = block.header.hash
     return blocks
+
+
+def nulldata_script_pub_key(data: bytes) -> ScriptPubKey:
+    """Return an `OP_RETURN` scriptPubKey carrying `data`, of any length.
+
+    `CScript([OP_RETURN, data])` (`test_framework/script.py`), not
+    `ScriptPubKey.nulldata`: that classmethod's own 80-byte refusal is
+    the historical "standard" bound, which a `-datacarriersize` test asks
+    a *node* about rather than a fact this library should enforce before
+    the request ever leaves this process
+    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
+    `check_validity=False`: `ScriptPubKey.assert_valid` runs no length
+    check of its own on a nulldata script, so this only ever skips the
+    network-name check `Script.__init__` would otherwise repeat.
+
+    :param data: the payload to push after `OP_RETURN`; any length,
+        including one `ScriptPubKey.nulldata` would refuse.
+    """
+    return ScriptPubKey(script_serialize(["OP_RETURN", data]), check_validity=False)
 
 
 def _witness() -> Witness:
@@ -467,6 +488,54 @@ class MiniWallet:
             than the sent tx's own id.
         """
         tx = self.create_self_transfer(utxo_to_spend=utxo_to_spend)
+        tx_hex = tx.serialize(True, check_validity=False).hex()
+        txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
+        if txid != tx.id.hex():
+            err_msg = f"sendrawtransaction answered {txid!r}, not {tx.id.hex()!r}"
+            raise TypeError(err_msg)
+        return tx
+
+    def send_to(self, script_pub_key: ScriptPubKey, value: int) -> Tx:
+        """Spend one matured coin, broadcast, paying `script_pub_key` too.
+
+        `send_to` (`wallet.py`): a second output pays `script_pub_key`,
+        and the first keeps `FEE` sat back for the fee and returns the
+        rest to this wallet as change -- the same fixed-fee shape
+        `create_self_transfer` already uses, so the spent coin's own
+        value beyond `value` and `FEE` is not simply burned as a fee the
+        way it would be paying a single output alone.
+
+        :param script_pub_key: what the new, second output pays.
+        :param value: the new output's own satoshi value.
+        :raises LookupError: no coin of this wallet has matured yet.
+        :raises ValueError: the spent coin cannot cover `value` and this
+            class's own `FEE` together.
+        :raises TypeError: `sendrawtransaction` answered something other
+            than the sent tx's own id.
+        """
+        utxo = self._pop_mature_utxo()
+        if utxo.value < value + FEE:
+            err_msg = (
+                f"coin of {utxo.value} sat cannot cover {value} sat plus "
+                f"this class's own {FEE}-sat fee"
+            )
+            raise ValueError(err_msg)
+        change = utxo.value - value - FEE
+        tx_in = TxIn(
+            utxo.outpoint,
+            script_sig=b"",
+            sequence=0xFFFFFFFE,
+            script_witness=_witness(),
+        )
+        tx = Tx(
+            version=2,
+            lock_time=0,
+            vin=[tx_in],
+            vout=[TxOut(change, _ANYONE_CAN_SPEND), TxOut(value, script_pub_key)],
+        )
+        self._utxos.append(
+            Utxo(outpoint=OutPoint(tx.id, 0), value=change, height=0, coinbase=False)
+        )
         tx_hex = tx.serialize(True, check_validity=False).hex()
         txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
         if txid != tx.id.hex():

@@ -23,7 +23,12 @@ from btclib.block.block import Block
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.mini_wallet import FEE, MiniWallet, build_fork
+from bitcoin_node_tests.mini_wallet import (
+    FEE,
+    MiniWallet,
+    build_fork,
+    nulldata_script_pub_key,
+)
 from bitcoin_node_tests.node import NodeAdapter
 
 if TYPE_CHECKING:
@@ -509,3 +514,59 @@ def test_build_fork_pays_the_given_script_pub_key() -> None:
     fork = build_fork(node, wallet.script_pub_key, 1)
 
     assert fork[0].transactions[0].vout[0].script_pub_key == wallet.script_pub_key
+
+
+@pytest.mark.parametrize("size", [0, 1, 80, 81, 256])
+def test_nulldata_script_pub_key_accepts_any_length(size: int) -> None:
+    """Unlike `ScriptPubKey.nulldata`, no length here is refused."""
+    data = b"\xff" * size
+    script = nulldata_script_pub_key(data)
+    assert script.script.startswith(b"\x6a")  # OP_RETURN
+    assert data in script.script
+
+
+def test_send_to_pays_the_named_script_and_returns_change() -> None:
+    """The second output pays the caller's script; the first is change."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    balance_before = wallet.get_balance()
+    target = nulldata_script_pub_key(b"target")
+
+    tx = wallet.send_to(target, 12345)
+
+    assert len(tx.vin) == 1
+    assert len(tx.vout) == 2
+    assert tx.vout[0].script_pub_key == wallet.script_pub_key
+    assert tx.vout[1].script_pub_key == target
+    assert tx.vout[1].value == 12345
+    assert rpc.sent == [tx.serialize(True, check_validity=False).hex()]
+    # the change is cached back, so only `value` and `FEE` left the wallet
+    assert wallet.get_balance() == balance_before - 12345 - FEE
+
+
+def test_send_to_refuses_with_no_matured_coin() -> None:
+    """A coin mined this call is not yet `COINBASE_MATURITY` deep."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(1)
+    with pytest.raises(LookupError, match="no coin"):
+        wallet.send_to(nulldata_script_pub_key(b""), 1)
+
+
+def test_send_to_refuses_a_value_the_coin_cannot_cover() -> None:
+    """`value` plus `FEE` beyond the spent coin's own value is refused."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    with pytest.raises(ValueError, match="cannot cover"):
+        wallet.send_to(nulldata_script_pub_key(b""), 5_000_000_000)
+
+
+def test_send_to_refuses_a_mismatched_answer() -> None:
+    """An answer other than the sent tx's own id is refused, not trusted."""
+    rpc = _FakeRpc(send_answer="not-the-txid")
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    with pytest.raises(TypeError, match="sendrawtransaction answered"):
+        wallet.send_to(nulldata_script_pub_key(b""), 1)

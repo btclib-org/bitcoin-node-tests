@@ -33,3 +33,9 @@ organization's toolchain, lint gate and tests apparatus, plus `TF2.md`
 rebuilt with a census script for [ISS btclib-org/btclib#1751][1751].
 
 [1751]: https://github.com/btclib-org/btclib/issues/1751
+
+### A drift line names both commits whole
+
+`check_vendored_vectors.py` prints the pinned commit and upstream's tip as
+full shas, in its output and in the tracking issue, so two commits alike in
+their first twelve characters print as two (issue btclib-org/.github#1343).

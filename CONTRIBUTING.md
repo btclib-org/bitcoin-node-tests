@@ -518,7 +518,14 @@ tests/integration` against a bitcoind that job installs and verifies.
 The `btclib-node` job needs the second interpreter the workflow's own
 header explains, so reproducing it is that same command with
 `TF2_BTCLIB_NODE_PYTHON` pointed at a 3.14 (or later, once `rocksdict`
-ships one) interpreter `btclib-node` was installed into.
+ships one) interpreter `btclib-node` was installed into. `btclib-node-main`
+is the same command again, `TF2_BTCLIB_NODE_PYTHON` pointed at an
+interpreter carrying that project's own `main` rather than its last
+release. `core-master` is `TF2_BITCOIND` pointed at a `bitcoind` built locally
+from Bitcoin Core's own `master`, the job's own `Configure the build`
+step naming the CMake options; its own verdict on a failure unique to
+that build is `.github/scripts/tf2_master_verdict.py`, given the two
+runs' own JUnit reports.
 
 ### What gates a merge, and what only reports
 
@@ -528,10 +535,14 @@ rule back from the endpoint rather than restating it. So a diff does not
 reach a review without having passed them or passing them beside it on
 the same sha, which is the reliance `REVIEWING.md` provides for.
 
-`node-integration.yml`'s other job, `btclib-node`, gates nothing
-anywhere -- `continue-on-error: true` in the workflow itself says so -- a
-disagreement there being ISS btclib-node#1072, filed on that
-repository's own tracker, and not a defect of this one's gates.
+`node-integration.yml`'s other jobs -- `btclib-node`, `core-master` and
+`btclib-node-main` -- gate nothing anywhere: `continue-on-error: true` in
+the workflow itself says so for each. `btclib-node`'s own disagreement
+is ISS btclib-node#1072, filed on that repository's own tracker and not
+a defect of this one's gates; `core-master` and `btclib-node-main` track
+Core's own `master` and btclib-node's own `main` rather than the pinned
+release under test, by [ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8)'s
+decision of 2026-09-25.
 
 | workflow | when | what it varies |
 | --- | --- | --- |

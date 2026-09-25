@@ -70,10 +70,10 @@ tests it starts do not run. Its `btclib-node` job runs the same suite
 from PyPI and reports without gating, a disagreement there being a
 finding on that node's own tracker rather than a defect of this
 repository's gates. The pinned release stays the only required oracle:
-jobs running the suite against a Bitcoin Core `master` build and against
-btclib-node's `main` are decided in
-[ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8), and
-report without gating.
+`core-master` builds `bitcoind` from Bitcoin Core's own `master`, and
+`btclib-node-main` installs from that project's own `main`, both by
+[ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8)'s
+decision, and both report without gating.
 
 ## Contributing
 

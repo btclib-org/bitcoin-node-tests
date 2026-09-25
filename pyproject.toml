@@ -308,6 +308,10 @@ ignore = [
 # the ledger census script: GAINED, REMOVED and the all-clear line are
 # the same kind of log, for the directory read rather than the per-pin one
 ".github/scripts/tf2_ledger_census.py" = ["T201"]
+# the master-only verdict: its whole report is what a caller redirects
+# into $GITHUB_STEP_SUMMARY, so stdout is the interface and not a log
+# beside one
+".github/scripts/tf2_master_verdict.py" = ["T201"]
 "tests/**" = [
     "S101",   # assert
     "S311",   # non-cryptographic random: fine in tests

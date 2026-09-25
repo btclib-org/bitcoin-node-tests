@@ -99,13 +99,22 @@ nothing.
 | `test: every job passed` | `test.yml`, aggregate over its jobs |
 | `docs / Build the documentation` | `docs.yml`, calling `reusable-docs.yml` |
 | `lint / Lint and type-check` | `lint.yml`, calling `reusable-lint.yml` |
+| `bitcoind / Regtest against Bitcoin Core` | `node-integration.yml` |
 
 A job whose whole body is a call to a reusable workflow contributes no
 name of its own: the context joins the calling job's id to the called
 job's own name, so `docs.yml`'s `docs` job calling a job named `Build the
-documentation` produces `docs / Build the documentation`. A context is
-matched by name, not by the workflow that reported it, so moving a job is
-free and renaming one is not.
+documentation` produces `docs / Build the documentation`, and
+`node-integration.yml`'s `bitcoind` job calling a job named `Regtest
+against Bitcoin Core` produces `bitcoind / Regtest against Bitcoin Core`.
+A context is matched by name, not by the workflow that reported it, so
+moving a job is free and renaming one is not.
+
+`node-integration.yml`'s other job, `btclib-node`, produces no required
+check: it runs with `continue-on-error: true` and reports rather than
+gates, a disagreement there being [ISS
+btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)
+and not a defect of this repository's own gates.
 
 No sentinel appears in the rule, and none of them may: `links.yml` and
 `vendored-vectors.yml` can each go red for reasons no pull request
@@ -163,6 +172,35 @@ gh api repos/btclib-org/bitcoin-node-tests/branches/main/protection \
 #  "conversation":true,"enforce_admins":false,"linear":true,
 #  "reviews":{"dismiss_stale_reviews":true,
 #             "required_approving_review_count":1},"strict":true}
+```
+
+`bitcoind / Regtest against Bitcoin Core` joins the required checks once
+`node-integration.yml` carries a `bitcoind` job trusted as a gate. Adding
+a check is a later change, so it goes through the sub-endpoint alone, the
+sentence above's reason for never repeating the whole `PUT`:
+
+```shell
+branch=repos/btclib-org/bitcoin-node-tests/branches/main
+gh api -X PATCH "$branch"/protection/required_status_checks \
+  --input - <<'JSON'
+{"strict": true, "checks": [
+   {"context": "test: every job passed", "app_id": 15368},
+   {"context": "docs / Build the documentation", "app_id": 15368},
+   {"context": "lint / Lint and type-check", "app_id": 15368},
+   {"context": "bitcoind / Regtest against Bitcoin Core", "app_id": 15368}]}
+JSON
+```
+
+Read back:
+
+```shell
+gh api "$branch"/protection/required_status_checks \
+  --jq '{checks: [.checks[] | [.context, .app_id]], strict}'
+# {"checks":[["test: every job passed",15368],
+#            ["docs / Build the documentation",15368],
+#            ["lint / Lint and type-check",15368],
+#            ["bitcoind / Regtest against Bitcoin Core",15368]],
+#  "strict":true}
 ```
 
 Three rulesets sit beside it, additive — rules aggregate across rulesets

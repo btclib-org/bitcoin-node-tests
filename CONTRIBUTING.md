@@ -480,19 +480,16 @@ ships one) interpreter `btclib-node` was installed into.
 
 ### What gates a merge, and what only reports
 
-`lint.yml`, `test.yml` and `docs.yml` produce the required checks, and
-`REPOSITORY.md` reads the rule back from the endpoint rather than
-restating it. So a diff does not reach a review without having passed
-them or passing them beside it on the same sha, which is the reliance
-`REVIEWING.md` provides for.
+`lint.yml`, `test.yml`, `docs.yml` and `node-integration.yml`'s
+`bitcoind` job produce the required checks, and `REPOSITORY.md` reads the
+rule back from the endpoint rather than restating it. So a diff does not
+reach a review without having passed them or passing them beside it on
+the same sha, which is the reliance `REVIEWING.md` provides for.
 
-`node-integration.yml`'s `bitcoind` job is not among them yet: this step
-adds the workflow, and making its check required is a branch-protection
-change `REPOSITORY.md` records when it lands, matching how
-`integration-bitcoind` became required in `btclib`. Its `btclib-node`
-job gates nothing anywhere -- `continue-on-error: true` in the workflow
-itself says so -- a disagreement there being ISS btclib-node#1072, filed
-on that repository's own tracker, and not a defect of this one's gates.
+`node-integration.yml`'s other job, `btclib-node`, gates nothing
+anywhere -- `continue-on-error: true` in the workflow itself says so -- a
+disagreement there being ISS btclib-node#1072, filed on that
+repository's own tracker, and not a defect of this one's gates.
 
 | workflow | when | what it varies |
 | --- | --- | --- |

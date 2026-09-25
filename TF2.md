@@ -723,6 +723,10 @@ no test of this shape ever runs against one. `capability.py`'s own
 module docstring is the one place that states which options this
 covers, and does not decide it row by row here.
 
+A pin or date cell reading **same** repeats the pin and date of the
+nearest row above it that names the same Core test file, the row width
+leaving no room to write them again.
+
 This table is not read by `.github/scripts/check_vendored_vectors.py`:
 that script's own docstring says so -- "this tree carrying no second
 ledger" -- and it reads `test/functional/test_framework/` alone, the
@@ -745,6 +749,14 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_invalid_locator.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
 | `p2p_invalid_messages.py` (wire) | `3fd68a95e68b` | 2026-04-07 | pass | pass |
 | `p2p_invalid_messages.py` (log) | `3fd68a95e68b` | 2026-04-07 | pass | skip |
+| `p2p_invalid_messages.py` (inv, wire) | same | same | pass | fail ([ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145)) |
+| `p2p_invalid_messages.py` (inv, log) | same | same | pass | skip |
+| `p2p_invalid_messages.py` (getdata, wire) | same | same | pass | pass |
+| `p2p_invalid_messages.py` (getdata, log) | same | same | pass | skip |
+| `p2p_invalid_messages.py` (headers, wire) | same | same | pass | pass |
+| `p2p_invalid_messages.py` (headers, log) | same | same | pass | skip |
+| `p2p_invalid_messages.py` (invalid pow, wire) | same | same | pass | pass |
+| `p2p_invalid_messages.py` (invalid pow, log) | same | same | pass | skip |
 | `p2p_leak.py` (wire) | `01b8a117d2c5` | 2026-06-04 | pass | pass |
 | `p2p_leak.py` (log) | `01b8a117d2c5` | 2026-06-04 | pass | skip |
 | `p2p_net_deadlock.py` | `a0473442d1c2` | 2024-07-16 | pass | skip (raw_msg) |
@@ -816,10 +828,34 @@ fact only the log carries asks for `Capability.DEBUG_LOG` instead --
 one mechanism, not one verdict, so the wire half and the log half of
 the same Core test get their own row rather than being folded into a
 single pass/skip that would hide which half a `skip` was ever about.
-Neither ports the rest of its own Core file: `p2p_invalid_messages.py`'s
-own other assertions need a mined chain or an option this step does not
-register, and `p2p_leak.py`'s own earlier checks ask what a node sends
-before a handshake completes, neither an `assert_debug_log` subject.
+`p2p_leak.py`'s own earlier checks are not ported either way: they ask
+what a node sends before a handshake completes, not an `assert_debug_log`
+subject.
+
+`p2p_invalid_messages.py` gains more rows of the same shape (issue #5),
+one pair per Core assertion rather than one pair for the whole file:
+`test_oversized_inv_msg`, `test_oversized_getdata_msg` and
+`test_oversized_headers_msg` (each through the shared
+`test_oversized_msg`), and `test_invalid_pow_headers_msg`, each a
+`Misbehaving` log line paired with the disconnect it schedules.
+`InvalidMessagesTest.set_test_params`'s own whitelist permission is
+dropped for the same reason `test_magic_bytes`'s row already drops it:
+`net_permissions.cpp`'s own parser reads the string ahead of the `@` as
+a permission name, and the one Core's own file passes there grants
+`NetPermissionFlags::Addr` rather than `NoBan`, so it does not exempt
+the connection from the discourage-and-disconnect these checks are
+about. `tests/integration/p2p_invalid_messages_misbehaving_bitcoind_test.py`'s
+own docstring has the full argument, including why the PoW check needs
+none of Core's own preliminary "send a valid header first" step. Of
+these, only the oversized-`inv` row disagrees on btclib-node: its own
+`p2p.callbacks.inv` returns before `Inv.parse` ever runs while the node
+has not reached `NodeStatus.BlockSynced`, a status this adapter's own
+peerless node never advances past, so an oversized announcement is
+dropped unread rather than refused
+([ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145)).
+The oversized-`getdata` and oversized-`headers` rows, and the
+invalid-PoW row, reach `GetData.parse`, `Headers.parse` and
+`assert_valid_pow` with no such guard in front of them, and pass.
 
 `feature_uacomment.py` is the option family's own first row
 ([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)),

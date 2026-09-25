@@ -3,9 +3,13 @@ name: test
 
 # the suite under coverage: the question a pull request is gated on
 # beyond the hooks and the documentation build, which lint.yml and
-# docs.yml ask. No `dist` job: this tree publishes nothing yet (tier 2,
-# section 2 of the organization standard -- "no release before step 4",
-# issue btclib-org/btclib#2220), so it owes no packaging check.
+# docs.yml ask. No `dist` job: `check-wheel-contents` needs the package
+# named at a release this tree does not build yet (tier 2, section 2 of
+# the organization standard -- "no release before step 4", issue
+# btclib-org/btclib#2220), which is the only packaging check a job here
+# would add. `pyroma` and `check-sdist` are owed regardless -- section
+# 4's condition is a `[build-system]`, not a release -- and the lint
+# gate runs both as local hooks, not a job of this file.
 
 on:
   push:
@@ -68,28 +72,90 @@ jobs:
 
   test-passed:
     name: "test: every job passed"
+    # nothing in this tree calls this workflow -- no release.yml exists
+    # yet (tier 2, section 2, issue btclib-org/btclib#2220) and this file
+    # declares no workflow_call: trigger -- so section 10 of the
+    # organization standard's "The aggregate job, and the required check"
+    # is what decides the shape: the listing, asked of the API, rather
+    # than needs.*.result, which twice reported a red matrix as success
+    # under a codeload outage that killed a cell before it reached the
+    # needs context at all (btclib-benchmarks' test.yml carries the same
+    # shape and the incident it answers). needs: below orders this job
+    # last and nothing else: the step reads whatever the run reports,
+    # a set that already includes both jobs above
     needs: [changes, coverage]
-    if: ${{ !cancelled() && !github.event.pull_request.draft && github.event.action != 'closed' }}
+    # the closed condition, added at the trigger above, skips this job
+    # uniformly on a closed pull request rather than tripping it over a
+    # job deliberately never run. The draft flag is not part of this
+    # condition: a skipped required check reads as passing, and this
+    # job's own check run does not exist until coverage has settled, so
+    # declining it here while draft would leave a draft run's skip as the
+    # only check of this name on the sha until a later run's own
+    # aggregate exists -- the first step below fails outright on it
+    # instead (btclib-org/.github#1327). Not always(): a cancellation of
+    # this run itself -- the concurrency group superseding it with a
+    # newer push -- would still reach this job and have it fail
+    # explicitly below, turning a cancellation the newer run already
+    # speaks for into a required check with no defect behind it.
+    # !cancelled() lets this job be skipped in that case instead, which
+    # satisfies the check same as any other skip, while a single job of
+    # the run cancelled on its own still fails below
+    if: ${{ !cancelled() && github.event.action != 'closed' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read # asks the API for this run's own job list, instead of trusting needs.*.result
     steps:
-      - name: Fail unless every job above succeeded or was legitimately skipped
-        run: | # zizmor: ignore[template-injection]
-          results='${{ join(needs.*.result, ',') }}'
-          echo "results: $results"
-          case ",$results," in
-            *,,*)
-              echo "::error::a job this gate depends on reported no result"
-              exit 1
-              ;;
-          esac
-          IFS=,
-          for result in $results; do
-            case "$result" in
-              success | skipped) ;;
-              *)
-                echo "::error::a job this gate depends on reported $result"
-                exit 1
-                ;;
-            esac
-          done
+      - name: Fail while this pull request is a draft
+        if: github.event.pull_request.draft
+        run: |
+          echo "::error::this pull request is a draft"
+          exit 1
+      - name: Fail unless every other job of this run succeeded
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # `.status` beside the conclusion so that an unfinished job says
+          # which kind it is: queued and running are one word to
+          # `.conclusion` and two facts to a reader of the log
+          jobs=$(gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+            --jq '.jobs[] | "\(.conclusion // "unfinished")\t\(.status)\t\(.name)"')
+          printf '%s\n' "${jobs}"
+          # awk and not grep: a tab in a grep pattern is one
+          # implementation's extension and a literal "t" in another's,
+          # and the runner's is the second -- where awk's field
+          # separator is POSIX
+          bad=$(printf '%s\n' "${jobs}" |
+            awk -F'\t' '$1 != "success" && $1 != "skipped" && $1 != "unfinished"')
+          unfinished=$(printf '%s\n' "${jobs}" |
+            awk -F'\t' '$1 == "unfinished"' | wc -l | tr -d ' ')
+          # both are reported before exiting rather than the first one
+          # reached: a gate that says what it saw says all of it, and
+          # each annotation names the rows it is about, because an
+          # annotation is what the checks page shows without the log
+          # being opened. %0A is a newline to an annotation, which is
+          # otherwise one line, and the tab goes with it: the columns
+          # line up in a log and not in this
+          annotate() {
+            printf '::error::%s' "$1"
+            printf '%s' "$2" | tr '\t' ' ' | awk '{ printf "%%0A%s", $0 }'
+            printf '\n'
+          }
+          verdict=0
+          if [ -n "${bad}" ]; then
+            annotate "these jobs of the run did not succeed:" "${bad}"
+            verdict=1
+          fi
+          if [ "${unfinished}" -ne 1 ]; then
+            # no colon on this one, and rows after it only if there are
+            # any: nothing unfinished is the case that says nothing, and
+            # a colon would promise a list
+            annotate \
+              "this check should be the run's one unfinished job; ${unfinished} are" \
+              "$(printf '%s\n' "${jobs}" | awk -F'\t' '$1 == "unfinished"')"
+            verdict=1
+          fi
+          exit "${verdict}"

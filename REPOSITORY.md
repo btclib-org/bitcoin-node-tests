@@ -13,18 +13,21 @@ behaviour it describes rests on — together with whatever a call quoted
 for one of those answers alongside it. That is this file's scope, and
 *What this file passes over* at the foot says what falls outside it.
 
-The topics have a second form in the tree — `pyproject.toml`'s
-`keywords` — so it is read back here for comparison rather than as the
-only place the answer lives, which is what *Topics* says of it. This
-tree publishes nothing yet (issue btclib-org/btclib#2220, step 2 of 5),
-so it has no `homepage` and no Read the Docs subscription: *Publishing*
-and *Read the Docs* below say what is deferred and to what.
+The topics and `.homepage` have a second form in the tree —
+`pyproject.toml`'s `keywords` and its `[project.urls] homepage` — so each
+is read back here for comparison rather than as the only place the
+answer lives, which is what *Topics* and *What this file passes over*
+say of them. This tree publishes nothing yet (issue
+btclib-org/btclib#2220, step 2 of 5), so it has no Read the Docs
+subscription: *Publishing* and *Read the Docs* below say what is
+deferred and to what.
 
-**No answer is recorded here yet.** Each section carries the command that
-sets its setting and the command that reads it back, and the answer is
-written in under the read-back once `btclib-org/bitcoin-node-tests` exists
-on GitHub and the commands have run — section 16's last step. Until then
-a read-back answers `Not Found (HTTP 404)`.
+Each section carries the command that sets its setting and the command
+that reads it back, and the `#` lines under a read-back are what it
+printed on 2026-09-25 — section 16's last step. Section 11 makes such an
+answer documentation, with a reader as its check: nothing re-runs these
+commands, so an answer that differs today is a change made since that
+date.
 
 ## Creating the repository
 
@@ -67,9 +70,12 @@ Read back:
 
 ```shell
 gh api repos/btclib-org/bitcoin-node-tests \
-  --jq '{visibility, default_branch, has_issues, wiki: .has_wiki,
-         projects: .has_projects}'
+  --jq '{visibility, default_branch: .default_branch, has_issues,
+         wiki: .has_wiki, projects: .has_projects}'
+# {"default_branch":"main","has_issues":true,"projects":false,
+#  "visibility":"public","wiki":false}
 gh api repos/btclib-org/bitcoin-node-tests/pages
+# {"message":"Not Found", ...}, gh: Not Found (HTTP 404)
 ```
 
 `has_issues` is what `CONTRIBUTING.md`'s *The issue tracker* rests on,
@@ -151,6 +157,12 @@ gh api repos/btclib-org/bitcoin-node-tests/branches/main/protection \
          enforce_admins: .enforce_admins.enabled,
          linear: .required_linear_history.enabled,
          conversation: .required_conversation_resolution.enabled}'
+# {"checks":[["test: every job passed",15368],
+#            ["docs / Build the documentation",15368],
+#            ["lint / Lint and type-check",15368]],
+#  "conversation":true,"enforce_admins":false,"linear":true,
+#  "reviews":{"dismiss_stale_reviews":true,
+#             "required_approving_review_count":1},"strict":true}
 ```
 
 Three rulesets sit beside it, additive — rules aggregate across rulesets
@@ -222,6 +234,16 @@ for id in $(gh api repos/btclib-org/bitcoin-node-tests/rulesets \
            methods: [.rules[] | select(.type=="pull_request")
                               | .parameters.allowed_merge_methods]}'
 done
+# {"bypass":[],"enforcement":"active","include":["refs/heads/main"],
+#  "methods":[],"name":"main-integrity",
+#  "rules":["required_signatures","required_linear_history",
+#           "non_fast_forward","deletion"],"target":"branch"}
+# {"bypass":[[3296421,"pull_request"]],"enforcement":"active",
+#  "include":["refs/heads/main"],"methods":[["squash"]],
+#  "name":"main-self-merge","rules":["pull_request"],"target":"branch"}
+# {"bypass":[],"enforcement":"active","include":["refs/tags/v*"],
+#  "methods":[],"name":"tag-integrity","rules":["required_signatures"],
+#  "target":"tag"}
 ```
 
 ## Merge methods
@@ -235,6 +257,11 @@ gh api repos/btclib-org/bitcoin-node-tests \
   --jq '{allow_squash_merge, allow_merge_commit, allow_rebase_merge,
          allow_auto_merge, squash_merge_commit_title,
          squash_merge_commit_message, delete_branch_on_merge}'
+# {"allow_auto_merge":true,"allow_merge_commit":false,
+#  "allow_rebase_merge":false,"allow_squash_merge":true,
+#  "delete_branch_on_merge":true,
+#  "squash_merge_commit_message":"COMMIT_MESSAGES",
+#  "squash_merge_commit_title":"COMMIT_OR_PR_TITLE"}
 ```
 
 `COMMIT_OR_PR_TITLE` is the subject: the pull request title with its
@@ -266,6 +293,8 @@ value it gets:
 ```shell
 gh api repos/btclib-org/bitcoin-node-tests/actions/permissions/workflow \
   --jq '{default_workflow_permissions, can_approve_pull_request_reviews}'
+# {"can_approve_pull_request_reviews":false,
+#  "default_workflow_permissions":"read"}
 ```
 
 The expected answer is `read` and `false`. Where it is not, the
@@ -288,6 +317,7 @@ neither is recorded:
 
 ```shell
 gh api repos/btclib-org/bitcoin-node-tests/environments --jq .total_count
+# 0
 ```
 
 The two arrive together with `release.yml`, at step 4 of the same issue,
@@ -337,12 +367,22 @@ Read back:
 
 ```shell
 gh api repos/btclib-org/bitcoin-node-tests --jq '.security_and_analysis'
+# {"dependabot_security_updates":{"status":"enabled"},
+#  "secret_scanning":{"status":"enabled"},
+#  "secret_scanning_non_provider_patterns":{"status":"disabled"},
+#  "secret_scanning_push_protection":{"status":"enabled"},
+#  "secret_scanning_validity_checks":{"status":"disabled"}}
 gh api -i repos/btclib-org/bitcoin-node-tests/vulnerability-alerts | head -1
+# HTTP/2.0 204 No Content
 gh api repos/btclib-org/bitcoin-node-tests/automated-security-fixes
+# {"enabled":true,"paused":false}
 gh api repos/btclib-org/bitcoin-node-tests/private-vulnerability-reporting
+# {"enabled":true}
 gh api repos/btclib-org/bitcoin-node-tests/code-scanning/default-setup \
   --jq .state
+# not-configured
 gh api repos/btclib-org/bitcoin-node-tests/code-quality/setup --jq .state
+# not-configured
 ```
 
 The alerts endpoint has no body and answers with its status, 204 for
@@ -369,6 +409,7 @@ of its own; the diff is expected empty:
 diff <(gh api repos/btclib-org/bitcoin-node-tests --jq '.topics[]' | sort) \
      <(sed -n '/^keywords = \[/,/^]/s/^ *"\(.*\)",$/\1/p' pyproject.toml \
        | sort)
+# (empty)
 ```
 
 The keywords, in order: `bitcoin`, `bitcoin-core`, `conformance-testing`,
@@ -383,6 +424,7 @@ configures, so prose that needs the reasoning — a workflow header,
 
 ```shell
 gh api orgs/btclib-org --jq .plan.name
+# free
 ```
 
 [GitHub's own table](https://docs.github.com/en/actions/reference/limits)
@@ -419,7 +461,9 @@ either would be that decision undone:
 
 ```shell
 gh api repos/btclib-org/bitcoin-node-tests/actions/secrets --jq .total_count
+# 0
 gh api repos/btclib-org/bitcoin-node-tests/dependabot/secrets --jq .total_count
+# 0
 ```
 
 **A switch this repository does not set.** `claude-review.yml` calls
@@ -430,4 +474,27 @@ store is read too:
 
 ```shell
 gh api repos/btclib-org/bitcoin-node-tests/actions/variables --jq .total_count
+# 0
 ```
+
+**A field the standard scopes to a releasing tree.** `.homepage` is the
+*About* link on this repository's page and `pyproject.toml`'s
+`[project.urls] homepage` is the same URL, so what is checkable here is
+that the two surfaces still agree:
+
+```shell
+diff <(gh api repos/btclib-org/bitcoin-node-tests --jq '.homepage') \
+     <(sed -n '/^\[project.urls\]/,/^\[/p' pyproject.toml \
+       | sed -n 's/^homepage = "\(.*\)"$/\1/p')
+# (empty)
+```
+
+Which URL it is, and why it is the organization site rather than
+something of this tree's, is at that key in `pyproject.toml` and nowhere
+here: no limb of the scope at the top reaches the field in a tree that
+releases nothing, so this file holds it to no value beyond the agreement
+checked above. Section 3 states the rule of "a releasing tree's
+`homepage`"; section 16's checklist sets the field "where the tree
+releases"; and section 11 calls it "a releasing tree's" where it names
+what a copy records that has another form in the tree. *Publishing*
+above is this repository's answer to releasing.

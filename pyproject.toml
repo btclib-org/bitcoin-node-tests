@@ -105,6 +105,14 @@ docs = [
     "myst-parser>=5.1.0",
     "sphinx>=9.1.0",
 ]
+# btclib-node is not a dependency group of this project: measured live,
+# `uv sync` resolving it against this tree's own `requires-python =
+# ">=3.15"` fails outright -- its own dependency `rocksdict` ships no
+# `cp315` wheel yet, only up to `cp314`. So it needs its own
+# environment, on an interpreter of its own rather than this one, and
+# `tests/integration/conftest.py`'s `btclib_node_python` fixture is
+# where that interpreter is named (`TF2_BTCLIB_NODE_PYTHON`), never a
+# dependency group here.
 dev = [
     { include-group = "test" },
     { include-group = "lint" },
@@ -143,6 +151,16 @@ testpaths = ["tests"]
 addopts = "-ra --cov --durations=8 -n auto --dist worksteal --strict-config --strict-markers"
 xfail_strict = true
 filterwarnings = ["error"]
+# --strict-markers is on, so a marker is declared here or it is a typo.
+# `integration` is what needs a real node: those tests skip themselves
+# without TF2_INTEGRATION in the environment, so the marker is for
+# selecting them (`-m integration`) and for excluding them from a run
+# that has the variable set for other reasons -- matching btclib's own
+# `pyproject.toml`, this tree's own adapter being what starts the node
+# rather than the fixture that does there
+markers = [
+    "integration: needs a real node, opt-in via TF2_INTEGRATION",
+]
 
 [tool.codespell]
 skip = ".secrets.baseline,uv.lock"
@@ -160,7 +178,13 @@ extend-ignore-re = ['`[^`]*`']
 
 [tool.coverage.run]
 source = ["bitcoin_node_tests", "tests"]
-omit = ["*/site-packages/*"]
+# tests/integration is omitted because the ratchet measures what an
+# ordinary run executes, and those tests skip themselves without
+# TF2_INTEGRATION: their bodies would be uncovered lines of tests/ at
+# every commit, which is the ratchet reporting the switch rather than a
+# defect. What covers them is the opt-in run, and the module docstrings
+# carry the command -- matching btclib's own `pyproject.toml`
+omit = ["*/site-packages/*", "tests/integration/*"]
 branch = true
 
 [tool.coverage.report]

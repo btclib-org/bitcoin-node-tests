@@ -69,10 +69,12 @@ extensions = [
 # nobody. Without the extension it is an unknown directive, which -W turns
 # into a failed build -- the open questions belong in the issue tracker
 
-# the standard library, and the two siblings this package depends on,
-# whose types its signatures name. `latest` for both, being the build of
-# each sibling's main: a name a sibling removed is the break a build here
-# should report
+# the standard library, the two siblings this package depends on, and
+# pytest, whose own `skip` this step's adapter tests raise and document.
+# `latest` for the two siblings, being the build of each one's main: a
+# name a sibling removed is the break a build here should report. pytest
+# releases rather than a moving main, `stable` being its own inventory's
+# name for the latest one
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "btclib": ("https://btclib.readthedocs.io/en/latest/", None),
@@ -80,6 +82,7 @@ intersphinx_mapping = {
         "https://bitcoin-core-rpc.readthedocs.io/en/latest/",
         None,
     ),
+    "pytest": ("https://docs.pytest.org/en/stable/", None),
 }
 # no reuse of a fetched inventory: sphinx keeps one for as many days as
 # this allows, invisibly to a diff and even under -E, and a sibling's
@@ -103,7 +106,13 @@ intersphinx_cache_limit = 0
 #   own type-to-xref splitter stops at the first nested bracket and
 #   reports the truncated fragment as the unresolved class, rather than
 #   resolving the pieces on either side of it
-nitpick_ignore: list[tuple[str, str]] = []
+nitpick_ignore: list[tuple[str, str]] = [
+    # the second shape above: `peer.py`'s `Peer.wait_for` takes
+    # `predicate: Callable[[Message], bool] | None`, and the fragment the
+    # splitter reports in `Message`'s own place -- not `Callable` itself --
+    # is this inner class, one bracket past where it stops
+    ("py:class", "Message"),
+]
 
 source_suffix = [".rst", ".md"]
 

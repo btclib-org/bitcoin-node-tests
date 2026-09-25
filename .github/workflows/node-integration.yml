@@ -1,0 +1,108 @@
+---
+name: node-integration
+
+# Step 3 of issue btclib-org/btclib#2220: `tests/integration/` reaches a
+# real node over a process, an RPC socket and a p2p socket, and this is
+# where that happens against something that is not this laptop. bitcoind
+# is the oracle (rule 3) and `bitcoind`, below, is the ordinary gate: the
+# reusable job btclib already calls, `reusable-integration-bitcoind.yml`,
+# installs the pinned release and fails the run if its own tests did not
+# run. `btclib-node` asks the same question of the target, and is
+# expected to lose it today -- ISS btclib-node#1072 -- so it reports
+# rather than gates: `continue-on-error: true`, and no branch rule reads
+# its check.
+#
+# No `schedule:`: section 10 of the organization standard's own record,
+# *Which trees carry which sentinel*, does not name this repository
+# against the `integration-bitcoind` row, so a cron here would be a row
+# the calendar gives nobody, exactly the finding
+# `tests/grid_test.py::test_every_row_of_the_calendar_names_something_that_exists`
+# is for. Every trigger below is a gate's rather than a sentinel's, so
+# `tests/grid_test.py::schedules` never sees this file at all: an
+# ordinary pull request already asks bitcoind the question, which is
+# most of what a weekly repeat would buy.
+#
+# `btclib-node` needs an interpreter this project's own `requires-python
+# = ">=3.15"` cannot give it: measured live, `uv sync` resolving
+# `btclib-node` against 3.15 fails outright on its own dependency
+# `rocksdict`, which ships no `cp315` wheel yet. So this job sets up a
+# second interpreter of its own, 3.14, installs `btclib-node` into that
+# one alone, and points `tests/integration/conftest.py`'s
+# `TF2_BTCLIB_NODE_PYTHON` at it -- never at the interpreter running
+# `pytest` itself.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node-integration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bitcoind:
+    uses: btclib-org/.github/.github/workflows/reusable-integration-bitcoind.yml@main
+    permissions:
+      contents: read
+    with:
+      # the release under test, and the sha256 of its linux tarball as
+      # the independent guix builders attested it in
+      # bitcoin-core/guix.sigs -- matching btclib's own pin, both trees
+      # testing against the same oracle
+      bitcoind-version: "31.1"
+      bitcoind-sha256: >-
+        b80d9c3e04da78fb6f0569685673418cf686fadba9042d926d13fb87ff503f9e
+      # tests/integration/conftest.py's own two switches
+      integration-env-var: TF2_INTEGRATION
+      bitcoind-path-env-var: TF2_BITCOIND
+      # this job's own environment has no btclib-node interpreter to
+      # point TF2_BTCLIB_NODE_PYTHON at, so `p2p_getdata_btclib_node_test.py`
+      # skips here rather than running -- a legitimate skip the reusable
+      # job's own "did the node tests run" check would otherwise flag.
+      # A JUnit classname is a module's, which is why that test stands in
+      # a module of its own rather than beside bitcoind's
+      exclude-classname: btclib_node
+
+  btclib-node:
+    name: Regtest against btclib-node
+    if: ${{ !github.event.pull_request.draft && github.event.action != 'closed' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # a finding here is ISS btclib-node#1072, not a defect of this
+    # repository's own gates, so this job reports without blocking a
+    # merge -- rule 3's "a disagreement is a result, not a failure of
+    # the suite"
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+      - name: Setup a second interpreter for btclib-node
+        id: btclib-node-python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - name: Install btclib-node into it
+        env:
+          BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
+        run: |
+          "$BTCLIB_NODE_PYTHON" -m pip install --disable-pip-version-check btclib-node
+      - name: Run the integration test against btclib-node
+        env:
+          BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
+        run: |
+          export TF2_INTEGRATION=1
+          export TF2_BTCLIB_NODE_PYTHON="$BTCLIB_NODE_PYTHON"
+          uv run --locked --no-default-groups --group test \
+            pytest tests/integration/p2p_getdata_btclib_node_test.py

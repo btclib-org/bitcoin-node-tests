@@ -5,10 +5,11 @@
 """Every module and package of bitcoin_node_tests declares an `__all__`.
 
 A name is public here because a list says so, not because it happens to
-lack a leading underscore. This step carries one module, the package
-root, whose `__all__` is empty; a census walks the tree rather than
-listing it, so a submodule a later step adds without exporting it fails
-here until it is.
+lack a leading underscore. The package root's own `__all__` is empty by
+decision, not by omission: a caller imports the submodule it needs
+rather than a name re-exported off the root. A census walks the tree
+rather than listing it, so a submodule added later without exporting
+its own public names fails here until it does.
 """
 
 from __future__ import annotations
@@ -54,10 +55,10 @@ def test_every_module_declares_all() -> None:
 
 
 def test_the_root_all_is_empty() -> None:
-    """This step ships no submodule, so the root publishes nothing yet.
+    """The root re-exports nothing: a caller imports the submodule it needs.
 
-    A later step's addition is what makes this list non-empty, and the
-    census above is what then asks whether every module below it
-    declares its own.
+    The census above is what asks whether every module below the root
+    declares its own `__all__`; this is what says the root itself holds
+    no re-export of any of them.
     """
     assert bitcoin_node_tests.__all__ == []

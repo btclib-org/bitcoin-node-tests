@@ -18,9 +18,9 @@ The topics and `.homepage` have a second form in the tree —
 is read back here for comparison rather than as the only place the
 answer lives, which is what *Topics* and *What this file passes over*
 say of them. This tree publishes nothing yet (issue
-btclib-org/btclib#2220, step 2 of 5), so it has no Read the Docs
-subscription: *Publishing* and *Read the Docs* below say what is
-deferred and to what.
+btclib-org/btclib#2220, step 2 of 5): *Publishing* below says what is
+deferred and to what. A Read the Docs project exists ahead of that, and
+builds — *Read the Docs* below records it.
 
 Each section carries the command that sets its setting and the command
 that reads it back, and the `#` lines under a read-back are what it
@@ -325,15 +325,59 @@ the same pull request that adds the job each environment is named by.
 
 ## Read the Docs
 
-**Not subscribed yet.** `docs/source/` and `.readthedocs.yaml` are in
-this tree from the start (section 2's *The documentation*: a tree that
-builds `docs/` and subscribes no service is complete), but importing the
-project on [readthedocs.org](https://app.readthedocs.org/) is a web
-action under the organization-wide `read-the-docs-community` GitHub App
-installation, and is the maintainer's to do — not this pull request's.
-Once imported, the slug, the automation rule and the read-back commands
-are `btclib-wallet`'s `REPOSITORY.md` section of the same name, applied
-to this repository's own name.
+**Imported, and it builds.** The project is on
+[readthedocs.org](https://app.readthedocs.org/) under the slug
+`bitcoin-node-tests`, connected through the organization-wide
+`read-the-docs-community` GitHub App rather than a per-repository
+webhook, matching `btclib-wallet`'s `REPOSITORY.md` section of the same
+name:
+
+```shell
+p=https://app.readthedocs.org/api/v3/projects/bitcoin-node-tests
+curl -s "$p/" | jq -c '{default_branch, default_version, repository: .repository.url}'
+# {"default_branch":"main","default_version":"latest",
+#  "repository":"https://github.com/btclib-org/bitcoin-node-tests.git"}
+curl -s "$p/versions/?active=true" \
+  | jq -c '.results[] | [.slug, .type, .identifier]'
+# ["latest","branch","main"]
+gh api repos/btclib-org/bitcoin-node-tests/hooks --jq length
+# 0
+```
+
+`stable` is absent from the active versions for the reason
+`btclib-wallet`'s section gives: no `v*` tag exists yet, this tree
+having published nothing (*Publishing*, above). Whether an automation
+rule is set for the tag it will eventually gain is Admin-only and
+answered by no public endpoint; it was not checked here.
+
+**One build failed, and it was this tree's own bug, already fixed.**
+Read the Docs' `build.tools.python: "latest"` resolves to CPython 3.14.6
+(`config.build.tools.python.full_version` on every build measured so
+far, passing or not) — but that interpreter only runs `build.commands`
+itself, starting with `pip install uv`; `uv sync --locked` takes no
+`--python` there, so it resolves `.python-version` and fetches CPython
+3.15 on its own, the same way a local `uv sync` does. `full_version`
+being 3.14.6 is not what a build runs the project's own code under:
+
+```shell
+for b in 34753845 34753322 34754072; do
+  curl -s "$p/builds/$b/?expand=config" \
+    | jq -c '{commit, success, python: .config.build.tools.python}'
+done
+# {"commit":"302e93250b784bd69b31ae1a8bd62af390844599","success":false,
+#  "python":{"full_version":"3.14.6","version":"latest"}}
+# {"commit":"6f9f87287d5c1b9824c856af9e53cafed931fb7c","success":true,
+#  "python":{"full_version":"3.14.6","version":"latest"}}
+# {"commit":"59d605eb31c55cf525e7990c05d1115eeed11832","success":true,
+#  "python":{"full_version":"3.14.6","version":"latest"}}
+```
+
+The only failing commit, `302e9325`, is the one whose `src/` still
+imported `pytest` directly — the same import `sphinx-build`'s `autodoc`
+failed on in CI's own `docs` job (see `capability.py`'s docstring). Once
+that import was gone, the build succeeded under the identical
+`tools.python`, both on `main` and on this branch. Nothing here waits on
+Read the Docs reaching a newer `"latest"`.
 
 ## Security settings
 

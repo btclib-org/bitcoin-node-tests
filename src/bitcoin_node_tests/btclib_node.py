@@ -48,6 +48,8 @@ one of its registered flags.
 
 from __future__ import annotations
 
+import subprocess
+from functools import lru_cache
 from typing import TYPE_CHECKING, override
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient
@@ -62,15 +64,47 @@ __all__ = [
     "BtclibNodeAdapter",
 ]
 
-# btclib-node validates no credential at all today (measured against
-# `382a29fb`: any user/password round-trips), and binds RPC to
-# 127.0.0.1 only -- ISS 2135's own census, quoted in ISS 2220. A cookie
-# file is bitcoind's mechanism, not this node's, so a placeholder is
-# what `bitcoin_core_rpc.BitcoinCoreRpcClient` is given instead of one:
-# the constructor refuses no credential at all, and this is not a secret
-# guarding anything.
+# btclib-node's own build before ISS btclib-node#1070 (`382a29fb`, still
+# what PyPI's `2026.9.24` release installs) checks no credential at all
+# and binds RPC to 127.0.0.1 only -- ISS 2135's own census, quoted in ISS
+# 2220 -- so a placeholder is what `bitcoin_core_rpc.BitcoinCoreRpcClient`
+# is given for that build instead of one the constructor refuses to be
+# built with none of: `_writes_auth_cookie` below is what decides whether
+# it is used at all, rather than the cookie every later build writes.
 _RPC_USER = "tf2"
-_RPC_PASSWORD = "tf2"  # noqa: S105 -- a placeholder this node never checks, not a secret
+_RPC_PASSWORD = "tf2"  # noqa: S105 -- ignored by a pre-#1070 build; see above
+
+
+@lru_cache
+def _writes_auth_cookie(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node writes an RPC cookie.
+
+    ISS btclib-node#1070 (`18b6ae1e`) landed Core-style RPC authentication
+    -- `-rpcuser`/`-rpcpassword`, the cookie `rpc/auth.py`'s own
+    `RpcAuth.start` writes to `<data_dir>/regtest/.cookie` unless one of
+    them is given, and `-rpcwhitelist` -- and gained the module
+    `btclib_node.rpc.auth` along with it, absent from every build before.
+    Its presence is what this checks, matching the probe
+    `tests/integration/conftest.py`'s own `btclib_node_python` fixture
+    already makes for the package itself. A build before it (`382a29fb`)
+    checks no credential at all and answers unrecognised any
+    `-rpcuser`/`-rpcpassword` given on its own argv -- confirmed live,
+    exit `2` there before the node's RPC ever starts.
+
+    A probe of the interpreter/version pair, never of a running node: no
+    port is bound and no data directory is created. Cached per
+    `executable`, because the answer is a fact about the install rather
+    than about any one adapter instance, and `_rpc_client` below is
+    called fresh on every access to `.rpc`.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", "import btclib_node.rpc.auth"],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
 
 
 class BtclibNodeAdapter(NodeAdapter):
@@ -91,7 +125,10 @@ class BtclibNodeAdapter(NodeAdapter):
 
         `self._executable` is the interpreter (`sys.executable` of
         whichever environment `btclib-node` is installed into), never
-        the console script -- the module docstring is why.
+        the console script -- the module docstring is why. Carries no
+        `-rpcuser`/`-rpcpassword`: a build before ISS btclib-node#1070
+        refuses either flag outright, so the credential is `_rpc_client`
+        below's alone, never this argv's.
         """
         return [
             self._executable,
@@ -106,7 +143,18 @@ class BtclibNodeAdapter(NodeAdapter):
 
     @override
     def _rpc_client(self) -> BitcoinCoreRpcClient:
-        """Return a client authenticating with a credential it never checks."""
-        return BitcoinCoreRpcClient(
-            f"http://127.0.0.1:{self._rpc_port}", user=_RPC_USER, password=_RPC_PASSWORD
-        )
+        """Return a client authenticating the way this build actually checks.
+
+        Cookie authentication, `BitcoindAdapter`'s own mechanism, where
+        `_writes_auth_cookie` finds the build writes one -- the same
+        `<datadir>/regtest/.cookie` layout, `chains.RegTest`'s own `name`
+        matching bitcoind's `regtest` subdirectory. A build with no
+        Core-style RPC authentication at all is given the placeholder
+        credential instead, which it never checks.
+        """
+        url = f"http://127.0.0.1:{self._rpc_port}"
+        if _writes_auth_cookie(self._executable):
+            return BitcoinCoreRpcClient(
+                url, cookie_path=self._datadir / "regtest" / ".cookie"
+            )
+        return BitcoinCoreRpcClient(url, user=_RPC_USER, password=_RPC_PASSWORD)

@@ -99,3 +99,9 @@ clock alone; every other one also needs another mechanism (closes #6).
 Reserved names are read out of `_command()` itself, so `-datadir`,
 `-port`, `-rpcport` or `-regtest` -- any dash count, an `=value`, a `-no`
 negation -- is refused rather than silently overriding it (closes #18).
+
+### `BtclibNodeAdapter` authenticates a build that checks RPC credentials
+
+A build gaining Core-style RPC authentication (btclib-node ISS #1070)
+writes a cookie `BitcoindAdapter` already reads; the placeholder
+credential this adapter carried is used only where a build has none (closes #25).

@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
+from bitcoin_node_tests import btclib_node as btclib_node_module
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import Capability
 
@@ -30,12 +33,16 @@ def test_command_runs_python_dash_m_btclib_node(tmp_path: Path) -> None:
     assert "-rpcport=18443" in command
     assert "-rpcbind=127.0.0.1" in command
     assert "-port=18444" in command
+    assert not any("-rpcuser" in arg or "-rpcpassword" in arg for arg in command)
 
 
-def test_rpc_client_authenticates_with_a_placeholder_credential(tmp_path: Path) -> None:
-    """The RPC client carries a credential the node ignores, no cookie."""
+def test_rpc_client_authenticates_with_a_placeholder_credential_pre_1070(
+    tmp_path: Path,
+) -> None:
+    """A build with no `rpc.auth` module gets a credential it never checks."""
     adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
-    client = adapter._rpc_client()
+    with patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False):
+        client = adapter._rpc_client()
     assert client.cookie_path is None
     assert client.user == "tf2"
     assert client.url == "http://127.0.0.1:18443"
@@ -57,3 +64,43 @@ def test_init_accepts_extra_args_naming_no_option_of_the_command(
         sys.executable, tmp_path, 18443, 18444, extra_args=["-uacomment=foo"]
     )
     assert adapter._extra_args == ("-uacomment=foo",)
+
+
+def test_rpc_client_authenticates_by_the_datadir_s_cookie_post_1070(
+    tmp_path: Path,
+) -> None:
+    """A build carrying `rpc.auth` gets `BitcoindAdapter`'s own cookie path."""
+    adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    with patch.object(btclib_node_module, "_writes_auth_cookie", return_value=True):
+        client = adapter._rpc_client()
+    assert client.cookie_path == tmp_path / "regtest" / ".cookie"
+    assert client.url == "http://127.0.0.1:18443"
+
+
+def test_writes_auth_cookie_reads_the_probe_s_own_return_code() -> None:
+    """`_writes_auth_cookie` is `import btclib_node.rpc.auth` exiting zero."""
+    btclib_node_module._writes_auth_cookie.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._writes_auth_cookie("fake-python-1070") is True
+    run.assert_called_once_with(
+        ["fake-python-1070", "-c", "import btclib_node.rpc.auth"],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_writes_auth_cookie_is_false_when_the_import_fails() -> None:
+    """A nonzero exit -- the module missing -- answers `False`."""
+    btclib_node_module._writes_auth_cookie.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
+        assert btclib_node_module._writes_auth_cookie("fake-python-pre-1070") is False
+
+
+def test_writes_auth_cookie_is_cached_per_executable() -> None:
+    """A second call for the same executable does not probe again."""
+    btclib_node_module._writes_auth_cookie.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        first = btclib_node_module._writes_auth_cookie("fake-python-cached")
+        second = btclib_node_module._writes_auth_cookie("fake-python-cached")
+    assert first is second is True
+    run.assert_called_once()

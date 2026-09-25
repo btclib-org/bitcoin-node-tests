@@ -17,9 +17,11 @@ ci:
   # lands on
   autoupdate_commit_msg: "Update the pinned pre-commit hook revisions"
   autoupdate_schedule: weekly
-  # the hook that shells out to uv, which is not installed on
-  # pre-commit.ci: the lint workflow covers it
-  skip: [mypy]
+  # the hooks that shell out to uv, which is not installed on
+  # pre-commit.ci: the lint workflow covers both. check-sdist is not
+  # among them -- --installer=pip and --inject-junk are what let it run
+  # there with no isolated environment to build in
+  skip: [mypy, pyroma]
 
 repos:
   # this file checking itself, and the only two hooks here with no
@@ -282,3 +284,73 @@ repos:
     hooks:
       # keep uv.lock in sync with pyproject.toml
       - id: uv-lock
+  # what is tracked and not in the sdist, and what is in the sdist and not
+  # tracked, both ways round, against the patterns of
+  # [tool.uv.build-backend]. --no-isolation is in the hook's own entry and
+  # is what pre-commit.ci requires: an isolated build environment cannot
+  # be created there, the interpreter having no ensurepip and the
+  # virtualenv app data being read-only. --inject-junk drops a cache
+  # directory and an egg-info beside the sources for the length of the
+  # run, which is what the exclusions in [tool.uv.build-backend] answer.
+  #
+  # --installer=pip is what makes the archive the gate compares against
+  # git, one [build-system] admits, which is section 12 of
+  # btclib-org/.github. Without it check-sdist drives `uv build`, and that
+  # is not PEP 517 for this backend: uv builds with the copy bundled in
+  # the running uv whatever the environment holds, so what packs the
+  # archive is the uv the manifest installs unpinned, and naming the
+  # backend below decides nothing. With it check-sdist runs `build
+  # --no-isolation`, which reads the environment and refuses one outside
+  # `requires`, saying "ERROR Missing dependencies". What that keeps is
+  # the environment inside `requires` and not the two specifiers equal: a
+  # `requires` widened past the line below leaves it satisfying the wider
+  # range and green.
+  #
+  # `args:` and `additional_dependencies:` each replace the manifest's
+  # list rather than adding to it, which is why --inject-junk is written
+  # again here; the uv the manifest installs goes with it, and
+  # --installer=pip does not ask for one. The specifier is
+  # [build-system]'s and has to stay it, as the check group's pyroma
+  # bound below is
+  - repo: https://github.com/henryiii/check-sdist
+    rev: v1.6.0
+    hooks:
+      - id: check-sdist
+        args: [--inject-junk, --installer=pip]
+        additional_dependencies: ["uv_build>=0.12.0,<0.13"]
+  # nothing here is published -- this rates the source tree only, section
+  # 4's condition being a declared backend and not a release. Nothing in
+  # test.yml rates a release artifact the way btclib-secp256k1's own
+  # check-dist job runs pyroma against a built sdist: this tree builds no
+  # dist for a workflow to rate.
+  # A local hook with no `rev`, run out of pyproject.toml's `check`
+  # group: a hook repository's `rev` would be a second declaration of
+  # that dependency, and the one naming a prerelease is what
+  # `pinned-rev` above refuses (btclib-org/.github#1199).
+  # `language: system` and `uv run --locked` are the form section 4 of the
+  # organization standard gives a local mypy hook, and uv is on the PATH
+  # of every hook because the lint gate is started by it.
+  # `--only-group check` adds that group to the environment the gate runs
+  # from and takes nothing out of it, and installs no project, so
+  # nothing is compiled.
+  # The `-d --min=10 .` and `always_run` are the upstream hook's own
+  # definition, written out because a local hook cannot inherit one.
+  #
+  # The backend is pyproject.toml's `uv_build` of that group, because
+  # pyroma builds this project to read its metadata and its command line
+  # has no way to say how. It asks `build` for the metadata without
+  # isolation and falls back to an isolated build when that raises, and
+  # the isolated build is what needs an index. The non-isolated path
+  # imports the backend out of the environment and checks nothing else,
+  # so the backend alone is what it takes: it is [build-system]'s own
+  # specifier, and has to stay it, for the same reason the check-sdist
+  # hook above does
+  - repo: local
+    hooks:
+      - id: pyroma
+        name: pyroma (the packaging rating of the source tree)
+        language: system
+        entry: uv run --locked --only-group check pyroma
+        args: [-d, --min=10, .]
+        pass_filenames: false
+        always_run: true

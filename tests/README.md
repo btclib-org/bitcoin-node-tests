@@ -45,8 +45,12 @@ bring the conventions this step declares untested.
 This step ships one module, the package root, with an empty `__all__`
 and no public function: the import graph has nothing to cycle in, the
 calling convention and input validation have no function to hold one,
-and nothing here opens a socket. The build system is section 2's tier 1
-alone, and this tree is tier 2, owing no release yet.
+and nothing here opens a socket. The build system is a convention this
+tree holds regardless of tier -- `[build-system]` declares `uv_build`,
+and `pyroma` and `check-sdist` are owed and run as local hooks, section
+4's condition being a declared backend and not a release -- and nothing
+in `tests/` checks it a second way, that gate being the lint gate's and
+not a pytest one.
 
 Not tested here: the import graph; the build system; the calling
 convention; input validation; the suite opens no socket.

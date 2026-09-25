@@ -74,7 +74,11 @@ class _Process(Protocol):
 
 
 def _wait_for_rpc(
-    rpc: _RpcProbe, process: _Process, *, timeout: float = _STARTUP_TIMEOUT
+    rpc: _RpcProbe,
+    process: _Process,
+    stderr_path: Path,
+    *,
+    timeout: float = _STARTUP_TIMEOUT,
 ) -> None:
     """Poll `rpc` until it answers, or fail with what the process did instead.
 
@@ -86,6 +90,8 @@ def _wait_for_rpc(
 
     :param rpc: the client to poll, one whole call at a time.
     :param process: the process whose own exit ends the wait early.
+    :param stderr_path: where the process's own stderr was redirected;
+        read back into the error raised on an early exit.
     :param timeout: how long to wait before giving up.
     :raises TimeoutError: the RPC never answered within `timeout`.
     :raises RuntimeError: the process exited before its RPC answered.
@@ -94,7 +100,11 @@ def _wait_for_rpc(
     while time.monotonic() < deadline:
         exit_code = process.poll()
         if exit_code is not None:
-            err_msg = f"node process exited with {exit_code} before its RPC answered"
+            stderr = stderr_path.read_bytes().decode("utf-8", errors="replace").strip()
+            err_msg = (
+                f"node process exited with {exit_code} before its RPC "
+                f"answered -- stderr: {stderr}"
+            )
             raise RuntimeError(err_msg)
         try:
             rpc.call("getblockchaininfo")
@@ -175,14 +185,26 @@ class NodeAdapter(ABC):
     def start(self) -> None:
         """Spawn the process and wait for its RPC to answer.
 
-        :raises RuntimeError: the process exited before answering.
+        The process's own stderr is captured into a file under `datadir`
+        rather than an unread `subprocess.PIPE`: a pipe nobody drains
+        fills its kernel buffer once a long-running node writes past it,
+        and then blocks the node on every write past that, where a file
+        never blocks the writer regardless of how much it writes.
+
+        :raises RuntimeError: the process exited before answering; the
+            message carries what it wrote to stderr.
         :raises TimeoutError: the RPC never answered.
         """
         self._datadir.mkdir(parents=True, exist_ok=True)
-        self._process = subprocess.Popen(  # noqa: S603
-            [*self._command(), *self._extra_args],
+        stderr_path = self._datadir / "node-stderr.log"
+        with stderr_path.open("wb") as stderr_file:
+            self._process = subprocess.Popen(  # noqa: S603
+                [*self._command(), *self._extra_args],
+                stderr=stderr_file,
+            )
+        _wait_for_rpc(
+            self._rpc_client(), self._process, stderr_path, timeout=_STARTUP_TIMEOUT
         )
-        _wait_for_rpc(self._rpc_client(), self._process, timeout=_STARTUP_TIMEOUT)
 
     def stop(self) -> None:
         """Terminate the process and wait for it to exit.

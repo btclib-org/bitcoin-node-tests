@@ -757,6 +757,17 @@ never declares, not a gap its adapter is waiting on but the decision
 [ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)
 already closed on.
 
+The refusal itself is matched against each node's own wording rather
+than any early exit: bitcoind's own `Error: Specified blocks directory
+"..." does not exist.`, the path double-quoted, on stderr; btclib-node's
+own `btclib-node: specified blocks directory ... does not exist`, also
+on stderr, lower-cased and without the trailing period or the quotes
+bitcoind's carries.
+`NodeAdapter.start` (`node.py`) reads a process's own stderr into the
+`RuntimeError` it raises on an early exit, which is what the tests above
+each check against
+([ISS bitcoin-node-tests#19](https://github.com/btclib-org/bitcoin-node-tests/issues/19)).
+
 `p2p_getdata.py`'s row is a smaller claim than Core's own test: Core
 asks its "later valid `getdata`" question of a mined tip, and this asks
 it of genesis instead, `Capability.MINE` not being every node's fact

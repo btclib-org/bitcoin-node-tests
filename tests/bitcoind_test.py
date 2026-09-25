@@ -24,6 +24,8 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
         {
             Capability.MINE,
             Capability.CONNECT,
+            Capability.DISCONNECT,
+            Capability.BAN,
             Capability.RAW_MESSAGE,
             Capability.BLK_FILES,
             Capability.DEBUG_LOG,

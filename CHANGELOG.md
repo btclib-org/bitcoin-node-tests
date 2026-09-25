@@ -195,3 +195,9 @@ and `test_runner.py`'s options to pytest's, `--nocleanup`, `--tracerpc`,
 `feature_dirsymlinks` passes on both nodes; `feature_posix_fs_permissions`
 fails on btclib-node (btclib-org/btclib-node#1198); `rpc_createmultisig` is
 `bitcoind only`. (issue #4) (issue #6) (issue #7) (issue btclib-org/btclib#2220)
+
+### Nodes connect to each other, disconnect, and wait for a mempool to agree
+
+A mempool sync wait joins the block one, `rpc_setban` is ported in part,
+a mixed bitcoind/btclib-node cluster gets a fixture, and `connect_nodes`
+dials over v1 unless given `v2transport=True` (issue #43).

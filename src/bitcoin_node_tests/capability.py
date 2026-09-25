@@ -130,6 +130,17 @@ class Capability(Enum):
     wallet, a client-built block over `submitblock` for one without.
     `CONNECT` -- accept a second node of its own kind as a peer, the way
     `node.connect_nodes` dials and waits for one.
+    `DISCONNECT` -- drop an already-connected peer on request, the way
+    `node.disconnect_nodes` asks over `disconnectnode`. Not implied by
+    `CONNECT`: `addnode` and `disconnectnode` are two different RPCs, and
+    a node answering the first need not answer the second (measured of
+    `btclib-node`, [ISS bitcoin-node-tests#43](https://github.com/btclib-org/bitcoin-node-tests/issues/43)'s
+    own finding).
+    `BAN` -- record and enforce a `setban`/`listbanned`/`clearbanned` ban
+    list, the way `rpc_setban`'s own subject does: an address already
+    connected drops the moment it is banned. Node-linking's own third
+    capability, beside `CONNECT` and `DISCONNECT`
+    ([ISS bitcoin-node-tests#43](https://github.com/btclib-org/bitcoin-node-tests/issues/43)).
     `RAW_MESSAGE` -- send an arbitrary p2p message to an already-connected
     peer, named by that peer's own index, the way Core's `sendmsgtopeer`
     does on the node under test's behalf; `p2p_net_deadlock`'s own
@@ -196,6 +207,8 @@ class Capability(Enum):
 
     MINE = "mine"
     CONNECT = "connect"
+    DISCONNECT = "disconnect"
+    BAN = "ban"
     RAW_MESSAGE = "raw_message"
     BLK_FILES = "blk_files"
     DEBUG_LOG = "debug_log"

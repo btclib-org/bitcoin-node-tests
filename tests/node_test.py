@@ -26,7 +26,10 @@ from bitcoin_node_tests.node import (
     connect_nodes,
     disconnect_nodes,
     free_port,
+    sync_all,
     traced_transport,
+    wait_until_disconnected,
+    wait_until_mempools_agree,
     wait_until_tips_agree,
 )
 from bitcoin_node_tests.timeout_factor import set_factor
@@ -406,7 +409,7 @@ def test_connect_nodes_addnodes_then_waits_on_both_sides_and_their_handshake(
     first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=first_rpc)
     second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=second_rpc)
     connect_nodes(first, second)
-    assert first_rpc.calls[0] == ("addnode", [address, "onetry"])
+    assert first_rpc.calls[0] == ("addnode", [address, "onetry", False])
 
 
 def test_connect_nodes_raises_on_a_timeout(tmp_path: Path) -> None:
@@ -427,6 +430,21 @@ def test_connect_nodes_timeout_is_scaled_by_the_global_factor(tmp_path: Path) ->
             connect_nodes(first, second, timeout=1000.0)
     finally:
         set_factor(1.0)
+
+
+def test_connect_nodes_passes_v2transport_to_addnode(tmp_path: Path) -> None:
+    """A caller asking for BIP324 gets `addnode`'s own `v2transport=True`."""
+    first_rpc = _FakeRpc()
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=first_rpc)
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
+    set_factor(0.0)
+    try:
+        with pytest.raises(TimeoutError, match="never reported a connection to"):
+            connect_nodes(first, second, v2transport=True)
+    finally:
+        set_factor(1.0)
+    host, port = second.p2p_address
+    assert first_rpc.calls[0] == ("addnode", [f"{host}:{port}", "onetry", True])
 
 
 def test_connect_nodes_raises_where_only_second_never_shows_the_peer(
@@ -547,6 +565,34 @@ def test_disconnect_nodes_timeout_is_scaled_by_the_global_factor(
         set_factor(1.0)
 
 
+def test_wait_until_disconnected_timeout_is_scaled_by_the_global_factor(
+    tmp_path: Path,
+) -> None:
+    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    node = _FakeAdapter("fake-node", tmp_path / "node", 0, 1111, rpc=_FakeRpc())
+    peer = _FakeAdapter("fake-node", tmp_path / "peer", 0, 2222, rpc=_FakeRpc())
+    set_factor(0.0)
+    try:
+        with pytest.raises(TimeoutError, match="still reports a peer"):
+            wait_until_disconnected(node, peer, timeout=1000.0)
+    finally:
+        set_factor(1.0)
+
+
+def test_wait_until_mempools_agree_timeout_is_scaled_by_the_global_factor(
+    tmp_path: Path,
+) -> None:
+    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
+    set_factor(0.0)
+    try:
+        with pytest.raises(TimeoutError, match="one mempool"):
+            wait_until_mempools_agree([first, second], timeout=1000.0)
+    finally:
+        set_factor(1.0)
+
+
 def test_wait_until_tips_agree_returns_once_every_hash_matches(
     tmp_path: Path,
 ) -> None:
@@ -592,3 +638,116 @@ def test_wait_until_tips_agree_timeout_is_scaled_by_the_global_factor(
             wait_until_tips_agree([first, second], timeout=1000.0)
     finally:
         set_factor(1.0)
+
+
+def test_wait_until_disconnected_returns_once_the_peer_is_gone(
+    tmp_path: Path,
+) -> None:
+    """The wait ends once `node`'s own `getpeerinfo` drops the peer's address.
+
+    No `disconnectnode` call of any kind: unlike `disconnect_nodes`,
+    this is the wait alone, for a drop triggered some other way.
+    """
+
+    class _PeerInfoRpc(_FakeRpc):
+        def __init__(self) -> None:
+            super().__init__()
+            self._polls = 0
+
+        @override
+        def call(self, method: str, params: list[object] | None = None) -> object:
+            super().call(method, params)
+            assert method == "getpeerinfo"
+            self._polls += 1
+            if self._polls == 1:
+                return [{"addr": "127.0.0.1:2222"}]
+            return []
+
+    node = _FakeAdapter("fake-node", tmp_path / "node", 0, 1111, rpc=_PeerInfoRpc())
+    peer = _FakeAdapter("fake-node", tmp_path / "peer", 0, 2222, rpc=_FakeRpc())
+    wait_until_disconnected(node, peer)
+    assert node._rpc.calls == [("getpeerinfo", None)] * 2
+
+
+def test_wait_until_disconnected_raises_on_a_timeout(tmp_path: Path) -> None:
+    """A deadline already past skips the loop, matching `connect_nodes`."""
+    node = _FakeAdapter("fake-node", tmp_path / "node", 0, 1111, rpc=_FakeRpc())
+    peer = _FakeAdapter("fake-node", tmp_path / "peer", 0, 2222, rpc=_FakeRpc())
+    with pytest.raises(TimeoutError, match="still reports a peer"):
+        wait_until_disconnected(node, peer, timeout=0.0)
+
+
+def test_wait_until_mempools_agree_returns_once_every_pool_matches(
+    tmp_path: Path,
+) -> None:
+    """The wait ends the moment every node's `getrawmempool` set agrees."""
+
+    class _MempoolRpc(_FakeRpc):
+        def __init__(self, pools: list[list[str]]) -> None:
+            super().__init__()
+            self._pools = iter(pools)
+
+        @override
+        def call(self, method: str, params: list[object] | None = None) -> object:
+            super().call(method, params)
+            assert method == "getrawmempool"
+            return next(self._pools)
+
+    first = _FakeAdapter(
+        "fake-node", tmp_path / "first", 0, 1111, rpc=_MempoolRpc([["a"], ["a", "b"]])
+    )
+    second = _FakeAdapter(
+        "fake-node",
+        tmp_path / "second",
+        0,
+        2222,
+        rpc=_MempoolRpc([["a", "b"], ["a", "b"]]),
+    )
+    wait_until_mempools_agree([first, second])
+
+
+def test_wait_until_mempools_agree_raises_on_a_timeout(tmp_path: Path) -> None:
+    """A deadline already past skips the loop, matching `connect_nodes`."""
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
+    with pytest.raises(TimeoutError, match="did not converge on one mempool"):
+        wait_until_mempools_agree([first, second], timeout=0.0)
+
+
+def test_sync_all_waits_for_tips_then_for_mempools(tmp_path: Path) -> None:
+    """`sync_all` waits for the tips first, then for the mempools."""
+
+    class _SyncRpc(_FakeRpc):
+        def __init__(self, hash_: str, pool: list[str]) -> None:
+            super().__init__()
+            self._hash = hash_
+            self._pool = pool
+
+        @override
+        def call(self, method: str, params: list[object] | None = None) -> object:
+            super().call(method, params)
+            if method == "getbestblockhash":
+                return self._hash
+            assert method == "getrawmempool"
+            return self._pool
+
+    first = _FakeAdapter(
+        "fake-node", tmp_path / "first", 0, 1111, rpc=_SyncRpc("a", ["x"])
+    )
+    second = _FakeAdapter(
+        "fake-node", tmp_path / "second", 0, 2222, rpc=_SyncRpc("a", ["x"])
+    )
+    sync_all([first, second])
+
+
+def test_sync_all_raises_where_the_tips_never_agree(tmp_path: Path) -> None:
+    """A tip mismatch is `sync_all`'s own failure: the mempool wait never runs.
+
+    `timeout=0.0` skips the loop before it ever calls `getbestblockhash`
+    (matching `test_wait_until_tips_agree_raises_on_a_timeout`), so a
+    plain `_FakeRpc` is enough: nothing here needs to answer for real.
+    """
+    first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
+    second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
+    with pytest.raises(TimeoutError, match="did not converge on one tip"):
+        sync_all([first, second], timeout=0.0)

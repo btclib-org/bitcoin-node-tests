@@ -177,3 +177,9 @@ caller already knows, so `start` waits on a node given `-rpcuser`/
 `-testactivationheight` gains `Capability.TEST_ACTIVATION_HEIGHT`;
 `feature_dersig`, `feature_cltv` and `feature_csv_activation` join the
 option and MiniWallet families, `TF2.md` naming what each drops (issue #14).
+
+### A fact that differs between builds is read from the build, for bitcoind too
+
+`BitcoindAdapter` reads `Capability.MINE`'s own wallet dependency from the
+running binary; `feature_torcontrol` and the newly ported
+`p2p_bip434_feature` read the running build's own `getnetworkinfo` (closes #35).

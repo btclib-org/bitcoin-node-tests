@@ -729,6 +729,16 @@ names is declared by a probe of the build rather than by the adapter's
 class: the row's own paragraph below names the probe and the issue it
 tracks.
 
+A `bitcoind` cell can be build-dependent the same way, for a fact of
+the pinned release's own binary that another build of bitcoind answers
+differently -- `capability.py`'s own module docstring is the one rule
+this covers, stated once rather than repeated per row: the class says
+what every build of a node can do, and a fact that varies release to
+release of the *same* binary is read from the one under test instead of
+fixed for the whole verdict. `feature_torcontrol.py`'s and
+`p2p_bip434_feature.py`'s own rows below are this table's own instances
+of it.
+
 A pin or date cell reading **same** repeats the pin and date of the
 nearest row above it that names the same Core test file, the row width
 leaving no room to write them again.
@@ -788,7 +798,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_net_deadlock.py` | `a0473442d1c2` | 2024-07-16 | pass | skip (raw_msg) |
 | `feature_uacomment.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `rpc_uptime.py` | `406c2348ddbf` | 2026-06-13 | pass | skip (clock) |
-| `feature_torcontrol.py` | `4556ef626754` | 2026-09-15 | pass | bitcoind only |
+| `feature_torcontrol.py` | `4556ef626754` | 2026-09-15 | pass, the `PoWDefensesEnabled` flag asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | bitcoind only |
+| `p2p_bip434_feature.py` | `da74ff9ca49e` | 2026-06-04 | pass, `FEATURE`'s own disconnects asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | bitcoind only |
 | `feature_framework_miniwallet.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip |
 | `mempool_resurrect.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_spend_coinbase.py` | `6eca11175be6` | 2026-07-16 | pass | skip |
@@ -1099,9 +1110,14 @@ token-bucket state rather than the claim `test_addrv2_unrecognized_network`
 is about, so it stays open rather than being ported against an accounting
 detail this test does not otherwise touch.
 
-`p2p_bip434_feature.py` is not ported at all: BIP434's own `FEATURE`
-message needs a later protocol version than the pinned bitcoind release
-this repository fetches ever advertises. `node/protocol_version.h`'s own
+`p2p_bip434_feature.py`'s row is ported, narrowed to what a build lacking
+BIP434 support disconnects for anyway rather than to `FEATURE`'s own
+accepted shapes -- the length-boundary and acceptance checks Core's own
+file also carries are `assert_debug_log` subjects the log family
+(issue #5) already covers, not this row's -- and gated on a fact read
+from the running build rather than assumed for the whole class
+([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35),
+`capability.py`'s own module docstring): `node/protocol_version.h`'s own
 `PROTOCOL_VERSION` constant, read at the pinned tag and at Core's
 `master`:
 
@@ -1114,26 +1130,36 @@ gh api repos/bitcoin/bitcoin/contents/src/protocol.h?ref=v31.1 \
     -H 'Accept: application/vnd.github.raw' | grep -c FEATURE
 ```
 
-confirms the gap and that `NetMsgType::FEATURE` itself is absent from the
-pinned tag's own header, gained only on `master` afterward. `doc/bips.md`
-at Core's `master` names BIP434 as landing only in the next major release
+confirms the pinned release's own gap -- `NetMsgType::FEATURE`
+itself is absent from that tag's own header, landed only on `master`
+afterward, in the same commit
+(`6a129983c9bf8efa1081f9a8b462c3635d1cfb39`, "BIP434: FEATURE message
+support") that bumped `PROTOCOL_VERSION` past the value the pinned tag's
+own header carries -- so the version this row's test reads off
+`getnetworkinfo`'s own `protocolversion` (or the p2p handshake's own
+`version`, the same fact either way) is what decides which of `FEATURE`'s
+own shapes to assert, rather than a version the pinned release happens
+to be behind forever. Not a skip: a build with no `"feature"` branch at
+all ignores the message exactly as it ignores any other one it does not
+recognise, so the row's own tests assert that survival where a build
+past the bump would disconnect instead --
+`tests/integration/p2p_bip434_feature_bitcoind_test.py`'s own module
+docstring has the rest of the narrowing, and why a skip was tried first
+and reverted: `btclib-org/.github`'s own `reusable-integration-bitcoind.yml`
+fails the required job on any skip its `exclude-classname` does not
+name, one substring already spent on `btclib_node`. `doc/bips.md` at
+Core's `master` names BIP434 as landing only in the next major release
 after the one this repository pins, and the functional test itself
 postdates the pinned tag (`da74ff9ca4`, 2026-06-04, not an ancestor of
-it) -- so there is no release of the oracle this suite pins that ever
-sends or accepts a `FEATURE` message, and every one of the file's own
-methods would fail on `bitcoind` itself rather than surface a real
-disagreement. This is independent of the file's own `-peertimeout`
-argument: read at the pinned tag, it only raises the idle-peer timeout so
-a slow, synchronous test is not itself disconnected for want of traffic,
-which is a robustness setting rather than a fact any assertion is about
--- so it changes nothing about whether the file can run, only how long a
-future attempt could take before this repository's own bitcoind speaks
-the protocol version the file needs. Revisiting this file waits on this
-repository's own pinned bitcoind release moving to the one BIP434 ships
-in (`.github/workflows/node-integration.yml`'s own `bitcoind-version`,
-`.github/actions/install-bitcoind/action.yml`'s the same argument's
-description), not on anything the log family's own mechanism is short
-of.
+it) -- so no release of the oracle this suite pins today ever sends or
+accepts a `FEATURE` message, and this row's own assertion is what
+answers for it instead of waiting for the pinned release to move: a
+comment on
+[ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5) says
+this row need not wait either, since the informational `core-master` job
+(`.github/workflows/node-integration.yml`,
+[ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8))
+already runs it against a build that does.
 
 The log family's own census is wider than `p2p_invalid_messages.py` and
 `p2p_leak.py`: re-run against Core's own current tip, `assert_debug_log`
@@ -1214,12 +1240,20 @@ option only bitcoind has a reason to carry, drives a real handshake
 against a mock Tor control server this test carries alongside itself
 rather than in this repository's own harness. A smaller claim than
 Core's own file, declared rather than silent: Core's own mock server
-negotiates proof-of-work defenses on `ADD_ONION`, a step the pinned
-release `bitcoind.py`'s own docstring names never takes -- its own
-`src/torcontrol.cpp`, read at that same release's tag, sends no such
-parameter, that negotiation having landed on Core's own `master`
-afterward. Kept whole: the sequence from `PROTOCOLINFO` through
-`ADD_ONION` a fresh onion service takes to come up. No other option of
+negotiates proof-of-work defenses on `ADD_ONION`, a step `src/torcontrol.cpp`
+at the pinned release's own tag never takes and Core's own `master`
+always does, landed in between the pinned tag and `master` in
+`4c6798a3d386c2c1a4bcc4a8694281a8f0bef92d` -- read from the running
+build rather than assumed for the whole class
+([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35),
+this table's own paragraph above), so this row's own test asserts
+whichever of the pinned tag's and `master`'s own shapes the build under
+test actually carries, off `getnetworkinfo`'s own `version`.
+`tests/integration/feature_torcontrol_bitcoind_test.py`'s own module
+docstring has the measurement, both builds' own `version` included.
+Kept whole: the sequence from
+`PROTOCOLINFO` through `ADD_ONION` a fresh onion service takes to come
+up. No other option of
 the first family's or the option family's own census names a fact only
 bitcoind's binary can answer without also asking for a mechanism this
 repository does not build -- `-disablewallet`, the charter's own other

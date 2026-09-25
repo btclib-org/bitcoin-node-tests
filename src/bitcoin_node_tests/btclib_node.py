@@ -65,6 +65,16 @@ issue -- measured live to warn `ignoring unknown configuration value
 rpcauth` and start anyway rather than to enforce it -- so an instance
 built against it does not gain the capability; one built against a
 `main` carrying #1070 does.
+
+`Capability.RPC_AUTH_NEGATION` is never declared, on either build:
+`cli.py`'s own module docstring states this module has no generic
+negation, registering `-nolisten` and `-norpccookiefile` by hand as the
+two negated spellings it recognises -- `-norpcauth` is not a third, so
+it is refused as an unrecognised argument (the released build) or as an
+"Invalid parameter" (`main`, whose own `_parse_args` added that wording
+for a flag-shaped token no registered option names) rather than accepted
+and clearing every `-rpcauth` given before it. Filed as
+[ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176).
 """
 
 from __future__ import annotations

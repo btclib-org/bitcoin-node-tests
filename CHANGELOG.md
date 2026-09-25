@@ -123,3 +123,9 @@ btclib-org/btclib-node#1145). (issue #5)
 `feature_filelock` passes on both nodes. `Capability.RPC_AUTH_CONFIG`
 names `bitcoin.conf`'s RPC-auth keys, absent from the pinned
 btclib-node build; `rpc_whitelist` is ported against it (issue #7).
+
+### The option family's own census names its open candidates
+
+`p2p_compactblocks_blocksonly` and `rpc_echo_payload` each need an
+option alone; `TF2.md` names them, and why the rest of the re-measured
+census is not a candidate (issue #3).

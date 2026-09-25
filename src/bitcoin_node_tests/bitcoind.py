@@ -17,7 +17,9 @@ already installed, the same split
 
 from __future__ import annotations
 
+import subprocess
 from collections.abc import Sequence
+from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, override
 
@@ -34,6 +36,47 @@ __all__ = [
 ]
 
 
+@lru_cache
+def _has_wallet(executable: str) -> bool:
+    """Return whether `executable` was built with wallet support.
+
+    A Core build tree's own `test/config.ini` records this under
+    `[components] ENABLE_WALLET` (`capability.py`'s own module docstring
+    is the rule this reads), but that file sits beside a build tree's own
+    binary and nowhere near a release tarball's -- `bitcoind-31.1`'s own
+    layout, this repository's pinned oracle, has no `test/` directory at
+    all. `-help`'s own output is what every `bitcoind`, built or fetched,
+    answers alike: `common/args.cpp`'s `AddWalletOptions` prints a
+    "Wallet options:" group only where `dummywallet.cpp`'s own
+    `DummyWalletInit` is not what registered them -- that implementation
+    hides every wallet argument with `AddHiddenArgs` instead, so a build
+    without wallet support still starts on `-disablewallet` (measured
+    against Core's `master`, `dummywallet.cpp`'s own `AddWalletOptions`)
+    but never mentions it in `-help`. A probe of the binary itself, in
+    the same standing as `btclib_node.py`'s own `_writes_auth_cookie`:
+    no port bound, no data directory created, and cached per executable
+    because the answer is a fact about the build rather than about any
+    one adapter instance.
+
+    `-nosettings` is not optional: `-help` alone still runs enough of
+    `AppInit` to read and rewrite the *default* datadir's own
+    `settings.json` -- unrelated to `-datadir`, which nothing here has
+    passed yet -- and two probes racing on that file print "Settings
+    file could not be written" in place of the help text, `Wallet
+    options:` included, rather than refusing to start. Measured live
+    under twenty concurrent probes of the pinned `31.1` release, with
+    `-nosettings` absent: two answered `_has_wallet` `False` for a binary
+    that has one -- `xdist`'s own several workers each constructing a
+    `BitcoindAdapter` is exactly that concurrency.
+
+    :param executable: the `bitcoind` binary to probe.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-help", "-nosettings"], check=False, capture_output=True
+    )
+    return b"\nWallet options:" in probe.stdout
+
+
 class BitcoindAdapter(NodeAdapter):
     """A regtest `bitcoind`: cookie authentication, and every capability.
 
@@ -42,7 +85,18 @@ class BitcoindAdapter(NodeAdapter):
     file rather than a credential this adapter invents.
 
     `Capability.MINE` is `generatetoaddress` over a wallet this adapter
-    creates on first use; `Capability.CONNECT` is `node.connect_nodes`
+    creates on first use, and unlike every other capability below it is
+    not a fact fixed for the whole class: `mine` needs a build with
+    wallet support compiled in, which every release this repository
+    fetches has, but a Core developer's own build tree can configure out
+    (`cmake -DENABLE_WALLET=OFF`, or `--disable-wallet` under autotools)
+    -- ISS 35's own rule (`capability.py`'s module docstring), a fact
+    read from the running build rather than assumed for the whole class.
+    `_has_wallet` above is the probe, and `__init__` below is what drops
+    the capability from an instance built against a `bitcoind` lacking
+    it, rather than declaring it and failing `mine`'s own
+    `createwallet` call once a test actually calls it.
+    `Capability.CONNECT` is `node.connect_nodes`
     (`node.py`), unconditional here since bitcoind answers `addnode` and
     `getnetworkinfo` the way every Core-compatible node does.
     `Capability.RAW_MESSAGE` is `sendmsgtopeer`, a debug RPC this release
@@ -103,8 +157,19 @@ class BitcoindAdapter(NodeAdapter):
         extra_args: Sequence[str] = (),
         rpc_auth: tuple[str, str] | None = None,
     ) -> None:
+        """Construct the adapter, then drop `MINE` where the build lacks it.
+
+        `super().__init__` runs first, the same ordering
+        `BtclibNodeAdapter.__init__` (`btclib_node.py`) uses and for the
+        same reason: `_check_extra_args(self._command(), extra_args)`
+        needs `self._executable` set before `_command` can be called.
+        `_has_wallet` is then this class's own per-build probe, read once
+        per instance rather than once per `mine` call.
+        """
         super().__init__(executable, datadir, rpc_port, p2p_port, extra_args, rpc_auth)
         self._miner_wallet: str | None = None
+        if not _has_wallet(executable):
+            self.capabilities = type(self).capabilities - {Capability.MINE}
 
     @override
     def _command(self) -> list[str]:

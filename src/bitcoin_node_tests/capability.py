@@ -13,6 +13,32 @@ covers what `node.connect_nodes` does today because that is the one way
 both adapters answer it alike, and a node reaching it another way would
 still declare the same member.
 
+A fact that differs between two builds of one node is read from the
+build under test, never fixed as a class-wide constant
+([ISS bitcoin-node-tests#35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)):
+the class says what every build of that node can do, and the running
+build says what this one can. Where the fact is whether a capability
+is there at all, it is still a `Capability`, declared per *instance*
+from a probe rather than fixed for the whole class:
+`BtclibNodeAdapter.__init__`'s own `_writes_auth_cookie` decides, per
+instance, whether `Capability.RPC_AUTH_CONFIG` is declared at all, and
+`BitcoindAdapter.__init__`'s own `_has_wallet` narrows `Capability.MINE`
+off an instance built against a `bitcoind` without wallet support --
+`self.capabilities = type(self).capabilities - {Capability.MINE}`,
+widening or narrowing the class's own frozen set rather than replacing
+it outright. Where the fact is not whether a capability exists but
+*how* a capability every build declares alike behaves once exercised --
+whether `bitcoind`'s own `ADD_ONION` negotiates BIP434's proof-of-work
+defenses (`tests/integration/feature_torcontrol_bitcoind_test.py`),
+which p2p protocol version a build speaks
+(`tests/integration/p2p_bip434_feature_bitcoind_test.py`) -- there is no
+skip to gate, so nothing is added to this enum: the test itself reads
+the fact off the running node's own RPC or its own wire behaviour and
+asserts whichever shape that build produces. The enum is for what
+`SkipCounts.report`'s own count is over -- an instance either declares a
+member or it does not, and a run either skips a test for lacking it or
+does not -- and an expectation with no skip attached to it is not that.
+
 `p2p_getdata`, step 3's own test, needs none of the members below: it
 asks only for what every adapter provides unconditionally -- a running
 node, its RPC and its p2p port -- so `require` is exercised by

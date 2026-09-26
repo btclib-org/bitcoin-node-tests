@@ -145,6 +145,13 @@ def test_debug_log_path_is_the_datadir_s_own_regtest_debug_log(
     assert adapter.debug_log_path == tmp_path / "regtest" / "debug.log"
 
 
+def test_log_path_read_on_a_start_timeout_is_debug_log_path(tmp_path: Path) -> None:
+    """A `start` that times out reads back bitcoind's own `debug.log`."""
+    with patch.object(bitcoind_module, "_has_wallet", return_value=True):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
+    assert adapter._log_path() == adapter.debug_log_path
+
+
 class _FakeRpc:
     """Enough of `BitcoinCoreRpcClient` for `mine`: `call`, and `for_wallet`.
 

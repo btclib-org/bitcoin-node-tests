@@ -408,3 +408,9 @@ now measure both the released build and `main` (closes #59).
 `pytest-timeout` joins `harness`, and `[tool.pytest.ini_options]`'s `timeout`
 fails a test that hangs by name, scaled by `--timeout-factor` with the waits
 beneath it (closes #91).
+
+### A `NodeAdapter` start that times out says what the node was doing
+
+Its `TimeoutError` names the failures waited out, as Core's
+`wait_for_rpc_connection` does, then the start's stderr and what it appended to
+bitcoind's `debug.log` or btclib-node's `history.log` (closes #134).

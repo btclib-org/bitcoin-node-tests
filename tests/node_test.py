@@ -391,6 +391,96 @@ def test_start_timeout_chains_the_last_transient_rpc_failure(tmp_path: Path) -> 
     assert isinstance(exc_info.value.__cause__, ConnectionRefusedError)
 
 
+class _LoggingAdapter(_FakeAdapter):
+    """A `_FakeAdapter` whose node logs to `<datadir>/node.log`."""
+
+    @override
+    def _log_path(self) -> Path:
+        return self._datadir / "node.log"
+
+
+def test_start_timeout_carries_the_errors_stderr_and_this_start_s_log(
+    tmp_path: Path,
+) -> None:
+    """The `TimeoutError` says what the node was doing, not only its deadline.
+
+    Regression test for [ISS 134](https://github.com/btclib-org/bitcoin-node-tests/issues/134):
+    a timeout's message named its deadline alone. The line an earlier
+    start left in the same log is not this start's, and stays out of the
+    message.
+    """
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    datadir = tmp_path / "node"
+    datadir.mkdir()
+    log = datadir / "node.log"
+    log.write_text("an earlier start\n")
+
+    def _popen(argv: list[str], *, stderr: IO[bytes]) -> _FakeProcess:
+        del argv
+        stderr.write(b"Warning: provoked\n")
+        with log.open("a") as log_file:
+            log_file.write("Binding RPC on address 127.0.0.1 port 1 failed.\n")
+        return _FakeProcess()
+
+    rpc = _FakeRpc(answers_after=10**6)
+    adapter = _LoggingAdapter("fake-node", datadir, 0, 0, rpc=rpc)
+    with (
+        patch("subprocess.Popen", side_effect=_popen),
+        patch.object(node_module, "_STARTUP_TIMEOUT", 0.05),
+        pytest.raises(TimeoutError) as exc_info,
+    ):
+        adapter.start()
+    message = str(exc_info.value)
+    assert (
+        f"(ignored errors: {{'ConnectionRefusedError': {len(rpc.calls)}}}, " in message
+    )
+    assert "latest: ConnectionRefusedError('connection refused'))" in message
+    assert "-- stderr: Warning: provoked\n" in message
+    assert message.endswith(
+        f"-- {log} since this start:\nBinding RPC on address 127.0.0.1 port 1 failed."
+    )
+    assert "an earlier start" not in message
+
+
+def test_start_timeout_reads_a_log_the_node_never_wrote_as_empty(
+    tmp_path: Path,
+) -> None:
+    """A node stuck before opening its log leaves that part empty."""
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    datadir = tmp_path / "node"
+    adapter = _LoggingAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
+    with (
+        patch("subprocess.Popen", return_value=_FakeProcess()),
+        patch.object(node_module, "_STARTUP_TIMEOUT", 0.0),
+        pytest.raises(TimeoutError) as exc_info,
+    ):
+        adapter.start()
+    assert str(exc_info.value) == (
+        "node did not answer its RPC within 0.0 s (ignored errors: {}) "
+        f"-- stderr: \n-- {datadir / 'node.log'} since this start:\n"
+    )
+
+
+def test_start_timeout_names_no_log_where_the_adapter_knows_none(
+    tmp_path: Path,
+) -> None:
+    """`NodeAdapter._log_path`'s own `None` leaves the log out."""
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    with (
+        patch("subprocess.Popen", return_value=_FakeProcess()),
+        patch.object(node_module, "_STARTUP_TIMEOUT", 0.0),
+        pytest.raises(TimeoutError) as exc_info,
+    ):
+        adapter.start()
+    assert str(exc_info.value) == (
+        "node did not answer its RPC within 0.0 s (ignored errors: {}) -- stderr: "
+    )
+
+
 def test_start_raises_at_once_on_an_rpc_error_that_is_not_warmup(
     tmp_path: Path,
 ) -> None:

@@ -450,3 +450,9 @@ and bitcoind's twin pins its text the same way (closes #141).
 `mine` builds each block client-side and submits it; a probe of the build's own
 `main.update_chain` declares `MINE` against `btclib-node`'s `main` and not the
 release, where a solo node never connects a submitted block (closes #56).
+
+### `tf2_master_verdict` names an unchanged Core file as measured
+
+A master-only failure whose Core file has not moved since its pin reads "file
+unchanged since the pin" where it read "candidate regression", naming no owner:
+the port may never have matched that file, so it is checked first (closes #143).

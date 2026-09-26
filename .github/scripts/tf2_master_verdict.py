@@ -9,17 +9,25 @@ half of `tests/integration` twice in one workflow run: once against the
 pinned release (the required `bitcoind` job, whose own JUnit report it
 downloads) and once against a `bitcoind` this repository built from
 Core's `master` itself. A test failing in the second report and not in
-the first is a disagreement `ISS 8`'s decision of 2026-09-25 gives one of
-two names:
+the first is measured the way `ISS 8`'s decision of 2026-09-25 lays down,
+`TF2.md`'s pin for its Core test file against that file's last commit on
+`master`, and this script names the outcome one of two ways:
 
 - **stale port** -- the Core test file `TF2.md`'s per-test ledger pins
   the failing test to has moved since that pin. The defect is this
   repository's own: the port was read from a revision upstream has since
   changed, and needs a fresh reading rather than a report to Core.
-- **candidate regression** -- the file has not moved. Core's own
-  behaviour changed under a citation that still names the same commit,
-  which is a finding for Core rather than for this repository, raised
-  only once every citation is verified by hand.
+- **file unchanged since the pin** -- the file has no commit on `master`
+  since the pin, and this names neither a cause nor an owner. Core's
+  behaviour may have changed under that file, through a data file it
+  loads, or under a different file; the failure may not reproduce; or
+  the port may never have matched the file it cites: the required job
+  passes such a port wherever the pinned release predates a behaviour
+  change the pin already carries, and only `master` fails it
+  ([ISS 143](https://github.com/btclib-org/bitcoin-node-tests/issues/143)).
+  A pin compared with the file's last commit tells none of these apart,
+  so the port is checked by hand against the pinned file's own
+  expectation first.
 
 The Core file a failing test names is read from the failing module's own
 docstring rather than guessed from its filename: `p2p_invalid_messages_
@@ -73,6 +81,8 @@ _CITATION = re.compile(r"Read from Core's `test/functional/([\w./-]+\.py)`")
 _ROW_FILE = re.compile(r"^`([\w./-]+\.py)`")
 
 _PIN = re.compile(r"[0-9a-f]{8,40}")
+
+_UNCHANGED = "file unchanged since the pin"
 
 
 def _cells(row: str) -> list[str]:
@@ -209,12 +219,11 @@ def classify(pin: str, latest_commit: str) -> str:
         tip on `master` -- the API's own full sha, which the pin is a
         prefix of where the file has not moved.
     :returns: `"stale port"` where the file has moved since the pin -- the
-        port's own defect -- or `"candidate regression"` where it has
-        not, a finding for Core once every citation behind it is
-        verified by hand.
+        port's own defect -- or `"file unchanged since the pin"` where it
+        has not, which names no owner: see the module docstring.
     """
     if latest_commit.startswith(pin):
-        return "candidate regression"
+        return _UNCHANGED
     return "stale port"
 
 
@@ -254,10 +263,17 @@ def verdicts(
             continue
         latest_commit, latest_date = latest
         verdict = classify(pin, latest_commit)
-        lines.append(
+        line = (
             f"- `{key}` (`{core_file}`): **{verdict}** -- TF2.md pins `{pin}`,"
-            f" master's own tip is `{latest_commit}` ({latest_date})"
+            f" its last commit on master is `{latest_commit}` ({latest_date})"
         )
+        if verdict == _UNCHANGED:
+            line += (
+                ": the cause is not measured, and the port may never have"
+                f" matched the file; check the port against `{core_file}` at"
+                f" `{pin}` first"
+            )
+        lines.append(line)
     return lines
 
 

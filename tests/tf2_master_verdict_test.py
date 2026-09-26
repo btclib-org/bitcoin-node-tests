@@ -305,13 +305,13 @@ def test_classify_stale_port(verdict: ModuleType) -> None:
     assert verdict.classify("0d1301b47a35", "fedcba987654" + "0" * 28) == "stale port"
 
 
-def test_classify_candidate_regression(verdict: ModuleType) -> None:
-    """The file has not moved: a finding for Core, once checked by hand.
+def test_classify_file_unchanged_since_the_pin(verdict: ModuleType) -> None:
+    """The file has not moved: named as measured, with no owner.
 
     The API answers a full sha, which the ledger's abbreviated pin is a
     prefix of ([ISS 83](https://github.com/btclib-org/bitcoin-node-tests/issues/83)).
     """
-    assert verdict.classify("0d1301b47a35", _FULL_SHA) == "candidate regression"
+    assert verdict.classify("0d1301b47a35", _FULL_SHA) == "file unchanged since the pin"
 
 
 def test_verdicts_classifies_a_master_only_failure(
@@ -334,6 +334,42 @@ def test_verdicts_classifies_a_master_only_failure(
     assert len(lines) == 1
     assert "stale port" in lines[0]
     assert "feature_blocksdir.py" in lines[0]
+    assert "check the port" not in lines[0]
+
+
+def test_verdicts_sends_an_unchanged_file_to_the_port_first(
+    verdict: ModuleType, fake_gh: FakeGh, tmp_path: Path
+) -> None:
+    """An unchanged file names no cause, and the pinned file to read.
+
+    A port that never matched its pinned file fails only against master
+    too, so the line does not call it Core's regression
+    ([ISS 143](https://github.com/btclib-org/bitcoin-node-tests/issues/143)).
+    """
+    module = tmp_path / "tests" / "integration"
+    module.mkdir(parents=True)
+    (module / "feature_blocksdir_bitcoind_test.py").write_text(
+        _module(
+            "Read from Core's `test/functional/feature_blocksdir.py`"
+            " (`0d1301b47a35`, 2026-03-24)."
+        ),
+        encoding="utf-8",
+    )
+    fake_gh.commits[f"{_DIR}/feature_blocksdir.py"] = (_FULL_SHA, "2026-03-24")
+    master = {"tests.integration.feature_blocksdir_bitcoind_test::test_a": "fail"}
+    pinned = {"tests.integration.feature_blocksdir_bitcoind_test::test_a": "pass"}
+    lines = verdict.verdicts(_LEDGER, master, pinned, tmp_path)
+    assert lines == [
+        (
+            "- `tests.integration.feature_blocksdir_bitcoind_test::test_a`"
+            " (`feature_blocksdir.py`): **file unchanged since the pin** --"
+            " TF2.md pins `0d1301b47a35`, its last commit on master is"
+            f" `{_FULL_SHA}` (2026-03-24): the cause is not measured, and the"
+            " port may never have matched the file; check the port against"
+            " `feature_blocksdir.py` at `0d1301b47a35` first"
+        )
+    ]
+    assert "regression" not in lines[0]
 
 
 def test_verdicts_names_a_test_with_no_core_citation(
@@ -445,5 +481,5 @@ def test_main_prints_a_master_only_verdict(
     monkeypatch.chdir(tmp_path)
     assert verdict.main() == 0
     out = capsys.readouterr().out
-    assert "candidate regression" in out
+    assert "file unchanged since the pin" in out
     assert "feature_blocksdir.py" in out

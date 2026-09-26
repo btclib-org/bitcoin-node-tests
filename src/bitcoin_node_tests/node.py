@@ -330,6 +330,13 @@ class NodeAdapter(ABC):
         and then blocks the node on every write past that, where a file
         never blocks the writer regardless of how much it writes.
 
+        A start that raises leaves nothing running: the process is killed
+        and forgotten before the error propagates, the way Core's own
+        `TestNode.assert_start_raises_init_error` ends one, so a caller's
+        own teardown has no process to lose track of and `stop` stays a
+        no-op after it
+        ([ISS 79](https://github.com/btclib-org/bitcoin-node-tests/issues/79)).
+
         :raises RuntimeError: the process exited before answering; the
             message carries what it wrote to stderr.
         :raises TimeoutError: the RPC never answered.
@@ -341,12 +348,18 @@ class NodeAdapter(ABC):
                 [*self._command(), *self._extra_args],
                 stderr=stderr_file,
             )
-        _wait_for_rpc(
-            self._rpc_client(),
-            self._process,
-            stderr_path,
-            timeout=scaled(_STARTUP_TIMEOUT),
-        )
+        try:
+            _wait_for_rpc(
+                self._rpc_client(),
+                self._process,
+                stderr_path,
+                timeout=scaled(_STARTUP_TIMEOUT),
+            )
+        except BaseException:
+            process, self._process = self._process, None
+            process.kill()
+            process.wait(timeout=scaled(_STARTUP_TIMEOUT))
+            raise
 
     def stop(self) -> None:
         """Terminate the process and wait for it to exit.

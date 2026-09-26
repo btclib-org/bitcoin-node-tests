@@ -29,7 +29,6 @@ neither needing a flag of its own here.
 
 from __future__ import annotations
 
-import contextlib
 import os
 import shutil
 import subprocess
@@ -45,7 +44,9 @@ from bitcoin_node_tests.node import free_port
 from bitcoin_node_tests.timeout_factor import set_factor
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Iterator, Sequence
+
+    from bitcoin_node_tests.node import NodeAdapter
 
 # one tally per process, shared by every fixture and test below:
 # `pytest_sessionfinish` reports it once, rather than once per node this
@@ -178,6 +179,23 @@ def bitcoind_path() -> str:
     return path
 
 
+def _stop_all(adapters: Sequence[NodeAdapter]) -> None:
+    """Stop every one of `adapters`, last started first.
+
+    Nested `try`/`finally` rather than a `contextlib.ExitStack`: each
+    stop runs even where a later-started one raised -- a node `stop` had
+    to kill -- and every error raised is kept, each chained to the one
+    before, where an `ExitStack` runs its callbacks outside an `except`
+    block and keeps only the last error it meets.
+    """
+    if not adapters:
+        return
+    try:
+        adapters[-1].stop()
+    finally:
+        _stop_all(adapters[:-1])
+
+
 @pytest.fixture(scope="session")
 def bitcoind_adapter(
     bitcoind_path: str, tmp_path_factory: pytest.TempPathFactory, trace_rpc: bool
@@ -227,12 +245,7 @@ def bitcoind_cluster(
     try:
         yield _start
     finally:
-        # an ExitStack runs every stop, last started first, even where an
-        # earlier one raises -- a node `stop` had to kill -- rather than
-        # leaving the rest running
-        with contextlib.ExitStack() as stack:
-            for adapter in started:
-                stack.callback(adapter.stop)
+        _stop_all(started)
 
 
 @pytest.fixture(scope="session")

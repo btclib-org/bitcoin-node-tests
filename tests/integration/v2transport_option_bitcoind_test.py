@@ -71,15 +71,17 @@ def test_v2transport_1_connects_nodes_over_bip324(
         extra_args=("-v2transport=1",),
     )
     require(Capability.V2TRANSPORT, first.capabilities, skip_counts)
-    first.start()
-    second.start()
     try:
+        first.start()
+        second.start()
         connect_nodes(first, second, v2transport=True)
         assert _transport_protocol(first) == "v2"
         assert _transport_protocol(second) == "v2"
     finally:
-        second.stop()
-        first.stop()
+        try:
+            second.stop()
+        finally:
+            first.stop()
 
 
 def test_v2transport_0_connects_nodes_over_v1(
@@ -101,12 +103,14 @@ def test_v2transport_0_connects_nodes_over_v1(
         extra_args=("-v2transport=0",),
     )
     require(Capability.V2TRANSPORT, first.capabilities, skip_counts)
-    first.start()
-    second.start()
     try:
+        first.start()
+        second.start()
         connect_nodes(first, second)
         assert _transport_protocol(first) == "v1"
         assert _transport_protocol(second) == "v1"
     finally:
-        second.stop()
-        first.stop()
+        try:
+            second.stop()
+        finally:
+            first.stop()

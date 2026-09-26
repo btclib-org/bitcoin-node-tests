@@ -135,6 +135,12 @@ def test_log_path_is_the_datadir_s_own_regtest_history_log(tmp_path: Path) -> No
     assert adapter.log_path == tmp_path / "regtest" / "history.log"
 
 
+def test_log_path_read_on_a_start_timeout_is_log_path(tmp_path: Path) -> None:
+    """What a `start` that times out reads back is `btclib_node`'s own log."""
+    adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter._log_path() == adapter.log_path
+
+
 def test_writes_auth_cookie_reads_the_probe_s_own_return_code() -> None:
     """`_writes_auth_cookie` is `import btclib_node.rpc.auth` exiting zero."""
     btclib_node_module._writes_auth_cookie.cache_clear()

@@ -310,6 +310,11 @@ class BitcoindAdapter(NodeAdapter):
         """
         return self._datadir / "regtest" / "debug.log"
 
+    @override
+    def _log_path(self) -> Path:
+        """Return `debug_log_path`, for `start`'s own `TimeoutError`."""
+        return self.debug_log_path
+
     def _load_miner_wallet(self) -> None:
         """Make `_MINER_WALLET` loaded: already, loaded from disk, or created.
 

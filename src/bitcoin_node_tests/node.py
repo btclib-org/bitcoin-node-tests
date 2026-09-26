@@ -24,6 +24,7 @@ import subprocess
 import tempfile
 import time
 from abc import ABC, abstractmethod
+from collections import Counter
 from collections.abc import Sequence
 from contextlib import ExitStack
 from pathlib import Path
@@ -217,12 +218,29 @@ def _check_extra_args(command: Sequence[str], extra_args: Sequence[str]) -> None
             raise ValueError(err_msg)
 
 
-def _read_stderr(stderr_path: Path) -> str:
-    """Return what a node wrote to `stderr_path`, for the error raised on it.
+def _read_output(path: Path, offset: int = 0) -> str:
+    """Return what a node wrote to `path` past `offset`, for an error on it.
 
-    :param stderr_path: where `start` redirected the node's own stderr.
+    A file the node never created reads as empty: a log is opened by the
+    node itself, and a node stuck before opening it has written nothing.
+
+    :param path: where the node's own stderr was redirected, or its log.
+    :param offset: where in `path` this start's own writes begin.
     """
-    return stderr_path.read_bytes().decode("utf-8", errors="replace").strip()
+    try:
+        with path.open("rb") as output:
+            output.seek(offset)
+            return output.read().decode("utf-8", errors="replace").strip()
+    except FileNotFoundError:
+        return ""
+
+
+def _size(path: Path) -> int:
+    """Return `path`'s size, `0` where it does not exist yet.
+
+    :param path: the node's own log, read before the node is spawned.
+    """
+    return path.stat().st_size if path.exists() else 0
 
 
 def _wait_for_rpc(
@@ -231,6 +249,8 @@ def _wait_for_rpc(
     stderr_path: Path,
     *,
     timeout: float = _STARTUP_TIMEOUT,
+    log_path: Path | None = None,
+    log_offset: int = 0,
 ) -> None:
     """Poll `rpc` until it answers, or fail with what the process did instead.
 
@@ -255,11 +275,31 @@ def _wait_for_rpc(
     the deadline is reached, so a caller reading the traceback sees what
     the node actually answered rather than a bare timeout.
 
+    The `TimeoutError`'s own message names every failure it waited out,
+    by type and with how many times each was raised, and the last one,
+    the way Core's `wait_for_rpc_connection` words its "Unable to connect
+    to bitcoind" (`ignored errors: ... latest: ...`). It then carries what
+    the process wrote to stderr and to its log since this start, where
+    the log's path is known: Core's `test_runner.py` prints, only when
+    `--combinedlogslen` names a length, the last that many lines of one log
+    combined from the framework and every node, where this suite has no
+    runner of its own to print anything. The whole of what
+    this start appended rather than a tail of it: a bitcoind that never
+    answers can be running with its RPC bound on `::1` alone, a failed
+    bind on `127.0.0.1` not being fatal while another address bound
+    (`HTTPBindAddresses`, `src/httpserver.cpp`), and the line saying so,
+    "Binding RPC on address 127.0.0.1 port ... failed.", comes early,
+    ahead of what a tail would keep.
+
     :param rpc: the client to poll, one whole call at a time.
     :param process: the process whose own exit ends the wait early.
     :param stderr_path: where the process's own stderr was redirected;
-        read back into the error raised on an early exit.
+        read back into the error raised on an early exit or a timeout.
     :param timeout: how long to wait before giving up.
+    :param log_path: the file the node logs to, read back into the error
+        raised on a timeout; `None` where the adapter knows no such file.
+    :param log_offset: `log_path`'s size before the process was spawned,
+        where this start's own lines begin.
     :raises TimeoutError: the RPC never answered within `timeout`,
         chained to the last transient failure `rpc.call` raised.
     :raises RuntimeError: the process exited before its RPC answered, or
@@ -267,12 +307,13 @@ def _wait_for_rpc(
     """
     deadline = time.monotonic() + timeout
     last_error: Exception | None = None
+    ignored: Counter[str] = Counter()
     while time.monotonic() < deadline:
         exit_code = process.poll()
         if exit_code is not None:
             err_msg = (
                 f"node process exited with {exit_code} before its RPC "
-                f"answered -- stderr: {_read_stderr(stderr_path)}"
+                f"answered -- stderr: {_read_output(stderr_path)}"
             )
             raise RuntimeError(err_msg)
         try:
@@ -290,12 +331,21 @@ def _wait_for_rpc(
         except Exception as e:  # noqa: BLE001
             # every other failure before the node is listening is the
             # same failure: refused, reset, or the cookie/credentials
-            # not written yet -- kept only to chain onto a timeout
+            # not written yet -- kept only to report on a timeout
             last_error = e
         else:
             return
+        ignored[type(last_error).__name__] += 1
         time.sleep(0.1)
-    err_msg = f"node did not answer its RPC within {timeout} s"
+    latest = "" if last_error is None else f", latest: {last_error!r}"
+    err_msg = (
+        f"node did not answer its RPC within {timeout} s "
+        f"(ignored errors: {dict(ignored)}{latest}) "
+        f"-- stderr: {_read_output(stderr_path)}"
+    )
+    if log_path is not None:
+        err_msg += f"\n-- {log_path} since this start:\n"
+        err_msg += _read_output(log_path, log_offset)
     raise TimeoutError(err_msg) from last_error
 
 
@@ -388,6 +438,15 @@ class NodeAdapter(ABC):
         the transport it builds with, through `traced_transport`.
         """
 
+    def _log_path(self) -> Path | None:
+        """Return the file this node logs to, or `None` where none is known.
+
+        What `start` reads back into the `TimeoutError` it raises on an
+        RPC that never answered; a subclass whose node writes a log at a
+        path of this datadir's names it.
+        """
+        return None
+
     @property
     def p2p_address(self) -> tuple[str, int]:
         """Return `(host, port)` the p2p wire can be dialled at."""
@@ -439,7 +498,9 @@ class NodeAdapter(ABC):
         :raises RuntimeError: this adapter already holds a process, which
             `stop` ends; or the process exited before answering, the
             message carrying what it wrote to stderr.
-        :raises TimeoutError: the RPC never answered.
+        :raises TimeoutError: the RPC never answered; the message carries
+            the failures waited out, what the process wrote to stderr and,
+            where `_log_path` names one, to its log since this start.
         """
         if self._running is not None:
             err_msg = "node already started: stop it before starting it again"
@@ -454,6 +515,8 @@ class NodeAdapter(ABC):
         """
         stderr_dir = self._datadir / _STDERR_DIR
         stderr_dir.mkdir(parents=True, exist_ok=True)
+        log_path = self._log_path()
+        log_offset = 0 if log_path is None else _size(log_path)
         with tempfile.NamedTemporaryFile(dir=stderr_dir, delete=False) as stderr_file:
             process = subprocess.Popen(  # noqa: S603
                 [*self._command(), *extra_args],
@@ -467,6 +530,8 @@ class NodeAdapter(ABC):
                 process,
                 stderr_path,
                 timeout=scaled(_STARTUP_TIMEOUT),
+                log_path=log_path,
+                log_offset=log_offset,
             )
         except BaseException:
             self._running = None
@@ -523,14 +588,14 @@ class NodeAdapter(ABC):
             process.wait(timeout=timeout)
             err_msg = (
                 f"node process ignored terminate for {timeout}s and was "
-                f"killed -- stderr: {_read_stderr(stderr_path)}"
+                f"killed -- stderr: {_read_output(stderr_path)}"
             )
             raise TimeoutError(err_msg) from None
         if exit_code != _CLEAN_EXIT:
             when = "before stop was called" if already_exited else "on terminate"
             err_msg = (
                 f"node process exited with {exit_code} {when} -- "
-                f"stderr: {_read_stderr(stderr_path)}"
+                f"stderr: {_read_output(stderr_path)}"
             )
             raise RuntimeError(err_msg)
 

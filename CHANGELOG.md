@@ -237,3 +237,9 @@ than only the first (closes #67).
 Each of its two tests matches Core's own whole refusal, the locked path
 included, so a datadir refusal no longer passes the blocksdir test or the
 reverse (closes #71).
+
+### `NodeAdapter.stop` kills a node that ignores its termination
+
+A node still running once the wait after `terminate` expires is killed
+rather than left holding its datadir and ports, and a `TimeoutError`
+carrying its stderr says so (closes #76).

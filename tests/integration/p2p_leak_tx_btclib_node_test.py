@@ -8,8 +8,8 @@ The same requests `p2p_leak_tx_bitcoind_test.py` makes, against the
 target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). Each subject asks for `Capability.CLOCK` first,
 the order the bitcoind module asks in, and then for `Capability.MINE`.
-Neither is declared (`btclib_node.py`'s own docstring is why), so each
-of these is a counted skip on `Capability.CLOCK` rather than a run.
+`Capability.CLOCK` is not declared (`btclib_node.py`'s own docstring is
+why), so each of these is a counted skip on it rather than a run.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_leak_tx_btclib_node_test.py

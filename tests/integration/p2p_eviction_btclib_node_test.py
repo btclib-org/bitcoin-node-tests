@@ -12,9 +12,11 @@ docstring is where its per-executable probe is argued, and constructing
 an adapter spawns nothing. PyPI's `2026.9.24` release lacks it, a
 counted skip on that capability; a `main` past
 [ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064)
-declares it and skips on `Capability.MINE` instead, the blocks and the
-transactions the protected peers send being mined first
-(`btclib_node.py`'s own docstring has why that one is not declared).
+declares it and asks for `Capability.MINE` next, the blocks and the
+transactions the protected peers send being mined first; a `main` from
+btclib-node PR 1152 on declares that too (`btclib_node.py`'s own
+docstring) and reaches this stub's own `pytest.fail`, the scenario not
+being ported yet.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_eviction_btclib_node_test.py
@@ -52,3 +54,4 @@ def test_the_evicted_inbound_peer_is_never_a_protected_one(
     )
     require(Capability.INBOUND_EVICTION, adapter.capabilities, skip_counts)
     require(Capability.MINE, adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

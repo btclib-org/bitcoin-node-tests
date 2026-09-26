@@ -6,10 +6,11 @@
 
 The same request `p2p_block_sync_bitcoind_test.py` makes, against the
 target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
-`Capability.MINE` is not declared by `BtclibNodeAdapter`
-(`btclib_node.py`'s own docstring is why: ISS btclib-node#1071, a solo
-node that never leaves `NodeStatus.SyncingHeaders`), so this test skips
-before starting a second or a third node -- the single session-scoped
+`Capability.MINE` is declared only by a build that connects a submitted
+block with no peer (`btclib_node.py`'s own docstring): PyPI's `2026.9.24`
+is a counted skip here, and a `main` from btclib-node PR 1152 on reaches
+this stub's own `pytest.fail`, the scenario not being ported yet. Either
+way no second or third node is started -- the single session-scoped
 `btclib_node_adapter` is enough to ask the question.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>

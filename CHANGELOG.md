@@ -444,3 +444,9 @@ less from Core `v32.0.0` on (bitcoin/bitcoin#31449), read off
 The refusal is matched as the node's whole stderr, the path included, in Core's
 wording `main` writes or the released build's own, so `main` no longer fails it
 and bitcoind's twin pins its text the same way (closes #141).
+
+### `BtclibNodeAdapter` mines, on a build connecting a block with no peer
+
+`mine` builds each block client-side and submits it; a probe of the build's own
+`main.update_chain` declares `MINE` against `btclib-node`'s `main` and not the
+release, where a solo node never connects a submitted block (closes #56).

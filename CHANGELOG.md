@@ -207,3 +207,9 @@ dials over v1 unless given `v2transport=True` (issue #43).
 `-datacarrier`, `-permitbaremultisig`, `-dustrelayfee` and `-bytespersigop`
 each gain a `Capability`; `mempool_datacarrier`, `mempool_dust` and
 `mempool_sigoplimit` join the option and MiniWallet families (issue #14).
+
+### Bucket A's remaining files each need a mechanism, none of them the option's
+
+`feature_prune_stale_fork`, `rpc_validateaddress`, `feature_nulldummy`,
+`feature_versionbits_warning`, `rpc_signer` and
+`feature_presegwit_node_upgrade` need a mechanism `TF2.md` names (issue #3).

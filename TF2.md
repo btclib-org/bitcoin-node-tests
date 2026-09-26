@@ -1322,6 +1322,67 @@ harness to test its exception handling, never a node; and
 swept in by the census's own file-prefix regex rather than by anything
 a node does.
 
+A further group of files scores option-family, single mechanism on the
+census's own reading, and each turns out on a closer one to need a
+mechanism this issue does not deliver -- named here rather than ported,
+each against the issue that owns what it is missing.
+
+`feature_prune_stale_fork.py` (`-prune`, `-fastprune`) builds a stale
+fork the same way `mini_wallet.py`'s own `build_fork` does -- a
+header-only parent over `submitheader`, a full child over
+`submitblock` -- prunes it and restarts, which is Core's own subject.
+Reproduced against the pinned release, the sequence crashes the oracle
+itself with `Assertion failed: (!foundInUnlinked)`
+(`validation.cpp`'s own `CheckBlockIndex`): bitcoin/bitcoin's own
+[ISS 35050](https://github.com/bitcoin/bitcoin/issues/35050), fixed on
+`master` at bitcoin/bitcoin@fb47793b99f71f00a93339b88d1e2d7b5afa8e73
+before the pinned release was tagged but never backported into it.
+Rule 3's oracle is not authoritative on this one file until the pin
+names a release carrying that fix --
+[ISS 62](https://github.com/btclib-org/bitcoin-node-tests/issues/62).
+
+`rpc_validateaddress.py` (`-prune`) sets `self.chain = ""`, Core's own
+main chain: its subject is `validateaddress`'s own bech32/base58 error
+wording, which differs by network, and neither adapter's own `_command`
+can start a node on anything but regtest -- `BitcoindAdapter`'s own
+hardcodes `-regtest`, and appending `-chain=main` through `extra_args`
+reaches bitcoind's own argument parser rather than the adapter, which
+refuses the combination outright. Not a capability a node can lack and
+skip: neither node can be asked to start this way at all --
+[ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63).
+
+`feature_nulldummy.py` (`-testactivationheight=segwit@N`,
+`-addresstype=legacy`) is NULLDUMMY compliance itself: a bare-multisig
+scriptSig's own dummy element, built with `createmultisig`/
+`createrawtransaction`/`signrawtransactionwithkey` and hand-tampered
+before and after activation. `MiniWallet` spends only its own fixed
+`ADDRESS_OP_TRUE` leaf by design (`mini_wallet.py`'s own docstring, and
+rule 7 of [ISS btclib-org/btclib#2220](https://github.com/btclib-org/btclib/issues/2220)
+already leaving btclib's own signing surface to btclib's own suite), so
+nothing here builds a transaction carrying a caller-chosen script --
+narrowing this file the way `feature_cltv_bitcoind_test.py` narrows its
+own closing checks would leave nothing NULLDUMMY-specific behind --
+[ISS 64](https://github.com/btclib-org/bitcoin-node-tests/issues/64).
+
+`feature_versionbits_warning.py` (`-alertnotify=<cmd>`) and
+`rpc_signer.py` (`-signer=<cmd>`) each start a node that execs an
+external command -- a shell one-liner writing to a file, a bundled mock
+signer script -- and assert on what that process did. No adapter here
+runs, tracks or verifies an external process a node itself spawns; both
+are
+[ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)'s
+own subject, "drives another binary", rather than this issue's.
+
+`feature_presegwit_node_upgrade.py` (`-testactivationheight=segwit@N`)
+stops the node, expects a lower `-testactivationheight=segwit@N` to
+refuse to start with a named init error, then starts it again with
+`-reindex` added to that same lower height -- each restart naming
+`extra_args` other than the ones the node last held.
+`NodeAdapter.restart` (`node.py`) restarts only over the `extra_args` a
+node was constructed with;
+[ISS 51](https://github.com/btclib-org/bitcoin-node-tests/issues/51) is
+what a restart naming a different argv needs.
+
 `feature_framework_miniwallet.py`'s own row is the MiniWallet family's
 first ([ISS bitcoin-node-tests#4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)),
 and a smaller claim than Core's own file: `mini_wallet.py`'s own

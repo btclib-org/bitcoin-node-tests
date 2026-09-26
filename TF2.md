@@ -858,12 +858,14 @@ never declares, not a gap its adapter is waiting on but the decision
 [ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)
 already closed on.
 
-The refusal itself is matched against each node's own wording rather
-than any early exit: bitcoind's own `Error: Specified blocks directory
-"..." does not exist.`, the path double-quoted, on stderr; btclib-node's
-own `btclib-node: specified blocks directory ... does not exist`, also
-on stderr, lower-cased and without the trailing period or the quotes
-bitcoind's carries.
+The refusal itself is matched as the node's whole stderr, the path
+given included, the way Core's own file compares it: bitcoind's own
+`Error: Specified blocks directory "..." does not exist.`, which
+btclib-node's `main` writes too. The released btclib-node writes its own
+`btclib-node: specified blocks directory ... does not exist`, lower-cased
+and without the quotes or the trailing period, and btclib-node's test
+accepts either wording
+([ISS 141](https://github.com/btclib-org/bitcoin-node-tests/issues/141)).
 `NodeAdapter.start` (`node.py`) reads a process's own stderr into the
 `RuntimeError` it raises on an early exit, which is what the tests above
 each check against

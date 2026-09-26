@@ -7,12 +7,21 @@
 The same two claims `feature_blocksdir_bitcoind_test.py` makes, against
 the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220): a nonexistent `-blocksdir` is fatal on both
-nodes, `Config.__init__`'s own refusal
-(`src/btclib_node/config.py`) matching Core's wording that module's own
-docstring quotes; reading the chain back off disk in Core's own
-`blk*.dat` layout is not, `Capability.BLK_FILES` never being declared
-here (`btclib_node.py`'s own docstring has why), so that half counts a
-skip rather than a silent pass.
+nodes, `Config.__init__`'s own refusal (`src/btclib_node/config.py`);
+reading the chain back off disk in Core's own `blk*.dat` layout is not,
+`Capability.BLK_FILES` never being declared here (`btclib_node.py`'s own
+docstring has why), so that half counts a skip rather than a silent
+pass.
+
+Two wordings of the refusal are live across the builds this suite runs
+against, and the match below accepts either, each whole and naming the
+path given, rather than picking one: the smaller design against a
+version switch, as in `feature_filelock_btclib_node_test.py`. The
+released build (PyPI, `2026.9.24`) writes its own `btclib-node:
+specified blocks directory <path> does not exist`; `main`, past
+[ISS btclib-node#1191](https://github.com/btclib-org/btclib-node/issues/1191),
+writes Core's own `Error: Specified blocks directory "<path>" does not
+exist.`, the whole text Core's `feature_blocksdir.py` compares.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/feature_blocksdir_btclib_node_test.py
@@ -20,6 +29,7 @@ skip rather than a silent pass.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 import pytest
@@ -37,10 +47,26 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.integration
 
 
+def _blocksdir_refusal(blocksdir: Path) -> str:
+    """Return a pattern for the whole stderr refusing a nonexistent `blocksdir`.
+
+    Anchored past `_wait_for_rpc`'s own `stderr: ` (`node.py`) and at the
+    message's end, so that a stderr carrying anything beside the refusal
+    fails it; the released build's own wording is alternated with Core's,
+    which `main` writes -- see the module docstring.
+    """
+    core = re.escape(f'Error: Specified blocks directory "{blocksdir}" does not exist.')
+    released = re.escape(
+        f"btclib-node: specified blocks directory {blocksdir} does not exist"
+    )
+    return rf"stderr: (?:{core}|{released})\Z"
+
+
 def test_nonexistent_blocksdir_refuses_to_start(
     make_adapter: AdapterFactory, btclib_node_python: str, tmp_path: Path
 ) -> None:
     """`-blocksdir` naming a directory that does not exist is fatal."""
+    blocksdir = tmp_path / "nonexistent"
     rpc_port, p2p_port = free_ports(2)
     adapter = make_adapter(
         BtclibNodeAdapter,
@@ -48,11 +74,9 @@ def test_nonexistent_blocksdir_refuses_to_start(
         tmp_path / "datadir",
         rpc_port,
         p2p_port,
-        extra_args=(f"-blocksdir={tmp_path / 'nonexistent'}",),
+        extra_args=(f"-blocksdir={blocksdir}",),
     )
-    with pytest.raises(
-        RuntimeError, match="specified blocks directory .* does not exist"
-    ):
+    with pytest.raises(RuntimeError, match=_blocksdir_refusal(blocksdir)):
         adapter.start()
 
 

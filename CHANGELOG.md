@@ -438,3 +438,9 @@ one that bypasses it without naming its own `trace_rpc` (closes #89).
 A coin is charged its serialized `TxOut` plus `PER_UTXO_OVERHEAD`, one byte
 less from Core `v32.0.0` on (bitcoin/bitcoin#31449), read off
 `getnetworkinfo`'s `version`, so Core's `master` passes too (closes #107).
+
+### `feature_blocksdir` matches the whole refusal on both btclib-node builds
+
+The refusal is matched as the node's whole stderr, the path included, in Core's
+wording `main` writes or the released build's own, so `main` no longer fails it
+and bitcoind's twin pins its text the same way (closes #141).

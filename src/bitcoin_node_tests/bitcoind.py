@@ -36,6 +36,10 @@ __all__ = [
     "BitcoindAdapter",
 ]
 
+# the wallet `mine` pays to, loaded from the datadir where a restart or
+# an earlier adapter left it there, created where nothing did
+_MINER_WALLET = "miner"
+
 
 @lru_cache
 def _has_wallet(executable: str) -> bool:
@@ -86,7 +90,7 @@ class BitcoindAdapter(NodeAdapter):
     file rather than a credential this adapter invents.
 
     `Capability.MINE` is `generatetoaddress` over a wallet this adapter
-    creates on first use, and unlike every other capability below it is
+    loads or creates on use, and unlike every other capability below it is
     not a fact fixed for the whole class: `mine` needs a build with
     wallet support compiled in, which every release this repository
     fetches has, but a Core developer's own build tree can configure out
@@ -95,8 +99,8 @@ class BitcoindAdapter(NodeAdapter):
     read from the running build rather than assumed for the whole class.
     `_has_wallet` above is the probe, and `__init__` below is what drops
     the capability from an instance built against a `bitcoind` lacking
-    it, rather than declaring it and failing `mine`'s own
-    `createwallet` call once a test actually calls it.
+    it, rather than declaring it and failing `mine`'s own wallet calls
+    once a test actually calls it.
     `Capability.CONNECT` is `node.connect_nodes`
     (`node.py`), unconditional here since bitcoind answers `addnode` and
     `getnetworkinfo` the way every Core-compatible node does.
@@ -226,7 +230,6 @@ class BitcoindAdapter(NodeAdapter):
             rpc_auth,
             trace_rpc=trace_rpc,
         )
-        self._miner_wallet: str | None = None
         if not _has_wallet(executable):
             self.capabilities = type(self).capabilities - {Capability.MINE}
 
@@ -306,12 +309,31 @@ class BitcoindAdapter(NodeAdapter):
         """
         return self._datadir / "regtest" / "debug.log"
 
+    def _load_miner_wallet(self) -> None:
+        """Make `_MINER_WALLET` loaded: already, loaded from disk, or created.
+
+        Asked of the node on every call rather than cached per adapter: a
+        restart leaves the wallet on disk and unloaded, and a second adapter
+        over the same datadir finds the first one's there, where
+        `createwallet` answers "Database already exists" (measured against
+        the pinned `31.1`, [ISS 86](https://github.com/btclib-org/bitcoin-node-tests/issues/86)).
+        `listwalletdir` is what names a wallet on disk and unloaded.
+        """
+        loaded = self.rpc.call("listwallets")
+        if isinstance(loaded, list) and _MINER_WALLET in loaded:
+            return
+        walletdir = self.rpc.call("listwalletdir")
+        on_disk = walletdir.get("wallets", []) if isinstance(walletdir, dict) else []
+        names = {entry.get("name") for entry in on_disk if isinstance(entry, dict)}
+        method = "loadwallet" if _MINER_WALLET in names else "createwallet"
+        self.rpc.call(method, [_MINER_WALLET])
+
     def mine(self, count: int = 1) -> list[str]:
         """Mine `count` blocks to this adapter's wallet, return their hashes.
 
-        `generatetoaddress`, over a wallet created and cached on first
-        call: Core's own regtest mining needs an address to pay, and a
-        fresh wallet answers `getnewaddress` with one that this same
+        `generatetoaddress`, over the wallet `_load_miner_wallet` makes
+        loaded first: Core's own regtest mining needs an address to pay,
+        and a wallet answers `getnewaddress` with one that this same
         client can later spend from, which is `Capability.MINE`'s whole
         promise rather than only a taller chain.
 
@@ -319,10 +341,8 @@ class BitcoindAdapter(NodeAdapter):
         :returns: the mined blocks' own hashes, Core's own
             `generatetoaddress` return value.
         """
-        if self._miner_wallet is None:
-            self._miner_wallet = "miner"
-            self.rpc.call("createwallet", [self._miner_wallet])
-        wallet_rpc = self.rpc.for_wallet(self._miner_wallet)
+        self._load_miner_wallet()
+        wallet_rpc = self.rpc.for_wallet(_MINER_WALLET)
         address = wallet_rpc.call("getnewaddress")
         hashes = self.rpc.call("generatetoaddress", [count, address])
         if not isinstance(hashes, list):

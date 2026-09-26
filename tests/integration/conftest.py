@@ -184,9 +184,10 @@ def _stop_all(adapters: Sequence[NodeAdapter]) -> None:
 
     Nested `try`/`finally` rather than a `contextlib.ExitStack`: each
     stop runs even where a later-started one raised -- a node `stop` had
-    to kill -- and every error raised is kept, each chained to the one
-    before, where an `ExitStack` runs its callbacks outside an `except`
-    block and keeps only the last error it meets.
+    to kill, or one that had crashed -- and every error raised is kept,
+    each chained to the one before, where an `ExitStack` runs its
+    callbacks outside an `except` block and keeps only the last error it
+    meets.
     """
     if not adapters:
         return

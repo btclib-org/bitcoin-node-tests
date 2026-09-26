@@ -280,6 +280,7 @@ def test_stop_terminates_and_waits(tmp_path: Path) -> None:
     """`stop` terminates the process and waits for it, then forgets it."""
     process = MagicMock()
     process.poll.return_value = None
+    process.wait.return_value = 0
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
     with patch("subprocess.Popen", return_value=process):
         adapter.start()
@@ -289,10 +290,89 @@ def test_stop_terminates_and_waits(tmp_path: Path) -> None:
     adapter.stop()  # a second stop is again a no-op, the process forgotten
 
 
+def test_stop_raises_on_a_process_that_already_exited_non_zero(
+    tmp_path: Path,
+) -> None:
+    """A node gone before `stop` is a crash, raised with its code and stderr."""
+    process = MagicMock()
+    process.poll.side_effect = [None, 3]
+    process.wait.return_value = 3
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", return_value=process):
+        adapter.start()
+    (tmp_path / "node" / "node-stderr.log").write_bytes(b"Assertion failed: boom\n")
+    with pytest.raises(
+        RuntimeError,
+        match=r"^node process exited with 3 before stop was called -- "
+        r"stderr: Assertion failed: boom$",
+    ):
+        adapter.stop()
+    adapter.stop()  # the crashed process is forgotten too
+
+
+def test_stop_raises_on_a_non_zero_exit_on_terminate(tmp_path: Path) -> None:
+    """A node exiting other than cleanly on `terminate` is raised too."""
+    process = MagicMock()
+    process.poll.return_value = None
+    process.wait.return_value = -11
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", return_value=process):
+        adapter.start()
+    (tmp_path / "node" / "node-stderr.log").write_bytes(b"")
+    with pytest.raises(
+        RuntimeError, match=r"^node process exited with -11 on terminate -- stderr: $"
+    ):
+        adapter.stop()
+    process.terminate.assert_called_once()
+    adapter.stop()
+
+
+def test_stop_accepts_a_process_that_already_exited_cleanly(tmp_path: Path) -> None:
+    """A node already gone with code 0, as an RPC `stop` leaves it, is clean."""
+    process = MagicMock()
+    process.poll.side_effect = [None, 0]
+    process.wait.return_value = 0
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", return_value=process):
+        adapter.start()
+    adapter.stop()
+
+
+def test_stop_accepts_stderr_beside_a_clean_exit(tmp_path: Path) -> None:
+    """Stderr alone does not fail a node that exits cleanly on `terminate`."""
+    process = MagicMock()
+    process.poll.return_value = None
+    process.wait.return_value = 0
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", return_value=process):
+        adapter.start()
+    (tmp_path / "node" / "node-stderr.log").write_bytes(b"Warning: provoked\n")
+    adapter.stop()
+
+
+def test_start_refuses_a_second_start_while_a_process_is_held(tmp_path: Path) -> None:
+    """A second `start` raises rather than orphaning the first process."""
+    process = MagicMock()
+    process.poll.return_value = None
+    process.wait.return_value = 0
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", return_value=process) as popen:
+        adapter.start()
+        with pytest.raises(RuntimeError, match="^node already started"):
+            adapter.start()
+        assert popen.call_count == 1
+        process.terminate.assert_not_called()
+        adapter.stop()
+        process.terminate.assert_called_once()
+        adapter.start()  # a stopped adapter starts again
+    assert popen.call_count == 2
+
+
 def test_stop_kills_a_process_that_outlives_the_wait(tmp_path: Path) -> None:
     """A process still running after the wait is killed, then raised."""
     process = MagicMock()
     process.poll.return_value = None
+    process.wait.return_value = 0
     process.wait.side_effect = [subprocess.TimeoutExpired("fake-node", 30.0), 0]
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
     with patch("subprocess.Popen", return_value=process):
@@ -312,6 +392,7 @@ def test_stop_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
 
     process = MagicMock()
     process.poll.return_value = None
+    process.wait.return_value = 0
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
     with patch("subprocess.Popen", return_value=process):
         adapter.start()
@@ -328,6 +409,7 @@ def test_restart_stops_then_starts(tmp_path: Path) -> None:
     """`restart` is `stop` then `start`, over the same data directory."""
     process = MagicMock()
     process.poll.return_value = None
+    process.wait.return_value = 0
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
     with patch("subprocess.Popen", return_value=process) as popen:
         adapter.start()
@@ -343,6 +425,7 @@ def test_restart_extra_args_replace_the_constructor_s_for_that_start_only(
     datadir = tmp_path / "node"
     process = MagicMock()
     process.poll.return_value = None
+    process.wait.return_value = 0
     adapter = _FakeAdapter(
         "fake-node", datadir, 0, 0, extra_args=["-uacomment=a"], rpc=_FakeRpc()
     )
@@ -364,6 +447,7 @@ def test_restart_refuses_a_reserved_option_before_stopping(tmp_path: Path) -> No
     """A refused replacement leaves the running node running, untouched."""
     process = MagicMock()
     process.poll.return_value = None
+    process.wait.return_value = 0
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
     with patch("subprocess.Popen", return_value=process) as popen:
         adapter.start()
@@ -378,6 +462,7 @@ def test_restart_whose_start_fails_leaves_nothing_running(tmp_path: Path) -> Non
     datadir = tmp_path / "node"
     running = MagicMock()
     running.poll.return_value = None
+    running.wait.return_value = 0
     refused = _FakeProcess(exit_after=0)
     adapter = _FakeAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
     with patch("subprocess.Popen", side_effect=[running, refused, running]) as popen:

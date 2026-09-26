@@ -161,6 +161,11 @@ class BitcoindAdapter(NodeAdapter):
     unconditional too: `getdescriptoractivity` and `getblockstats` are
     both RPCs of this binary's own, answered regardless of which
     descriptor, block or statistic a caller names.
+    `Capability.FASTPRUNE`, `Capability.INBOUND_EVICTION` and
+    `Capability.BLOCK_FILTER_INDEX` are unconditional too: `-fastprune`,
+    `-maxconnections` and `-blockfilterindex` are this binary's own flags,
+    and inbound eviction and `scanblocks` are its own behaviour behind
+    the second and the third.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -186,6 +191,9 @@ class BitcoindAdapter(NodeAdapter):
             Capability.LIMIT_CLUSTER_SIZE,
             Capability.DESCRIPTOR_ACTIVITY,
             Capability.BLOCK_STATS,
+            Capability.FASTPRUNE,
+            Capability.INBOUND_EVICTION,
+            Capability.BLOCK_FILTER_INDEX,
         }
     )
 

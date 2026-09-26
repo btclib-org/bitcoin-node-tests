@@ -238,6 +238,20 @@ class Capability(Enum):
     ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
     `BLOCK_STATS` -- answer `getblockstats`, Core's own per-block
     statistics RPC, named the same way and for the same reason.
+    `FASTPRUNE` -- recognise `-fastprune`, Core's own debug-only switch
+    to block files far smaller than a real node's, so that a test reaches
+    a block file's size limit with a single large block
+    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+    own `feature_fastprune.py`).
+    `INBOUND_EVICTION` -- make room for a new inbound peer, once its
+    inbound slots are full, by disconnecting an existing one that none of
+    Core's own protections covers, the slots being what `-maxconnections`
+    bounds (`p2p_eviction.py`). Named for the eviction rather than for
+    the option: a node can accept `-maxconnections` and refuse the new
+    peer instead of evicting an old one.
+    `BLOCK_FILTER_INDEX` -- keep BIP158's basic block filter for every
+    block once `-blockfilterindex` asks for it, and answer `scanblocks`
+    from that index (`rpc_scanblocks.py`).
     """
 
     MINE = "mine"
@@ -261,6 +275,9 @@ class Capability(Enum):
     LIMIT_CLUSTER_SIZE = "limit_cluster_size"
     DESCRIPTOR_ACTIVITY = "descriptor_activity"
     BLOCK_STATS = "block_stats"
+    FASTPRUNE = "fastprune"
+    INBOUND_EVICTION = "inbound_eviction"
+    BLOCK_FILTER_INDEX = "block_filter_index"
 
 
 class SkipCounts:

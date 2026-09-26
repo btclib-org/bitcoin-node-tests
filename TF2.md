@@ -832,6 +832,10 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_getdescriptoractivity.py` | `3fd68a95e68b` | 2026-04-07 | pass | skip |
 | `rpc_getdescriptoractivity.py` (mempool) | same | same | pass | skip |
 | `rpc_getblockstats.py` | `b7cbd804284b` | 2026-05-25 | pass | skip (stats) |
+| `feature_fastprune.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
+| `rpc_scanblocks.py` | `aeca0610865e` | 2026-07-01 | pass | skip |
+| `rpc_scanblocks.py` (no index) | same | same | pass | skip |
+| `p2p_eviction.py` | `1b76e0473647` | 2026-07-24 | pass, `-maxconnections` read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (inbound_eviction) on the build; skip (mine) on a build past [ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1527,9 +1531,8 @@ the wallet files excepted.
 mempool-policy files, are read this round too and stay open.
 `mempool_package_rbf.py` drives a second node in Core's own file, never
 read from -- its own `sync_all` calls confirm nothing either test
-asserts on -- dropped as a smaller claim, the way `rpc_scanblocks.py`'s
-own second node already is -- so what actually blocks it is the same
-`confirmed_only`/`get_utxos` gap (ISS 69) and `fill_mempool` (ISS 70)
+asserts on -- dropped as a smaller claim, so what actually blocks it
+is the same `confirmed_only`/`get_utxos` gap (ISS 69) and `fill_mempool` (ISS 70)
 `rpc_packages.py` needs above, plus TRUC's own non-default transaction
 version, which `create_self_transfer` does not yet parametrize.
 `mempool_truc.py` needs no second node and no option at its own base
@@ -1984,3 +1987,75 @@ vendored fixture and every comparison it feeds -- the full key set, the
 heights and each statistic of the blocks it replays, by height and by
 hash -- its per-stat query loop over those blocks, and its
 `submitheader`-only-known-block case.
+
+`feature_fastprune.py`'s row is Core's own claim in full, reached
+another way: a node under `-fastprune`, whose block files are far
+smaller than a real node's, stores and connects a block larger than
+one of them rather than crashing or freezing on it. Core pads a
+`MiniWallet` transaction's witness with a BIP341 annex past a block
+file's own size and mines it with `generateblock`, paying a raw script;
+this pads it the same way and mines it client-side over `submitblock`,
+`MiniWallet.generate`'s own `confirm` naming it, paying the wallet's
+own script. Core asserts the block count its cached chain reaches; this
+asserts the count its own fresh chain reaches, and that the new tip
+carries the transaction and is larger than the annex.
+
+`rpc_scanblocks.py`'s rows are Core's own claim in full: a scan by
+address and by ranged `pkh()` descriptor, `start_height` and
+`stop_height` bounding it, `filter_false_positives` either way, Core's
+precomputed false positive colliding with the regtest genesis block's
+coinbase output, every argument error Core's file asserts, and, on a
+row of its own, a node started without `-blockfilterindex` refusing a
+scan. That node is Core's second, independent of the first and asked
+for nothing but the refusal, so it is its own test here. Core's
+`generate` flushes the validation queue before returning; this waits
+instead for `getindexinfo`'s own `best_block_height` to reach the tip,
+`synced` staying true while the index is still behind a block just
+mined. Core checks its false positive with
+`bip158_basic_element_hash`; this builds the genesis block's own filter
+with btclib's `BasicBlockFilter.from_block` and asks it to `match` both
+scripts. Core's refusal of a null `scanobjects` is `master`'s wording
+from the pinned commit on, and the pinned release refuses the same call
+as a type error instead: either refusal passes, each with its own code.
+
+`p2p_eviction.py`'s row is Core's own claim in full: inbound peers fill
+the slots `-maxconnections` leaves for transaction-relaying peers, the
+next one to connect triggers an eviction, exactly one peer is
+disconnected, and it is none of those protected for sending a novel
+block, for sending a transaction or for the lowest ping. How many
+inbound slots a given `-maxconnections` leaves for such peers differs
+between builds: the pinned commit lets transaction-relaying peers take
+only a share of a node's inbound slots, and the pinned release does not
+set them apart. So the value is read from the build
+([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+`-help` naming the share where the build has one -- in
+`-maxconnections`'s own description at the pinned commit, as
+`-inboundrelaypercent` on Core's `master` since -- and the test passes
+Core's own value for the build it finds: the pinned commit's, or the one
+Core's own file carried before it. `Peer` answers a ping only while a
+caller reads, where Core's own peers answer from a background thread, so
+the test reads for it: after each handshake it answers the node's first
+ping, at once for a fast peer and after Core's own delay for a slow one,
+and waits for the `sync_with_ping` barrier Core's `add_p2p_connection`
+runs. Core sends a transaction without waiting for it; this waits for
+that barrier after it too, so the node has accepted it before the next
+peer connects.
+
+Every `btclib-node` cell of this batch is a counted skip.
+Neither `-fastprune` nor `-blockfilterindex` is one of `cli.py`'s
+registered flags, on the released build or on `main`, and neither
+build answers `scanblocks`. `Capability.INBOUND_EVICTION` is declared
+per instance, by `btclib_node.py`'s own `_evicts_inbound` probe: the
+released build carries no inbound eviction and skips on it, and a
+`main` past
+[ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064)
+declares it and skips on `Capability.MINE` instead.
+
+`tool_utxo_to_sqlite.py`, the last of this batch, is not ported. Its
+subject is `contrib/utxo-tools/utxo_to_sqlite.py`, a script of Core's
+own source tree the test finds through the build's own `config.ini`,
+run against a UTXO set the node dumps: not a node, and not a file
+`.github/actions/install-bitcoind/action.yml` extracts from the release,
+which is `bin/bitcoind` alone. What it asks of the node, `dumptxoutset`
+and `gettxoutsetinfo`'s own MuHash, is the subject of Core's
+`rpc_dumptxoutset.py` and `feature_utxo_set_hash.py`.

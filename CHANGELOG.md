@@ -432,3 +432,9 @@ code, where bitcoind ignored `-rpcbind` alone, served RPC on `::1` and left
 Test modules and `mixed_cluster` built their adapters without it; each now goes
 through the `make_adapter` fixture, and `tests/tracerpc_reach_test.py` fails on
 one that bypasses it without naming its own `trace_rpc` (closes #89).
+
+### `rpc_getblockstats`'s `utxo_size_inc` expectations follow the running build
+
+A coin is charged its serialized `TxOut` plus `PER_UTXO_OVERHEAD`, one byte
+less from Core `v32.0.0` on (bitcoin/bitcoin#31449), read off
+`getnetworkinfo`'s `version`, so Core's `master` passes too (closes #107).

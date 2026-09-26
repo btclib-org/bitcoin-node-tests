@@ -2009,9 +2009,11 @@ receive-then-spend, its mix of a confirmed and an unconfirmed payment,
 and its no-address (`RAW_P2PK`) case, this repository's own `MiniWallet`
 building only Core's `ADDRESS_OP_TRUE` mode. `rpc_getblockstats.py`'s
 own kept and dropped set: kept is the genesis block's own statistics --
-independently computed with `btclib.coinstats.bogo_size` rather than
-copied from Core's own literals, genesis being a network constant this
-harness's own chain shares with Core's -- and the same answer when the
+independently computed as its serialized `TxOut` plus `getblockstats`'s
+own per-coin overhead, the one the running build's `getnetworkinfo`
+`version` implies, rather than copied from Core's own literals, genesis
+being a network constant this harness's own chain shares with Core's --
+and the same answer when the
 block is selected by hash; that an `OP_RETURN` output is counted in
 `utxo_increase`/`utxo_size_inc` but excluded from
 `utxo_increase_actual`/`utxo_size_inc_actual`; that `stats=[...]`

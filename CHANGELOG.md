@@ -468,3 +468,9 @@ and the release does not (closes #140).
 A master-only failure reads "file unchanged since the pin" only where no data
 file its Core test loads has moved either, where the entry closing #143 names
 the test file alone; a moved data file is a stale port, named (closes #146).
+
+### `check_vendored_vectors` does not read a removed pin as changed content
+
+A pin whose file upstream deleted or renamed is reported as the commit that
+removed it, which the report says may be a deletion or a rename; "no commit"
+names a path the branch walked never held (closes #150).

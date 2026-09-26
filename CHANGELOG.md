@@ -474,3 +474,9 @@ the test file alone; a moved data file is a stale port, named (closes #146).
 A pin whose file upstream deleted or renamed is reported as the commit that
 removed it, which the report says may be a deletion or a rename; "no commit"
 names a path the branch walked never held (closes #150).
+
+### `BitcoindAdapter`'s wallet probe is checked against a build tree's record
+
+`ENABLE_WALLET` is the one `test/config.ini` component a declared capability
+rests on; the adapter still probes the binary, as a release needs, and a test
+compares the two wherever `bitcoind` sits in a Core build tree (closes #53).

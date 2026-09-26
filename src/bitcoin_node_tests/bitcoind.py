@@ -48,20 +48,38 @@ def _has_wallet(executable: str) -> bool:
     A Core build tree's own `test/config.ini` records this under
     `[components] ENABLE_WALLET` (`capability.py`'s own module docstring
     is the rule this reads), but that file sits beside a build tree's own
-    binary and nowhere near a release tarball's -- `bitcoind-31.1`'s own
-    layout, this repository's pinned oracle, has no `test/` directory at
-    all. `-help`'s own output is what every `bitcoind`, built or fetched,
-    answers alike: `common/args.cpp`'s `AddWalletOptions` prints a
-    "Wallet options:" group only where `dummywallet.cpp`'s own
-    `DummyWalletInit` is not what registered them -- that implementation
+    binary -- `<build>/test/config.ini` beside `<build>/bin/bitcoind` --
+    and nowhere near a release tarball's: `bitcoind-31.1`'s own layout,
+    this repository's pinned oracle, has no `test/` directory at all.
+    `-help`'s own output is what every `bitcoind`, built or fetched,
+    answers alike: `common/args.cpp`'s `ArgsManager::GetHelpMessage`
+    prints a "Wallet options:" group only where some argument was
+    registered under `OptionsCategory::WALLET`, which `wallet/init.cpp`'s
+    `WalletInit::AddWalletOptions` does and `dummywallet.cpp`'s own
+    `DummyWalletInit::AddWalletOptions` does not -- that implementation
     hides every wallet argument with `AddHiddenArgs` instead, so a build
-    without wallet support still starts on `-disablewallet` (measured
-    against Core's `master`, `dummywallet.cpp`'s own `AddWalletOptions`)
-    but never mentions it in `-help`. A probe of the binary itself, in
-    the same standing as `btclib_node.py`'s own `_writes_auth_cookie`:
-    no port bound, no data directory created, and cached per executable
-    because the answer is a fact about the build rather than about any
-    one adapter instance.
+    without wallet support still starts on `-disablewallet` but never
+    mentions it in `-help` (measured against Core's `master`). A probe of
+    the binary itself, in the same standing as `btclib_node.py`'s own
+    `_writes_auth_cookie`: no port bound, no data directory created, and
+    cached per executable because the answer is a fact about the build
+    rather than about any one adapter instance.
+
+    `ENABLE_WALLET` is the one `[components]` entry a capability
+    `BitcoindAdapter` declares rests on
+    ([ISS 53](https://github.com/btclib-org/bitcoin-node-tests/issues/53)).
+    `ENABLE_ZMQ`, `ENABLE_EXTERNAL_SIGNER`, `ENABLE_EMBEDDED_ASMAP` and
+    `ENABLE_USDT_TRACEPOINTS` gate `-zmqpub*`, `-signer` and
+    `enumeratesigners`, a bare `-asmap`, and tracepoints, none of them a
+    `Capability` member; each remaining entry of Core's
+    `test/config.ini.in` names executables the build produced,
+    `ENABLE_IPC`'s `bitcoin-node` among them, `bitcoind` itself never
+    listening on `-ipcbind` (measured against Core's `master`). So for
+    what this adapter declares, this probe answers everything the file
+    would, and answers for a release too. A capability that comes to
+    rest on a second entry is probed the same way, off the binary: the
+    file would be a second source for the fact, and one a release cannot
+    consult.
 
     `-nosettings` is not optional: `-help` alone still runs enough of
     `AppInit` to read and rewrite the *default* datadir's own

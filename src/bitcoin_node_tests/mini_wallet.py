@@ -56,16 +56,34 @@ specific cached coin by its own txid, with no maturity filter -- a caller
 naming one by hand is presumed to know what it is asking for,
 `mempool_spend_coinbase.py`'s own subject being what a *node* does with an
 immature one; `create_self_transfer` and `send_self_transfer` both take an
-optional `utxo_to_spend`, spending the named coin in place of the next
-automatically matured one. The other two have no counterpart there.
+optional `utxo_to_spend`, spending the named coin in place of the one
+`get_utxo` would pick. The other two have no counterpart there.
 `resync` re-reads this wallet's own tip, height and median-time the way
 `__init__` does, for a chain an `invalidateblock` or a `build_fork`
 submission moved without this wallet's own `generate` doing it.
 `rescan_utxos` (`wallet.py`) is the shape not taken: it also rebuilds the
 coin cache from `scantxoutset`, which this module's own docstring already
-has why nothing here ever calls; `resync` moves only the tip a `generate`
-after it needs, leaving `_utxos` for the caller to reconcile against
-whatever the RPC that exposed the reorg already told it.
+has why nothing here ever calls; `resync` leaves the cache's membership
+for the caller to reconcile against whatever the RPC that exposed the
+reorg already told it.
+
+A cached coin's own `height` is the fact `confirmed_only` filters on,
+`get_utxo`'s and `get_utxos`' alike (`wallet.py`): the block that holds
+it, or `0` for a coin no block holds as far as this wallet knows.
+`wallet.py` keeps a separate `confirmations` beside a height that is `0`
+exactly when that count is, and filters on the count being positive;
+`Utxo.confirmed` is that same test read off the height. `generate` sets
+it for the coins it caches, those paying this wallet among the outputs
+of a transaction its own `confirm` carries included. A block mined
+anywhere else -- by another node, or by `generatetoaddress` on this one,
+each filling it from a mempool -- confirms a coin this wallet cannot see
+from here, so `resync` also asks the node: `gettxout` with
+`include_mempool` false, for every cached coin that is not a coinbase,
+`rescan_utxos`' own role in the one respect a `confirmed_only` caller
+needs. `gettxout` rather than `getrawtransaction`: it answers from the
+chainstate's own UTXO set, where `getrawtransaction` finds a transaction
+outside the mempool only with `-txindex` or its block's hash, neither of
+which this wallet has.
 
 `generate`'s own `confirm` is the second: no Core file has it, because
 Core's own node-side mining (`generatetodescriptor`) pulls the whole
@@ -106,7 +124,7 @@ order they were cached needs the pair rather than the first match alone.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -166,12 +184,21 @@ _REGTEST_SUBSIDY_HALVING_INTERVAL = CONSENSUS_PARAMS["regtest"].subsidy_halving_
 
 @dataclass(frozen=True)
 class Utxo:
-    """One coin `MiniWallet` knows about, spendable with `_witness()` alone."""
+    """One coin `MiniWallet` knows about, spendable with `_witness()` alone.
+
+    `height` is the block holding the coin, `0` where no block does as far
+    as the wallet knows -- this module's own docstring has how it learns.
+    """
 
     outpoint: OutPoint
     value: int
     height: int
     coinbase: bool
+
+    @property
+    def confirmed(self) -> bool:
+        """Return whether a block holds this coin, `confirmed_only`'s test."""
+        return self.height > 0
 
 
 def _read_tip(node: NodeAdapter) -> tuple[bytes, int, int]:
@@ -371,18 +398,47 @@ class MiniWallet:
         self._tip, self._height, self._last_time = _read_tip(node)
 
     def resync(self) -> None:
-        """Re-read this wallet's own tip, height and median-time from the node.
+        """Re-read the tip from the node, and which cached coins a block holds.
 
         For a chain move this wallet did not itself make -- an
         `invalidateblock`, or a `build_fork` a caller has just submitted --
         so that the next `generate` extends the chain that is actually
         there instead of a tip this wallet last saw before it moved.
-        `_utxos` is left untouched: this class has no `scantxoutset` to
-        rebuild it from (this module's own docstring has why), so a coin
-        the move spent or unspent again is the caller's own to reconcile,
-        from whatever RPC told it the move happened.
+        No coin is added to the cache or dropped from it: this class has
+        no `scantxoutset` to rebuild it from (this module's own docstring
+        has why), so a coin the move spent or unspent again is the
+        caller's own to reconcile, from whatever RPC told it the move
+        happened.
+
+        What changes is each cached non-coinbase coin's own `height`, as
+        `gettxout` answers it with `include_mempool` false: the block
+        holding the coin where the chainstate's UTXO set has it, `0`
+        where it does not -- a coin only the mempool holds, or one a
+        block has spent. A coinbase is left as it is, `generate` having
+        cached it at the height of the block that created it.
+
+        :raises TypeError: `getbestblockhash`, `getblockcount`,
+            `getblockchaininfo` or `gettxout` answered something this call
+            cannot use.
         """
         self._tip, self._height, self._last_time = _read_tip(self._node)
+        for index, utxo in enumerate(self._utxos):
+            if utxo.coinbase:
+                continue
+            answer = self._node.rpc.call(
+                "gettxout", [utxo.outpoint.tx_id.hex(), utxo.outpoint.vout, False]
+            )
+            if answer is None:
+                height = 0
+            else:
+                confirmations = (
+                    answer.get("confirmations") if isinstance(answer, dict) else None
+                )
+                if not isinstance(confirmations, int) or confirmations < 1:
+                    err_msg = f"gettxout answered {answer!r}, no confirmations"
+                    raise TypeError(err_msg)
+                height = self._height - confirmations + 1
+            self._utxos[index] = replace(utxo, height=height)
 
     @property
     def script_pub_key(self) -> ScriptPubKey:
@@ -416,7 +472,8 @@ class MiniWallet:
             the whole mempool in on every block; this class reads no
             mempool back, so a caller names exactly what it wants
             confirmed, in an order where a spend of one of them already
-            sits after it.
+            sits after it. Every cached coin one of them pays takes that
+            block's own height, which is what `confirmed_only` reads.
         :returns: the mined blocks' own header hashes, display order,
             oldest first.
         :raises RuntimeError: `mine` exhausted its own search bound
@@ -442,6 +499,13 @@ class MiniWallet:
             if answer is not None:
                 err_msg = f"submitblock refused height {height}: {answer!r}"
                 raise TypeError(err_msg)
+            confirmed_ids = {tx.id for tx in extra_transactions}
+            self._utxos = [
+                replace(utxo, height=height)
+                if utxo.outpoint.tx_id in confirmed_ids
+                else utxo
+                for utxo in self._utxos
+            ]
             self._utxos.append(
                 Utxo(
                     outpoint=OutPoint(block.transactions[0].id, 0),
@@ -456,74 +520,160 @@ class MiniWallet:
             hashes.append(self._tip)
         return hashes
 
-    def get_utxo(self, *, txid: str, vout: int | None = None) -> Utxo:
-        """Return and forget the cached coin `txid` paid, maturity aside.
-
-        `get_utxo` (`wallet.py`): a caller naming a coin by its own txid is
-        presumed to already know what it is, so this applies no maturity
-        filter -- `mempool_spend_coinbase.py`'s own subject is what the
-        *node* does when handed a spend of one that has not cleared
-        `COINBASE_MATURITY` yet, not a check this class should make first.
-
-        :param txid: the hex txid of the coin's own transaction.
-        :param vout: the coin's own output index, where more than one
-            cached coin shares `txid` -- `create_self_transfer_multi`'s
-            own several outputs -- and a caller wants a specific one
-            rather than whichever was cached first.
-        :raises LookupError: no cached coin's own outpoint names `txid`
-            (and `vout`, where given).
-        """
-        for index, utxo in enumerate(self._utxos):
-            if utxo.outpoint.tx_id.hex() != txid:
-                continue
-            if vout is not None and utxo.outpoint.vout != vout:
-                continue
-            return self._utxos.pop(index)
-        err_msg = f"no coin of this wallet was paid by txid {txid!r}"
-        if vout is not None:
-            err_msg += f", vout {vout}"
-        raise LookupError(err_msg)
-
-    def _pop_mature_utxo(self) -> Utxo:
-        """Return and forget the first matured coin this wallet still holds.
+    def _is_mature(self, utxo: Utxo) -> bool:
+        """Return whether `utxo` is spendable in the next block.
 
         Matured: a coinbase spent at `self._height + 1` -- the earliest
         height a transaction broadcast now could be mined at -- clears
-        `COINBASE_MATURITY`, the same threshold Core's own `get_utxo`
-        (`wallet.py`) applies for the same reason. A non-coinbase coin,
-        which this class never yet produces, would need none of it.
-
-        :raises LookupError: no coin of this wallet has matured yet.
+        `COINBASE_MATURITY`, the threshold Core's own `get_utxo` and
+        `get_utxos` (`wallet.py`) apply; a non-coinbase coin always is.
+        `self._height` is this wallet's own tip, where `wallet.py` asks
+        `getblockchaininfo` for it: `resync` is what brings it forward
+        past a block this wallet did not mine.
         """
-        for index, utxo in enumerate(self._utxos):
-            spend_height = self._height + 1
-            if not utxo.coinbase or spend_height - utxo.height >= COINBASE_MATURITY:
-                return self._utxos.pop(index)
-        err_msg = "no coin of this wallet has matured yet"
-        raise LookupError(err_msg)
+        return not utxo.coinbase or self._height + 1 - utxo.height >= COINBASE_MATURITY
+
+    def get_utxo(
+        self,
+        *,
+        txid: str | None = None,
+        vout: int | None = None,
+        mark_as_spent: bool = True,
+        confirmed_only: bool = False,
+    ) -> Utxo:
+        """Return a cached coin, forgetting it unless `mark_as_spent` is false.
+
+        `get_utxo` (`wallet.py`), in its order: the cache is first sorted
+        in place by value, then by descending height, so the largest coin
+        sits last and, among equal values, the lowest height after the
+        higher. Without `txid` the answer is the largest matured coin, the
+        lowest height of equal ones -- a coin no block holds, at `0`,
+        ahead of a confirmed one. With it, the answer is the first coin in
+        that order `txid` paid, maturity aside: a caller naming a coin by
+        its own txid is presumed to already know what it is,
+        `mempool_spend_coinbase.py`'s own subject being what the *node*
+        does when handed a spend of one that has not cleared
+        `COINBASE_MATURITY` yet.
+
+        :param txid: the hex txid of the coin's own transaction; the
+            largest matured coin where `None`.
+        :param vout: the coin's own output index, where more than one
+            cached coin shares `txid` -- `create_self_transfer_multi`'s
+            own several outputs -- and a caller wants a specific one
+            rather than whichever the order above puts first.
+        :param mark_as_spent: where false, the coin is returned and stays
+            cached, for a caller that will spend it itself; the `create_*`
+            method that spends it drops it then.
+        :param confirmed_only: only a coin a block holds (`Utxo.confirmed`).
+        :raises LookupError: no cached coin answers every filter given --
+            `wallet.py`'s own `next` raising `StopIteration` instead.
+        """
+        self._utxos.sort(key=lambda utxo: (utxo.value, -utxo.height))
+        if txid is not None:
+            candidates = [u for u in self._utxos if u.outpoint.tx_id.hex() == txid]
+        else:
+            candidates = [u for u in reversed(self._utxos) if self._is_mature(u)]
+        if vout is not None:
+            candidates = [u for u in candidates if u.outpoint.vout == vout]
+        if confirmed_only:
+            candidates = [u for u in candidates if u.confirmed]
+        if not candidates:
+            if txid is not None:
+                err_msg = f"no coin of this wallet was paid by txid {txid!r}"
+            else:
+                err_msg = "no coin of this wallet has matured yet"
+            if vout is not None:
+                err_msg += f", vout {vout}"
+            if confirmed_only:
+                err_msg += ", confirmed"
+            raise LookupError(err_msg)
+        index = self._utxos.index(candidates[0])
+        return self._utxos.pop(index) if mark_as_spent else self._utxos[index]
+
+    def get_utxos(
+        self,
+        *,
+        include_immature_coinbase: bool = False,
+        mark_as_spent: bool = True,
+        confirmed_only: bool = False,
+    ) -> list[Utxo]:
+        """Return every cached coin the filters keep, in the cache's order.
+
+        `get_utxos` (`wallet.py`): no sort of its own, so the order is
+        whatever the last `get_utxo` sorted the cache into, followed by
+        what was cached after it. `mark_as_spent` forgets the whole
+        cache, not only the coins returned -- an immature coinbase and a
+        coin no block holds are dropped with the rest, as `wallet.py`'s
+        own `self._utxos = []` drops them.
+
+        :param include_immature_coinbase: keep a coinbase that has not
+            matured yet (`_is_mature`).
+        :param mark_as_spent: where true, empty the cache.
+        :param confirmed_only: only coins a block holds (`Utxo.confirmed`).
+        """
+        utxos = [
+            utxo
+            for utxo in self._utxos
+            if (include_immature_coinbase or self._is_mature(utxo))
+            and (not confirmed_only or utxo.confirmed)
+        ]
+        if mark_as_spent:
+            self._utxos = []
+        return utxos
+
+    def _cache(self, tx: Tx, outputs: int) -> None:
+        """Forget every cached coin `tx` spends, then cache its first outputs.
+
+        `scan_tx` (`wallet.py`), for a transaction this class built and so
+        need not decode: an input naming a cached coin -- one a caller
+        took with `mark_as_spent` false -- drops it, and each of the first
+        `outputs` outputs, the ones paying this wallet, is cached with no
+        block holding it yet.
+        """
+        spent = {tx_in.prev_out for tx_in in tx.vin}
+        self._utxos = [u for u in self._utxos if u.outpoint not in spent]
+        self._utxos.extend(
+            Utxo(
+                outpoint=OutPoint(tx.id, vout),
+                value=tx.vout[vout].value,
+                height=0,
+                coinbase=False,
+            )
+            for vout in range(outputs)
+        )
 
     def create_self_transfer(
-        self, *, utxo_to_spend: Utxo | None = None, target_vsize: int = 0
+        self,
+        *,
+        utxo_to_spend: Utxo | None = None,
+        target_vsize: int = 0,
+        confirmed_only: bool = False,
     ) -> Tx:
         """Return an unbroadcast tx spending one coin, paid to itself.
 
         `send_self_transfer` is the caller wanting it broadcast too.
 
         :param utxo_to_spend: the coin to spend, `get_utxo`'s own answer
-            typically; the next automatically matured one where `None`,
-            `_pop_mature_utxo`'s own maturity check applying only then --
-            a caller naming one by hand, immature or not, gets exactly
-            that one, `create_self_transfer` (`wallet.py`)'s own shape.
+            typically; `get_utxo()`'s own largest matured coin where
+            `None`, its maturity check applying only then -- a caller
+            naming one by hand, immature or not, gets exactly that one,
+            `create_self_transfer` (`wallet.py`)'s own shape.
         :param target_vsize: where nonzero, an `OP_RETURN` output padding
             the tx to exactly this many virtual bytes -- `_pad_to_vsize`,
             paid by `utxo_to_spend` alongside `FEE`, beyond the single
             spendable output this method still returns exactly one of.
+        :param confirmed_only: forwarded to `get_utxo` where
+            `utxo_to_spend` is `None`.
         :raises LookupError: `utxo_to_spend` is `None` and no coin of this
-            wallet has matured yet.
+            wallet has matured yet (or is confirmed, with `confirmed_only`).
         :raises ValueError: `target_vsize` is smaller than this tx's own
             vsize before the padding output is even added.
         """
-        utxo = utxo_to_spend if utxo_to_spend is not None else self._pop_mature_utxo()
+        utxo = (
+            utxo_to_spend
+            if utxo_to_spend is not None
+            else self.get_utxo(confirmed_only=confirmed_only)
+        )
         tx_in = TxIn(
             utxo.outpoint,
             script_sig=b"",
@@ -534,30 +684,28 @@ class MiniWallet:
         tx = Tx(version=2, lock_time=0, vin=[tx_in], vout=[tx_out])
         if target_vsize:
             _pad_to_vsize(tx, target_vsize)
-        self._utxos.append(
-            Utxo(
-                outpoint=OutPoint(tx.id, 0),
-                value=tx_out.value,
-                height=0,
-                coinbase=False,
-            )
-        )
+        self._cache(tx, 1)
         return tx
 
-    def send_self_transfer(self, *, utxo_to_spend: Utxo | None = None) -> Tx:
+    def send_self_transfer(
+        self, *, utxo_to_spend: Utxo | None = None, confirmed_only: bool = False
+    ) -> Tx:
         """Create, broadcast and cache a self-transfer; return the sent tx.
 
         The new coin `create_self_transfer` already cached is spendable
-        the moment this returns: unlike a coinbase, `_pop_mature_utxo`
-        never holds a non-coinbase coin back.
+        the moment this returns: unlike a coinbase, `get_utxo` never holds
+        a non-coinbase coin back as immature.
 
         :param utxo_to_spend: forwarded to `create_self_transfer`.
+        :param confirmed_only: forwarded to `create_self_transfer`.
         :raises LookupError: `utxo_to_spend` is `None` and no coin of this
-            wallet has matured yet.
+            wallet has matured yet (or is confirmed, with `confirmed_only`).
         :raises TypeError: `sendrawtransaction` answered something other
             than the sent tx's own id.
         """
-        tx = self.create_self_transfer(utxo_to_spend=utxo_to_spend)
+        tx = self.create_self_transfer(
+            utxo_to_spend=utxo_to_spend, confirmed_only=confirmed_only
+        )
         tx_hex = tx.serialize(True, check_validity=False).hex()
         txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
         if txid != tx.id.hex():
@@ -572,6 +720,7 @@ class MiniWallet:
         num_outputs: int = 1,
         fee_per_output: int = FEE,
         target_vsize: int = 0,
+        confirmed_only: bool = False,
     ) -> Tx:
         """Return an unbroadcast tx spending several coins into several.
 
@@ -584,16 +733,19 @@ class MiniWallet:
         `create_self_transfer` instead, `num_outputs` fixed at one there
         rather than a parameter of it.
 
-        :param utxos_to_spend: the coins to spend; the next automatically
-            matured one alone where `None`.
+        :param utxos_to_spend: the coins to spend; `get_utxo()`'s own
+            largest matured coin alone where `None`.
         :param num_outputs: how many equal-sized outputs to create.
         :param fee_per_output: satoshis short of an equal share of the
             inputs' own total value, per output.
         :param target_vsize: where nonzero, an `OP_RETURN` output padding
             the tx to exactly this many virtual bytes, beyond the
             `num_outputs` spendable ones this method still creates.
+        :param confirmed_only: forwarded to `get_utxo` where
+            `utxos_to_spend` is `None`.
         :raises LookupError: `utxos_to_spend` is `None` and no coin of
-            this wallet has matured yet.
+            this wallet has matured yet (or is confirmed, with
+            `confirmed_only`).
         :raises ValueError: the inputs' own total, less `fee_per_output`
             times `num_outputs`, does not divide into `num_outputs`
             positive shares; or `target_vsize` is smaller than this tx's
@@ -602,7 +754,7 @@ class MiniWallet:
         utxos = (
             list(utxos_to_spend)
             if utxos_to_spend is not None
-            else [self._pop_mature_utxo()]
+            else [self.get_utxo(confirmed_only=confirmed_only)]
         )
         inputs_total = sum(utxo.value for utxo in utxos)
         amount_per_output = (inputs_total - fee_per_output * num_outputs) // num_outputs
@@ -628,15 +780,7 @@ class MiniWallet:
         tx = Tx(version=2, lock_time=0, vin=tx_in, vout=tx_out)
         if target_vsize:
             _pad_to_vsize(tx, target_vsize)
-        for vout in range(num_outputs):
-            self._utxos.append(
-                Utxo(
-                    outpoint=OutPoint(tx.id, vout),
-                    value=amount_per_output,
-                    height=0,
-                    coinbase=False,
-                )
-            )
+        self._cache(tx, num_outputs)
         return tx
 
     def send_self_transfer_multi(
@@ -646,6 +790,7 @@ class MiniWallet:
         num_outputs: int = 1,
         fee_per_output: int = FEE,
         target_vsize: int = 0,
+        confirmed_only: bool = False,
     ) -> Tx:
         """Create, broadcast and cache a multi-output self-transfer.
 
@@ -653,8 +798,10 @@ class MiniWallet:
         :param num_outputs: forwarded to `create_self_transfer_multi`.
         :param fee_per_output: forwarded to `create_self_transfer_multi`.
         :param target_vsize: forwarded to `create_self_transfer_multi`.
+        :param confirmed_only: forwarded to `create_self_transfer_multi`.
         :raises LookupError: `utxos_to_spend` is `None` and no coin of
-            this wallet has matured yet.
+            this wallet has matured yet (or is confirmed, with
+            `confirmed_only`).
         :raises ValueError: forwarded from `create_self_transfer_multi`.
         :raises TypeError: `sendrawtransaction` answered something other
             than the sent tx's own id.
@@ -664,6 +811,7 @@ class MiniWallet:
             num_outputs=num_outputs,
             fee_per_output=fee_per_output,
             target_vsize=target_vsize,
+            confirmed_only=confirmed_only,
         )
         tx_hex = tx.serialize(True, check_validity=False).hex()
         txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
@@ -678,7 +826,7 @@ class MiniWallet:
         """Return `chain_length` unbroadcast txs, each spending the last.
 
         `create_self_transfer_chain` (`wallet.py`): the first spends
-        `utxo_to_spend`, or the next automatically matured coin where
+        `utxo_to_spend`, or `get_utxo()`'s own largest matured coin where
         `None`; each of the rest spends the single output the one before
         it just created. `send_self_transfer_chain` is the caller wanting
         every one of them broadcast too. The last transaction's own
@@ -688,8 +836,8 @@ class MiniWallet:
         own tip further still wants it there.
 
         :param chain_length: how many transactions the chain carries.
-        :param utxo_to_spend: the coin the first transaction spends; the
-            next automatically matured one where `None`.
+        :param utxo_to_spend: the coin the first transaction spends;
+            `get_utxo()`'s own largest matured coin where `None`.
         :raises LookupError: `utxo_to_spend` is `None` and no coin of
             this wallet has matured yet.
         """
@@ -733,7 +881,9 @@ class MiniWallet:
         rest to this wallet as change -- the same fixed-fee shape
         `create_self_transfer` already uses, so the spent coin's own
         value beyond `value` and `FEE` is not simply burned as a fee the
-        way it would be paying a single output alone.
+        way it would be paying a single output alone. The coin spent is
+        `get_utxo()`'s own, the largest matured one, as `wallet.py`'s own
+        `send_to` takes it.
 
         :param script_pub_key: what the new, second output pays.
         :param value: the new output's own satoshi value.
@@ -743,7 +893,7 @@ class MiniWallet:
         :raises TypeError: `sendrawtransaction` answered something other
             than the sent tx's own id.
         """
-        utxo = self._pop_mature_utxo()
+        utxo = self.get_utxo()
         if utxo.value < value + FEE:
             err_msg = (
                 f"coin of {utxo.value} sat cannot cover {value} sat plus "
@@ -763,9 +913,7 @@ class MiniWallet:
             vin=[tx_in],
             vout=[TxOut(change, _ANYONE_CAN_SPEND), TxOut(value, script_pub_key)],
         )
-        self._utxos.append(
-            Utxo(outpoint=OutPoint(tx.id, 0), value=change, height=0, coinbase=False)
-        )
+        self._cache(tx, 1)
         tx_hex = tx.serialize(True, check_validity=False).hex()
         txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
         if txid != tx.id.hex():

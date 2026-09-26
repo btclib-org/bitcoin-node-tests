@@ -7,9 +7,9 @@
 `generate` runs the real block construction and the real proof-of-work
 search (`build_coinbase`, `build_block`, `mine`): regtest's own target is
 wide enough that a whole chain mines in well under a second, `node_test.py`'s
-own `_FakeRpc` doctrine applied here to `submitblock` and
-`sendrawtransaction`, the only two calls this module ever makes that
-touch a node for real.
+own `_FakeRpc` doctrine applied here to `submitblock`,
+`sendrawtransaction` and `gettxout`, the only calls this module ever makes
+that touch a node for real.
 """
 
 from __future__ import annotations
@@ -28,12 +28,14 @@ from bitcoin_node_tests.capability import Capability
 from bitcoin_node_tests.mini_wallet import (
     FEE,
     MiniWallet,
+    Utxo,
     build_fork,
     nulldata_script_pub_key,
 )
 from bitcoin_node_tests.node import NodeAdapter
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from collections.abc import Set as AbstractSet
 
 _GENESIS = "00" * 32
@@ -58,6 +60,10 @@ class _FakeRpc:
     :param send_answer: what `sendrawtransaction` answers; a fixed value
         that overrides the sent tx's own id where given, so that
         `send_self_transfer`'s own mismatch check can be exercised.
+
+    `txouts` maps a `(txid, vout)` pair to what `gettxout` answers for it,
+    `None` -- the coin not in the UTXO set -- for any pair it lacks;
+    `asked` records every pair `gettxout` was called for.
     """
 
     def __init__(
@@ -76,20 +82,31 @@ class _FakeRpc:
         self._send_answer = send_answer
         self.submitted: list[str] = []
         self.sent: list[str] = []
+        self.txouts: dict[tuple[str, int], object] = {}
+        self.asked: list[tuple[str, int]] = []
 
     def call(self, method: str, params: list[object] | None = None) -> object:
-        if method == "getbestblockhash":
-            return self._best_hash
-        if method == "getblockcount":
-            return self._height
-        if method == "getblockchaininfo":
-            return {"mediantime": self._median_time}
+        tip_answers = {
+            "getbestblockhash": self._best_hash,
+            "getblockcount": self._height,
+            "getblockchaininfo": {"mediantime": self._median_time},
+        }
+        if method in tip_answers:
+            return tip_answers[method]
         if method == "submitblock":
             assert params is not None
             block_hex = params[0]
             assert isinstance(block_hex, str)
             self.submitted.append(block_hex)
             return self._submit_answer
+        if method == "gettxout":
+            assert params is not None
+            txid, vout, include_mempool = params
+            assert isinstance(txid, str)
+            assert isinstance(vout, int)
+            assert include_mempool is False
+            self.asked.append((txid, vout))
+            return self.txouts.get((txid, vout))
         # the only call left this fake ever answers: sendrawtransaction
         assert method == "sendrawtransaction"
         assert params is not None
@@ -310,8 +327,8 @@ def test_create_self_transfer_can_spend_a_coin_it_already_created() -> None:
 
     Exactly `COINBASE_MATURITY` blocks, not one more: mining a second
     matured coinbase alongside the first would let the second call below
-    pop *that* one instead, `_pop_mature_utxo`'s own oldest-first order
-    never reaching the coin `create_self_transfer` just minted.
+    pop *that* one instead, `get_utxo`'s own largest-first order putting
+    it ahead of the coin `create_self_transfer` just minted.
     """
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
@@ -421,7 +438,7 @@ def test_get_utxo_refuses_an_unknown_txid() -> None:
 
 
 def test_create_self_transfer_spends_the_named_utxo_regardless_of_maturity() -> None:
-    """A caller-named coin bypasses `_pop_mature_utxo`'s own maturity check."""
+    """A caller-named coin bypasses the automatic pick's own maturity check."""
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
     wallet.generate(1)  # far short of COINBASE_MATURITY
@@ -471,7 +488,7 @@ def test_resync_picks_up_a_tip_this_wallet_did_not_mine() -> None:
 
 
 def test_resync_leaves_the_coin_cache_untouched() -> None:
-    """`resync` moves the tip only: it has no `scantxoutset` to rescan with."""
+    """`resync` adds and drops no coin: it has no `scantxoutset` to use."""
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
     wallet.generate(1)
@@ -770,3 +787,238 @@ def test_send_self_transfer_chain_refuses_a_mismatched_answer() -> None:
     wallet.generate(COINBASE_MATURITY + 1)
     with pytest.raises(TypeError, match="sendrawtransaction answered"):
         wallet.send_self_transfer_chain(chain_length=2)
+
+
+def _coinbase_txid(rpc: _FakeRpc, index: int) -> str:
+    """Return the txid of the coinbase of the `index`th block submitted."""
+    block = Block.parse(bytes.fromhex(rpc.submitted[index]), check_validity=False)
+    return block.transactions[0].id.hex()
+
+
+def test_utxo_confirmed_reads_its_own_height() -> None:
+    """A coin at height `0` is one no block holds; any other height is."""
+    outpoint = OutPoint(b"\x01" * 32, 0)
+    assert Utxo(outpoint, 1, 5, coinbase=False).confirmed
+    assert not Utxo(outpoint, 1, 0, coinbase=False).confirmed
+
+
+def test_generate_caches_each_coinbase_at_its_own_height() -> None:
+    """A coin `generate` mines is confirmed from the moment it is cached."""
+    rpc = _FakeRpc(height=4)
+    wallet = MiniWallet(_FakeNode(rpc))
+
+    wallet.generate(2)
+
+    utxos = wallet.get_utxos(include_immature_coinbase=True)
+    assert sorted(utxo.height for utxo in utxos) == [5, 6]
+    assert all(utxo.confirmed for utxo in utxos)
+
+
+def test_a_self_transfer_is_cached_unconfirmed() -> None:
+    """A broadcast no block of this wallet's has carried is not confirmed."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    tx = wallet.send_self_transfer()
+
+    assert not wallet.get_utxo(txid=tx.id.hex()).confirmed
+
+
+def test_generate_confirms_every_output_its_own_confirm_carries() -> None:
+    """Each coin a `confirm` transaction pays takes the first block's height."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    tx = wallet.send_self_transfer_multi(num_outputs=2)
+
+    wallet.generate(2, confirm=[tx])
+
+    coins = [wallet.get_utxo(txid=tx.id.hex(), vout=vout) for vout in (0, 1)]
+    assert [coin.height for coin in coins] == [COINBASE_MATURITY + 2] * 2
+
+
+def test_get_utxo_confirmed_only_skips_a_coin_no_block_holds() -> None:
+    """Of a confirmed coin and a mempool-only one, only the first answers."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY)  # one coinbase matured, no more
+    tx = wallet.send_self_transfer()
+
+    assert wallet.get_utxo(mark_as_spent=False).outpoint == OutPoint(tx.id, 0)
+    with pytest.raises(LookupError, match="matured yet, confirmed"):
+        wallet.get_utxo(confirmed_only=True)
+    with pytest.raises(LookupError, match="confirmed"):
+        wallet.get_utxo(txid=tx.id.hex(), confirmed_only=True)
+
+    wallet.generate(1, confirm=[tx])
+
+    coin = wallet.get_utxo(txid=tx.id.hex(), confirmed_only=True)
+    assert coin.height == COINBASE_MATURITY + 1
+
+
+def test_get_utxo_takes_the_largest_matured_coin_not_the_oldest() -> None:
+    """Without `txid`, the largest matured coin, as `wallet.py` sorts."""
+    rpc = _FakeRpc(height=148)
+    wallet = MiniWallet(_FakeNode(rpc))
+    # height 149 pays 50 BTC, 150 on pay 25 BTC: regtest halves at 150
+    wallet.generate(COINBASE_MATURITY + 2)
+    first = wallet.create_self_transfer()
+    assert first.vin[0].prev_out.tx_id.hex() == _coinbase_txid(rpc, 0)
+
+    # cached last, and 50 BTC less FEE outweighs the 25 BTC coinbases
+    # still ahead of it in the order they were cached
+    assert wallet.get_utxo().outpoint == OutPoint(first.id, 0)
+
+
+def test_get_utxo_sorts_the_cache_by_value_then_descending_height() -> None:
+    """The order `get_utxos` returns after a `get_utxo` is `wallet.py`'s."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 2)
+    tx_a = wallet.create_self_transfer_multi(num_outputs=2)
+    wallet.generate(1, confirm=[tx_a])
+    tx_b = wallet.create_self_transfer_multi(num_outputs=2)
+
+    largest = wallet.get_utxo(mark_as_spent=False)
+    utxos = wallet.get_utxos(include_immature_coinbase=True, mark_as_spent=False)
+
+    # equal values: the confirmed pair ahead of the one at height 0
+    assert [utxo.outpoint for utxo in utxos[:4]] == [
+        OutPoint(tx_a.id, 0),
+        OutPoint(tx_a.id, 1),
+        OutPoint(tx_b.id, 0),
+        OutPoint(tx_b.id, 1),
+    ]
+    heights = [utxo.height for utxo in utxos[4:]]
+    assert heights == sorted(heights, reverse=True)
+    assert utxos[-1] == largest
+
+
+def test_a_coin_taken_without_being_marked_spent_is_dropped_once_spent() -> None:
+    """`mark_as_spent=False` keeps it cached until a `create_*` spends it."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    balance = wallet.get_balance()
+
+    coin = wallet.get_utxo(mark_as_spent=False)
+    assert wallet.get_balance() == balance
+
+    wallet.create_self_transfer(utxo_to_spend=coin)
+    assert wallet.get_balance() == balance - FEE
+    with pytest.raises(LookupError, match="no coin"):
+        wallet.get_utxo(txid=coin.outpoint.tx_id.hex())
+
+
+def test_get_utxos_leaves_out_an_immature_coinbase_by_default() -> None:
+    """`include_immature_coinbase` is what brings them back."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)  # two coinbases matured
+
+    matured = wallet.get_utxos(mark_as_spent=False)
+    every = wallet.get_utxos(include_immature_coinbase=True, mark_as_spent=False)
+
+    assert [utxo.height for utxo in matured] == [1, 2]
+    assert len(every) == COINBASE_MATURITY + 1
+
+
+def test_get_utxos_confirmed_only_leaves_out_a_coin_no_block_holds() -> None:
+    """A mempool-only coin is returned without `confirmed_only`, not with it."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY)
+    tx = wallet.create_self_transfer()
+
+    unfiltered = wallet.get_utxos(mark_as_spent=False)
+    confirmed = wallet.get_utxos(confirmed_only=True, mark_as_spent=False)
+
+    assert [utxo.outpoint for utxo in unfiltered] == [OutPoint(tx.id, 0)]
+    assert confirmed == []
+
+
+def test_get_utxos_marking_spent_forgets_the_whole_cache() -> None:
+    """Immature coins the filter left out are forgotten too, as in Core."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    returned = wallet.get_utxos()
+
+    assert len(returned) == 2
+    assert wallet.get_balance() == 0
+
+
+def test_resync_confirms_a_coin_a_block_mined_elsewhere_holds() -> None:
+    """`gettxout`'s own confirmations become the coin's height."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY)
+    tx = wallet.send_self_transfer()
+    # the node mined a block of its own around tx: one block deep
+    rpc._height = COINBASE_MATURITY + 1
+    rpc.txouts[tx.id.hex(), 0] = {"confirmations": 1}
+
+    wallet.resync()
+
+    coin = wallet.get_utxo(txid=tx.id.hex(), confirmed_only=True)
+    assert coin.height == COINBASE_MATURITY + 1
+    # a coinbase is never asked about: `generate` already knows its height
+    assert rpc.asked == [(tx.id.hex(), 0)]
+
+
+def test_resync_unconfirms_a_coin_the_utxo_set_no_longer_holds() -> None:
+    """A confirmed coin a reorg sent back to the mempool reads as height 0."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY)
+    tx = wallet.send_self_transfer()
+    wallet.generate(1, confirm=[tx])
+
+    wallet.resync()  # gettxout answers None for every pair the fake lacks
+
+    assert not wallet.get_utxo(txid=tx.id.hex()).confirmed
+
+
+@pytest.mark.parametrize(
+    "answer", [123, {}, {"confirmations": "1"}, {"confirmations": 0}]
+)
+def test_resync_refuses_a_bad_gettxout_answer(answer: object) -> None:
+    """A `gettxout` answer with no positive int confirmations is refused."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY)
+    tx = wallet.send_self_transfer()
+    rpc.txouts[tx.id.hex(), 0] = answer
+
+    with pytest.raises(TypeError, match="gettxout"):
+        wallet.resync()
+
+
+@pytest.mark.parametrize(
+    "spend",
+    [
+        lambda wallet: wallet.create_self_transfer(confirmed_only=True),
+        lambda wallet: wallet.send_self_transfer(confirmed_only=True),
+        lambda wallet: wallet.create_self_transfer_multi(confirmed_only=True),
+        lambda wallet: wallet.send_self_transfer_multi(confirmed_only=True),
+    ],
+    ids=[
+        "create_self_transfer",
+        "send_self_transfer",
+        "create_self_transfer_multi",
+        "send_self_transfer_multi",
+    ],
+)
+def test_confirmed_only_reaches_get_utxo_from_every_spend(
+    spend: Callable[[MiniWallet], object],
+) -> None:
+    """With only a mempool-only coin matured, each spend finds nothing."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY)
+    wallet.create_self_transfer()
+
+    with pytest.raises(LookupError, match="confirmed"):
+        spend(wallet)

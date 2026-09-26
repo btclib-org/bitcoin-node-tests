@@ -44,3 +44,10 @@ def test_mini_wallet_spends_two_coins_in_a_row(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+
+
+def test_mini_wallet_confirmed_only_tells_mined_coins_from_mempool_ones(
+    btclib_node_adapter: BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """The target: the same request the bitcoind module makes."""
+    require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)

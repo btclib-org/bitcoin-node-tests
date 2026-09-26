@@ -19,7 +19,7 @@ from bitcoin_node_tests.capability import Capability
 
 
 def test_capabilities_are_connect_alone() -> None:
-    """`Capability.MINE` is not declared: ISS btclib-node#1071 is why."""
+    """Only `CONNECT` is class-wide; the probed ones are per instance."""
     assert BtclibNodeAdapter.capabilities == frozenset({Capability.CONNECT})
 
 
@@ -31,6 +31,7 @@ def test_capabilities_gain_rpc_auth_config_where_the_build_writes_a_cookie(
         patch.object(btclib_node_module, "_writes_auth_cookie", return_value=True),
         patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
         patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -46,6 +47,7 @@ def test_capabilities_gain_rpc_auth_negation_where_the_build_negates(
         patch.object(btclib_node_module, "_writes_auth_cookie", return_value=True),
         patch.object(btclib_node_module, "_negates_rpcauth", return_value=True),
         patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -61,11 +63,26 @@ def test_capabilities_gain_inbound_eviction_where_the_build_evicts(
         patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
         patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
         patch.object(btclib_node_module, "_evicts_inbound", return_value=True),
+        patch.object(btclib_node_module, "_connects_alone", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
         {Capability.CONNECT, Capability.INBOUND_EVICTION}
     )
+
+
+def test_capabilities_gain_mine_where_the_build_connects_alone(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a post-1152 executable declares mining."""
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=True),
+    ):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities == frozenset({Capability.CONNECT, Capability.MINE})
 
 
 def test_capabilities_stay_connect_alone_where_the_build_does_not(
@@ -76,6 +93,7 @@ def test_capabilities_stay_connect_alone_where_the_build_does_not(
         patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
         patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
         patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities is BtclibNodeAdapter.capabilities
@@ -224,3 +242,73 @@ def test_negates_rpcauth_is_false_when_the_parse_refuses() -> None:
     btclib_node_module._negates_rpcauth.cache_clear()
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=2)):
         assert btclib_node_module._negates_rpcauth("fake-python-pre-1165") is False
+
+
+def test_connects_alone_reads_the_probe_s_own_return_code() -> None:
+    """`_connects_alone` is `_SOLO_CONNECT_PROBE` exiting zero."""
+    btclib_node_module._connects_alone.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._connects_alone("fake-python-1152") is True
+    run.assert_called_once_with(
+        ["fake-python-1152", "-c", btclib_node_module._SOLO_CONNECT_PROBE],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_connects_alone_is_false_where_the_status_gates() -> None:
+    """A nonzero exit -- `update_chain` returned, or raised -- is `False`."""
+    btclib_node_module._connects_alone.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
+        assert btclib_node_module._connects_alone("fake-python-1071") is False
+
+
+class _FakeMiniWallet:
+    """`MiniWallet`'s own `generate`, answering fixed header hashes."""
+
+    hashes = (b"\x01" * 32, b"\x02" * 32)
+
+    def __init__(self, node: object) -> None:
+        self.node = node
+
+    def generate(self, count: int) -> list[bytes]:
+        return list(self.hashes[:count])
+
+
+class _FakeTipRpc:
+    """`getbestblockhash` answering each of `tips` in turn, then the last."""
+
+    def __init__(self, *tips: str) -> None:
+        self.tips = list(tips)
+        self.calls = 0
+
+    def call(self, method: str, params: list[object] | None = None) -> str:
+        assert method == "getbestblockhash"
+        assert params is None
+        self.calls += 1
+        return self.tips.pop(0) if len(self.tips) > 1 else self.tips[0]
+
+
+def test_mine_returns_the_hashes_once_the_last_is_the_tip(tmp_path: Path) -> None:
+    """`mine` polls `getbestblockhash` past a stale tip, then returns hex."""
+    adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    rpc = _FakeTipRpc("01" * 32, "02" * 32)
+    with (
+        patch.object(btclib_node_module, "MiniWallet", _FakeMiniWallet),
+        patch.object(adapter, "_rpc_client", return_value=rpc),
+    ):
+        hashes = adapter.mine(2)
+    assert hashes == ["01" * 32, "02" * 32]
+    assert rpc.calls == 2
+
+
+def test_mine_zero_blocks_asks_the_node_nothing(tmp_path: Path) -> None:
+    """`mine(0)` answers `[]` and polls no tip."""
+    adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    rpc = _FakeTipRpc("00" * 32)
+    with (
+        patch.object(btclib_node_module, "MiniWallet", _FakeMiniWallet),
+        patch.object(adapter, "_rpc_client", return_value=rpc),
+    ):
+        assert adapter.mine(0) == []
+    assert rpc.calls == 0

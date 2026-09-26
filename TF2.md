@@ -719,9 +719,12 @@ repository's adapter reaches.
 A verdict is **pass**; **fail**, naming the issue a disagreement is
 filed as on `btclib-node`'s own tracker (rule 3); or **skip**, naming
 the capability ([`capability.py`](./src/bitcoin_node_tests/capability.py))
-the node does not declare. bitcoind is the oracle (rule 3): a **fail**
-on bitcoind is this repository's own defect rather than a finding for
-another tracker.
+the node does not declare; or **not ported**, where the node declares
+every capability the row asks for and the test run against it is still
+a stub ending in `pytest.fail`
+([ISS 82](https://github.com/btclib-org/bitcoin-node-tests/issues/82)).
+bitcoind is the oracle (rule 3): a **fail** on bitcoind is this
+repository's own defect rather than a finding for another tracker.
 
 A row whose subject is bitcoind's own option carries **bitcoind only**
 in its `btclib-node` column instead: not a verdict on that node, since
@@ -730,7 +733,7 @@ module docstring is the one place that states which options this
 covers, and does not decide it row by row here.
 
 A `btclib-node` cell may give a verdict on the build the row was
-measured against and another on a later build, where the capability it
+measured against and others on later builds, where the capability it
 names is declared by a probe of the build rather than by the adapter's
 class: the row's own paragraph below names the probe and the issue it
 tracks.
@@ -771,10 +774,10 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_users.py` (`-norpcauth`) | same | same | pass | skip (rpc_auth_negation) on the build; pass on a build past [ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176) |
 | `rpc_users.py` (`-rpcuser`/`-rpcpassword`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `rpc_users.py` (`-norpccookiefile`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
-| `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
-| `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
+| `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) |
-| `p2p_invalid_locator.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
+| `p2p_invalid_locator.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_invalid_messages.py` (wire) | `3fd68a95e68b` | 2026-04-07 | pass | pass |
 | `p2p_invalid_messages.py` (log) | `3fd68a95e68b` | 2026-04-07 | pass | skip |
 | `p2p_invalid_messages.py` (inv, wire) | same | same | pass | fail ([ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145)) |
@@ -808,9 +811,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_uptime.py` | `406c2348ddbf` | 2026-06-13 | pass | skip (clock) |
 | `feature_torcontrol.py` | `4556ef626754` | 2026-09-15 | pass, the `PoWDefensesEnabled` flag asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | bitcoind only |
 | `p2p_bip434_feature.py` | `da74ff9ca49e` | 2026-06-04 | pass, `FEATURE`'s own disconnects asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | bitcoind only |
-| `feature_framework_miniwallet.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip |
-| `mempool_resurrect.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
-| `mempool_spend_coinbase.py` | `6eca11175be6` | 2026-07-16 | pass | skip |
+| `feature_framework_miniwallet.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `mempool_resurrect.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `mempool_spend_coinbase.py` | `6eca11175be6` | 2026-07-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_dersig.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
 | `feature_dersig.py` (wire) | same | same | pass | skip |
 | `feature_dersig.py` (log) | same | same | pass | skip |
@@ -834,14 +837,14 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_leak_tx.py` (in block) | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `p2p_leak_tx.py` (replaced) | same | same | pass | skip |
 | `p2p_leak_tx.py` (unannounced) | same | same | pass | skip |
-| `feature_utxo_set_hash.py` | `58eeab790d98` | 2026-05-13 | pass | skip |
+| `feature_utxo_set_hash.py` | `58eeab790d98` | 2026-05-13 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `rpc_getdescriptoractivity.py` | `3fd68a95e68b` | 2026-04-07 | pass | skip |
 | `rpc_getdescriptoractivity.py` (mempool) | same | same | pass | skip |
 | `rpc_getblockstats.py` | `b7cbd804284b` | 2026-05-25 | pass | skip (stats) |
 | `feature_fastprune.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `rpc_scanblocks.py` | `aeca0610865e` | 2026-07-01 | pass | skip |
 | `rpc_scanblocks.py` (no index) | same | same | pass | skip |
-| `p2p_eviction.py` | `1b76e0473647` | 2026-07-24 | pass, `-maxconnections` read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (inbound_eviction) on the build; skip (mine) on a build past [ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064) |
+| `p2p_eviction.py` | `1b76e0473647` | 2026-07-24 | pass, `-maxconnections` read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (inbound_eviction) on the build; skip (mine) on a build past [ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064) and before [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071); not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_presegwit_node_upgrade.py` | [`fad7bd9ba3ee`](https://github.com/bitcoin/bitcoin/commit/fad7bd9ba3ee) | 2026-01-14 | pass | skip (test_activation_height) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
@@ -1005,12 +1008,13 @@ it of genesis instead, `Capability.MINE` not being every node's fact
 yet. The invalid-`getdata`-then-`ping` half is unchanged from Core's.
 Step 4 ([ISS bitcoin-node-tests#2](https://github.com/btclib-org/bitcoin-node-tests/issues/2))
 re-asked whether that claim should widen now that `Capability.MINE`
-exists: it does not, because the reason it was narrowed is unchanged --
-`BtclibNodeAdapter` still does not declare `Capability.MINE`
-([ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
-is still open) -- and widening only the bitcoind half of this row would
-leave its own column and btclib-node's answering a different question
-about the same test.
+exists: it does not, because `BtclibNodeAdapter` declares
+`Capability.MINE` only on a build that connects a submitted block with
+no peer -- `main` from the commit closing
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
+on, and not the released build -- and widening only the bitcoind half
+of this row would leave its own column and btclib-node's answering a
+different question about the same test.
 
 The first family's own rows -- `p2p_block_sync.py`,
 `p2p_compactblocks_hb.py`, `p2p_invalid_locator.py` and
@@ -1019,14 +1023,18 @@ being the whole of it: none narrows what Core asks, each needing
 `Capability.MINE` (`p2p_block_sync.py`, `p2p_compactblocks_hb.py` and
 `p2p_invalid_locator.py`, to reach a chain tall enough to mine or to
 name) or `Capability.RAW_MESSAGE` (`p2p_net_deadlock.py`, Core's own
-`sendmsgtopeer`) that `BtclibNodeAdapter` does not declare, so every
-`btclib-node` cell is a counted skip rather than a run -- naming the
+`sendmsgtopeer`), so every `btclib-node` cell is a counted skip rather
+than a run on the released build, which declares neither -- naming the
 capability rather than the RPC, since a node offering the same fact
-under another name would still answer `pass`. `p2p_compactblocks_hb.py`
-identifies each of the node under test's own peers by connection order
-rather than by the `-uacomment` Core's own `TestNode` sets, this adapter
-carrying no per-node command-line option; every other assertion is
-unchanged.
+under another name would still answer `pass`. A `main` declaring
+`Capability.MINE` (`btclib_node.py`'s own docstring) reaches the
+`pytest.fail` the `p2p_block_sync.py`, `p2p_compactblocks_hb.py` and
+`p2p_invalid_locator.py` stubs end in, none of them ported for that node
+yet, and `p2p_net_deadlock.py` still skips on `Capability.RAW_MESSAGE`.
+`p2p_compactblocks_hb.py` identifies each of the node under test's own
+peers by connection order rather than by the `-uacomment` Core's own
+`TestNode` sets, this adapter carrying no per-node command-line option;
+every other assertion is unchanged.
 
 The log family's own rows (issue #5) are each half of one Core test
 rather than the whole of it: `test_magic_bytes`
@@ -1453,13 +1461,14 @@ same shape the first family already takes rather than a new question:
 `mini_wallet.py`'s own mechanism produces exactly the fact `MINE` already
 names -- "a block the node accepts as its own new tip, however it gets
 there" -- by client-side construction over `submitblock` rather than a
-node's own wallet. No wire-only delivery avoids the skip:
-`btclib_node.py`'s own docstring already measured why a solo
-`btclib-node` never leaves `NodeStatus.SyncingHeaders`
-([ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071))
--- a block it is handed never becomes its own tip whether it arrives over
-`submitblock` or the wire, the gap being the node's own state machine and
-not how the block is delivered.
+node's own wallet. `BtclibNodeAdapter` declares it only on a build
+that connects a submitted block with no peer -- `main` from the commit
+closing
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
+on -- and its own `mine` is `MiniWallet.generate`. The released build
+does not, so its cell is the skip; a `main` declaring it reaches the
+`pytest.fail` the `btclib-node` stub ends in, the row not being ported
+for that node yet.
 
 The census [ISS btclib-org/btclib#2135](https://github.com/btclib-org/btclib/issues/2135)
 counted is re-measured here, against Core's `test/functional/*.py` at
@@ -1783,9 +1792,9 @@ question, Core's own tests running one binary against copies of itself.
 **Passes on every `btclib-node` build measured** -- the released PyPI
 build `btclib_node.py`'s own docstring pins, and `main` at `d98bd7d6` --
 the v2transport fix above is what this needed, not `Capability.MINE`,
-which `btclib-node` still does not declare
-([ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)):
-nothing here asks the connecting side to mine anything of its own.
+which only some `btclib-node` builds declare (`btclib_node.py`'s own
+docstring): nothing here asks the connecting side to mine anything of
+its own.
 
 Re-run against btclib-node's own `main` (`d98bd7d6`) rather than only the
 released build: `p2p_invalid_messages_dropped_btclib_node_test.py`'s
@@ -2082,15 +2091,19 @@ runs. Core sends a transaction without waiting for it; this waits for
 that barrier after it too, so the node has accepted it before the next
 peer connects.
 
-Every `btclib-node` cell of this batch is a counted skip.
-Neither `-fastprune` nor `-blockfilterindex` is one of `cli.py`'s
+Every `btclib-node` cell of this batch is a counted skip on the released
+build. Neither `-fastprune` nor `-blockfilterindex` is one of `cli.py`'s
 registered flags, on the released build or on `main`, and neither
 build answers `scanblocks`. `Capability.INBOUND_EVICTION` is declared
 per instance, by `btclib_node.py`'s own `_evicts_inbound` probe: the
 released build carries no inbound eviction and skips on it, and a
 `main` past
 [ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064)
-declares it and skips on `Capability.MINE` instead.
+declares it and asks for `Capability.MINE` next, which a `main` from
+the commit closing
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
+on declares too, reaching the stub's own `pytest.fail`: that row's
+verdict there is **not ported**.
 
 `tool_utxo_to_sqlite.py`, the last of this batch, is not ported. Its
 subject is `contrib/utxo-tools/utxo_to_sqlite.py`, a script of Core's

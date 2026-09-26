@@ -10,18 +10,20 @@ is what this adapter needs already served: `getblock`, `submitblock`,
 `src/btclib_node/rpc/callbacks.py`'s own dispatch table before this
 module was written.
 
-`Capability.MINE` is not declared, and this is the finding rather than a
-gap this adapter papers over: a solo `btclib-node`, with no peer, never
-leaves `NodeStatus.SyncingHeaders` (`src/btclib_node/__init__.py`'s own
-`run`), and `main.update_chain`'s own `_ready_fork` refuses to connect
-anything -- a block this adapter submits included -- while `node.status`
-sits below `HeaderSynced`. Measured at `btclib-node` `382a29fb`:
-`submitblock` answers `None` (accepted) and stores the block, and
-`getblockcount`/`getbestblockhash` never move; a second node peered to
-the first over `addnode` can itself receive and connect that same block
-over ordinary p2p relay, so the gap is the solo node's own status latch
-and not the block or the RPC. Filed as
-[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071).
+`Capability.MINE` is declared per instance, by `_connects_alone`'s
+own probe. `mine` below builds and solves each block client-side and
+hands it to `submitblock`, and a node with no peer never leaves
+`NodeStatus.SyncingHeaders`, so what decides is whether the build's own
+`main.update_chain` connects a block at that status: `main` from
+btclib-node PR 1152 (`84277406`) on, the fix
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
+asked for. Measured at `main` (`35b26d2e`): a solo node accepts the block
+and `getblockcount`/`getbestblockhash` move onto it. The released
+`2026.9.24` (`422d2640`) answers the same `submitblock` `None` (accepted)
+and leaves both at genesis, so an instance built against it does not gain
+the capability. Neither build names `generatetoaddress`, `generateblock`
+or `getblocktemplate` in `src/btclib_node/rpc/callbacks.py`'s own
+dispatch table, which is why `mine` builds the block itself.
 
 Independently,
 [ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)
@@ -130,7 +132,8 @@ from bitcoin_core_rpc import BitcoinCoreRpcClient
 from bitcoin_core_rpc.transport import urlopen_transport
 
 from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import NodeAdapter, traced_transport
+from bitcoin_node_tests.mini_wallet import MiniWallet
+from bitcoin_node_tests.node import NodeAdapter, traced_transport, wait_until
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
@@ -234,6 +237,43 @@ def _negates_rpcauth(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# `update_chain` handed a node still at `SyncingHeaders`: a build that
+# gates on the status never reads `chainstate` and exits nonzero, whether
+# it returns or trips on the stub further on; a build that does not asks
+# `get_first_candidate` first, which exits 0 on the spot.
+_SOLO_CONNECT_PROBE = """\
+from types import SimpleNamespace
+from btclib_node.constants import NodeStatus
+from btclib_node.main import update_chain
+def reached(): raise SystemExit(0)
+index = SimpleNamespace(get_first_candidate=reached)
+chainstate = SimpleNamespace(block_index=index)
+update_chain(SimpleNamespace(status=NodeStatus.SyncingHeaders, chainstate=chainstate))
+raise SystemExit(1)
+"""
+
+
+@lru_cache
+def _connects_alone(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node connects with no peer.
+
+    Asks the build's own `main.update_chain`, public in `main`'s own
+    `__all__`, whether it looks for a block to connect while
+    `node.status` is `SyncingHeaders`, the status a node with no peer
+    never leaves: `_SOLO_CONNECT_PROBE` above is how the two answers are
+    told apart. Otherwise in the standing of `_writes_auth_cookie` above:
+    no node started, no port bound, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _SOLO_CONNECT_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 class BtclibNodeAdapter(NodeAdapter):
     """A regtest `btclib-node`, run as `python -m btclib_node`.
 
@@ -268,8 +308,9 @@ class BtclibNodeAdapter(NodeAdapter):
         `_rpc_client` below already makes for cookie authentication, not
         a second one: the module docstring's own paragraph on
         `Capability.RPC_AUTH_CONFIG` is why one probe answers both,
-        `_negates_rpcauth` answers `Capability.RPC_AUTH_NEGATION`, and
-        `_evicts_inbound` answers `Capability.INBOUND_EVICTION`. The
+        `_negates_rpcauth` answers `Capability.RPC_AUTH_NEGATION`,
+        `_evicts_inbound` answers `Capability.INBOUND_EVICTION`, and
+        `_connects_alone` answers `Capability.MINE`. The
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
         is left untouched where every probe answers `False`.
         """
@@ -289,8 +330,35 @@ class BtclibNodeAdapter(NodeAdapter):
             probed.add(Capability.RPC_AUTH_NEGATION)
         if _evicts_inbound(executable):
             probed.add(Capability.INBOUND_EVICTION)
+        if _connects_alone(executable):
+            probed.add(Capability.MINE)
         if probed:
             self.capabilities = type(self).capabilities | probed
+
+    def mine(self, count: int = 1) -> list[str]:
+        """Mine `count` blocks client-side, return their hashes once connected.
+
+        `MiniWallet.generate` (`mini_wallet.py`) builds, solves and submits
+        each block, extending whatever tip the node answers now, and pays
+        its coinbase to that class's own anyone-can-spend script: a caller
+        that means to spend what it mines holds a `MiniWallet` of its own
+        instead. `submitblock` answering `None` says the block was stored,
+        not that it became the tip: connecting it is `main.update_chain`'s
+        job rather than `rpc/callbacks.py`'s own `submit_block`, so this
+        polls `getbestblockhash` until it names the last block, where
+        `BitcoindAdapter.mine`'s own `generatetoaddress` answers only once
+        connected.
+
+        :param count: how many blocks to mine.
+        :returns: the mined blocks' own hashes, oldest first, the shape of
+            `BitcoindAdapter.mine`'s own.
+        :raises TimeoutError: the node stored the last block and never made
+            it its tip.
+        """
+        hashes = [block_hash.hex() for block_hash in MiniWallet(self).generate(count)]
+        if hashes:
+            wait_until(lambda: self.rpc.call("getbestblockhash") == hashes[-1])
+        return hashes
 
     @override
     def _command(self) -> list[str]:

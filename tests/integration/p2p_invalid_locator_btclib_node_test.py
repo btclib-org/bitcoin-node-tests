@@ -6,10 +6,12 @@
 
 The same request `p2p_invalid_locator_bitcoind_test.py` makes, against
 the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `Capability.MINE` is not declared by
-`BtclibNodeAdapter` (`btclib_node.py`'s own docstring is why: ISS
-btclib-node#1071), and this test needs it to reach `MAX_LOCATOR_SZ`
-blocks -- one call is enough to ask the question.
+btclib-org/btclib#2220). `Capability.MINE` is declared only by a build
+that connects a submitted block with no peer (`btclib_node.py`'s own
+docstring), and this test needs it to reach `MAX_LOCATOR_SZ` blocks:
+PyPI's `2026.9.24` is a counted skip here, and a `main` from btclib-node
+PR 1152 on reaches this stub's own `pytest.fail`, the scenario not being
+ported yet.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_invalid_locator_btclib_node_test.py

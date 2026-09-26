@@ -7,11 +7,11 @@ r"""A block mined on bitcoind reaches btclib-node, over a real connection.
 [ISS 43](https://github.com/btclib-org/bitcoin-node-tests/issues/43)'s
 own "most valuable case": bitcoind mines, and btclib-node -- never
 asked to mine anything itself -- receives the block from a real peer
-rather than from `submitblock` on its own behalf. `Capability.MINE` is
-never declared by `BtclibNodeAdapter` (`btclib_node.py`'s own
-docstring), but nothing here asks it for that; `Capability.CONNECT` is
-declared by both (`bitcoind.py`, `btclib_node.py`), which is the whole
-of what this needs.
+rather than from `submitblock` on its own behalf. Nothing here asks
+`BtclibNodeAdapter` for `Capability.MINE`, which only some builds declare
+(`btclib_node.py`'s own docstring); `Capability.CONNECT` is declared by
+both (`bitcoind.py`, `btclib_node.py`), which is the whole of what this
+needs.
 
 Not a port of any Core file, unlike every other module of
 `tests/integration/`: Core's own functional tests run one binary

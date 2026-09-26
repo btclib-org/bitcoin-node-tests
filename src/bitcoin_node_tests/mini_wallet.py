@@ -43,11 +43,9 @@ mining: not a new one, since this class produces the fact `MINE` already
 names -- "a block the node accepts as its own new tip, however it gets
 there" -- by client-side construction over `submitblock` rather than a
 node's own wallet, exactly the second half `node.py`'s own docstring
-already draws. `TF2.md`'s own per-test ledger has why no node other than
-bitcoind runs a `MiniWallet` test today: `BtclibNodeAdapter` does not
-declare it, and no way of delivering a solved block -- `submitblock` or
-the wire -- reaches around the reason, ISS btclib-node#1071 being about
-the node's own state machine and not about how a block arrives.
+already draws. `BtclibNodeAdapter` declares it only on a build that
+connects a submitted block with no peer, and its own `mine` is this
+class's `generate` (`btclib_node.py`'s own docstring has both).
 
 [ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)'s own
 remaining ports add several things beyond the mechanism above. Two are

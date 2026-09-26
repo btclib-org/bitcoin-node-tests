@@ -59,7 +59,7 @@ from typing import TYPE_CHECKING, override
 import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_port, free_ports
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -219,11 +219,12 @@ def test_torcontrol_drives_a_tor_control_session_to_add_onion(
     mock_tor = _MockTorControlServer(free_port())
     mock_tor.start()
     try:
+        rpc_port, p2p_port = free_ports(2)
         adapter = _OnionBitcoindAdapter(
             bitcoind_path,
             tmp_path,
-            free_port(),
-            free_port(),
+            rpc_port,
+            p2p_port,
             extra_args=(f"-torcontrol=127.0.0.1:{mock_tor.port}",),
         )
         adapter.start()

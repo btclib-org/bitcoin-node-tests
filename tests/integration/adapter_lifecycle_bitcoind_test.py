@@ -24,7 +24,7 @@ import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -37,7 +37,8 @@ pytestmark = pytest.mark.integration
 def _adapter(
     bitcoind_path: str, datadir: Path, skip_counts: SkipCounts
 ) -> BitcoindAdapter:
-    adapter = BitcoindAdapter(bitcoind_path, datadir, free_port(), free_port())
+    rpc_port, p2p_port = free_ports(2)
+    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, p2p_port)
     require(Capability.MINE, adapter.capabilities, skip_counts)
     return adapter
 
@@ -81,9 +82,8 @@ def test_stop_reports_a_node_killed_out_from_under_it(
     bitcoind_path: str, tmp_path: Path
 ) -> None:
     """A node gone before `stop` is raised, and nothing is left to stop."""
-    adapter = BitcoindAdapter(
-        bitcoind_path, tmp_path / "node", free_port(), free_port()
-    )
+    rpc_port, p2p_port = free_ports(2)
+    adapter = BitcoindAdapter(bitcoind_path, tmp_path / "node", rpc_port, p2p_port)
     adapter.start()
     process = adapter._process
     assert process is not None

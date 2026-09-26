@@ -45,7 +45,7 @@ import pytest
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -66,11 +66,12 @@ def test_csv_activates_one_block_before_the_configured_height(
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BitcoindAdapter.capabilities, skip_counts
     )
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         tmp_path,
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         extra_args=(f"-testactivationheight=csv@{_CSV_ACTIVATION_HEIGHT}",),
     )
     adapter.start()

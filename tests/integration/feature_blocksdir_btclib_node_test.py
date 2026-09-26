@@ -26,7 +26,7 @@ import pytest
 
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -40,11 +40,12 @@ def test_nonexistent_blocksdir_refuses_to_start(
     btclib_node_python: str, tmp_path: Path
 ) -> None:
     """`-blocksdir` naming a directory that does not exist is fatal."""
+    rpc_port, p2p_port = free_ports(2)
     adapter = BtclibNodeAdapter(
         btclib_node_python,
         tmp_path / "datadir",
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         extra_args=(f"-blocksdir={tmp_path / 'nonexistent'}",),
     )
     with pytest.raises(

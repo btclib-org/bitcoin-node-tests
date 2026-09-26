@@ -336,3 +336,9 @@ which holds every probe open until all are bound (closes #85).
 Ported from Core's own `test_framework/mempool_util.py`, over a throwaway
 `MiniWallet`: disposable, rising-fee self-transfers until `mempoolminfee`
 rises above `minrelaytxfee` and the lowest fee-rate one is evicted (closes #70).
+
+### Every integration module building its own adapter draws its ports from `free_ports`
+
+Each drew its `rpc_port`/`p2p_port` pair from two separate `free_port()` calls,
+the same collision `free_ports` exists to close; a module building several
+adapters before starting any now draws all their ports at once (closes #115).

@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -33,8 +33,9 @@ def test_trace_rpc_prints_a_real_call_and_its_reply(
     bitcoind_path: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """`trace_rpc=True` prints the real `getblockchaininfo` call and reply."""
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
-        bitcoind_path, tmp_path / "node", free_port(), free_port(), trace_rpc=True
+        bitcoind_path, tmp_path / "node", rpc_port, p2p_port, trace_rpc=True
     )
     adapter.start()
     try:

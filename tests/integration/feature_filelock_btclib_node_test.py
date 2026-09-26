@@ -44,7 +44,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -71,12 +71,12 @@ def test_second_instance_on_same_datadir_refuses_to_start(
 ) -> None:
     """A second node over the same datadir cannot lock its own chainstate."""
     datadir = tmp_path / "datadir"
-    first = BtclibNodeAdapter(btclib_node_python, datadir, free_port(), free_port())
+    rpc_port1, p2p_port1 = free_ports(2)
+    first = BtclibNodeAdapter(btclib_node_python, datadir, rpc_port1, p2p_port1)
     first.start()
     try:
-        second = BtclibNodeAdapter(
-            btclib_node_python, datadir, free_port(), free_port()
-        )
+        rpc_port2, p2p_port2 = free_ports(2)
+        second = BtclibNodeAdapter(btclib_node_python, datadir, rpc_port2, p2p_port2)
         with pytest.raises(RuntimeError, match=_DATADIR_LOCK_REFUSAL):
             second.start()
     finally:
@@ -88,16 +88,16 @@ def test_second_instance_on_same_blocksdir_refuses_to_start(
 ) -> None:
     """A second node given the first's own datadir as `-blocksdir` fails."""
     first_datadir = tmp_path / "first"
-    first = BtclibNodeAdapter(
-        btclib_node_python, first_datadir, free_port(), free_port()
-    )
+    rpc_port1, p2p_port1 = free_ports(2)
+    first = BtclibNodeAdapter(btclib_node_python, first_datadir, rpc_port1, p2p_port1)
     first.start()
     try:
+        rpc_port2, p2p_port2 = free_ports(2)
         second = BtclibNodeAdapter(
             btclib_node_python,
             tmp_path / "second",
-            free_port(),
-            free_port(),
+            rpc_port2,
+            p2p_port2,
             extra_args=(f"-blocksdir={first_datadir}",),
         )
         with pytest.raises(RuntimeError, match=_BLOCKSDIR_LOCK_REFUSAL):

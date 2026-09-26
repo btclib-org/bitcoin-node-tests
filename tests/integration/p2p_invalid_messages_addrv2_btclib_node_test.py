@@ -73,7 +73,7 @@ from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 from bitcoin_node_tests.peer import Peer
 
 if TYPE_CHECKING:
@@ -172,11 +172,12 @@ def test_addrv2_too_long_address_is_logged(
 @contextmanager
 def _undialling_node(python: str, datadir: Path) -> Iterator[BtclibNodeAdapter]:
     """Yield a listening node that never dials from its own address table."""
+    rpc_port, p2p_port = free_ports(2)
     adapter = BtclibNodeAdapter(
         python,
         datadir,
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         extra_args=("-connect=0", "-listen=1"),
     )
     adapter.start()

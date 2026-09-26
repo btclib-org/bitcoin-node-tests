@@ -24,7 +24,7 @@ import pytest
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mempool_util import fill_mempool
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -35,11 +35,12 @@ pytestmark = pytest.mark.integration
 
 
 def _start_adapter(bitcoind_path: str, tmp_path: Path) -> BitcoindAdapter:
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         tmp_path,
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         extra_args=("-maxmempool=5",),
     )
     adapter.start()

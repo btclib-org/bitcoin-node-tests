@@ -65,7 +65,7 @@ from btclib.tx import Tx
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 from bitcoin_node_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
@@ -172,11 +172,12 @@ def test_a_pre_segwit_chain_needs_a_reindex_to_upgrade(
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BitcoindAdapter.capabilities, skip_counts
     )
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         tmp_path,
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         extra_args=(f"-testactivationheight=segwit@{_SEGWIT_HEIGHT}",),
     )
     adapter.start()

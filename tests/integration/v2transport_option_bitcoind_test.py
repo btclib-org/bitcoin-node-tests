@@ -24,7 +24,7 @@ import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import connect_nodes, free_port
+from bitcoin_node_tests.node import connect_nodes, free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -56,18 +56,19 @@ def test_v2transport_1_connects_nodes_over_bip324(
     bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
 ) -> None:
     """Explicit `-v2transport=1` on both sides: `getpeerinfo` answers `v2`."""
+    rpc_port1, p2p_port1, rpc_port2, p2p_port2 = free_ports(4)
     first = BitcoindAdapter(
         bitcoind_path,
         tmp_path / "first",
-        free_port(),
-        free_port(),
+        rpc_port1,
+        p2p_port1,
         extra_args=("-v2transport=1",),
     )
     second = BitcoindAdapter(
         bitcoind_path,
         tmp_path / "second",
-        free_port(),
-        free_port(),
+        rpc_port2,
+        p2p_port2,
         extra_args=("-v2transport=1",),
     )
     require(Capability.V2TRANSPORT, first.capabilities, skip_counts)
@@ -88,18 +89,19 @@ def test_v2transport_0_connects_nodes_over_v1(
     bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
 ) -> None:
     """Explicit `-v2transport=0` on both sides: `getpeerinfo` answers `v1`."""
+    rpc_port1, p2p_port1, rpc_port2, p2p_port2 = free_ports(4)
     first = BitcoindAdapter(
         bitcoind_path,
         tmp_path / "first",
-        free_port(),
-        free_port(),
+        rpc_port1,
+        p2p_port1,
         extra_args=("-v2transport=0",),
     )
     second = BitcoindAdapter(
         bitcoind_path,
         tmp_path / "second",
-        free_port(),
-        free_port(),
+        rpc_port2,
+        p2p_port2,
         extra_args=("-v2transport=0",),
     )
     require(Capability.V2TRANSPORT, first.capabilities, skip_counts)

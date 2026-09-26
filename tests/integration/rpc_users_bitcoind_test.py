@@ -76,7 +76,7 @@ import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -165,11 +165,11 @@ def test_rpcauth_via_config_authenticates_and_refuses(
     """A correct `rpcauth` credential from `bitcoin.conf` passes; others 401."""
     datadir = tmp_path / "datadir"
     datadir.mkdir()
-    rpc_port = free_port()
+    rpc_port, p2p_port = free_ports(2)
     (datadir / "bitcoin.conf").write_text(
         f"rpcauth={_rpcauth_line('alice', 'alicepw')}\n"
     )
-    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, free_port())
+    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, p2p_port)
     adapter.start()
     try:
         require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
@@ -186,12 +186,12 @@ def test_rpcauth_on_command_line_authenticates(
 ) -> None:
     """The same credential, given as `extra_args` instead, authenticates too."""
     datadir = tmp_path / "datadir"
-    rpc_port = free_port()
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         datadir,
         rpc_port,
-        free_port(),
+        p2p_port,
         extra_args=(f"-rpcauth={_rpcauth_line('alice', 'alicepw')}",),
     )
     adapter.start()
@@ -209,8 +209,9 @@ def test_malformed_rpcauth_refuses_to_start(
 ) -> None:
     """A malformed `-rpcauth` value is fatal at startup."""
     datadir = tmp_path / "datadir"
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
-        bitcoind_path, datadir, free_port(), free_port(), extra_args=(rpcauth,)
+        bitcoind_path, datadir, rpc_port, p2p_port, extra_args=(rpcauth,)
     )
     require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
     with pytest.raises(RuntimeError, match=_INIT_ERROR):
@@ -233,8 +234,9 @@ def test_blank_rpcauth_refuses_regardless_of_position(
 ) -> None:
     """A blank `-rpcauth=` is fatal wherever it sits among named entries."""
     datadir = tmp_path / "datadir"
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
-        bitcoind_path, datadir, free_port(), free_port(), extra_args=extra_args
+        bitcoind_path, datadir, rpc_port, p2p_port, extra_args=extra_args
     )
     require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
     with pytest.raises(RuntimeError, match=_INIT_ERROR):
@@ -246,12 +248,12 @@ def test_norpcauth_disables_previous_rpcauth(
 ) -> None:
     """`-norpcauth` disables every `-rpcauth` value given before it."""
     datadir = tmp_path / "datadir"
-    rpc_port = free_port()
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         datadir,
         rpc_port,
-        free_port(),
+        p2p_port,
         extra_args=(_RPCAUTH_USER1, _RPCAUTH_USER2, "-norpcauth"),
     )
     adapter.start()
@@ -268,12 +270,12 @@ def test_rpcuser_rpcpassword_authenticates_without_a_cookie(
 ) -> None:
     """`-rpcuser`/`-rpcpassword` authenticates; no cookie is ever written."""
     datadir = tmp_path / "datadir"
-    rpc_port = free_port()
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         datadir,
         rpc_port,
-        free_port(),
+        p2p_port,
         extra_args=("-rpcuser=bob", "-rpcpassword=bobpw"),
         rpc_auth=("bob", "bobpw"),
     )
@@ -292,12 +294,12 @@ def test_norpccookiefile_writes_no_cookie_and_rpcauth_still_authenticates(
 ) -> None:
     """`-norpccookiefile` writes no cookie; a paired `-rpcauth` still works."""
     datadir = tmp_path / "datadir"
-    rpc_port = free_port()
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         datadir,
         rpc_port,
-        free_port(),
+        p2p_port,
         extra_args=(_RPCAUTH_USER1, "-norpccookiefile"),
         rpc_auth=("user1", "bitcoin"),
     )
@@ -325,8 +327,9 @@ def test_rpccookieperms_sets_posix_permission_bits(
     """`-rpccookieperms` sets the cookie's own mode; unset defaults to owner."""
     datadir = tmp_path / "datadir"
     extra_args = (f"-rpccookieperms={perm}",) if perm else ()
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
-        bitcoind_path, datadir, free_port(), free_port(), extra_args=extra_args
+        bitcoind_path, datadir, rpc_port, p2p_port, extra_args=extra_args
     )
     adapter.start()
     try:
@@ -346,7 +349,8 @@ def test_cookie_write_failure_aborts_the_node(
     cookie_dir = datadir / "regtest"
     cookie_dir.mkdir(parents=True)
     (cookie_dir / ".cookie.tmp").mkdir()
-    adapter = BitcoindAdapter(bitcoind_path, datadir, free_port(), free_port())
+    rpc_port, p2p_port = free_ports(2)
+    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, p2p_port)
     require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
     with pytest.raises(RuntimeError, match=_INIT_ERROR):
         adapter.start()

@@ -64,7 +64,7 @@ from btclib.tx.limits import COINBASE_MATURITY
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet, nulldata_script_pub_key
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -200,7 +200,8 @@ def test_block_not_found_on_disk(
     bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
 ) -> None:
     """A `blk00000.dat` moved away from under the node is a disk-level miss."""
-    adapter = BitcoindAdapter(bitcoind_path, tmp_path, free_port(), free_port())
+    rpc_port, p2p_port = free_ports(2)
+    adapter = BitcoindAdapter(bitcoind_path, tmp_path, rpc_port, p2p_port)
     adapter.start()
     try:
         require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)

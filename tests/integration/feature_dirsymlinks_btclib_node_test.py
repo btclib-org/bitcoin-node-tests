@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -37,7 +37,8 @@ def test_starts_with_symlinked_blocks_and_chainstate_directories(
 ) -> None:
     """A restart over symlinked `blocks/` and `chainstate/` still starts."""
     datadir = tmp_path / "datadir"
-    adapter = BtclibNodeAdapter(btclib_node_python, datadir, free_port(), free_port())
+    rpc_port, p2p_port = free_ports(2)
+    adapter = BtclibNodeAdapter(btclib_node_python, datadir, rpc_port, p2p_port)
     adapter.start()
     adapter.stop()
 

@@ -39,7 +39,7 @@ import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -84,7 +84,7 @@ def test_rpcwhitelist_restricts_a_users_own_rpc_surface(
     """A whitelisted user reaches only its own methods; others answer 403."""
     datadir = tmp_path / "datadir"
     datadir.mkdir()
-    rpc_port = free_port()
+    rpc_port, p2p_port = free_ports(2)
     (datadir / "bitcoin.conf").write_text(
         "rpcwhitelistdefault=0\n"
         f"rpcauth={_rpcauth_line('alice', 'alicepw')}\n"
@@ -92,7 +92,7 @@ def test_rpcwhitelist_restricts_a_users_own_rpc_surface(
         f"rpcauth={_rpcauth_line('bob', 'bobpw')}\n"
         "rpcwhitelist=bob:getblockcount\n"
     )
-    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, free_port())
+    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, p2p_port)
     adapter.start()
     try:
         require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
@@ -112,7 +112,7 @@ def test_rpcwhitelistdefault_governs_an_unlisted_user(
     """`rpcwhitelistdefault=1` refuses a user `rpcwhitelist` never named."""
     datadir = tmp_path / "datadir"
     datadir.mkdir()
-    rpc_port = free_port()
+    rpc_port, p2p_port = free_ports(2)
     (datadir / "bitcoin.conf").write_text(
         "rpcwhitelistdefault=1\n"
         f"rpcauth={_rpcauth_line('carol', 'carolpw')}\n"
@@ -123,7 +123,7 @@ def test_rpcwhitelistdefault_governs_an_unlisted_user(
         # for the same reason, once it turns this setting on.
         "rpcwhitelist=__cookie__:getblockchaininfo\n"
     )
-    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, free_port())
+    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, p2p_port)
     adapter.start()
     try:
         require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)

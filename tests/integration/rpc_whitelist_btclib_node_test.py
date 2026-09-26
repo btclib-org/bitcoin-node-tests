@@ -34,7 +34,7 @@ import pytest
 
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -78,8 +78,8 @@ def test_rpcwhitelist_restricts_a_users_own_rpc_surface(
 ) -> None:
     """A whitelisted user reaches only its own methods; others answer 403."""
     datadir = tmp_path / "datadir"
-    rpc_port = free_port()
-    adapter = BtclibNodeAdapter(btclib_node_python, datadir, rpc_port, free_port())
+    rpc_port, p2p_port = free_ports(2)
+    adapter = BtclibNodeAdapter(btclib_node_python, datadir, rpc_port, p2p_port)
     require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
     datadir.mkdir()
     (datadir / "bitcoin.conf").write_text(
@@ -106,8 +106,8 @@ def test_rpcwhitelistdefault_governs_an_unlisted_user(
 ) -> None:
     """`rpcwhitelistdefault=1` refuses a user `rpcwhitelist` never named."""
     datadir = tmp_path / "datadir"
-    rpc_port = free_port()
-    adapter = BtclibNodeAdapter(btclib_node_python, datadir, rpc_port, free_port())
+    rpc_port, p2p_port = free_ports(2)
+    adapter = BtclibNodeAdapter(btclib_node_python, datadir, rpc_port, p2p_port)
     require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
     datadir.mkdir()
     (datadir / "bitcoin.conf").write_text(

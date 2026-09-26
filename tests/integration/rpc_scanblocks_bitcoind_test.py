@@ -64,6 +64,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -90,12 +91,20 @@ _NULL_SCANOBJECTS_RELEASE = "JSON value of type null is not of expected type arr
 
 
 def _start_adapter(
-    bitcoind_path: str, datadir: Path, extra_args: tuple[str, ...] = ()
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    datadir: Path,
+    extra_args: tuple[str, ...] = (),
 ) -> BitcoindAdapter:
     datadir.mkdir()
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
-        bitcoind_path, datadir, rpc_port, p2p_port, extra_args=extra_args
+    adapter = make_adapter(
+        BitcoindAdapter,
+        bitcoind_path,
+        datadir,
+        rpc_port,
+        p2p_port,
+        extra_args=extra_args,
     )
     adapter.start()
     return adapter
@@ -134,11 +143,16 @@ def _relevant_blocks(adapter: BitcoindAdapter, *params: object) -> list[str]:
 
 
 def test_scanblocks_finds_the_blocks_paying_what_it_is_asked_for(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """Core's own `run_test`, the node without the index excepted."""
     require(Capability.BLOCK_FILTER_INDEX, BitcoindAdapter.capabilities, skip_counts)
-    node = _start_adapter(bitcoind_path, tmp_path / "node0", ("-blockfilterindex=1",))
+    node = _start_adapter(
+        make_adapter, bitcoind_path, tmp_path / "node0", ("-blockfilterindex=1",)
+    )
     try:
         require(Capability.MINE, node.capabilities, skip_counts)
         wallet = MiniWallet(node)
@@ -245,11 +259,14 @@ def test_scanblocks_finds_the_blocks_paying_what_it_is_asked_for(
 
 
 def test_scanblocks_refuses_without_the_index(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """Core's second node, with no `-blockfilterindex`, refuses a scan."""
     require(Capability.BLOCK_FILTER_INDEX, BitcoindAdapter.capabilities, skip_counts)
-    node = _start_adapter(bitcoind_path, tmp_path / "node1")
+    node = _start_adapter(make_adapter, bitcoind_path, tmp_path / "node1")
     try:
         key = PrvKeyData(secrets.randbelow(secp256k1.n - 1) + 1, "regtest")
         addr = ScriptPubKey.p2tr(key.pub, network="regtest").address

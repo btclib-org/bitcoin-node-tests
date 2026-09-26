@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -67,9 +68,12 @@ _FUNDING_VALUE = 1_000_000
 _SPEND_VALUE = 500_000
 
 
-def _start_adapter(bitcoind_path: str, tmp_path: Path) -> BitcoindAdapter:
+def _start_adapter(
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
+) -> BitcoindAdapter:
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
+    adapter = make_adapter(
+        BitcoindAdapter,
         bitcoind_path,
         tmp_path,
         rpc_port,
@@ -105,11 +109,14 @@ def _spending_tx(funding_tx: Tx, witness_script: bytes, padding: bytes) -> Tx:
 
 
 def test_a_sigop_heavy_transaction_is_billed_by_its_equivalent_vsize(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """`vsize` follows the sigop-equivalent floor, not the serialized size."""
     require(Capability.BYTES_PER_SIGOP, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)

@@ -30,16 +30,18 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tests.conftest import AdapterFactory
+
 pytestmark = pytest.mark.integration
 
 
 def test_starts_with_symlinked_blocks_and_chainstate_directories(
-    bitcoind_path: str, tmp_path: Path
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
 ) -> None:
     """A restart over symlinked `blocks/` and `chainstate/` still starts."""
     datadir = tmp_path / "datadir"
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, p2p_port)
+    adapter = make_adapter(BitcoindAdapter, bitcoind_path, datadir, rpc_port, p2p_port)
     adapter.start()
     adapter.stop()
 

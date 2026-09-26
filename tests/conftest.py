@@ -12,12 +12,12 @@ point such a run at its configuration or to make it say it is ungated,
 and this file is the second of the two: such a run is refused
 (btclib-org/.github#443).
 
-`stop_all`, `stash_or_report` and `fold_worker_tally` are what
-`tests/integration/conftest.py`'s own hooks call: `[tool.coverage.run]`'s
-`omit` excludes that whole module, so their bodies live here, in the one
-other file the "python tests naming" hook lets sit beside `*_test.py`
-files without being one itself, and are measured by an ordinary run
-(issue bitcoin-node-tests#101).
+`stop_all`, `stash_or_report`, `fold_worker_tally` and `AdapterFactory`
+are what `tests/integration/conftest.py`'s own hooks and fixtures call:
+`[tool.coverage.run]`'s `omit` excludes that whole module, so their
+bodies live here, in the one other file the "python tests naming" hook
+lets sit beside `*_test.py` files without being one itself, and are
+measured by an ordinary run (issue bitcoin-node-tests#101).
 """
 
 import os
@@ -29,6 +29,7 @@ import pytest
 from hypothesis import settings
 
 from bitcoin_node_tests.capability import MissingCapabilityError, SkipCounts
+from bitcoin_node_tests.node import NodeAdapter
 
 pytest_plugins = ["pytester"]
 
@@ -298,4 +299,46 @@ def fold_worker_tally(
     if workeroutput is not None:
         skip_counts.add_mapping(
             cast("Mapping[str, int]", workeroutput.get("skip_counts", {}))
+        )
+
+
+class AdapterFactory:
+    """Construct any `NodeAdapter` subclass with this session's `--tracerpc`.
+
+    `tests/integration/conftest.py`'s own `make_adapter` fixture returns
+    one. `NodeAdapter` takes `trace_rpc` per instance rather than as a
+    global, so the option reaches an adapter only through its
+    constructor, and an adapter a test builds without this factory or a
+    `trace_rpc` of its own never traces.
+
+    :param trace_rpc: whether `--tracerpc` was given.
+    """
+
+    def __init__(self, *, trace_rpc: bool) -> None:
+        self._trace_rpc = trace_rpc
+
+    def __call__[A: NodeAdapter](
+        self,
+        cls: type[A],
+        executable: str,
+        datadir: Path,
+        rpc_port: int,
+        p2p_port: int,
+        extra_args: Sequence[str] = (),
+        rpc_auth: tuple[str, str] | None = None,
+    ) -> A:
+        """Return `cls(...)`, its `trace_rpc` taken from `--tracerpc`.
+
+        :param cls: the adapter class to construct, a test module's own
+            subclass included.
+        :returns: the constructed adapter, not yet started.
+        """
+        return cls(
+            executable,
+            datadir,
+            rpc_port,
+            p2p_port,
+            extra_args,
+            rpc_auth,
+            trace_rpc=self._trace_rpc,
         )

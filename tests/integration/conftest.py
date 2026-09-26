@@ -42,7 +42,12 @@ from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import SkipCounts
 from bitcoin_node_tests.node import free_ports
 from bitcoin_node_tests.timeout_factor import scaled, set_factor
-from tests.conftest import fold_worker_tally, stash_or_report, stop_all
+from tests.conftest import (
+    AdapterFactory,
+    fold_worker_tally,
+    stash_or_report,
+    stop_all,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -166,9 +171,17 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 @pytest.fixture(scope="session")
-def trace_rpc(request: pytest.FixtureRequest) -> bool:
-    """Return whether `--tracerpc` was given, for a fixture to pass on."""
-    return bool(request.config.getoption("--tracerpc"))
+def make_adapter(request: pytest.FixtureRequest) -> AdapterFactory:
+    """Return what every adapter a test builds is constructed through.
+
+    `make_adapter(BitcoindAdapter, executable, datadir, rpc_port,
+    p2p_port, ...)` in place of `BitcoindAdapter(executable, ...)`: the
+    same positional and keyword arguments, with `trace_rpc` taken from
+    `--tracerpc` rather than left at its default.
+    `tests/tracerpc_reach_test.py` holds every construction under this
+    directory to going through it or to naming its own `trace_rpc`.
+    """
+    return AdapterFactory(trace_rpc=bool(request.config.getoption("--tracerpc")))
 
 
 def _require_integration() -> None:
@@ -188,16 +201,18 @@ def bitcoind_path() -> str:
 
 @pytest.fixture(scope="session")
 def bitcoind_adapter(
-    bitcoind_path: str, tmp_path_factory: pytest.TempPathFactory, trace_rpc: bool
+    bitcoind_path: str,
+    tmp_path_factory: pytest.TempPathFactory,
+    make_adapter: AdapterFactory,
 ) -> Iterator[BitcoindAdapter]:
     """Yield a `BitcoindAdapter` over a regtest node started this session."""
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
+    adapter = make_adapter(
+        BitcoindAdapter,
         bitcoind_path,
         tmp_path_factory.mktemp("bitcoind"),
         rpc_port,
         p2p_port,
-        trace_rpc=trace_rpc,
     )
     adapter.start()
     try:
@@ -208,7 +223,9 @@ def bitcoind_adapter(
 
 @pytest.fixture
 def bitcoind_cluster(
-    bitcoind_path: str, tmp_path_factory: pytest.TempPathFactory, trace_rpc: bool
+    bitcoind_path: str,
+    tmp_path_factory: pytest.TempPathFactory,
+    make_adapter: AdapterFactory,
 ) -> Iterator[Callable[[int], list[BitcoindAdapter]]]:
     """Yield a factory for `count` fresh `BitcoindAdapter`s, stopped after.
 
@@ -223,12 +240,12 @@ def bitcoind_cluster(
     def _start(count: int) -> list[BitcoindAdapter]:
         for _ in range(count):
             rpc_port, p2p_port = free_ports(2)
-            adapter = BitcoindAdapter(
+            adapter = make_adapter(
+                BitcoindAdapter,
                 bitcoind_path,
                 tmp_path_factory.mktemp("bitcoind"),
                 rpc_port,
                 p2p_port,
-                trace_rpc=trace_rpc,
             )
             adapter.start()
             started.append(adapter)
@@ -271,16 +288,18 @@ def btclib_node_python() -> str:
 
 @pytest.fixture(scope="session")
 def btclib_node_adapter(
-    btclib_node_python: str, tmp_path_factory: pytest.TempPathFactory, trace_rpc: bool
+    btclib_node_python: str,
+    tmp_path_factory: pytest.TempPathFactory,
+    make_adapter: AdapterFactory,
 ) -> Iterator[BtclibNodeAdapter]:
     """Yield a `BtclibNodeAdapter`, a regtest node started this session."""
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(
+    adapter = make_adapter(
+        BtclibNodeAdapter,
         btclib_node_python,
         tmp_path_factory.mktemp("btclib-node"),
         rpc_port,
         p2p_port,
-        trace_rpc=trace_rpc,
     )
     adapter.start()
     try:
@@ -294,6 +313,7 @@ def mixed_cluster(
     bitcoind_path: str,
     btclib_node_python: str,
     tmp_path_factory: pytest.TempPathFactory,
+    make_adapter: AdapterFactory,
 ) -> Iterator[tuple[BitcoindAdapter, BtclibNodeAdapter]]:
     """Yield one fresh `BitcoindAdapter` and one fresh `BtclibNodeAdapter`.
 
@@ -316,10 +336,15 @@ def mixed_cluster(
     keeps this node's ports from landing on the other's.
     """
     rpc_port1, p2p_port1, rpc_port2, p2p_port2 = free_ports(4)
-    bitcoind = BitcoindAdapter(
-        bitcoind_path, tmp_path_factory.mktemp("bitcoind"), rpc_port1, p2p_port1
+    bitcoind = make_adapter(
+        BitcoindAdapter,
+        bitcoind_path,
+        tmp_path_factory.mktemp("bitcoind"),
+        rpc_port1,
+        p2p_port1,
     )
-    btclib_node = BtclibNodeAdapter(
+    btclib_node = make_adapter(
+        BtclibNodeAdapter,
         btclib_node_python,
         tmp_path_factory.mktemp("btclib-node"),
         rpc_port2,

@@ -36,6 +36,8 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tests.conftest import AdapterFactory
+
 pytestmark = pytest.mark.integration
 
 
@@ -54,16 +56,18 @@ def _lock_refusal(directory: Path) -> str:
 
 
 def test_second_instance_on_same_datadir_refuses_to_start(
-    bitcoind_path: str, tmp_path: Path
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
 ) -> None:
     """A second node over the same datadir cannot obtain its lock."""
     datadir = tmp_path / "datadir"
     rpc_port1, p2p_port1 = free_ports(2)
-    first = BitcoindAdapter(bitcoind_path, datadir, rpc_port1, p2p_port1)
+    first = make_adapter(BitcoindAdapter, bitcoind_path, datadir, rpc_port1, p2p_port1)
     first.start()
     try:
         rpc_port2, p2p_port2 = free_ports(2)
-        second = BitcoindAdapter(bitcoind_path, datadir, rpc_port2, p2p_port2)
+        second = make_adapter(
+            BitcoindAdapter, bitcoind_path, datadir, rpc_port2, p2p_port2
+        )
         with pytest.raises(RuntimeError, match=_lock_refusal(datadir / "regtest")):
             second.start()
     finally:
@@ -71,16 +75,19 @@ def test_second_instance_on_same_datadir_refuses_to_start(
 
 
 def test_second_instance_on_same_blocksdir_refuses_to_start(
-    bitcoind_path: str, tmp_path: Path
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
 ) -> None:
     """A second node given the first's own datadir as `-blocksdir` fails."""
     first_datadir = tmp_path / "first"
     rpc_port1, p2p_port1 = free_ports(2)
-    first = BitcoindAdapter(bitcoind_path, first_datadir, rpc_port1, p2p_port1)
+    first = make_adapter(
+        BitcoindAdapter, bitcoind_path, first_datadir, rpc_port1, p2p_port1
+    )
     first.start()
     try:
         rpc_port2, p2p_port2 = free_ports(2)
-        second = BitcoindAdapter(
+        second = make_adapter(
+            BitcoindAdapter,
             bitcoind_path,
             tmp_path / "second",
             rpc_port2,

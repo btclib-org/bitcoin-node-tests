@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -60,14 +61,18 @@ _CSV_ACTIVATION_HEIGHT = 12
 
 
 def test_csv_activates_one_block_before_the_configured_height(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """`getdeploymentinfo`'s own `csv` entry tracks the configured height."""
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BitcoindAdapter.capabilities, skip_counts
     )
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
+    adapter = make_adapter(
+        BitcoindAdapter,
         bitcoind_path,
         tmp_path,
         rpc_port,

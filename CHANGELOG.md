@@ -426,3 +426,9 @@ an `-rpcauth` given before it, so `rpc_users`'s negation test runs against
 A taken `127.0.0.1` RPC port now fails bitcoind's init and `start` on the exit
 code, where bitcoind ignored `-rpcbind` alone, served RPC on `::1` and left
 `start` to time out (closes #135).
+
+### `--tracerpc` traces every adapter a test builds
+
+Test modules and `mixed_cluster` built their adapters without it; each now goes
+through the `make_adapter` fixture, and `tests/tracerpc_reach_test.py` fails on
+one that bypasses it without naming its own `trace_rpc` (closes #89).

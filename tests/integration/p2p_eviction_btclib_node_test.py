@@ -34,15 +34,21 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
 
 def test_the_evicted_inbound_peer_is_never_a_protected_one(
-    btclib_node_python: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    btclib_node_python: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(btclib_node_python, tmp_path, rpc_port, p2p_port)
+    adapter = make_adapter(
+        BtclibNodeAdapter, btclib_node_python, tmp_path, rpc_port, p2p_port
+    )
     require(Capability.INBOUND_EVICTION, adapter.capabilities, skip_counts)
     require(Capability.MINE, adapter.capabilities, skip_counts)

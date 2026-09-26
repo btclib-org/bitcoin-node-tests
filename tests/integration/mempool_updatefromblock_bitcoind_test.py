@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -66,9 +67,12 @@ _TOURNAMENT_SIZE = 6
 _DEFAULT_CLUSTER_LIMIT = 64
 
 
-def _start_adapter(bitcoind_path: str, tmp_path: Path) -> BitcoindAdapter:
+def _start_adapter(
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
+) -> BitcoindAdapter:
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
+    adapter = make_adapter(
+        BitcoindAdapter,
         bitcoind_path,
         tmp_path,
         rpc_port,
@@ -80,7 +84,10 @@ def _start_adapter(bitcoind_path: str, tmp_path: Path) -> BitcoindAdapter:
 
 
 def test_reorg_recomputes_every_entry_s_own_ancestors_and_descendants(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """An acyclic tournament's own mempool entries survive a reorg intact.
 
@@ -91,7 +98,7 @@ def test_reorg_recomputes_every_entry_s_own_ancestors_and_descendants(
     entry's own `getmempoolentry` answer still holds.
     """
     require(Capability.LIMIT_CLUSTER_SIZE, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)
@@ -147,7 +154,10 @@ def test_reorg_recomputes_every_entry_s_own_ancestors_and_descendants(
 
 
 def test_a_chain_over_the_default_cluster_limit_needs_a_reorg_to_fit(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A chain longer than the default cluster count is refused entry.
 
@@ -160,7 +170,7 @@ def test_a_chain_over_the_default_cluster_limit_needs_a_reorg_to_fit(
     away, back under the count the chain never fit unconfirmed.
     """
     require(Capability.LIMIT_CLUSTER_SIZE, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)

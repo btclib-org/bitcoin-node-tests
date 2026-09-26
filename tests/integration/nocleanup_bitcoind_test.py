@@ -27,16 +27,18 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tests.conftest import AdapterFactory
+
 pytestmark = pytest.mark.integration
 
 
 def test_stop_leaves_the_datadir_and_its_debug_log_on_disk(
-    bitcoind_path: str, tmp_path: Path
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
 ) -> None:
     """The datadir, and the log inside it, both outlive `stop`."""
     datadir = tmp_path / "node"
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, p2p_port)
+    adapter = make_adapter(BitcoindAdapter, bitcoind_path, datadir, rpc_port, p2p_port)
     adapter.start()
     log_path = adapter.debug_log_path
     try:

@@ -66,6 +66,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -187,7 +188,10 @@ def _evicted(peers: list[Peer], timeout: float = 30) -> list[int]:
 
 
 def test_the_evicted_inbound_peer_is_never_a_protected_one(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """Core's own `run_test`, one peer after another in Core's own order."""
     require(Capability.INBOUND_EVICTION, BitcoindAdapter.capabilities, skip_counts)
@@ -197,7 +201,8 @@ def test_the_evicted_inbound_peer_is_never_a_protected_one(
         else _MAX_CONNECTIONS
     )
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
+    adapter = make_adapter(
+        BitcoindAdapter,
         bitcoind_path,
         tmp_path,
         rpc_port,

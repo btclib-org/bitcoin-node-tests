@@ -14,12 +14,12 @@ request is answered against.
 Core's functional tests, rewritten on
 [btclib](https://github.com/btclib-org/btclib), run against any node
 that speaks bitcoin's RPC and p2p (issue
-btclib-org/btclib#2220). This step carries the organization's apparatus
-and `TF2.md`, the ledger of what Core's
+btclib-org/btclib#2220). `TF2.md` is the ledger of what Core's
 `test/functional/test_framework/` needs and what covers it, one entry
-per file: what covers most of the directory today is `btclib` itself,
-this repository's own adapter and test families being later steps of
-the same issue.
+per file: most of the directory is covered by `btclib` itself, and
+`src/bitcoin_node_tests/` is the adapter and the test families built on
+top of it -- `CONTRIBUTING.md`'s *The public surface* names the
+adapter's own modules.
 
 `TF2.md`'s citation rule governs every module this repository will
 publish: a citation of a file under `test/functional/test_framework/`

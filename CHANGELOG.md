@@ -342,3 +342,9 @@ rises above `minrelaytxfee` and the lowest fee-rate one is evicted (closes #70).
 Each drew its `rpc_port`/`p2p_port` pair from two separate `free_port()` calls,
 the same collision `free_ports` exists to close; a module building several
 adapters before starting any now draws all their ports at once (closes #115).
+
+### The docs describe the tree's adapter as it stands, not as its first step
+
+`CLAUDE.md`, `CONTRIBUTING.md`, `tests/README.md` and the package
+docstring point at `CONTRIBUTING.md`'s public-surface list rather than
+each naming a stale subset of it (closes #96).

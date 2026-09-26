@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -58,10 +58,12 @@ def test_second_instance_on_same_datadir_refuses_to_start(
 ) -> None:
     """A second node over the same datadir cannot obtain its lock."""
     datadir = tmp_path / "datadir"
-    first = BitcoindAdapter(bitcoind_path, datadir, free_port(), free_port())
+    rpc_port1, p2p_port1 = free_ports(2)
+    first = BitcoindAdapter(bitcoind_path, datadir, rpc_port1, p2p_port1)
     first.start()
     try:
-        second = BitcoindAdapter(bitcoind_path, datadir, free_port(), free_port())
+        rpc_port2, p2p_port2 = free_ports(2)
+        second = BitcoindAdapter(bitcoind_path, datadir, rpc_port2, p2p_port2)
         with pytest.raises(RuntimeError, match=_lock_refusal(datadir / "regtest")):
             second.start()
     finally:
@@ -73,14 +75,16 @@ def test_second_instance_on_same_blocksdir_refuses_to_start(
 ) -> None:
     """A second node given the first's own datadir as `-blocksdir` fails."""
     first_datadir = tmp_path / "first"
-    first = BitcoindAdapter(bitcoind_path, first_datadir, free_port(), free_port())
+    rpc_port1, p2p_port1 = free_ports(2)
+    first = BitcoindAdapter(bitcoind_path, first_datadir, rpc_port1, p2p_port1)
     first.start()
     try:
+        rpc_port2, p2p_port2 = free_ports(2)
         second = BitcoindAdapter(
             bitcoind_path,
             tmp_path / "second",
-            free_port(),
-            free_port(),
+            rpc_port2,
+            p2p_port2,
             extra_args=(f"-blocksdir={first_datadir}",),
         )
         with pytest.raises(

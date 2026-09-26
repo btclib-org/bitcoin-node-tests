@@ -54,7 +54,7 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -69,11 +69,12 @@ _DERSIG_HEIGHT = 12
 
 
 def _start_adapter(bitcoind_path: str, tmp_path: Path) -> BitcoindAdapter:
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         tmp_path,
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         extra_args=(f"-testactivationheight=dersig@{_DERSIG_HEIGHT}",),
     )
     adapter.start()

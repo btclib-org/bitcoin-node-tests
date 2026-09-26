@@ -56,7 +56,7 @@ from btclib.tx.limits import COINBASE_MATURITY
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -97,11 +97,12 @@ def _output_scripts() -> tuple[tuple[ScriptPubKey, str], ...]:
 def _start_adapter(
     bitcoind_path: str, tmp_path: Path, *extra_args: str
 ) -> BitcoindAdapter:
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         tmp_path,
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         extra_args=("-permitbaremultisig", *extra_args),
     )
     adapter.start()

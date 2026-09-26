@@ -63,7 +63,7 @@ from btclib.p2p.magic import magic_from_chain
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 from bitcoin_node_tests.peer import Peer
 
 if TYPE_CHECKING:
@@ -196,11 +196,12 @@ def _addr_node(bitcoind_path: str, datadir: Path) -> Iterator[BitcoindAdapter]:
 
     The module docstring is why each of the two flags is here.
     """
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         datadir,
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         extra_args=("-whitelist=addr@127.0.0.1", "-connect=0"),
     )
     adapter.start()

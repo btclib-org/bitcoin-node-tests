@@ -32,7 +32,7 @@ import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -46,11 +46,12 @@ def test_nonexistent_blocksdir_refuses_to_start(
     bitcoind_path: str, tmp_path: Path
 ) -> None:
     """`-blocksdir` naming a directory that does not exist is fatal."""
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         tmp_path / "datadir",
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         extra_args=(f"-blocksdir={tmp_path / 'nonexistent'}",),
     )
     with pytest.raises(
@@ -65,11 +66,12 @@ def test_existing_blocksdir_holds_the_chain_in_cores_own_files(
     """Core's own `blk00000.dat`, under the directory `-blocksdir` names."""
     blocksdir = tmp_path / "blocksdir"
     blocksdir.mkdir()
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         tmp_path / "datadir",
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         extra_args=(f"-blocksdir={blocksdir}",),
     )
     adapter.start()

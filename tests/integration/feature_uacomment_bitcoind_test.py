@@ -33,7 +33,7 @@ import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -47,7 +47,8 @@ def test_uacomment_appends_to_the_subversion_string(
     bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
 ) -> None:
     """A comment appears in `getnetworkinfo`'s subversion once named."""
-    plain = BitcoindAdapter(bitcoind_path, tmp_path / "plain", free_port(), free_port())
+    rpc_port1, p2p_port1 = free_ports(2)
+    plain = BitcoindAdapter(bitcoind_path, tmp_path / "plain", rpc_port1, p2p_port1)
     plain.start()
     try:
         require(Capability.UA_COMMENT, plain.capabilities, skip_counts)
@@ -55,11 +56,12 @@ def test_uacomment_appends_to_the_subversion_string(
     finally:
         plain.stop()
 
+    rpc_port2, p2p_port2 = free_ports(2)
     commented = BitcoindAdapter(
         bitcoind_path,
         tmp_path / "commented",
-        free_port(),
-        free_port(),
+        rpc_port2,
+        p2p_port2,
         extra_args=("-uacomment=foo",),
     )
     commented.start()

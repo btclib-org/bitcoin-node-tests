@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -35,7 +35,8 @@ def test_stop_leaves_the_datadir_and_its_debug_log_on_disk(
 ) -> None:
     """The datadir, and the log inside it, both outlive `stop`."""
     datadir = tmp_path / "node"
-    adapter = BitcoindAdapter(bitcoind_path, datadir, free_port(), free_port())
+    rpc_port, p2p_port = free_ports(2)
+    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, p2p_port)
     adapter.start()
     log_path = adapter.debug_log_path
     try:

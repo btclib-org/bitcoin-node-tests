@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 from urllib.request import Request
 
-from bitcoin_core_rpc import BitcoinCoreRpcClient
+from bitcoin_core_rpc import BitcoinCoreRpcClient, HttpError, RpcError, RPCErrorCode
 from bitcoin_core_rpc.transport import HttpTransport
 
 from bitcoin_node_tests.timeout_factor import scaled
@@ -237,15 +237,33 @@ def _wait_for_rpc(
     failure -- an empty answer, a refused connection -- being the same
     "not yet listening" either node's own startup answers with.
 
+    An answer is not always progress, though: an `RpcError` whose `code`
+    is not `RPCErrorCode.IN_WARMUP`, or an `HttpError` whose `status` is
+    401 or 403, is the node refusing rather than the node warming up, and
+    waiting out the rest of `timeout` never turns either into a success.
+    Core's own `wait_for_rpc_connection`
+    (`test_framework/test_node.py`) draws the same line on its
+    `JSONRPCException`, suppressing `-28` (`RPC_IN_WARMUP`) and `-342`
+    and re-raising every other code at once; this follows it for the one
+    of the two `bitcoin_core_rpc.RPCErrorCode` names, and adds the
+    equivalent HTTP-layer case for a credential no retry can fix. Every
+    other failure -- refused, reset, or the cookie not yet written -- is
+    kept as `last_error` and raised as the `TimeoutError`'s own cause if
+    the deadline is reached, so a caller reading the traceback sees what
+    the node actually answered rather than a bare timeout.
+
     :param rpc: the client to poll, one whole call at a time.
     :param process: the process whose own exit ends the wait early.
     :param stderr_path: where the process's own stderr was redirected;
         read back into the error raised on an early exit.
     :param timeout: how long to wait before giving up.
-    :raises TimeoutError: the RPC never answered within `timeout`.
-    :raises RuntimeError: the process exited before its RPC answered.
+    :raises TimeoutError: the RPC never answered within `timeout`,
+        chained to the last transient failure `rpc.call` raised.
+    :raises RuntimeError: the process exited before its RPC answered, or
+        the RPC answered with an error waiting cannot resolve.
     """
     deadline = time.monotonic() + timeout
+    last_error: Exception | None = None
     while time.monotonic() < deadline:
         exit_code = process.poll()
         if exit_code is not None:
@@ -256,15 +274,26 @@ def _wait_for_rpc(
             raise RuntimeError(err_msg)
         try:
             rpc.call("getblockchaininfo")
-        except Exception:  # noqa: BLE001
-            # every failure before the node is listening is the same
-            # failure: refused, reset, or the cookie/credentials not
-            # written yet -- there is nothing to read from any of them
-            time.sleep(0.1)
+        except RpcError as e:
+            if e.code != RPCErrorCode.IN_WARMUP:
+                err_msg = f"node answered its RPC with an error: {e}"
+                raise RuntimeError(err_msg) from e
+            last_error = e
+        except HttpError as e:
+            if e.status in (401, 403):
+                err_msg = f"node refused its RPC: {e}"
+                raise RuntimeError(err_msg) from e
+            last_error = e
+        except Exception as e:  # noqa: BLE001
+            # every other failure before the node is listening is the
+            # same failure: refused, reset, or the cookie/credentials
+            # not written yet -- kept only to chain onto a timeout
+            last_error = e
         else:
             return
+        time.sleep(0.1)
     err_msg = f"node did not answer its RPC within {timeout} s"
-    raise TimeoutError(err_msg)
+    raise TimeoutError(err_msg) from last_error
 
 
 class NodeAdapter(ABC):

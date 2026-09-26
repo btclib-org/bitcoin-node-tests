@@ -360,3 +360,9 @@ is still alive (closes #114).
 Bare `ISS 2220` in a comment or docstring resolved to this tracker,
 where no such issue exists; citations of btclib and btclib-node now
 carry the owner and repository, `TF2.md`'s own form (closes #100).
+
+### `_wait_for_rpc` tells a node's own answer from silence
+
+An `RpcError` other than `-28 RPC_IN_WARMUP`, or an `HttpError` carrying 401
+or 403, fails at once with the node's own error as its cause, instead of
+waiting out the startup timeout and reporting `TimeoutError` (closes #98).

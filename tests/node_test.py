@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, ClassVar, Self, override
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
+from bitcoin_core_rpc import HttpError, RpcError, RPCErrorCode
 
 from bitcoin_node_tests.capability import Capability
 from bitcoin_node_tests.node import (
@@ -37,6 +38,7 @@ from bitcoin_node_tests.node import (
 from bitcoin_node_tests.timeout_factor import set_factor
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from collections.abc import Set as AbstractSet
     from urllib.request import Request
 
@@ -59,6 +61,26 @@ class _FakeRpc:
             self._remaining -= 1
             err_msg = "connection refused"
             raise ConnectionRefusedError(err_msg)
+        return {"chain": "regtest"}
+
+
+class _ScriptedRpc(_FakeRpc):
+    """A `_FakeRpc` raising a caller-chosen exception rather than a fixed one.
+
+    `answers_after` always raises `ConnectionRefusedError`; the
+    `RpcError`/`HttpError` branches `_wait_for_rpc` gained need a
+    caller-supplied exception, in order, before the node answers.
+    """
+
+    def __init__(self, raises: Sequence[BaseException]) -> None:
+        super().__init__()
+        self._raises = list(raises)
+
+    @override
+    def call(self, method: str, params: list[object] | None = None) -> object:
+        self.calls.append((method, params))
+        if self._raises:
+            raise self._raises.pop(0)
         return {"chain": "regtest"}
 
 
@@ -343,6 +365,94 @@ def test_start_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
             adapter.start()
     finally:
         set_factor(1.0)
+
+
+def test_start_timeout_chains_the_last_transient_rpc_failure(tmp_path: Path) -> None:
+    """The `TimeoutError` carries what the node last answered, not `None`.
+
+    Regression test for [ISS 98](https://github.com/btclib-org/bitcoin-node-tests/issues/98):
+    the pre-fix `_wait_for_rpc` raised a bare `TimeoutError`, so a caller's
+    own `except ... as e: e.__cause__` read `None` for every timeout, a
+    permanent answer included, and there was nothing in the traceback
+    saying what the node had actually been sending back.
+    """
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    rpc = _FakeRpc(answers_after=10**6)
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=rpc)
+    with (
+        patch("subprocess.Popen", return_value=_FakeProcess()),
+        patch.object(node_module, "_STARTUP_TIMEOUT", 0.05),
+        pytest.raises(TimeoutError, match="did not answer") as exc_info,
+    ):
+        adapter.start()
+    assert isinstance(exc_info.value.__cause__, ConnectionRefusedError)
+
+
+def test_start_raises_at_once_on_an_rpc_error_that_is_not_warmup(
+    tmp_path: Path,
+) -> None:
+    """A node answering with a real RPC error is failed at once, not waited out.
+
+    Regression test for [ISS 98](https://github.com/btclib-org/bitcoin-node-tests/issues/98):
+    the pre-fix `_wait_for_rpc` caught every exception alike, so this waited
+    out the whole startup timeout and was reported as `TimeoutError` --
+    silence -- rather than as the answer the node actually sent.
+    """
+    error = RpcError("out of memory", RPCErrorCode.OUT_OF_MEMORY)
+    rpc = _ScriptedRpc([error])
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=rpc)
+    with (
+        patch("subprocess.Popen", return_value=_FakeProcess()),
+        pytest.raises(RuntimeError, match="answered its RPC with an error") as exc_info,
+    ):
+        adapter.start()
+    assert exc_info.value.__cause__ is error
+    assert rpc.calls == [("getblockchaininfo", None)]
+
+
+def test_start_treats_rpc_in_warmup_as_still_starting(tmp_path: Path) -> None:
+    """`-28 RPC_IN_WARMUP` is the `RpcError` code that is waited out.
+
+    As Core's own `wait_for_rpc_connection`
+    (`test_framework/test_node.py`) waits it out too.
+    """
+    error = RpcError("Loading block index...", RPCErrorCode.IN_WARMUP)
+    rpc = _ScriptedRpc([error, error])
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=rpc)
+    with patch("subprocess.Popen", return_value=_FakeProcess()):
+        adapter.start()
+    assert rpc.calls == [("getblockchaininfo", None)] * 3
+
+
+@pytest.mark.parametrize("status", [401, 403])
+def test_start_raises_at_once_on_an_http_401_or_403(
+    tmp_path: Path, status: int
+) -> None:
+    """A credential no retry can fix is failed at once, not waited out."""
+    error = HttpError("unauthorized", status)
+    rpc = _ScriptedRpc([error])
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=rpc)
+    with (
+        patch("subprocess.Popen", return_value=_FakeProcess()),
+        pytest.raises(RuntimeError, match="node refused its RPC") as exc_info,
+    ):
+        adapter.start()
+    assert exc_info.value.__cause__ is error
+    assert rpc.calls == [("getblockchaininfo", None)]
+
+
+def test_start_waits_out_an_http_error_that_is_not_401_or_403(tmp_path: Path) -> None:
+    """An `HttpError` other than 401/403 is waited out, not failed at once.
+
+    A node's own startup can still resolve it on its own.
+    """
+    error = HttpError("service unavailable", 503)
+    rpc = _ScriptedRpc([error])
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=rpc)
+    with patch("subprocess.Popen", return_value=_FakeProcess()):
+        adapter.start()
+    assert rpc.calls == [("getblockchaininfo", None)] * 2
 
 
 def test_stop_is_a_no_op_before_start(tmp_path: Path) -> None:

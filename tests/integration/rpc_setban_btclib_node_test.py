@@ -6,9 +6,11 @@
 
 The same request `rpc_setban_bitcoind_test.py` makes, against the
 target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
-`Capability.BAN` is declared by neither build measured (`btclib_node.py`'s
-own docstring), so this skips before a second node or a `setban` call is
-ever made.
+`Capability.BAN` is declared per build (`btclib_node.py`'s own
+docstring): a build without it skips before a second node or a `setban`
+call is ever made, and on one declaring it each test reaches its own
+`pytest.fail` once every other capability it names is declared too, no
+scenario being ported for this node.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/rpc_setban_btclib_node_test.py

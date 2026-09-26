@@ -46,11 +46,14 @@ table, measured at the released `2026.9.24` (`422d2640`) and at `main`
 (`d98bd7d6`) alike. Filed as
 [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193).
 
-`Capability.BAN` is not declared either, on either build: `setban`,
-`listbanned` and `clearbanned` name no callback in the same dispatch
-table, measured at the same two revisions --
+`Capability.BAN` is declared per instance, by `_serves_ban_list`'s own
+probe: a build whose `rpc/callbacks.py` names `setban`, `listbanned` and
+`clearbanned` in its public `callbacks`, the table `rpc/main.py` resolves
+every request's method through -- `main` from btclib-node PR 1275
+(`65510d56`) on, the ban list
 [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088)
-already tracks it, filed independently of this adapter.
+asked for. The released `2026.9.24` (`422d2640`) names none of the three,
+so an instance built against it does not gain the capability.
 
 `Capability.UA_COMMENT` is not declared: measured against `cli.py`'s own
 `_build_parser` at the released `2026.9.24` (`422d2640`) and its `_OPTIONS`
@@ -60,10 +63,11 @@ at `main` (`8ded5494`) alike, `-uacomment` is registered by neither.
 `src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at
 `btclib-node` `18b6ae1e2c74`.
 
-`Capability.RPC_AUTH_CONFIG` is not a class-level fact the way the four
-above are, and unlike them this is not a fact about `btclib-node`
-itself: `cli.py`'s own `_RECOGNIZED_KEYS` at `18b6ae1e2c74` already names
-`rpcauth`, `rpcwhitelist` and `rpcwhitelistdefault`, landed by
+`Capability.RPC_AUTH_CONFIG` is not a class-level fact the way
+`BLK_FILES`, `DISCONNECT`, `UA_COMMENT` and `CLOCK` above are, and unlike
+them this is not a fact about `btclib-node` itself: `cli.py`'s own
+`_RECOGNIZED_KEYS` at `18b6ae1e2c74` already names `rpcauth`,
+`rpcwhitelist` and `rpcwhitelistdefault`, landed by
 [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070)
 alongside the cookie authentication `_writes_auth_cookie` above already
 probes for -- so it is a fact about which build the executable an
@@ -274,6 +278,34 @@ def _connects_alone(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# exits 0 only where the dispatch table holds each of `Capability.BAN`'s RPCs
+_BAN_PROBE = """\
+from btclib_node.rpc.callbacks import callbacks
+ban_rpcs = {"setban", "listbanned", "clearbanned"}
+raise SystemExit(0 if ban_rpcs <= callbacks.keys() else 1)
+"""
+
+
+@lru_cache
+def _serves_ban_list(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node answers the ban RPCs.
+
+    Asks the build's own `rpc.callbacks.callbacks`, public in that
+    module's own `__all__`, whether it names `setban`, `listbanned` and
+    `clearbanned`: `_BAN_PROBE` above. Otherwise in the standing of
+    `_writes_auth_cookie` above: no node started, no port bound, and
+    cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _BAN_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 class BtclibNodeAdapter(NodeAdapter):
     """A regtest `btclib-node`, run as `python -m btclib_node`.
 
@@ -309,8 +341,9 @@ class BtclibNodeAdapter(NodeAdapter):
         a second one: the module docstring's own paragraph on
         `Capability.RPC_AUTH_CONFIG` is why one probe answers both,
         `_negates_rpcauth` answers `Capability.RPC_AUTH_NEGATION`,
-        `_evicts_inbound` answers `Capability.INBOUND_EVICTION`, and
-        `_connects_alone` answers `Capability.MINE`. The
+        `_evicts_inbound` answers `Capability.INBOUND_EVICTION`,
+        `_connects_alone` answers `Capability.MINE`, and
+        `_serves_ban_list` answers `Capability.BAN`. The
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
         is left untouched where every probe answers `False`.
         """
@@ -332,6 +365,8 @@ class BtclibNodeAdapter(NodeAdapter):
             probed.add(Capability.INBOUND_EVICTION)
         if _connects_alone(executable):
             probed.add(Capability.MINE)
+        if _serves_ban_list(executable):
+            probed.add(Capability.BAN)
         if probed:
             self.capabilities = type(self).capabilities | probed
 

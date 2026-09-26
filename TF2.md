@@ -824,11 +824,11 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_dirsymlinks.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `feature_posix_fs_permissions.py` | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)) |
 | `rpc_createmultisig.py` | `771200ca4362` | 2026-06-30 | pass | bitcoind only |
-| `rpc_setban.py` (ban) | `fa21edddb272` | 2026-03-27 | pass | skip (ban) |
-| `rpc_setban.py` (restart) | same | same | pass | skip (ban) |
-| `rpc_setban.py` (noban) | same | same | pass | skip (ban) |
-| `rpc_setban.py` (non-IP) | same | same | pass | skip (ban) |
-| `rpc_setban.py` (bantime) | same | same | pass | skip (ban) |
+| `rpc_setban.py` (ban) | `fa21edddb272` | 2026-03-27 | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
+| `rpc_setban.py` (restart) | same | same | pass | skip (ban) on the build; skip (debug_log) on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
+| `rpc_setban.py` (noban) | same | same | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
+| `rpc_setban.py` (non-IP) | same | same | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
+| `rpc_setban.py` (bantime) | same | same | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
 | `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
@@ -1724,10 +1724,11 @@ node-linking's own RPCs: `addnode`, `disconnectnode` and `setban` are
 each their own, so a node answering one is not thereby assumed to
 answer either of the others. Both are in bitcoind's own `help` listing
 with no argument, unconditional the same way `CONNECT` already is.
-`btclib-node` declares neither, on either build measured: `BAN` is
-already [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088);
-`DISCONNECT` is new, filed as
-[ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193).
+`btclib-node` declares `DISCONNECT` on no build measured, filed as
+[ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193),
+and `BAN` only on a build past
+[ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088),
+the `rpc_setban.py` paragraph below.
 
 **A real finding, from building the mechanism rather than from reading
 about it**: `connect_nodes`'s own `addnode ... "onetry"` left bitcoind's
@@ -1776,8 +1777,21 @@ once the ban is lifted. Kept alongside them: a live connection dropping the
 moment `setban` matches its address, `node.wait_until_disconnected`
 standing in for Core's own wait on `is_connected_to` going false; and
 the non-IP address check, which needs no second node at all.
-`Capability.BAN` is `btclib-node`'s counted skip on every row, on every
-build measured.
+`Capability.BAN` is `btclib-node`'s counted skip on every row on the
+build, and `btclib_node.py`'s own `_serves_ban_list` probe declares it on
+a build past
+[ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088)
+([ISS 140](https://github.com/btclib-org/bitcoin-node-tests/issues/140)):
+there the restart row skips on `Capability.DEBUG_LOG` and every other row
+is not ported. Run by hand against such a build (`main` at `35b26d2e`), the
+bitcoind test's own assertions hold for the ban row and, `assert_debug_log`
+aside, for the restart row; the other rows' own requests are refused --
+`-whitelist`
+([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)),
+an onion address
+([ISS btclib-node#1218](https://github.com/btclib-org/btclib-node/issues/1218))
+and `-bantime`
+([ISS btclib-node#1219](https://github.com/btclib-org/btclib-node/issues/1219)).
 
 A cluster mixing bitcoind and btclib-node -- the issue's own "most
 valuable case" -- is `tests/integration/conftest.py`'s new

@@ -91,9 +91,9 @@ pytestmark = pytest.mark.integration
 # `Capability.RPC_AUTH_CONFIG`'s own credential parsing, which the
 # other seven already cover between them. Every one of the rest
 # refuses with the identical generic init error on bitcoind (measured
-# live against the pinned `31.1`), unlike btclib-node's own build,
-# which names the defect (`rpc_users_btclib_node_test.py`'s own module
-# docstring). `-rpcauth=""` reaches each node's own argv as the two
+# live against the pinned `31.1`), as on btclib-node's `main`, where an
+# older build names the defect (`rpc_users_btclib_node_test.py`'s own
+# module docstring). `-rpcauth=""` reaches each node's own argv as the two
 # literal quote characters -- this harness passes `extra_args` straight
 # to `subprocess.Popen`, with no shell in between to unquote them --
 # rather than as an empty string; refused all the same, no `:` sitting

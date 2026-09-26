@@ -498,3 +498,9 @@ alone exits 0 on that (closes #87).
 `pyproject.toml`'s `[dependency-groups]` comment says why: btclib-node's floor
 sits above the interpreter `.python-version` names, and `TF2_BTCLIB_NODE_PYTHON`
 names any build of it -- a release, its `main`, a checkout (closes #42).
+
+### `rpc_users.py`'s btclib-node test accepts Core's malformed `-rpcauth` wording
+
+A malformed `-rpcauth` matches either whole stderr: Core's "Unable to start HTTP
+server", which btclib-node's `main` writes, or the older "Invalid -rpcauth
+argument." (closes #159).

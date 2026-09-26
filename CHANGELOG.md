@@ -273,3 +273,9 @@ it (closes #51).
 Each gains a `Capability` for what it asks of a node, `btclib-node`'s adapter
 declaring inbound eviction wherever its build has it; `tool_utxo_to_sqlite`
 stays out, its subject a Core script rather than a node (issue #14).
+
+### `REVIEWING.md` lets a filed issue carry its fix
+
+An issue filed from a review may say the fix where one is known: *What is
+filed, and what is not* dropped its "no fix", the filing bar standing as it
+was (issue btclib-org/.github#1378).

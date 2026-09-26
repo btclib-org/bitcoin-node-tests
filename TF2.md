@@ -819,6 +819,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
+| `mempool_package_limits.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
+| `mempool_updatefromblock.py` | `fa6b05c96ffb` | 2026-03-12 | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1488,6 +1490,16 @@ first read, but each also restarts its node with an option --
 `-maxmempool`/`-persistmempool` in turn -- that `btclib-node`'s own
 `cli.py` does not register, so the option family's own exclusion reaches
 them too: ISS 14's, same as the wallet, log, disk and clock files below.
+Both need `NodeAdapter.restart` to take a *different* `extra_args` than
+the one it started with, which blocks even bitcoind's own row before the
+option-family exclusion is ever reached
+([ISS bitcoin-node-tests#51](https://github.com/btclib-org/bitcoin-node-tests/issues/51)),
+and both call `get_utxo(confirmed_only=True)` against a cache with no
+fact to answer it from
+([ISS bitcoin-node-tests#69](https://github.com/btclib-org/bitcoin-node-tests/issues/69)).
+`rpc_packages.py` alone also calls `test_framework.mempool_util.fill_mempool`,
+unported
+([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
 `mempool_sigoplimit.py`, named alongside them for the same reason, is
 ported below, its own paragraph naming what of it is kept.
 
@@ -1503,6 +1515,23 @@ MiniWallet-touching file asks for a wallet (`createwallet`, out for good,
 rule 3's own exclusion), the log, the disk or the clock alongside
 MiniWallet, or an option -- ISS 14's once every step-5 mechanism lands,
 the wallet files excepted.
+
+`mempool_package_rbf.py` and `mempool_truc.py`, this issue's other own
+mempool-policy files, are read this round too and stay open.
+`mempool_package_rbf.py` drives a second node in Core's own file, never
+read from -- its own `sync_all` calls confirm nothing either test
+asserts on -- dropped as a smaller claim, the way `rpc_scanblocks.py`'s
+own second node already is -- so what actually blocks it is the same
+`confirmed_only`/`get_utxos` gap (ISS 69) and `fill_mempool` (ISS 70)
+`rpc_packages.py` needs above, plus TRUC's own non-default transaction
+version, which `create_self_transfer` does not yet parametrize.
+`mempool_truc.py` needs no second node and no option at its own base
+`set_test_params` (`self.extra_args = [[]]`), but several of its own
+subtests restart with one in turn
+(`-limitclustercount`/`-limitclustersize`/`-acceptnonstdtxn`/`-minrelaytxfee`/`-persistmempool`):
+`NodeAdapter.restart`'s own gap (ISS 51) blocks it before TRUC's own
+transaction version and `confirmed_only` (ISS 69) needs are ever
+reached.
 
 `feature_dersig.py`, `feature_cltv.py` and `feature_csv_activation.py`
 are ISS 14's own softfork-activation-height trio, the option and
@@ -1821,3 +1850,45 @@ on the released build and `_OPTIONS` on `main`, none of `-datacarrier`,
 `-datacarriersize`, `-permitbaremultisig`, `-dustrelayfee` or
 `-bytespersigop` is one of its registered flags, so `require` never
 reaches `Capability.MINE` at all.
+
+`mempool_package_limits.py`'s row is a smaller claim than Core's own
+file: kept is one ancestor-side case (a chain of in-mempool ancestors, a
+package extending it, both counted together against
+`-limitclustercount`) and one descendant-side case (a top parent with
+several chains hanging off it at differing depths, its own descendants
+only exceeding the limit once a package extending every chain joins
+them). Dropped is Core's own file's further splits of the ancestor case
+and its own second descendant shape (`test_desc_count_limits_2`) --
+each a different split of a mechanism the kept case already
+demonstrates -- and its own descendant-size case
+(`test_desc_size_limits`), which needs `target_vsize` at a size large
+enough to make a real functional-test run slow, disproportionate for a
+size boundary neither kept case needs to also cover. `mini_wallet.py`
+gains `create_self_transfer_multi` and `create_self_transfer_chain`
+(Core's own methods of the same names, `fee_per_output` in satoshis
+rather than Core's BTC `Decimal`) and a `target_vsize` on every
+`create_self_transfer*` method, an `OP_RETURN` of literal `OP_1`
+opcodes padding a transaction to an exact size the way Core's own
+`bulk_vout` does; `get_utxo` gains a `vout` alongside `txid`,
+disambiguating several cached coins a multi-output call caches under
+one txid. Every addition is unit-tested against the fake RPC alongside
+the rest of `mini_wallet_test.py`.
+
+`mempool_updatefromblock.py`'s row is a smaller claim than Core's own
+file too: kept is the acyclic-tournament mechanism -- every mempool
+entry's own ancestor/descendant count and size recomputed once a reorg
+re-adds every transaction a mined block once carried -- at a
+`_TOURNAMENT_SIZE` far smaller than Core's own `DEFAULT_CLUSTER_LIMIT`,
+the mechanism needing no particular size to hold, and the chain-length
+case, unchanged: it is bitcoind's own *default* cluster count the chain
+has to exceed, not `-limitclustersize`, this file's only configured
+option. Dropped is Core's own `test_max_disconnect_pool_bytes`:
+`MAX_DISCONNECTED_TX_POOL_BYTES` is a large fixed bound in bitcoind's
+own C++ rather than a configurable option, so exercising it means
+building, mining and reorging a disproportionate volume of transactions
+for a boundary neither kept case needs to also cover.
+
+Both files' own `btclib-node` cells are a counted skip on their own
+option capability alone, ahead of `Capability.MINE`: neither
+`-limitclustercount` nor `-limitclustersize` is one of `cli.py`'s
+registered flags, on the released build or on `main`.

@@ -15,11 +15,13 @@ touch a node for real.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from itertools import pairwise
 from typing import TYPE_CHECKING, override
 from unittest.mock import patch
 
 import pytest
 from btclib.block.block import Block
+from btclib.tx import OutPoint
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability
@@ -570,3 +572,201 @@ def test_send_to_refuses_a_mismatched_answer() -> None:
     wallet.generate(COINBASE_MATURITY + 1)
     with pytest.raises(TypeError, match="sendrawtransaction answered"):
         wallet.send_to(nulldata_script_pub_key(b""), 1)
+
+
+def test_get_utxo_selects_the_named_vout_among_several() -> None:
+    """`vout` disambiguates several cached coins sharing one `txid`."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    tx = wallet.create_self_transfer_multi(num_outputs=2)
+
+    second = wallet.get_utxo(txid=tx.id.hex(), vout=1)
+    first = wallet.get_utxo(txid=tx.id.hex(), vout=0)
+
+    assert second.outpoint.vout == 1
+    assert first.outpoint.vout == 0
+
+
+def test_get_utxo_refuses_an_unknown_vout() -> None:
+    """A `txid` this wallet knows but the wrong `vout` is still refused."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    tx = wallet.create_self_transfer()
+    with pytest.raises(LookupError, match="vout 1"):
+        wallet.get_utxo(txid=tx.id.hex(), vout=1)
+
+
+def test_create_self_transfer_pads_to_the_target_vsize() -> None:
+    """`target_vsize` is met exactly, an `OP_RETURN` output padding the rest."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    tx = wallet.create_self_transfer(target_vsize=250)
+
+    assert tx.vsize == 250
+    assert len(tx.vout) == 2
+    assert tx.vout[1].script_pub_key.script.startswith(b"\x6a")  # OP_RETURN
+
+
+def test_create_self_transfer_refuses_a_target_vsize_too_small() -> None:
+    """A `target_vsize` below the tx's own size before padding is refused."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    with pytest.raises(ValueError, match="smaller than"):
+        wallet.create_self_transfer(target_vsize=1)
+
+
+def test_create_self_transfer_multi_spends_one_coin_into_several() -> None:
+    """Every output is `fee_per_output` short of an equal share, and equal."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    coin_value = (
+        Block.parse(bytes.fromhex(rpc.submitted[0]), check_validity=False)
+        .transactions[0]
+        .vout[0]
+        .value
+    )
+
+    tx = wallet.create_self_transfer_multi(num_outputs=3, fee_per_output=100)
+
+    assert len(tx.vin) == 1
+    assert len(tx.vout) == 3
+    expected_per_output = (coin_value - 100 * 3) // 3
+    assert all(out.value == expected_per_output for out in tx.vout)
+
+
+def test_create_self_transfer_multi_spends_several_coins_into_one() -> None:
+    """Every named coin funds the single output, less one `fee_per_output`."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 2)
+    coins = [
+        wallet.get_utxo(
+            txid=Block.parse(bytes.fromhex(block_hex), check_validity=False)
+            .transactions[0]
+            .id.hex()
+        )
+        for block_hex in rpc.submitted[:2]
+    ]
+    total = sum(coin.value for coin in coins)
+
+    tx = wallet.create_self_transfer_multi(utxos_to_spend=coins, fee_per_output=100)
+
+    assert len(tx.vin) == 2
+    assert len(tx.vout) == 1
+    assert tx.vout[0].value == total - 100
+
+
+def test_create_self_transfer_multi_refuses_a_fee_that_exhausts_the_output() -> None:
+    """A `fee_per_output` at or beyond the inputs' own total is refused."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    coin_value = wallet.get_balance()
+    with pytest.raises(ValueError, match="does not cover"):
+        wallet.create_self_transfer_multi(fee_per_output=coin_value)
+
+
+def test_create_self_transfer_multi_pads_to_the_target_vsize() -> None:
+    """`target_vsize` still adds one padding output beyond `num_outputs`."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    tx = wallet.create_self_transfer_multi(num_outputs=2, target_vsize=400)
+
+    assert tx.vsize == 400
+    assert len(tx.vout) == 3
+
+
+def test_send_self_transfer_multi_broadcasts_and_returns_the_sent_tx() -> None:
+    """The tx sent is `create_self_transfer_multi`'s own, byte for byte."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    tx = wallet.send_self_transfer_multi(num_outputs=2)
+
+    assert len(rpc.sent) == 1
+    assert rpc.sent[0] == tx.serialize(True, check_validity=False).hex()
+
+
+def test_send_self_transfer_multi_refuses_a_mismatched_answer() -> None:
+    """An answer other than the sent tx's own id is refused, not trusted."""
+    rpc = _FakeRpc(send_answer="not-the-txid")
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    with pytest.raises(TypeError, match="sendrawtransaction answered"):
+        wallet.send_self_transfer_multi()
+
+
+def test_create_self_transfer_chain_links_each_tx_to_the_last() -> None:
+    """The nth tx of the chain spends the (n-1)th's own single output."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    chain = wallet.create_self_transfer_chain(chain_length=3)
+
+    assert len(chain) == 3
+    for parent, child in pairwise(chain):
+        assert child.vin[0].prev_out == OutPoint(parent.id, 0)
+
+
+def test_create_self_transfer_chain_leaves_its_own_tip_cached() -> None:
+    """The chain's last output is left for a caller to spend further.
+
+    Every other output the chain built along the way is popped to fund
+    the next transaction; only the tip is never spent by the chain
+    itself, and popping it too would silently discard the one coin a
+    caller building on top of the chain needs.
+    """
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    chain = wallet.create_self_transfer_chain(chain_length=3)
+    tip = wallet.get_utxo(txid=chain[-1].id.hex(), vout=0)
+
+    assert tip.outpoint == OutPoint(chain[-1].id, 0)
+
+
+def test_create_self_transfer_chain_starts_from_the_named_utxo() -> None:
+    """`utxo_to_spend` reaches the chain's first transaction, not `None`."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(1)
+    coin = wallet.get_utxo(
+        txid=Block.parse(bytes.fromhex(rpc.submitted[0]), check_validity=False)
+        .transactions[0]
+        .id.hex()
+    )
+
+    chain = wallet.create_self_transfer_chain(chain_length=1, utxo_to_spend=coin)
+
+    assert chain[0].vin[0].prev_out == coin.outpoint
+
+
+def test_send_self_transfer_chain_broadcasts_every_tx() -> None:
+    """Every transaction of the chain is sent, in chain order."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    chain = wallet.send_self_transfer_chain(chain_length=2)
+
+    assert rpc.sent == [tx.serialize(True, check_validity=False).hex() for tx in chain]
+
+
+def test_send_self_transfer_chain_refuses_a_mismatched_answer() -> None:
+    """An answer other than the sent tx's own id is refused, not trusted."""
+    rpc = _FakeRpc(send_answer="not-the-txid")
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    with pytest.raises(TypeError, match="sendrawtransaction answered"):
+        wallet.send_self_transfer_chain(chain_length=2)

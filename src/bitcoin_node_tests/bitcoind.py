@@ -148,10 +148,12 @@ class BitcoindAdapter(NodeAdapter):
     regardless of `-v2transport`, BIP324's own detection accepting a v1
     handshake from either side.
     `Capability.DATACARRIER`, `Capability.PERMIT_BARE_MULTISIG`,
-    `Capability.DUST_RELAY_FEE` and `Capability.BYTES_PER_SIGOP` are
-    unconditional too: `-datacarrier`, `-datacarriersize`,
-    `-permitbaremultisig`, `-dustrelayfee` and `-bytespersigop` are all
-    ordinary mempool/relay-policy flags of this binary's own, recognised
+    `Capability.DUST_RELAY_FEE`, `Capability.BYTES_PER_SIGOP`,
+    `Capability.LIMIT_CLUSTER_COUNT` and `Capability.LIMIT_CLUSTER_SIZE`
+    are unconditional too: `-datacarrier`, `-datacarriersize`,
+    `-permitbaremultisig`, `-dustrelayfee`, `-bytespersigop`,
+    `-limitclustercount` and `-limitclustersize` are all ordinary
+    mempool/relay-policy flags of this binary's own, recognised
     regardless of what a caller sets them to
     ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
     """
@@ -175,6 +177,8 @@ class BitcoindAdapter(NodeAdapter):
             Capability.PERMIT_BARE_MULTISIG,
             Capability.DUST_RELAY_FEE,
             Capability.BYTES_PER_SIGOP,
+            Capability.LIMIT_CLUSTER_COUNT,
+            Capability.LIMIT_CLUSTER_SIZE,
         }
     )
 

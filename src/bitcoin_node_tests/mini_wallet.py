@@ -84,6 +84,23 @@ own subject. It shares no wallet state -- a fork is disposable by
 construction, spent by nobody -- so it reads the node fresh rather than a
 `MiniWallet` instance's own cache, and pays whichever `script_pub_key` its
 caller names, that caller's own wallet's `script_pub_key` ordinarily.
+
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+own `mempool_package_limits.py` and `mempool_updatefromblock.py` need a
+coin cache several transactions deep rather than one spend at a time:
+`create_self_transfer_multi` spends one or several cached coins into
+several outputs at once, Core's own `create_self_transfer_multi`
+(`wallet.py`), and `create_self_transfer_chain` spends the output each
+call just created into the next, Core's own `create_self_transfer_chain`.
+Both, and `create_self_transfer` alongside them, take an optional
+`target_vsize`: an `OP_RETURN` output of literal `OP_1` opcodes (no
+`PUSHDATA` of its own to size around) pads the transaction to exactly
+that many virtual bytes, `_pad_to_vsize` mirroring Core's own `bulk_vout`
+(`test_framework/script_util.py`) byte for byte. `get_utxo` gains a
+`vout` beside `txid` for the same reason Core's own carries one: a
+multi-output call caches more than one coin under the same `txid`, and a
+caller spending them in an order its own loop chooses rather than the
+order they were cached needs the pair rather than the first match alone.
 """
 
 from __future__ import annotations
@@ -93,6 +110,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from btclib import var_int
 from btclib.alias import TaprootScriptTree
 from btclib.block.block import Block
 from btclib.block.build import build_block, build_coinbase
@@ -286,6 +304,38 @@ def nulldata_script_pub_key(data: bytes) -> ScriptPubKey:
     return ScriptPubKey(script_serialize(["OP_RETURN", data]), check_validity=False)
 
 
+def _pad_to_vsize(tx: Tx, target_vsize: int) -> None:
+    """Append an `OP_RETURN` output padding `tx` to exactly `target_vsize`.
+
+    `bulk_vout` (`test_framework/script_util.py`): the padding output's
+    own script is literal `OP_1` opcodes after the `OP_RETURN`, one byte
+    each and no `PUSHDATA` of its own to size around, unlike
+    `nulldata_script_pub_key`'s pushed payload -- which is why the
+    placeholder below is a bare `OP_RETURN` rather than that function's
+    empty push, one byte rather than two. `tx.vout` gains one output;
+    nothing already there is touched.
+
+    :param tx: the transaction to pad, mutated in place.
+    :param target_vsize: the virtual size `tx` must reach.
+    :raises ValueError: `tx` is already at or past `target_vsize` before
+        the empty placeholder output below is even added.
+    """
+    placeholder = ScriptPubKey(script_serialize(["OP_RETURN"]), check_validity=False)
+    tx.vout.append(TxOut(0, placeholder))
+    deficit = target_vsize - tx.vsize
+    if deficit < 0:
+        err_msg = f"target_vsize {target_vsize} is smaller than {tx.vsize}"
+        raise ValueError(err_msg)
+    # the compact-size length prefix ahead of the padding script grows as
+    # padding is added; the placeholder script above already accounts for
+    # one byte of it, so only the growth beyond that one byte is still owed
+    deficit -= len(var_int.serialize(deficit)) - 1
+    padding_script = ScriptPubKey(
+        script_serialize(["OP_RETURN", *(["OP_1"] * deficit)]), check_validity=False
+    )
+    tx.vout[-1] = TxOut(0, padding_script)
+
+
 def _witness() -> Witness:
     """Return the script-path witness that spends `_ANYONE_CAN_SPEND`.
 
@@ -406,7 +456,7 @@ class MiniWallet:
             hashes.append(self._tip)
         return hashes
 
-    def get_utxo(self, *, txid: str) -> Utxo:
+    def get_utxo(self, *, txid: str, vout: int | None = None) -> Utxo:
         """Return and forget the cached coin `txid` paid, maturity aside.
 
         `get_utxo` (`wallet.py`): a caller naming a coin by its own txid is
@@ -416,12 +466,22 @@ class MiniWallet:
         `COINBASE_MATURITY` yet, not a check this class should make first.
 
         :param txid: the hex txid of the coin's own transaction.
-        :raises LookupError: no cached coin's own outpoint names `txid`.
+        :param vout: the coin's own output index, where more than one
+            cached coin shares `txid` -- `create_self_transfer_multi`'s
+            own several outputs -- and a caller wants a specific one
+            rather than whichever was cached first.
+        :raises LookupError: no cached coin's own outpoint names `txid`
+            (and `vout`, where given).
         """
         for index, utxo in enumerate(self._utxos):
-            if utxo.outpoint.tx_id.hex() == txid:
-                return self._utxos.pop(index)
+            if utxo.outpoint.tx_id.hex() != txid:
+                continue
+            if vout is not None and utxo.outpoint.vout != vout:
+                continue
+            return self._utxos.pop(index)
         err_msg = f"no coin of this wallet was paid by txid {txid!r}"
+        if vout is not None:
+            err_msg += f", vout {vout}"
         raise LookupError(err_msg)
 
     def _pop_mature_utxo(self) -> Utxo:
@@ -442,7 +502,9 @@ class MiniWallet:
         err_msg = "no coin of this wallet has matured yet"
         raise LookupError(err_msg)
 
-    def create_self_transfer(self, *, utxo_to_spend: Utxo | None = None) -> Tx:
+    def create_self_transfer(
+        self, *, utxo_to_spend: Utxo | None = None, target_vsize: int = 0
+    ) -> Tx:
         """Return an unbroadcast tx spending one coin, paid to itself.
 
         `send_self_transfer` is the caller wanting it broadcast too.
@@ -452,8 +514,14 @@ class MiniWallet:
             `_pop_mature_utxo`'s own maturity check applying only then --
             a caller naming one by hand, immature or not, gets exactly
             that one, `create_self_transfer` (`wallet.py`)'s own shape.
+        :param target_vsize: where nonzero, an `OP_RETURN` output padding
+            the tx to exactly this many virtual bytes -- `_pad_to_vsize`,
+            paid by `utxo_to_spend` alongside `FEE`, beyond the single
+            spendable output this method still returns exactly one of.
         :raises LookupError: `utxo_to_spend` is `None` and no coin of this
             wallet has matured yet.
+        :raises ValueError: `target_vsize` is smaller than this tx's own
+            vsize before the padding output is even added.
         """
         utxo = utxo_to_spend if utxo_to_spend is not None else self._pop_mature_utxo()
         tx_in = TxIn(
@@ -464,6 +532,8 @@ class MiniWallet:
         )
         tx_out = TxOut(utxo.value - FEE, _ANYONE_CAN_SPEND)
         tx = Tx(version=2, lock_time=0, vin=[tx_in], vout=[tx_out])
+        if target_vsize:
+            _pad_to_vsize(tx, target_vsize)
         self._utxos.append(
             Utxo(
                 outpoint=OutPoint(tx.id, 0),
@@ -494,6 +564,166 @@ class MiniWallet:
             err_msg = f"sendrawtransaction answered {txid!r}, not {tx.id.hex()!r}"
             raise TypeError(err_msg)
         return tx
+
+    def create_self_transfer_multi(
+        self,
+        *,
+        utxos_to_spend: Sequence[Utxo] | None = None,
+        num_outputs: int = 1,
+        fee_per_output: int = FEE,
+        target_vsize: int = 0,
+    ) -> Tx:
+        """Return an unbroadcast tx spending several coins into several.
+
+        `create_self_transfer_multi` (`wallet.py`): every input the coins
+        `utxos_to_spend` names, every output the same size, `fee_per_output`
+        satoshis short of an equal share of the inputs' own total -- Core's
+        own method takes a BTC `Decimal` fee; this one, like every fee
+        `MiniWallet` already handles, takes satoshis. `send_self_transfer_multi`
+        is the caller wanting it broadcast too; a single new coin wants
+        `create_self_transfer` instead, `num_outputs` fixed at one there
+        rather than a parameter of it.
+
+        :param utxos_to_spend: the coins to spend; the next automatically
+            matured one alone where `None`.
+        :param num_outputs: how many equal-sized outputs to create.
+        :param fee_per_output: satoshis short of an equal share of the
+            inputs' own total value, per output.
+        :param target_vsize: where nonzero, an `OP_RETURN` output padding
+            the tx to exactly this many virtual bytes, beyond the
+            `num_outputs` spendable ones this method still creates.
+        :raises LookupError: `utxos_to_spend` is `None` and no coin of
+            this wallet has matured yet.
+        :raises ValueError: the inputs' own total, less `fee_per_output`
+            times `num_outputs`, does not divide into `num_outputs`
+            positive shares; or `target_vsize` is smaller than this tx's
+            own vsize before the padding output is even added.
+        """
+        utxos = (
+            list(utxos_to_spend)
+            if utxos_to_spend is not None
+            else [self._pop_mature_utxo()]
+        )
+        inputs_total = sum(utxo.value for utxo in utxos)
+        amount_per_output = (inputs_total - fee_per_output * num_outputs) // num_outputs
+        if amount_per_output <= 0:
+            err_msg = (
+                f"{inputs_total} sat across {len(utxos)} coin(s), less "
+                f"{fee_per_output} sat fee per output, does not cover "
+                f"{num_outputs} output(s)"
+            )
+            raise ValueError(err_msg)
+        tx_in = [
+            TxIn(
+                utxo.outpoint,
+                script_sig=b"",
+                sequence=0xFFFFFFFE,
+                script_witness=_witness(),
+            )
+            for utxo in utxos
+        ]
+        tx_out = [
+            TxOut(amount_per_output, _ANYONE_CAN_SPEND) for _ in range(num_outputs)
+        ]
+        tx = Tx(version=2, lock_time=0, vin=tx_in, vout=tx_out)
+        if target_vsize:
+            _pad_to_vsize(tx, target_vsize)
+        for vout in range(num_outputs):
+            self._utxos.append(
+                Utxo(
+                    outpoint=OutPoint(tx.id, vout),
+                    value=amount_per_output,
+                    height=0,
+                    coinbase=False,
+                )
+            )
+        return tx
+
+    def send_self_transfer_multi(
+        self,
+        *,
+        utxos_to_spend: Sequence[Utxo] | None = None,
+        num_outputs: int = 1,
+        fee_per_output: int = FEE,
+        target_vsize: int = 0,
+    ) -> Tx:
+        """Create, broadcast and cache a multi-output self-transfer.
+
+        :param utxos_to_spend: forwarded to `create_self_transfer_multi`.
+        :param num_outputs: forwarded to `create_self_transfer_multi`.
+        :param fee_per_output: forwarded to `create_self_transfer_multi`.
+        :param target_vsize: forwarded to `create_self_transfer_multi`.
+        :raises LookupError: `utxos_to_spend` is `None` and no coin of
+            this wallet has matured yet.
+        :raises ValueError: forwarded from `create_self_transfer_multi`.
+        :raises TypeError: `sendrawtransaction` answered something other
+            than the sent tx's own id.
+        """
+        tx = self.create_self_transfer_multi(
+            utxos_to_spend=utxos_to_spend,
+            num_outputs=num_outputs,
+            fee_per_output=fee_per_output,
+            target_vsize=target_vsize,
+        )
+        tx_hex = tx.serialize(True, check_validity=False).hex()
+        txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
+        if txid != tx.id.hex():
+            err_msg = f"sendrawtransaction answered {txid!r}, not {tx.id.hex()!r}"
+            raise TypeError(err_msg)
+        return tx
+
+    def create_self_transfer_chain(
+        self, *, chain_length: int, utxo_to_spend: Utxo | None = None
+    ) -> list[Tx]:
+        """Return `chain_length` unbroadcast txs, each spending the last.
+
+        `create_self_transfer_chain` (`wallet.py`): the first spends
+        `utxo_to_spend`, or the next automatically matured coin where
+        `None`; each of the rest spends the single output the one before
+        it just created. `send_self_transfer_chain` is the caller wanting
+        every one of them broadcast too. The last transaction's own
+        output is left cached rather than popped and discarded: it is
+        `create_self_transfer` (called on every iteration, including the
+        last) that already caches it, and a caller spending the chain's
+        own tip further still wants it there.
+
+        :param chain_length: how many transactions the chain carries.
+        :param utxo_to_spend: the coin the first transaction spends; the
+            next automatically matured one where `None`.
+        :raises LookupError: `utxo_to_spend` is `None` and no coin of
+            this wallet has matured yet.
+        """
+        chain = []
+        utxo = utxo_to_spend
+        for index in range(chain_length):
+            tx = self.create_self_transfer(utxo_to_spend=utxo)
+            chain.append(tx)
+            if index < chain_length - 1:
+                utxo = self.get_utxo(txid=tx.id.hex(), vout=0)
+        return chain
+
+    def send_self_transfer_chain(
+        self, *, chain_length: int, utxo_to_spend: Utxo | None = None
+    ) -> list[Tx]:
+        """Create, broadcast and cache a chain of self-transfers.
+
+        :param chain_length: forwarded to `create_self_transfer_chain`.
+        :param utxo_to_spend: forwarded to `create_self_transfer_chain`.
+        :raises LookupError: `utxo_to_spend` is `None` and no coin of
+            this wallet has matured yet.
+        :raises TypeError: a `sendrawtransaction` answered something
+            other than its own tx's id.
+        """
+        chain = self.create_self_transfer_chain(
+            chain_length=chain_length, utxo_to_spend=utxo_to_spend
+        )
+        for tx in chain:
+            tx_hex = tx.serialize(True, check_validity=False).hex()
+            txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
+            if txid != tx.id.hex():
+                err_msg = f"sendrawtransaction answered {txid!r}, not {tx.id.hex()!r}"
+                raise TypeError(err_msg)
+        return chain
 
     def send_to(self, script_pub_key: ScriptPubKey, value: int) -> Tx:
         """Spend one matured coin, broadcast, paying `script_pub_key` too.

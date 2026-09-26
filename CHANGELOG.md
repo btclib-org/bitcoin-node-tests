@@ -313,3 +313,9 @@ its `allowed` flag, as Core's own `mempool_dust.py` does at v31.1 (closes #93).
 `listbanned` is asserted right after `restart()`, and the refused dial is
 read over `assert_debug_log` against bitcoind's own `dropped (banned)`, not
 `connect_nodes`'s bare `TimeoutError` alone (closes #94).
+
+### `capability.py` names its own hookwrapper, not an autouse fixture
+
+`capability.py`'s module docstring names the mechanism that turns
+`MissingCapabilityError` into a skip as `tests/conftest.py`'s own
+`pytest_runtest_call` hookwrapper (closes #97).

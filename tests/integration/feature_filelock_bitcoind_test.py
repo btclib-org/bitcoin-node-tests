@@ -25,6 +25,7 @@ the charter's own rule.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 import pytest
@@ -38,6 +39,20 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.integration
 
 
+def _lock_refusal(directory: Path) -> str:
+    """Core's own refusal for `directory`, which each test pins.
+
+    Core's file compares the whole message, the locked path included, so
+    that a datadir refusal cannot stand in for a blocksdir one or the
+    reverse; the client name between the path and the closing clause is
+    the build's, and is left to the pattern.
+    """
+    return (
+        re.escape(f"Cannot obtain a lock on directory {directory}. ")
+        + r".* is probably already running\."
+    )
+
+
 def test_second_instance_on_same_datadir_refuses_to_start(
     bitcoind_path: str, tmp_path: Path
 ) -> None:
@@ -47,7 +62,7 @@ def test_second_instance_on_same_datadir_refuses_to_start(
     first.start()
     try:
         second = BitcoindAdapter(bitcoind_path, datadir, free_port(), free_port())
-        with pytest.raises(RuntimeError, match="Cannot obtain a lock on directory"):
+        with pytest.raises(RuntimeError, match=_lock_refusal(datadir / "regtest")):
             second.start()
     finally:
         first.stop()
@@ -68,7 +83,9 @@ def test_second_instance_on_same_blocksdir_refuses_to_start(
             free_port(),
             extra_args=(f"-blocksdir={first_datadir}",),
         )
-        with pytest.raises(RuntimeError, match="Cannot obtain a lock on directory"):
+        with pytest.raises(
+            RuntimeError, match=_lock_refusal(first_datadir / "regtest" / "blocks")
+        ):
             second.start()
     finally:
         first.stop()

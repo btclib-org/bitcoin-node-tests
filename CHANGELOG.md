@@ -231,3 +231,9 @@ than only the first (closes #67).
 `-limitclustercount` and `-limitclustersize` each gain a `Capability`;
 `mempool_package_limits` and `mempool_updatefromblock` join them, and
 `MiniWallet` gains multi-coin, chained and exactly-sized transfers (issue #14).
+
+### `feature_filelock`'s bitcoind test pins which directory refused its lock
+
+Each of its two tests matches Core's own whole refusal, the locked path
+included, so a datadir refusal no longer passes the blocksdir test or the
+reverse (closes #71).

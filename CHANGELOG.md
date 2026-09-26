@@ -348,3 +348,9 @@ adapters before starting any now draws all their ports at once (closes #115).
 `CLAUDE.md`, `CONTRIBUTING.md`, `tests/README.md` and the package
 docstring point at `CONTRIBUTING.md`'s public-surface list rather than
 each naming a stale subset of it (closes #96).
+
+### The killed-node test stops its own node on a failure before `stop`
+
+The window between `start()` and this test's own first `stop()`, in both
+twins, now runs inside a `try`/`finally` that kills the process only if it
+is still alive (closes #114).

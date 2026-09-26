@@ -86,11 +86,16 @@ def test_stop_reports_a_node_killed_out_from_under_it(
     adapter = BitcoindAdapter(bitcoind_path, tmp_path / "node", rpc_port, p2p_port)
     adapter.start()
     process = adapter._process
-    assert process is not None
-    os.kill(process.pid, signal.SIGKILL)
-    process.wait()
-    with pytest.raises(
-        RuntimeError, match=r"^node process exited with -9 before stop was called"
-    ):
-        adapter.stop()
+    try:
+        assert process is not None
+        os.kill(process.pid, signal.SIGKILL)
+        process.wait()
+        with pytest.raises(
+            RuntimeError, match=r"^node process exited with -9 before stop was called"
+        ):
+            adapter.stop()
+    finally:
+        if process is not None and process.poll() is None:
+            process.kill()
+            process.wait()
     adapter.stop()

@@ -34,4 +34,7 @@ def test_simultaneous_large_messages_do_not_deadlock(
     btclib_node_adapter: BtclibNodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """The target: the same request the bitcoind module makes."""
+    require(Capability.CONNECT, btclib_node_adapter.capabilities, skip_counts)
     require(Capability.RAW_MESSAGE, btclib_node_adapter.capabilities, skip_counts)
+    require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

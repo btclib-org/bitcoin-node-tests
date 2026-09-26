@@ -37,6 +37,7 @@ def test_mini_wallet_spends_a_coin_it_mined_without_a_node_wallet(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_mini_wallet_spends_two_coins_in_a_row(
@@ -44,6 +45,7 @@ def test_mini_wallet_spends_two_coins_in_a_row(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_mini_wallet_confirmed_only_tells_mined_coins_from_mempool_ones(
@@ -51,6 +53,7 @@ def test_mini_wallet_confirmed_only_tells_mined_coins_from_mempool_ones(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_mini_wallet_fee_rate_is_the_fee_the_node_reports(
@@ -58,6 +61,7 @@ def test_mini_wallet_fee_rate_is_the_fee_the_node_reports(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_mini_wallet_version_3_is_held_to_truc_policy(
@@ -65,3 +69,4 @@ def test_mini_wallet_version_3_is_held_to_truc_policy(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

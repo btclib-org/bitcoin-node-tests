@@ -39,6 +39,8 @@ def test_cltv_activates_one_block_before_the_configured_height(
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
     )
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_a_version_3_block_is_refused_once_active(
@@ -49,6 +51,8 @@ def test_a_version_3_block_is_refused_once_active(
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
     )
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_a_version_3_block_is_logged_once_active(
@@ -59,3 +63,6 @@ def test_a_version_3_block_is_logged_once_active(
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
     )
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.DEBUG_LOG, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

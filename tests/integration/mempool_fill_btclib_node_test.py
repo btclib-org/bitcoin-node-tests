@@ -37,3 +37,5 @@ def test_fill_mempool_evicts_its_own_low_fee_rate_transaction(
     """`Capability.MAXMEMPOOL` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.MAXMEMPOOL, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

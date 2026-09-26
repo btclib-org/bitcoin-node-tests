@@ -37,6 +37,8 @@ def test_scanblocks_finds_the_blocks_paying_what_it_is_asked_for(
     """`Capability.BLOCK_FILTER_INDEX` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.BLOCK_FILTER_INDEX, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_scanblocks_refuses_without_the_index(
@@ -45,3 +47,4 @@ def test_scanblocks_refuses_without_the_index(
     """`Capability.BLOCK_FILTER_INDEX` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.BLOCK_FILTER_INDEX, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

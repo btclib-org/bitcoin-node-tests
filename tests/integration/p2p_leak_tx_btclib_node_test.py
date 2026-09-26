@@ -36,6 +36,7 @@ def test_tx_in_block(
     """The target: the same request the bitcoind module makes."""
     require(Capability.CLOCK, btclib_node_adapter.capabilities, skip_counts)
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_notfound_on_replaced_tx(
@@ -44,6 +45,7 @@ def test_notfound_on_replaced_tx(
     """The target: the same request the bitcoind module makes."""
     require(Capability.CLOCK, btclib_node_adapter.capabilities, skip_counts)
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_notfound_on_unannounced_tx(
@@ -52,3 +54,4 @@ def test_notfound_on_unannounced_tx(
     """The target: the same request the bitcoind module makes."""
     require(Capability.CLOCK, btclib_node_adapter.capabilities, skip_counts)
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

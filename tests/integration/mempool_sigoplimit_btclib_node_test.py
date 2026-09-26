@@ -38,3 +38,5 @@ def test_a_sigop_heavy_transaction_is_billed_by_its_equivalent_vsize(
     """`Capability.BYTES_PER_SIGOP` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.BYTES_PER_SIGOP, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

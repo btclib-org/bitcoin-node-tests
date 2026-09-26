@@ -35,6 +35,7 @@ def test_genesis_block_statistics(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.BLOCK_STATS, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_op_return_is_counted_but_not_actual(
@@ -42,6 +43,8 @@ def test_op_return_is_counted_but_not_actual(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.BLOCK_STATS, btclib_node_adapter.capabilities, skip_counts)
+    require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_selected_stats_narrow_the_answer(
@@ -49,6 +52,7 @@ def test_selected_stats_narrow_the_answer(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.BLOCK_STATS, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_height_out_of_range(
@@ -56,6 +60,7 @@ def test_height_out_of_range(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.BLOCK_STATS, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_invalid_statistic_name(
@@ -63,6 +68,7 @@ def test_invalid_statistic_name(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.BLOCK_STATS, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_unknown_block_hash(
@@ -70,6 +76,7 @@ def test_unknown_block_hash(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.BLOCK_STATS, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_required_args(
@@ -77,6 +84,7 @@ def test_required_args(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.BLOCK_STATS, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_block_not_found_on_disk(
@@ -84,3 +92,5 @@ def test_block_not_found_on_disk(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.BLOCK_STATS, btclib_node_adapter.capabilities, skip_counts)
+    require(Capability.BLK_FILES, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

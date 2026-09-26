@@ -34,7 +34,9 @@ def test_a_ban_drops_the_connection_it_matches(
     skip_counts: SkipCounts,
 ) -> None:
     """The target: the same request `rpc_setban_bitcoind_test.py` makes."""
+    require(Capability.CONNECT, btclib_node_adapter.capabilities, skip_counts)
     require(Capability.BAN, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_a_ban_survives_a_restart_until_it_is_removed(
@@ -42,7 +44,10 @@ def test_a_ban_survives_a_restart_until_it_is_removed(
     skip_counts: SkipCounts,
 ) -> None:
     """The target: the same request `rpc_setban_bitcoind_test.py` makes."""
+    require(Capability.CONNECT, btclib_node_adapter.capabilities, skip_counts)
     require(Capability.BAN, btclib_node_adapter.capabilities, skip_counts)
+    require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_a_noban_permission_reconnects_a_banned_peer(
@@ -50,7 +55,9 @@ def test_a_noban_permission_reconnects_a_banned_peer(
     skip_counts: SkipCounts,
 ) -> None:
     """The target: the same request `rpc_setban_bitcoind_test.py` makes."""
+    require(Capability.CONNECT, btclib_node_adapter.capabilities, skip_counts)
     require(Capability.BAN, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_a_non_ip_address_can_be_banned_and_unbanned(
@@ -59,6 +66,7 @@ def test_a_non_ip_address_can_be_banned_and_unbanned(
 ) -> None:
     """The target: the same request `rpc_setban_bitcoind_test.py` makes."""
     require(Capability.BAN, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_bantime_given_at_a_restart_sets_a_new_ban_s_duration(
@@ -67,3 +75,4 @@ def test_bantime_given_at_a_restart_sets_a_new_ban_s_duration(
 ) -> None:
     """The target: the same request `rpc_setban_bitcoind_test.py` makes."""
     require(Capability.BAN, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

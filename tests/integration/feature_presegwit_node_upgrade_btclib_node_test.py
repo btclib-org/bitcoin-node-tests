@@ -40,3 +40,5 @@ def test_a_pre_segwit_chain_needs_a_reindex_to_upgrade(
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
     )
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

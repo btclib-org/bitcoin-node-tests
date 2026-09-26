@@ -378,3 +378,9 @@ other modules is scaled the same way (closes #90).
 `_stop_all` and the bodies of `pytest_sessionfinish` and
 `pytest_testnodedown` now live in `tests/conftest.py`, outside
 `[tool.coverage.run]`'s `omit`, and are unit-tested there (closes #101).
+
+### A require-only btclib-node stub fails once its capability is declared
+
+Every `*_btclib_node_test.py` test whose body was only `del`/`require(...)`
+now ends in `pytest.fail`, and asks for the capabilities its bitcoind twin
+does; `tests/require_only_stub_test.py` holds both to it (issue #82).

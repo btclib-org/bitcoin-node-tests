@@ -35,3 +35,4 @@ def test_max_locator_size(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

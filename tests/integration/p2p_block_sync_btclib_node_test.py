@@ -37,3 +37,5 @@ def test_a_block_mined_on_node0_reaches_node1_and_node2(
 ) -> None:
     """The target: the same request `p2p_block_sync_bitcoind_test.py` makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    require(Capability.CONNECT, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

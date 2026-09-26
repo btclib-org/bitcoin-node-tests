@@ -121,6 +121,7 @@ def test_oversized_inv_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_oversized_getdata_disconnects_the_peer(
@@ -138,6 +139,7 @@ def test_oversized_getdata_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_oversized_headers_disconnects_the_peer(
@@ -155,6 +157,7 @@ def test_oversized_headers_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_invalid_pow_header_disconnects_the_peer(
@@ -173,3 +176,4 @@ def test_invalid_pow_header_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

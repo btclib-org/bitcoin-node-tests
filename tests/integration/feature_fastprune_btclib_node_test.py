@@ -37,3 +37,5 @@ def test_a_block_larger_than_a_block_file_is_stored(
     """`Capability.FASTPRUNE` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.FASTPRUNE, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

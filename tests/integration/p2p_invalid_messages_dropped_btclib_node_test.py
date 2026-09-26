@@ -110,6 +110,7 @@ def test_duplicate_version_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_wrong_checksum_keeps_the_connection(
@@ -128,6 +129,7 @@ def test_wrong_checksum_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_invalid_msgtype_keeps_the_connection(
@@ -146,3 +148,4 @@ def test_invalid_msgtype_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

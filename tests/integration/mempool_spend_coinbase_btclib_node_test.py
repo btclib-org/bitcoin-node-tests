@@ -36,3 +36,4 @@ def test_a_mature_coinbase_spends_and_an_immature_one_is_refused(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

@@ -39,6 +39,7 @@ def test_no_activity_for_an_unused_address(
     require(
         Capability.DESCRIPTOR_ACTIVITY, btclib_node_adapter.capabilities, skip_counts
     )
+    pytest.fail("not ported for this node")
 
 
 def test_activity_in_block(
@@ -49,6 +50,7 @@ def test_activity_in_block(
         Capability.DESCRIPTOR_ACTIVITY, btclib_node_adapter.capabilities, skip_counts
     )
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_no_mempool_inclusion(
@@ -59,6 +61,7 @@ def test_no_mempool_inclusion(
         Capability.DESCRIPTOR_ACTIVITY, btclib_node_adapter.capabilities, skip_counts
     )
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_invalid_blockhash(
@@ -68,6 +71,7 @@ def test_invalid_blockhash(
     require(
         Capability.DESCRIPTOR_ACTIVITY, btclib_node_adapter.capabilities, skip_counts
     )
+    pytest.fail("not ported for this node")
 
 
 def test_invalid_descriptor(
@@ -77,6 +81,7 @@ def test_invalid_descriptor(
     require(
         Capability.DESCRIPTOR_ACTIVITY, btclib_node_adapter.capabilities, skip_counts
     )
+    pytest.fail("not ported for this node")
 
 
 def test_required_args(
@@ -86,3 +91,4 @@ def test_required_args(
     require(
         Capability.DESCRIPTOR_ACTIVITY, btclib_node_adapter.capabilities, skip_counts
     )
+    pytest.fail("not ported for this node")

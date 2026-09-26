@@ -38,6 +38,8 @@ def test_reorg_recomputes_every_entry_s_own_ancestors_and_descendants(
     """`Capability.LIMIT_CLUSTER_SIZE` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.LIMIT_CLUSTER_SIZE, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_a_chain_over_the_default_cluster_limit_needs_a_reorg_to_fit(
@@ -46,3 +48,5 @@ def test_a_chain_over_the_default_cluster_limit_needs_a_reorg_to_fit(
     """`Capability.LIMIT_CLUSTER_SIZE` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.LIMIT_CLUSTER_SIZE, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

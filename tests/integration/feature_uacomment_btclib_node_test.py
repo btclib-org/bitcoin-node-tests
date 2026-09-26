@@ -44,3 +44,4 @@ def test_uacomment_appends_to_the_subversion_string(
     """
     del btclib_node_python
     require(Capability.UA_COMMENT, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

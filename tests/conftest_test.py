@@ -16,7 +16,8 @@ exists for is taken in a subprocess started from `tests/`.
 `stop_all`, `stash_or_report` and `fold_worker_tally` below need neither
 a subprocess nor a real xdist session: each takes a plain sequence or
 mapping rather than the pytest or xdist object it is read off of, so a
-test drives it directly (issue bitcoin-node-tests#101).
+test drives it directly (issue bitcoin-node-tests#101). `AdapterFactory`
+needs no node either: an adapter it constructs is never started.
 """
 
 import argparse
@@ -24,11 +25,13 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Set as AbstractSet
 from pathlib import Path
 from types import SimpleNamespace
-from typing import cast
+from typing import cast, override
 
 import pytest
+from bitcoin_core_rpc import BitcoinCoreRpcClient
 
 from bitcoin_node_tests.capability import (
     Capability,
@@ -36,7 +39,9 @@ from bitcoin_node_tests.capability import (
     SkipCounts,
     require,
 )
+from bitcoin_node_tests.node import NodeAdapter
 from tests.conftest import (
+    AdapterFactory,
     CoverageConfiguration,
     asks_for_everything,
     configuration_went_unread,
@@ -850,3 +855,53 @@ def test_fold_worker_tally_does_nothing_without_a_workeroutput() -> None:
     counts = SkipCounts()
     fold_worker_tally(counts, None)
     assert list(counts) == []
+
+
+class _BuiltWith(NodeAdapter):
+    """The smallest concrete `NodeAdapter`, reporting what it was built with."""
+
+    capabilities: AbstractSet[Capability] = frozenset()
+
+    @override
+    def _command(self) -> list[str]:
+        return ["fake-node", f"-datadir={self._datadir}"]
+
+    @override
+    def _rpc_client(self) -> BitcoinCoreRpcClient:  # pragma: no cover -- never started
+        raise NotImplementedError
+
+    def built_with(self) -> tuple[object, ...]:
+        """Return every constructor argument, `trace_rpc` last."""
+        return (
+            self._executable,
+            self._datadir,
+            self._rpc_port,
+            self._p2p_port,
+            self._extra_args,
+            self._rpc_auth,
+            self._trace_rpc,
+        )
+
+
+@pytest.mark.parametrize("trace_rpc", [False, True])
+def test_adapter_factory_passes_its_own_trace_rpc(trace_rpc: bool) -> None:
+    """The factory's own `trace_rpc` is what the adapter is built with."""
+    make_adapter = AdapterFactory(trace_rpc=trace_rpc)
+    adapter = make_adapter(_BuiltWith, "node", Path("d"), 1, 2)
+    assert adapter.built_with() == ("node", Path("d"), 1, 2, (), None, trace_rpc)
+
+
+def test_adapter_factory_passes_every_other_argument_through() -> None:
+    """`extra_args` and `rpc_auth` reach the adapter as given, and its class."""
+    make_adapter = AdapterFactory(trace_rpc=True)
+    adapter = make_adapter(_BuiltWith, "node", Path("d"), 1, 2, ("-x=1",), ("u", "p"))
+    assert type(adapter) is _BuiltWith
+    assert adapter.built_with() == (
+        "node",
+        Path("d"),
+        1,
+        2,
+        ("-x=1",),
+        ("u", "p"),
+        True,
+    )

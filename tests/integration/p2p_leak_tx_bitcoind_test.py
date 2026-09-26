@@ -64,15 +64,18 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
 _MAGIC = magic_from_chain("regtest")
 
 
-def _start_adapter(bitcoind_path: str, tmp_path: Path) -> BitcoindAdapter:
+def _start_adapter(
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
+) -> BitcoindAdapter:
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(bitcoind_path, tmp_path, rpc_port, p2p_port)
+    adapter = make_adapter(BitcoindAdapter, bitcoind_path, tmp_path, rpc_port, p2p_port)
     adapter.start()
     return adapter
 
@@ -99,11 +102,14 @@ def _wait_for_inv(peer: Peer, tx_hash: bytes) -> Inv:
 
 
 def test_tx_in_block(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A tx just mined into the tip's own block is still uploaded."""
     require(Capability.CLOCK, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)
@@ -145,11 +151,14 @@ def test_tx_in_block(
 
 
 def test_notfound_on_replaced_tx(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A getdata for a tx its own replacement displaced answers notfound."""
     require(Capability.CLOCK, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)
@@ -205,11 +214,14 @@ def test_notfound_on_replaced_tx(
 
 
 def test_notfound_on_unannounced_tx(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A getdata for a tx not yet announced to this peer answers notfound."""
     require(Capability.CLOCK, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)

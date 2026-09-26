@@ -81,6 +81,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -173,10 +174,13 @@ def test_addrv2_too_long_address_is_logged(
 
 
 @contextmanager
-def _undialling_node(python: str, datadir: Path) -> Iterator[BtclibNodeAdapter]:
+def _undialling_node(
+    make_adapter: AdapterFactory, python: str, datadir: Path
+) -> Iterator[BtclibNodeAdapter]:
     """Yield a listening node that never dials from its own address table."""
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(
+    adapter = make_adapter(
+        BtclibNodeAdapter,
         python,
         datadir,
         rpc_port,
@@ -199,11 +203,11 @@ def _unrecognized_network() -> bytes:
 
 
 def test_addrv2_unrecognized_network_keeps_the_connection(
-    btclib_node_python: str, tmp_path: Path
+    make_adapter: AdapterFactory, btclib_node_python: str, tmp_path: Path
 ) -> None:
     """The wire half: the same request the bitcoind module makes."""
     with (
-        _undialling_node(btclib_node_python, tmp_path) as node,
+        _undialling_node(make_adapter, btclib_node_python, tmp_path) as node,
         Peer(node.p2p_address, _MAGIC) as peer,
     ):
         peer.handshake()

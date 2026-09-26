@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -56,22 +57,33 @@ _CUSTOM_DATACARRIER_SIZE = 83
 
 
 def _start_adapter(
-    bitcoind_path: str, tmp_path: Path, extra_args: tuple[str, ...] = ()
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    extra_args: tuple[str, ...] = (),
 ) -> BitcoindAdapter:
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
-        bitcoind_path, tmp_path, rpc_port, p2p_port, extra_args=extra_args
+    adapter = make_adapter(
+        BitcoindAdapter,
+        bitcoind_path,
+        tmp_path,
+        rpc_port,
+        p2p_port,
+        extra_args=extra_args,
     )
     adapter.start()
     return adapter
 
 
 def test_default_settings_allow_a_large_op_return(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """With no `-datacarrier*` argument, a sizeable payload still relays."""
     require(Capability.DATACARRIER, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)
@@ -87,11 +99,16 @@ def test_default_settings_allow_a_large_op_return(
 
 
 def test_datacarrier_disabled_refuses_any_null_data_output(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """`-datacarrier=0` refuses relay of a null-data output of any size."""
     require(Capability.DATACARRIER, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path, extra_args=("-datacarrier=0",))
+    adapter = _start_adapter(
+        make_adapter, bitcoind_path, tmp_path, extra_args=("-datacarrier=0",)
+    )
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)
@@ -107,11 +124,15 @@ def test_datacarrier_disabled_refuses_any_null_data_output(
 
 
 def test_datacarriersize_bounds_the_payload(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A payload at the configured size relays; one byte more is refused."""
     require(Capability.DATACARRIER, BitcoindAdapter.capabilities, skip_counts)
     adapter = _start_adapter(
+        make_adapter,
         bitcoind_path,
         tmp_path,
         extra_args=(
@@ -153,11 +174,14 @@ def test_datacarriersize_bounds_the_payload(
 
 
 def test_bare_multisig_is_permitted_by_default(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """With no `-permitbaremultisig`, `getmempoolinfo` reports it permitted."""
     require(Capability.PERMIT_BARE_MULTISIG, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         info = adapter.rpc.call("getmempoolinfo")
         assert isinstance(info, dict)

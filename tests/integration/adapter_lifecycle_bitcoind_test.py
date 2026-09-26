@@ -30,24 +30,31 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
 
 def _adapter(
-    bitcoind_path: str, datadir: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    datadir: Path,
+    skip_counts: SkipCounts,
 ) -> BitcoindAdapter:
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(bitcoind_path, datadir, rpc_port, p2p_port)
+    adapter = make_adapter(BitcoindAdapter, bitcoind_path, datadir, rpc_port, p2p_port)
     require(Capability.MINE, adapter.capabilities, skip_counts)
     return adapter
 
 
 def test_mine_after_restart(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A restart unloads the wallet `mine` pays to; `mine` loads it back."""
-    adapter = _adapter(bitcoind_path, tmp_path / "node", skip_counts)
+    adapter = _adapter(make_adapter, bitcoind_path, tmp_path / "node", skip_counts)
     adapter.start()
     try:
         adapter.mine(1)
@@ -59,17 +66,20 @@ def test_mine_after_restart(
 
 
 def test_mine_over_a_datadir_an_earlier_adapter_left(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A second adapter over the same datadir mines to the wallet on disk."""
     datadir = tmp_path / "node"
-    first = _adapter(bitcoind_path, datadir, skip_counts)
+    first = _adapter(make_adapter, bitcoind_path, datadir, skip_counts)
     first.start()
     try:
         first.mine(1)
     finally:
         first.stop()
-    second = _adapter(bitcoind_path, datadir, skip_counts)
+    second = _adapter(make_adapter, bitcoind_path, datadir, skip_counts)
     second.start()
     try:
         second.mine(1)
@@ -79,11 +89,13 @@ def test_mine_over_a_datadir_an_earlier_adapter_left(
 
 
 def test_stop_reports_a_node_killed_out_from_under_it(
-    bitcoind_path: str, tmp_path: Path
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
 ) -> None:
     """A node gone before `stop` is raised, and nothing is left to stop."""
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(bitcoind_path, tmp_path / "node", rpc_port, p2p_port)
+    adapter = make_adapter(
+        BitcoindAdapter, bitcoind_path, tmp_path / "node", rpc_port, p2p_port
+    )
     adapter.start()
     running = adapter._running
     process = None if running is None else running.process

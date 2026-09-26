@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -54,12 +55,16 @@ _ANNEX = b"\x50" + b"\xff" * 0x10000
 
 
 def test_a_block_larger_than_a_block_file_is_stored(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A block past `-fastprune`'s own block-file size connects all the same."""
     require(Capability.FASTPRUNE, BitcoindAdapter.capabilities, skip_counts)
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
+    adapter = make_adapter(
+        BitcoindAdapter,
         bitcoind_path,
         tmp_path,
         rpc_port,

@@ -50,15 +50,19 @@ if TYPE_CHECKING:
     from btclib.tx import Tx
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
 _LIMIT_CLUSTER_COUNT = 25
 
 
-def _start_adapter(bitcoind_path: str, tmp_path: Path) -> BitcoindAdapter:
+def _start_adapter(
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
+) -> BitcoindAdapter:
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
+    adapter = make_adapter(
+        BitcoindAdapter,
         bitcoind_path,
         tmp_path,
         rpc_port,
@@ -88,11 +92,14 @@ def _assert_all_allowed(adapter: BitcoindAdapter, package: list[Tx]) -> None:
 
 
 def test_in_package_ancestors_count_toward_the_mempool_ancestor_limit(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """24 in-mempool ancestors plus a 2-tx package exceed cluster count 25."""
     require(Capability.LIMIT_CLUSTER_COUNT, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)
@@ -117,7 +124,10 @@ def test_in_package_ancestors_count_toward_the_mempool_ancestor_limit(
 
 
 def test_in_package_descendants_count_toward_the_mempool_descendant_limit(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A top parent's own descendants exceed the limit counted together.
 
@@ -128,7 +138,7 @@ def test_in_package_descendants_count_toward_the_mempool_descendant_limit(
     transactions join the 24 already in the mempool.
     """
     require(Capability.LIMIT_CLUSTER_COUNT, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)

@@ -71,6 +71,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -191,13 +192,16 @@ def test_addrv2_too_long_address_is_logged(
 
 
 @contextmanager
-def _addr_node(bitcoind_path: str, datadir: Path) -> Iterator[BitcoindAdapter]:
+def _addr_node(
+    make_adapter: AdapterFactory, bitcoind_path: str, datadir: Path
+) -> Iterator[BitcoindAdapter]:
     """Yield a started node exempt from address-rate limiting, never dialling.
 
     The module docstring is why each of the two flags is here.
     """
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
+    adapter = make_adapter(
+        BitcoindAdapter,
         bitcoind_path,
         datadir,
         rpc_port,
@@ -237,11 +241,11 @@ def _unrecognized_network() -> bytes:
 
 
 def test_addrv2_unrecognized_network_keeps_the_connection(
-    bitcoind_path: str, tmp_path: Path
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
 ) -> None:
     """The wire half: an entry of an unknown network is ignored, not fatal."""
     with (
-        _addr_node(bitcoind_path, tmp_path) as node,
+        _addr_node(make_adapter, bitcoind_path, tmp_path) as node,
         Peer(node.p2p_address, _MAGIC) as peer,
     ):
         peer.handshake()
@@ -250,10 +254,13 @@ def test_addrv2_unrecognized_network_keeps_the_connection(
 
 
 def test_addrv2_unrecognized_network_is_logged(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The log half: the entry after the unrecognized one is still added."""
-    with _addr_node(bitcoind_path, tmp_path) as node:
+    with _addr_node(make_adapter, bitcoind_path, tmp_path) as node:
         require(Capability.DEBUG_LOG, node.capabilities, skip_counts)
         with (
             Peer(node.p2p_address, _MAGIC) as peer,

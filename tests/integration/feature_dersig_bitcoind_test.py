@@ -60,6 +60,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -68,9 +69,12 @@ pytestmark = pytest.mark.integration
 _DERSIG_HEIGHT = 12
 
 
-def _start_adapter(bitcoind_path: str, tmp_path: Path) -> BitcoindAdapter:
+def _start_adapter(
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
+) -> BitcoindAdapter:
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
+    adapter = make_adapter(
+        BitcoindAdapter,
         bitcoind_path,
         tmp_path,
         rpc_port,
@@ -114,13 +118,16 @@ def _low_version_block(
 
 
 def test_dersig_activates_one_block_before_the_configured_height(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """`getdeploymentinfo`'s own `bip66` entry tracks the configured height."""
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BitcoindAdapter.capabilities, skip_counts
     )
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)
@@ -139,13 +146,16 @@ def test_dersig_activates_one_block_before_the_configured_height(
 
 
 def test_a_block_below_the_minimum_version_is_refused(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """Once BIP66 is active, a version-2 block never becomes the tip."""
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BitcoindAdapter.capabilities, skip_counts
     )
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)
@@ -164,13 +174,16 @@ def test_a_block_below_the_minimum_version_is_refused(
 
 
 def test_a_block_below_the_minimum_version_is_logged(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The same refusal, in bitcoind's own debug log wording."""
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BitcoindAdapter.capabilities, skip_counts
     )
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         require(Capability.DEBUG_LOG, adapter.capabilities, skip_counts)

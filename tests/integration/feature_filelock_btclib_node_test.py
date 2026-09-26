@@ -49,6 +49,8 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tests.conftest import AdapterFactory
+
 pytestmark = pytest.mark.integration
 
 # The released build's own uncaught RocksDB wording, naming the
@@ -67,16 +69,20 @@ _BLOCKSDIR_LOCK_REFUSAL = (
 
 
 def test_second_instance_on_same_datadir_refuses_to_start(
-    btclib_node_python: str, tmp_path: Path
+    make_adapter: AdapterFactory, btclib_node_python: str, tmp_path: Path
 ) -> None:
     """A second node over the same datadir cannot lock its own chainstate."""
     datadir = tmp_path / "datadir"
     rpc_port1, p2p_port1 = free_ports(2)
-    first = BtclibNodeAdapter(btclib_node_python, datadir, rpc_port1, p2p_port1)
+    first = make_adapter(
+        BtclibNodeAdapter, btclib_node_python, datadir, rpc_port1, p2p_port1
+    )
     first.start()
     try:
         rpc_port2, p2p_port2 = free_ports(2)
-        second = BtclibNodeAdapter(btclib_node_python, datadir, rpc_port2, p2p_port2)
+        second = make_adapter(
+            BtclibNodeAdapter, btclib_node_python, datadir, rpc_port2, p2p_port2
+        )
         with pytest.raises(RuntimeError, match=_DATADIR_LOCK_REFUSAL):
             second.start()
     finally:
@@ -84,16 +90,19 @@ def test_second_instance_on_same_datadir_refuses_to_start(
 
 
 def test_second_instance_on_same_blocksdir_refuses_to_start(
-    btclib_node_python: str, tmp_path: Path
+    make_adapter: AdapterFactory, btclib_node_python: str, tmp_path: Path
 ) -> None:
     """A second node given the first's own datadir as `-blocksdir` fails."""
     first_datadir = tmp_path / "first"
     rpc_port1, p2p_port1 = free_ports(2)
-    first = BtclibNodeAdapter(btclib_node_python, first_datadir, rpc_port1, p2p_port1)
+    first = make_adapter(
+        BtclibNodeAdapter, btclib_node_python, first_datadir, rpc_port1, p2p_port1
+    )
     first.start()
     try:
         rpc_port2, p2p_port2 = free_ports(2)
-        second = BtclibNodeAdapter(
+        second = make_adapter(
+            BtclibNodeAdapter,
             btclib_node_python,
             tmp_path / "second",
             rpc_port2,

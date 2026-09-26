@@ -87,6 +87,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -153,12 +154,17 @@ def _call(port: int, user: str, password: str, method: str) -> int:
 
 
 def test_rpcauth_via_config_authenticates_and_refuses(
-    btclib_node_python: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    btclib_node_python: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A correct `rpcauth` credential from `bitcoin.conf` passes; others 401."""
     datadir = tmp_path / "datadir"
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(btclib_node_python, datadir, rpc_port, p2p_port)
+    adapter = make_adapter(
+        BtclibNodeAdapter, btclib_node_python, datadir, rpc_port, p2p_port
+    )
     require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
     datadir.mkdir()
     (datadir / "bitcoin.conf").write_text(
@@ -175,12 +181,16 @@ def test_rpcauth_via_config_authenticates_and_refuses(
 
 
 def test_rpcauth_on_command_line_authenticates(
-    btclib_node_python: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    btclib_node_python: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The same credential, given as `extra_args` instead, authenticates too."""
     datadir = tmp_path / "datadir"
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(
+    adapter = make_adapter(
+        BtclibNodeAdapter,
         btclib_node_python,
         datadir,
         rpc_port,
@@ -198,12 +208,17 @@ def test_rpcauth_on_command_line_authenticates(
 
 @pytest.mark.parametrize("rpcauth", _MALFORMED_RPCAUTH)
 def test_malformed_rpcauth_refuses_to_start(
-    btclib_node_python: str, tmp_path: Path, skip_counts: SkipCounts, rpcauth: str
+    make_adapter: AdapterFactory,
+    btclib_node_python: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
+    rpcauth: str,
 ) -> None:
     """A malformed `-rpcauth` value is fatal at startup."""
     datadir = tmp_path / "datadir"
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(
+    adapter = make_adapter(
+        BtclibNodeAdapter,
         btclib_node_python,
         datadir,
         rpc_port,
@@ -224,6 +239,7 @@ def test_malformed_rpcauth_refuses_to_start(
     ],
 )
 def test_blank_rpcauth_refuses_regardless_of_position(
+    make_adapter: AdapterFactory,
     btclib_node_python: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -232,8 +248,13 @@ def test_blank_rpcauth_refuses_regardless_of_position(
     """A blank `-rpcauth=` is fatal wherever it sits among named entries."""
     datadir = tmp_path / "datadir"
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(
-        btclib_node_python, datadir, rpc_port, p2p_port, extra_args=extra_args
+    adapter = make_adapter(
+        BtclibNodeAdapter,
+        btclib_node_python,
+        datadir,
+        rpc_port,
+        p2p_port,
+        extra_args=extra_args,
     )
     require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
     with pytest.raises(RuntimeError, match=_MALFORMED_ERROR):
@@ -241,7 +262,10 @@ def test_blank_rpcauth_refuses_regardless_of_position(
 
 
 def test_norpcauth_disables_previous_rpcauth(
-    btclib_node_python: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    btclib_node_python: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """`-norpcauth` disables every `-rpcauth` value given before it.
 
@@ -251,7 +275,8 @@ def test_norpcauth_disables_previous_rpcauth(
     """
     datadir = tmp_path / "datadir"
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(
+    adapter = make_adapter(
+        BtclibNodeAdapter,
         btclib_node_python,
         datadir,
         rpc_port,
@@ -268,12 +293,16 @@ def test_norpcauth_disables_previous_rpcauth(
 
 
 def test_rpcuser_rpcpassword_authenticates_without_a_cookie(
-    btclib_node_python: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    btclib_node_python: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """`-rpcuser`/`-rpcpassword` authenticates; no cookie is ever written."""
     datadir = tmp_path / "datadir"
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(
+    adapter = make_adapter(
+        BtclibNodeAdapter,
         btclib_node_python,
         datadir,
         rpc_port,
@@ -292,12 +321,16 @@ def test_rpcuser_rpcpassword_authenticates_without_a_cookie(
 
 
 def test_norpccookiefile_writes_no_cookie_and_rpcauth_still_authenticates(
-    btclib_node_python: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    btclib_node_python: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """`-norpccookiefile` writes no cookie; a paired `-rpcauth` still works."""
     datadir = tmp_path / "datadir"
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(
+    adapter = make_adapter(
+        BtclibNodeAdapter,
         btclib_node_python,
         datadir,
         rpc_port,
@@ -320,6 +353,7 @@ def test_norpccookiefile_writes_no_cookie_and_rpcauth_still_authenticates(
     [(None, 0o600), ("owner", 0o600), ("group", 0o640), ("all", 0o644)],
 )
 def test_rpccookieperms_sets_posix_permission_bits(
+    make_adapter: AdapterFactory,
     btclib_node_python: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -330,8 +364,13 @@ def test_rpccookieperms_sets_posix_permission_bits(
     datadir = tmp_path / "datadir"
     extra_args = (f"-rpccookieperms={perm}",) if perm else ()
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(
-        btclib_node_python, datadir, rpc_port, p2p_port, extra_args=extra_args
+    adapter = make_adapter(
+        BtclibNodeAdapter,
+        btclib_node_python,
+        datadir,
+        rpc_port,
+        p2p_port,
+        extra_args=extra_args,
     )
     require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
     adapter.start()
@@ -344,12 +383,17 @@ def test_rpccookieperms_sets_posix_permission_bits(
 
 
 def test_cookie_write_failure_aborts_the_node(
-    btclib_node_python: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    btclib_node_python: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A directory sitting at the cookie path is a fatal init error."""
     datadir = tmp_path / "datadir"
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(btclib_node_python, datadir, rpc_port, p2p_port)
+    adapter = make_adapter(
+        BtclibNodeAdapter, btclib_node_python, datadir, rpc_port, p2p_port
+    )
     require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
     cookie_dir = datadir / "regtest"
     cookie_dir.mkdir(parents=True)

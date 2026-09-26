@@ -30,13 +30,17 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
 
-def _start_adapter(bitcoind_path: str, tmp_path: Path) -> BitcoindAdapter:
+def _start_adapter(
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
+) -> BitcoindAdapter:
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
+    adapter = make_adapter(
+        BitcoindAdapter,
         bitcoind_path,
         tmp_path,
         rpc_port,
@@ -48,11 +52,14 @@ def _start_adapter(bitcoind_path: str, tmp_path: Path) -> BitcoindAdapter:
 
 
 def test_fill_mempool_evicts_its_own_low_fee_rate_transaction(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """`fill_mempool` returns having raised nothing: the node evicted."""
     require(Capability.MAXMEMPOOL, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         fill_mempool(adapter)

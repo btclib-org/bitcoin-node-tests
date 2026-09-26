@@ -70,6 +70,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -197,11 +198,14 @@ def test_required_args(
 
 
 def test_block_not_found_on_disk(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """A `blk00000.dat` moved away from under the node is a disk-level miss."""
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(bitcoind_path, tmp_path, rpc_port, p2p_port)
+    adapter = make_adapter(BitcoindAdapter, bitcoind_path, tmp_path, rpc_port, p2p_port)
     adapter.start()
     try:
         require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)

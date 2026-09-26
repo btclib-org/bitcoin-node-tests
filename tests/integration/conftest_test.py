@@ -243,3 +243,33 @@ def test_tracerpc_option_is_recognized_when_given(
     """)
     result = pytester.runpytest_subprocess("--tracerpc")
     result.assert_outcomes(passed=1)
+
+
+@pytest.mark.parametrize("args, expected", [((), False), (("--tracerpc",), True)])
+def test_make_adapter_builds_with_the_tracerpc_option(
+    pytester: pytest.Pytester,
+    monkeypatch: pytest.MonkeyPatch,
+    args: tuple[str, ...],
+    expected: bool,
+) -> None:
+    """`make_adapter` hands `--tracerpc`, given or not, to what it builds.
+
+    The class it is handed only records its own `trace_rpc`: no node
+    starts, so the nested session needs neither `TF2_INTEGRATION` nor a
+    binary.
+    """
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    pytester.makeconftest(
+        _OPTION_CONFTEST + "    from tests.integration.conftest import make_adapter\n"
+    )
+    pytester.makepyfile(f"""
+        class Recorder:
+            def __init__(self, *args, trace_rpc):
+                self.trace_rpc = trace_rpc
+
+        def test_make_adapter(make_adapter):
+            built = make_adapter(Recorder, "node", "datadir", 1, 2)
+            assert built.trace_rpc is {expected}
+    """)
+    result = pytester.runpytest_subprocess(*args)
+    result.assert_outcomes(passed=1)

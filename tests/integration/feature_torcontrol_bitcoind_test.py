@@ -63,6 +63,8 @@ from bitcoin_node_tests.node import free_port, free_ports, wait_until
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tests.conftest import AdapterFactory
+
 pytestmark = pytest.mark.integration
 
 # Core's own `CLIENT_VERSION` (`src/clientversion.h`), the running
@@ -184,7 +186,7 @@ class _MockTorControlServer:
 
 
 def test_torcontrol_drives_a_tor_control_session_to_add_onion(
-    bitcoind_path: str, tmp_path: Path
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
 ) -> None:
     """`-torcontrol` runs the real handshake against a mock Tor server.
 
@@ -199,7 +201,8 @@ def test_torcontrol_drives_a_tor_control_session_to_add_onion(
     mock_tor.start()
     try:
         rpc_port, p2p_port = free_ports(2)
-        adapter = _OnionBitcoindAdapter(
+        adapter = make_adapter(
+            _OnionBitcoindAdapter,
             bitcoind_path,
             tmp_path,
             rpc_port,

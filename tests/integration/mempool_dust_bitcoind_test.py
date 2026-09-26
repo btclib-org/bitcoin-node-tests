@@ -62,6 +62,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
+    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
@@ -95,10 +96,11 @@ def _output_scripts() -> tuple[tuple[ScriptPubKey, str], ...]:
 
 
 def _start_adapter(
-    bitcoind_path: str, tmp_path: Path, *extra_args: str
+    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path, *extra_args: str
 ) -> BitcoindAdapter:
     rpc_port, p2p_port = free_ports(2)
-    adapter = BitcoindAdapter(
+    adapter = make_adapter(
+        BitcoindAdapter,
         bitcoind_path,
         tmp_path,
         rpc_port,
@@ -134,11 +136,14 @@ def _allowed(adapter: BitcoindAdapter, tx: Tx) -> bool:
 
 
 def test_a_value_clearly_below_the_dust_threshold_is_refused(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """Every standard output shape refuses a one-satoshi value as dust."""
     require(Capability.PERMIT_BARE_MULTISIG, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)
@@ -155,11 +160,14 @@ def test_a_value_clearly_below_the_dust_threshold_is_refused(
 
 
 def test_a_value_clearly_above_the_dust_threshold_is_allowed(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """Every standard output shape allows a value well above the threshold."""
     require(Capability.PERMIT_BARE_MULTISIG, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path)
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path)
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)
@@ -174,12 +182,15 @@ def test_a_value_clearly_above_the_dust_threshold_is_allowed(
 
 
 def test_dustrelayfee_zero_waives_the_dust_check(
-    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """`-dustrelayfee=0` allows a value the default rate would refuse."""
     require(Capability.PERMIT_BARE_MULTISIG, BitcoindAdapter.capabilities, skip_counts)
     require(Capability.DUST_RELAY_FEE, BitcoindAdapter.capabilities, skip_counts)
-    adapter = _start_adapter(bitcoind_path, tmp_path, "-dustrelayfee=0")
+    adapter = _start_adapter(make_adapter, bitcoind_path, tmp_path, "-dustrelayfee=0")
     try:
         require(Capability.MINE, adapter.capabilities, skip_counts)
         wallet = MiniWallet(adapter)

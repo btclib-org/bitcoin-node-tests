@@ -27,16 +27,18 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tests.conftest import AdapterFactory
+
 pytestmark = pytest.mark.integration
 
 
 def test_stop_reports_a_node_killed_out_from_under_it(
-    btclib_node_python: str, tmp_path: Path
+    make_adapter: AdapterFactory, btclib_node_python: str, tmp_path: Path
 ) -> None:
     """A node gone before `stop` is raised, and nothing is left to stop."""
     rpc_port, p2p_port = free_ports(2)
-    adapter = BtclibNodeAdapter(
-        btclib_node_python, tmp_path / "node", rpc_port, p2p_port
+    adapter = make_adapter(
+        BtclibNodeAdapter, btclib_node_python, tmp_path / "node", rpc_port, p2p_port
     )
     adapter.start()
     running = adapter._running

@@ -330,3 +330,9 @@ a failure no longer leaves the node running past the test (closes #95).
 `free_port`, called once per port, can hand two of them the same one; the
 fixtures in `tests/integration/conftest.py` now draw theirs from `free_ports`,
 which holds every probe open until all are bound (closes #85).
+
+### `mempool_util.fill_mempool` pushes a node's mempool to eviction
+
+Ported from Core's own `test_framework/mempool_util.py`, over a throwaway
+`MiniWallet`: disposable, rising-fee self-transfers until `mempoolminfee`
+rises above `minrelaytxfee` and the lowest fee-rate one is evicted (closes #70).

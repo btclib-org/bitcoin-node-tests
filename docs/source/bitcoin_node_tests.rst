@@ -32,6 +32,13 @@ bitcoin\_node\_tests.debug\_log module
    :members:
    :show-inheritance:
 
+bitcoin\_node\_tests.mempool\_util module
+-----------------------------------------
+
+.. automodule:: bitcoin_node_tests.mempool_util
+   :members:
+   :show-inheritance:
+
 bitcoin\_node\_tests.mini\_wallet module
 ----------------------------------------
 

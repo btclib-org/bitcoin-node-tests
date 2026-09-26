@@ -83,6 +83,7 @@ def test_wrong_magic_bytes_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_oversized_message_disconnects_the_peer(
@@ -101,3 +102,4 @@ def test_oversized_message_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

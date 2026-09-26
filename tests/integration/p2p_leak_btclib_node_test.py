@@ -66,3 +66,4 @@ def test_obsolete_version_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

@@ -44,3 +44,4 @@ def test_v2transport_is_not_declared(
     """
     del btclib_node_python
     require(Capability.V2TRANSPORT, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

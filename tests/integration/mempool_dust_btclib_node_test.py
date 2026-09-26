@@ -40,6 +40,8 @@ def test_a_value_clearly_below_the_dust_threshold_is_refused(
     require(
         Capability.PERMIT_BARE_MULTISIG, BtclibNodeAdapter.capabilities, skip_counts
     )
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_a_value_clearly_above_the_dust_threshold_is_allowed(
@@ -50,6 +52,8 @@ def test_a_value_clearly_above_the_dust_threshold_is_allowed(
     require(
         Capability.PERMIT_BARE_MULTISIG, BtclibNodeAdapter.capabilities, skip_counts
     )
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_dustrelayfee_zero_waives_the_dust_check(
@@ -60,3 +64,6 @@ def test_dustrelayfee_zero_waives_the_dust_check(
     require(
         Capability.PERMIT_BARE_MULTISIG, BtclibNodeAdapter.capabilities, skip_counts
     )
+    require(Capability.DUST_RELAY_FEE, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

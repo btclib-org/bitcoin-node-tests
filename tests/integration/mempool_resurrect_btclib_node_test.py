@@ -36,3 +36,4 @@ def test_a_reorg_returns_spent_coinbases_to_the_mempool(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

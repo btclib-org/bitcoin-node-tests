@@ -128,6 +128,7 @@ def test_addrv2_empty_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_addrv2_no_addresses_keeps_the_connection(
@@ -145,6 +146,7 @@ def test_addrv2_no_addresses_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 # Core's own `test_addrv2_too_long_address`, the same payload
@@ -167,6 +169,7 @@ def test_addrv2_too_long_address_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 @contextmanager
@@ -213,3 +216,4 @@ def test_addrv2_unrecognized_network_is_logged(
 ) -> None:
     """The log half: skipped, this node's own log carrying no such wording."""
     require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

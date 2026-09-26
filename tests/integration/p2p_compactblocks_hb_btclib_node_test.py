@@ -35,3 +35,5 @@ def test_reserved_high_bandwidth_slot_for_the_outbound_peer(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    require(Capability.CONNECT, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

@@ -41,6 +41,8 @@ def test_dersig_activates_one_block_before_the_configured_height(
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
     )
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_a_block_below_the_minimum_version_is_refused(
@@ -51,6 +53,8 @@ def test_a_block_below_the_minimum_version_is_refused(
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
     )
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_a_block_below_the_minimum_version_is_logged(
@@ -61,3 +65,6 @@ def test_a_block_below_the_minimum_version_is_logged(
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
     )
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.DEBUG_LOG, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

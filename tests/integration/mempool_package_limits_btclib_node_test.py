@@ -38,6 +38,8 @@ def test_in_package_ancestors_count_toward_the_mempool_ancestor_limit(
     """`Capability.LIMIT_CLUSTER_COUNT` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.LIMIT_CLUSTER_COUNT, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_in_package_descendants_count_toward_the_mempool_descendant_limit(
@@ -46,3 +48,5 @@ def test_in_package_descendants_count_toward_the_mempool_descendant_limit(
     """`Capability.LIMIT_CLUSTER_COUNT` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.LIMIT_CLUSTER_COUNT, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

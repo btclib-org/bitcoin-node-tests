@@ -34,3 +34,4 @@ def test_uptime_does_not_jump_with_the_wall_clock(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.CLOCK, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

@@ -39,3 +39,5 @@ def test_csv_activates_one_block_before_the_configured_height(
     require(
         Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
     )
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

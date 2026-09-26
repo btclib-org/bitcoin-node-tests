@@ -69,3 +69,4 @@ def test_existing_blocksdir_holds_the_chain_in_cores_own_files(
     """
     del btclib_node_python
     require(Capability.BLK_FILES, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

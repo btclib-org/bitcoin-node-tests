@@ -38,6 +38,8 @@ def test_default_settings_allow_a_large_op_return(
     """`Capability.DATACARRIER` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.DATACARRIER, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_datacarrier_disabled_refuses_any_null_data_output(
@@ -46,6 +48,8 @@ def test_datacarrier_disabled_refuses_any_null_data_output(
     """`Capability.DATACARRIER` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.DATACARRIER, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_datacarriersize_bounds_the_payload(
@@ -54,6 +58,8 @@ def test_datacarriersize_bounds_the_payload(
     """`Capability.DATACARRIER` is not declared, so this skips."""
     del btclib_node_python
     require(Capability.DATACARRIER, BtclibNodeAdapter.capabilities, skip_counts)
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
 
 
 def test_bare_multisig_is_permitted_by_default(
@@ -64,3 +70,4 @@ def test_bare_multisig_is_permitted_by_default(
     require(
         Capability.PERMIT_BARE_MULTISIG, BtclibNodeAdapter.capabilities, skip_counts
     )
+    pytest.fail("not ported for this node")

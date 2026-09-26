@@ -990,17 +990,21 @@ own `get_auth_cookie` has no way to recover the plaintext of from
 `bitcoin.conf` alone, where this repository's own tests construct every
 `-rpcauth` value they use and so always hold the plaintext behind it.
 
-A cookie the node cannot write is a different failure from a malformed
-`-rpcauth`, and each answers with different wording on btclib-node:
-a malformed `-rpcauth` is refused inside `cli.py`'s own `build_config`,
-before a process is ever spawned, with `rpc/auth.py`'s own
-`RpcAuthEntry.parse` raising "Invalid -rpcauth argument."; a cookie
-write failure happens inside `Node.run`, once `rpc_manager.start_listener`
-has already tried and failed, and `__init__.py`'s own `RPC_INIT_ERROR`
-constant is bitcoind's own generic wording verbatim -- measured live, a
-directory sitting where the cookie file must go refuses with `Error:
-Unable to start HTTP server. See debug log for details.` on both nodes,
-identically.
+A cookie write failure happens inside `Node.run` on btclib-node, once
+`rpc_manager.start_listener` has already tried and failed, and
+`__init__.py`'s own `RPC_INIT_ERROR` constant is bitcoind's own generic
+wording verbatim -- measured live, a directory sitting where the cookie
+file must go refuses with `Error: Unable to start HTTP server. See debug
+log for details.` on both nodes, identically. A malformed `-rpcauth`
+answers with that same wording on btclib-node's `main`, past
+[ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210):
+`RpcAuth.start` logs "Invalid -rpcauth argument." and fails the
+listener, as Core's own `InitRPCAuthentication` refuses it once bound.
+A build before that issue writes "Error: Invalid -rpcauth argument."
+instead, `rpc/auth.py`'s own `RpcAuthEntry.parse` raising out of
+`config.py`'s own `Config`, so btclib-node's test accepts either wording
+whole ([ISS 159](https://github.com/btclib-org/bitcoin-node-tests/issues/159)),
+the way `feature_blocksdir.py`'s does.
 
 `p2p_getdata.py`'s row is a smaller claim than Core's own test: Core
 asks its "later valid `getdata`" question of a mined tip, and this asks

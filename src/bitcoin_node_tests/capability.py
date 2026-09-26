@@ -229,6 +229,15 @@ class Capability(Enum):
     `LIMIT_CLUSTER_SIZE` -- recognise `-limitclustersize`, Core's own cap
     on one cluster's own total virtual size
     (`mempool_updatefromblock.py`).
+    `DESCRIPTOR_ACTIVITY` -- answer `getdescriptoractivity`, Core's own
+    RPC pairing spend and receive events with the descriptors and blocks
+    a caller names. Named for the RPC rather than for an option, the way
+    `MINE`/`CONNECT`/`DISCONNECT`/`BAN`/`RAW_MESSAGE` already are: no
+    flag gates it, so what a node either answers or does not is the
+    method itself
+    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
+    `BLOCK_STATS` -- answer `getblockstats`, Core's own per-block
+    statistics RPC, named the same way and for the same reason.
     """
 
     MINE = "mine"
@@ -250,6 +259,8 @@ class Capability(Enum):
     BYTES_PER_SIGOP = "bytes_per_sigop"
     LIMIT_CLUSTER_COUNT = "limit_cluster_count"
     LIMIT_CLUSTER_SIZE = "limit_cluster_size"
+    DESCRIPTOR_ACTIVITY = "descriptor_activity"
+    BLOCK_STATS = "block_stats"
 
 
 class SkipCounts:

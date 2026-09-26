@@ -7,9 +7,10 @@
 No real bitcoind or btclib-node here or anywhere else this suite's
 ordinary run reaches (rule 1): `_FakeNode` is this module's own,
 answering just enough of the protocol -- a handshake, a `ping` it can be
-told to send unsolicited, and a `getdata` served with whatever payload
-the test hands it -- to drive every branch `peer.py` has, over a socket
-that never leaves this machine.
+told to send unsolicited, the `pong` to each `ping` it is told to read,
+and a `getdata` served with whatever payload the test hands it -- to
+drive every branch `peer.py` has, over a socket that never leaves this
+machine.
 """
 
 from __future__ import annotations
@@ -46,7 +47,7 @@ _MAGIC = magic_from_chain("regtest")
 
 
 class _FakeNode:
-    """A minimal p2p responder: handshake, `ping` on demand, `getdata` echoed.
+    """A minimal p2p responder: handshake, `ping`/`pong`, `getdata` echoed.
 
     One connection at a time, which is every test below: `accept` blocks
     the caller's own thread until `Peer` dials in, so a test drives both
@@ -118,6 +119,17 @@ class _FakeNode:
         message = self._receive()
         assert message.command == "pong"
         assert Pong.parse(message.payload).nonce == nonce
+
+    def answer_pings(self, count: int) -> list[int]:
+        """Read `count` pings, answer each with a pong, return the nonces."""
+        nonces = []
+        for _ in range(count):
+            message = self._receive()
+            assert message.command == "ping"
+            nonce = Ping.parse(message.payload).nonce
+            self.send(Pong(nonce))
+            nonces.append(nonce)
+        return nonces
 
     def serve_getdata(
         self, response: object, *, check_validity: bool = True
@@ -452,5 +464,44 @@ def test_wait_for_disconnect_timeout_is_scaled_by_the_global_factor(
                 peer.wait_for_disconnect(timeout=1000.0)
         finally:
             set_factor(1.0)
+    finally:
+        peer.close()
+
+
+def test_sync_with_ping_waits_for_the_pong_to_its_second_ping(
+    fake_node: _FakeNode,
+) -> None:
+    """Two pings, the first with a zero nonce; the second one's pong ends it."""
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=fake_node.answer_handshake)
+        server_thread.start()
+        peer.handshake()
+        server_thread.join(timeout=5.0)
+
+        nonces: list[int] = []
+        server_thread = threading.Thread(
+            target=lambda: nonces.extend(fake_node.answer_pings(2))
+        )
+        server_thread.start()
+        peer.sync_with_ping()
+        server_thread.join(timeout=5.0)
+        assert nonces[0] == 0
+        assert nonces[1] != 0
+    finally:
+        peer.close()
+
+
+def test_sync_with_ping_raises_when_no_pong_arrives(fake_node: _FakeNode) -> None:
+    """A node that never answers is a failed wait, not an endless one."""
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=fake_node.answer_handshake)
+        server_thread.start()
+        peer.handshake()
+        server_thread.join(timeout=5.0)
+
+        with pytest.raises(TimeoutError, match="never saw 'pong'"):
+            peer.sync_with_ping(timeout=0.2)
     finally:
         peer.close()

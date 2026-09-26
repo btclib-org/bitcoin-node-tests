@@ -255,3 +255,9 @@ that test joins `p2p_invalid_messages`' `addrv2` checks (issue #5).
 `NodeAdapter.start` kills its process before raising, and the fixtures that
 stop several nodes stop each one and chain every error rather than keeping
 only one (closes #79).
+
+### Transaction upload, UTXO hash, descriptor activity and block stats ported
+
+`feature_utxo_set_hash`, `rpc_getdescriptoractivity` and `rpc_getblockstats`
+join the MiniWallet family, each RPC with its own capability; `p2p_leak_tx`
+joins it and the clock family, and `Peer` gains `sync_with_ping` (issue #14).

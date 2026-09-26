@@ -41,6 +41,8 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.BYTES_PER_SIGOP,
             Capability.LIMIT_CLUSTER_COUNT,
             Capability.LIMIT_CLUSTER_SIZE,
+            Capability.DESCRIPTOR_ACTIVITY,
+            Capability.BLOCK_STATS,
         }
     )
 

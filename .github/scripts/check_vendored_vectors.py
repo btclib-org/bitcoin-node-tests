@@ -45,10 +45,11 @@ repository's default one names that branch in a `ref` field, which
 commit despite the name. Without it the call resolves against the
 default branch alone and answers an empty list for a path that lives
 only on the named one, which reads as upstream having deleted the file
-regardless of whether the pin is current (ISS 2160): that used to force
-every such pin into a `behind` line this script would never revisit, a
-workaround for entries that were, in fact, at their pin's tip. A `ref`
-line is what lets one be checked instead of merely excused.
+regardless of whether the pin is current (ISS btclib-org/btclib#2160):
+that used to force every such pin into a `behind` line this script
+would never revisit, a workaround for entries that were, in fact, at
+their pin's tip. A `ref` line is what lets one be checked instead of
+merely excused.
 
 Shapes a ledger can carry that this script does not attempt: an entry
 with no `commit` at all (chain data self-identified by hash, files
@@ -116,9 +117,9 @@ class Entry:
     branch -- absent for every pin standing on a default branch, which
     is most of them, and present for one standing on a fork's own
     pull-request branch, which the API cannot otherwise find at all
-    (ISS 2160): asking it with no `ref` answers an empty list for that
-    path regardless of whether the pin is current, which reads as the
-    path having been deleted upstream.
+    (ISS btclib-org/btclib#2160): asking it with no `ref` answers an
+    empty list for that path regardless of whether the pin is current,
+    which reads as the path having been deleted upstream.
     """
 
     heading: str

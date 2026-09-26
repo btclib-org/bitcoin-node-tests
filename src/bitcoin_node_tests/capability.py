@@ -83,9 +83,10 @@ ever turn into a `pass` or a `fail`, unlike an ordinary skip.
 **This module imports no test runner.** `pyproject.toml`'s own
 `[project] dependencies` name two packages and no third (this
 package's own `__init__.py` says so), and Core's own test framework
-runs under no `pytest` at all -- objective 2 of ISS 2220 is that Core
-can adopt this suite, which a hard runtime dependency on somebody
-else's test runner would work against. `require` raises
+runs under no `pytest` at all -- objective 2 of
+ISS btclib-org/btclib#2220 is that Core can adopt this suite, which a
+hard runtime dependency on somebody else's test runner would work
+against. `require` raises
 `MissingCapabilityError`, its own exception, rather than calling
 `pytest.skip`; `tests/conftest.py`'s own `pytest_runtest_call`
 hookwrapper is what translates that into an actual skip, in the one

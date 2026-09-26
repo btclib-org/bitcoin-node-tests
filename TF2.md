@@ -275,7 +275,7 @@ commit  fa5f29774872d18febc0df38831a6e45f3de69cc  2025-12-16
 behind  0 revisions; that commit is the tip of the path
 ```
 
-Verdict: **tf2's by decision**. ISS 1066, the same line.
+Verdict: **tf2's by decision**. ISS btclib-org/btclib#1066, the same line.
 `muhash.py` carries a private `_chacha20_block` because `MuHash3072`'s
 element hash is a keyed ChaCha20 keystream and nothing else in btclib
 needs one; its `__all__` publishes `MuHash3072` alone.
@@ -332,8 +332,9 @@ commit  fa5f29774872d18febc0df38831a6e45f3de69cc  2025-12-16
 behind  0 revisions; that commit is the tip of the path
 ```
 
-Verdict: **tf2's by decision**. ISS 1066, the same line: an
-authenticator written out by hand is what that issue put on tf2's side.
+Verdict: **tf2's by decision**. ISS btclib-org/btclib#1066, the same
+line: an authenticator written out by hand is what that issue put on
+tf2's side.
 
 ### `test/functional/test_framework/crypto/ripemd160.py`
 
@@ -649,9 +650,10 @@ behind  0 revisions; that commit is the tip of the path
 Verdict: **covered in part**. `fee.fee_from_vsize` over a `FeeRate` is
 what `get_fee` computes, and what `satoshi_round` quantizes to is what
 `amount.py`'s `valid_btc_amount`, `sats_from_btc` and `btc_from_sats`
-work in; `util_xor` went to tf2 with the compressor by ISS 1123. The
-rest is the harness: the assertions, the ports, the datadirs, the
-cookie files, the configuration files and the waits.
+work in; `util_xor` went to tf2 with the compressor by
+ISS btclib-org/btclib#1123. The rest is the harness: the assertions,
+the ports, the datadirs, the cookie files, the configuration files and
+the waits.
 
 ### `test/functional/test_framework/v2_p2p.py`
 
@@ -662,9 +664,9 @@ commit  6a129983c9bf8efa1081f9a8b462c3635d1cfb39  2026-06-04
 behind  0 revisions; that commit is the tip of the path
 ```
 
-Verdict: **tf2's by decision**. ISS 1066 put BIP324's transport on tf2's
-side. Its non-cipher halves are btclib's: `ecc/ellswift.py` is the key
-exchange and `kdf.hkdf` the key schedule.
+Verdict: **tf2's by decision**. ISS btclib-org/btclib#1066 put BIP324's
+transport on tf2's side. Its non-cipher halves are btclib's:
+`ecc/ellswift.py` is the key exchange and `kdf.hkdf` the key schedule.
 
 ### `test/functional/test_framework/wallet.py`
 

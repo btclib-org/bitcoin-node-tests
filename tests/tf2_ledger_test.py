@@ -129,9 +129,9 @@ _NUMERAL = re.compile(
 # before `_NUMERAL` runs: an ISO date, a specification as the bips
 # repository spells one in a path, an RFC, an issue of either tracker in
 # either form the prose uses -- including a qualified one,
-# "btclib-org/btclib#2220" -- a rule or a step of ISS 2220's own
-# numbering, and the variant number a hyphen introduces after a name, as
-# in RIPEMD-160
+# "btclib-org/btclib#2220" -- a rule or a step of
+# ISS btclib-org/btclib#2220's own numbering, and the variant number a
+# hyphen introduces after a name, as in RIPEMD-160
 _NOT_A_COUNT = re.compile(
     r"\b\d{4}-\d{2}(?:-\d{2})?\b"
     r"|(?i:\b(?:bip|slip)-\d+)"

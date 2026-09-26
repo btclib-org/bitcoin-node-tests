@@ -29,6 +29,7 @@ neither needing a flag of its own here.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
 import subprocess
@@ -226,8 +227,12 @@ def bitcoind_cluster(
     try:
         yield _start
     finally:
-        for adapter in reversed(started):
-            adapter.stop()
+        # an ExitStack runs every stop, last started first, even where an
+        # earlier one raises -- a node `stop` had to kill -- rather than
+        # leaving the rest running
+        with contextlib.ExitStack() as stack:
+            for adapter in started:
+                stack.callback(adapter.stop)
 
 
 @pytest.fixture(scope="session")
@@ -316,5 +321,7 @@ def mixed_cluster(
     try:
         yield bitcoind, btclib_node
     finally:
-        btclib_node.stop()
-        bitcoind.stop()
+        try:
+            btclib_node.stop()
+        finally:
+            bitcoind.stop()

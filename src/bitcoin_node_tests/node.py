@@ -56,6 +56,10 @@ __all__ = [
 # machine that can run this suite, so this bounds the failure case
 _STARTUP_TIMEOUT = 30.0
 
+# where `start` redirects a node's own stderr, inside its datadir, and
+# where `start` and `stop` each read it back into the error they raise
+_STDERR_LOG = "node-stderr.log"
+
 
 def free_port() -> int:
     """Return a port nothing is listening on, by letting the OS pick one.
@@ -331,7 +335,7 @@ class NodeAdapter(ABC):
         :raises TimeoutError: the RPC never answered.
         """
         self._datadir.mkdir(parents=True, exist_ok=True)
-        stderr_path = self._datadir / "node-stderr.log"
+        stderr_path = self._datadir / _STDERR_LOG
         with stderr_path.open("wb") as stderr_file:
             self._process = subprocess.Popen(  # noqa: S603
                 [*self._command(), *self._extra_args],
@@ -350,12 +354,34 @@ class NodeAdapter(ABC):
         A no-op where nothing was ever started, which is what lets a
         fixture's own teardown call this unconditionally rather than
         track whether `start` succeeded.
+
+        A process still running once the wait expires is killed rather
+        than left behind holding its datadir and ports, then waited for
+        over the same bound, the way Core's own `TestNode.kill_process`
+        ends one; the slow shutdown is then raised, not hidden
+        ([ISS 76](https://github.com/btclib-org/bitcoin-node-tests/issues/76)).
+
+        :raises TimeoutError: the process ignored the termination for the
+            whole wait and was killed; the message carries what it wrote
+            to stderr.
         """
         if self._process is None:
             return
-        self._process.terminate()
-        self._process.wait(timeout=scaled(_STARTUP_TIMEOUT))
-        self._process = None
+        process, self._process = self._process, None
+        process.terminate()
+        timeout = scaled(_STARTUP_TIMEOUT)
+        try:
+            process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=timeout)
+            stderr_path = self._datadir / _STDERR_LOG
+            stderr = stderr_path.read_bytes().decode("utf-8", errors="replace").strip()
+            err_msg = (
+                f"node process ignored terminate for {timeout}s and was "
+                f"killed -- stderr: {stderr}"
+            )
+            raise TimeoutError(err_msg) from None
 
     def restart(self) -> None:
         """Stop and start again, over the same data directory.

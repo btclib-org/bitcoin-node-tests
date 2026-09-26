@@ -13,6 +13,7 @@ branch.
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, override
@@ -273,6 +274,23 @@ def test_stop_terminates_and_waits(tmp_path: Path) -> None:
     process.terminate.assert_called_once()
     process.wait.assert_called_once_with(timeout=ANY)
     adapter.stop()  # a second stop is again a no-op, the process forgotten
+
+
+def test_stop_kills_a_process_that_outlives_the_wait(tmp_path: Path) -> None:
+    """A process still running after the wait is killed, then raised."""
+    process = MagicMock()
+    process.poll.return_value = None
+    process.wait.side_effect = [subprocess.TimeoutExpired("fake-node", 30.0), 0]
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", return_value=process):
+        adapter.start()
+    (tmp_path / "node" / "node-stderr.log").write_bytes(b"still flushing\n")
+    with pytest.raises(TimeoutError, match="killed -- stderr: still flushing"):
+        adapter.stop()
+    process.terminate.assert_called_once()
+    process.kill.assert_called_once()
+    assert process.wait.call_count == 2
+    adapter.stop()  # the killed process is forgotten too
 
 
 def test_stop_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:

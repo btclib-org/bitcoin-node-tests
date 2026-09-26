@@ -384,3 +384,9 @@ other modules is scaled the same way (closes #90).
 Every `*_btclib_node_test.py` test whose body was only `del`/`require(...)`
 now ends in `pytest.fail`, and asks for the capabilities its bitcoind twin
 does; `tests/require_only_stub_test.py` holds both to it (issue #82).
+
+### Each `NodeAdapter` start redirects the node's stderr into a file of its own
+
+Each start writes under the datadir's `stderr/`, as Core's `TestNode.start`
+does, and `stop` reads its own start's file: a second adapter over one datadir
+overwrote the one `node-stderr.log` a running node's `stop` read (closes #105).

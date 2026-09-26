@@ -41,6 +41,7 @@ from bitcoin_node_tests.timeout_factor import set_factor
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from collections.abc import Set as AbstractSet
+    from typing import IO
     from urllib.request import Request
 
 
@@ -456,6 +457,13 @@ def test_start_waits_out_an_http_error_that_is_not_401_or_403(tmp_path: Path) ->
     assert rpc.calls == [("getblockchaininfo", None)] * 2
 
 
+def _stderr_path(adapter: NodeAdapter) -> Path:
+    """Return the file the process `adapter` holds writes its stderr to."""
+    running = adapter._running
+    assert running is not None
+    return running.stderr_path
+
+
 def test_stop_is_a_no_op_before_start(tmp_path: Path) -> None:
     """`stop` before `start` is a no-op, not a raise on a null process."""
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
@@ -486,7 +494,7 @@ def test_stop_raises_on_a_process_that_already_exited_non_zero(
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
     with patch("subprocess.Popen", return_value=process):
         adapter.start()
-    (tmp_path / "node" / "node-stderr.log").write_bytes(b"Assertion failed: boom\n")
+    _stderr_path(adapter).write_bytes(b"Assertion failed: boom\n")
     with pytest.raises(
         RuntimeError,
         match=r"^node process exited with 3 before stop was called -- "
@@ -504,7 +512,7 @@ def test_stop_raises_on_a_non_zero_exit_on_terminate(tmp_path: Path) -> None:
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
     with patch("subprocess.Popen", return_value=process):
         adapter.start()
-    (tmp_path / "node" / "node-stderr.log").write_bytes(b"")
+    _stderr_path(adapter).write_bytes(b"")
     with pytest.raises(
         RuntimeError, match=r"^node process exited with -11 on terminate -- stderr: $"
     ):
@@ -532,8 +540,43 @@ def test_stop_accepts_stderr_beside_a_clean_exit(tmp_path: Path) -> None:
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
     with patch("subprocess.Popen", return_value=process):
         adapter.start()
-    (tmp_path / "node" / "node-stderr.log").write_bytes(b"Warning: provoked\n")
+    _stderr_path(adapter).write_bytes(b"Warning: provoked\n")
     adapter.stop()
+
+
+def test_two_adapters_over_one_datadir_each_read_their_own_stderr(
+    tmp_path: Path,
+) -> None:
+    """A second start over a running node's datadir leaves its stderr alone.
+
+    Regression test for [ISS 105](https://github.com/btclib-org/bitcoin-node-tests/issues/105):
+    the second process's own stderr goes to a file of its own, so the
+    first node's `stop` reads back what the first process wrote.
+    """
+    datadir = tmp_path / "node"
+    written = iter([b"first\n", b"second\n"])
+
+    def _popen(argv: list[str], *, stderr: IO[bytes]) -> MagicMock:
+        del argv
+        stderr.write(next(written))
+        process = MagicMock()
+        process.poll.return_value = None
+        process.wait.return_value = 3
+        return process
+
+    first = _FakeAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
+    second = _FakeAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", side_effect=_popen):
+        first.start()
+        second.start()
+    assert _stderr_path(first) != _stderr_path(second)
+    assert (
+        _stderr_path(first).parent == _stderr_path(second).parent == datadir / "stderr"
+    )
+    with pytest.raises(RuntimeError, match=r"on terminate -- stderr: first$"):
+        first.stop()
+    with pytest.raises(RuntimeError, match=r"on terminate -- stderr: second$"):
+        second.stop()
 
 
 def test_start_refuses_a_second_start_while_a_process_is_held(tmp_path: Path) -> None:
@@ -563,7 +606,7 @@ def test_stop_kills_a_process_that_outlives_the_wait(tmp_path: Path) -> None:
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
     with patch("subprocess.Popen", return_value=process):
         adapter.start()
-    (tmp_path / "node" / "node-stderr.log").write_bytes(b"still flushing\n")
+    _stderr_path(adapter).write_bytes(b"still flushing\n")
     with pytest.raises(TimeoutError, match="killed -- stderr: still flushing"):
         adapter.stop()
     process.terminate.assert_called_once()

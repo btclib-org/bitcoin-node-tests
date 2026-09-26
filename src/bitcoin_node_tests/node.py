@@ -21,12 +21,13 @@ from __future__ import annotations
 
 import socket
 import subprocess
+import tempfile
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from contextlib import ExitStack
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, NamedTuple, Protocol
 from urllib.request import Request
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient, HttpError, RpcError, RPCErrorCode
@@ -59,9 +60,10 @@ __all__ = [
 # machine that can run this suite, so this bounds the failure case
 _STARTUP_TIMEOUT = 30.0
 
-# where `start` redirects a node's own stderr, inside its datadir, and
-# where `start` and `stop` each read it back into the error they raise
-_STDERR_LOG = "node-stderr.log"
+# the directory inside a datadir where each `start` creates a file of its
+# own for the process's stderr: Core's own `stderr_dir`
+# (`TestNode.__init__`), which `initialize_datadir` (`util.py`) creates
+_STDERR_DIR = "stderr"
 
 # the exit code `stop` accepts, for every adapter: Core's own
 # `TestNode.stop_node` expects 0, and each node exits 0 on `terminate`'s
@@ -297,6 +299,13 @@ def _wait_for_rpc(
     raise TimeoutError(err_msg) from last_error
 
 
+class _Running(NamedTuple):
+    """A process `start` spawned, and the file its stderr is redirected to."""
+
+    process: subprocess.Popen[bytes]
+    stderr_path: Path
+
+
 class NodeAdapter(ABC):
     """One running node: how it starts, stops, restarts, and answers RPC.
 
@@ -365,7 +374,7 @@ class NodeAdapter(ABC):
         self._extra_args = tuple(extra_args)
         self._rpc_auth = rpc_auth
         self._trace_rpc = trace_rpc
-        self._process: subprocess.Popen[bytes] | None = None
+        self._running: _Running | None = None
 
     @abstractmethod
     def _command(self) -> list[str]:
@@ -405,6 +414,14 @@ class NodeAdapter(ABC):
         and then blocks the node on every write past that, where a file
         never blocks the writer regardless of how much it writes.
 
+        Each start creates a file of its own under `_STDERR_DIR`, the way
+        Core's own `TestNode.start` opens a `tempfile.NamedTemporaryFile`
+        in its `stderr_dir`, and `stop` reads back the file of the start
+        it ends: a second adapter over the same datadir writes into a
+        file of its own rather than over the one a running node still
+        writes to
+        ([ISS 105](https://github.com/btclib-org/bitcoin-node-tests/issues/105)).
+
         A start that raises leaves nothing running: the process is killed
         and forgotten before the error propagates, the way Core's own
         `TestNode.assert_start_raises_init_error` ends one, so a caller's
@@ -424,7 +441,7 @@ class NodeAdapter(ABC):
             message carrying what it wrote to stderr.
         :raises TimeoutError: the RPC never answered.
         """
-        if self._process is not None:
+        if self._running is not None:
             err_msg = "node already started: stop it before starting it again"
             raise RuntimeError(err_msg)
         self._start(self._extra_args)
@@ -435,22 +452,24 @@ class NodeAdapter(ABC):
         :param extra_args: already checked against `_command`, by
             `__init__` or by `restart`.
         """
-        self._datadir.mkdir(parents=True, exist_ok=True)
-        stderr_path = self._datadir / _STDERR_LOG
-        with stderr_path.open("wb") as stderr_file:
-            self._process = subprocess.Popen(  # noqa: S603
+        stderr_dir = self._datadir / _STDERR_DIR
+        stderr_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=stderr_dir, delete=False) as stderr_file:
+            process = subprocess.Popen(  # noqa: S603
                 [*self._command(), *extra_args],
                 stderr=stderr_file,
             )
+        stderr_path = Path(stderr_file.name)
+        self._running = _Running(process, stderr_path)
         try:
             _wait_for_rpc(
                 self._rpc_client(),
-                self._process,
+                process,
                 stderr_path,
                 timeout=scaled(_STARTUP_TIMEOUT),
             )
         except BaseException:
-            process, self._process = self._process, None
+            self._running = None
             process.kill()
             process.wait(timeout=scaled(_STARTUP_TIMEOUT))
             raise
@@ -478,11 +497,7 @@ class NodeAdapter(ABC):
         RPC `stop` ends one, is a clean stop.
 
         Stderr is carried in the error and does not fail a clean exit on
-        its own, unlike Core's `expected_stderr=''`: `_STDERR_LOG` is one
-        file per datadir, so a second process refused over the same
-        datadir writes its init error into the log of a node that then
-        stops cleanly, as `feature_filelock_bitcoind_test.py`'s second
-        process does.
+        its own, unlike Core's `expected_stderr=''`.
 
         Each of these raises only once the process has exited and been
         forgotten, so nothing is left running and a second `stop` is a
@@ -495,13 +510,12 @@ class NodeAdapter(ABC):
             `_CLEAN_EXIT`; the message carries the code, whether it had
             already exited before this call, and what it wrote to stderr.
         """
-        if self._process is None:
+        if self._running is None:
             return
-        process, self._process = self._process, None
+        (process, stderr_path), self._running = self._running, None
         already_exited = process.poll() is not None
         process.terminate()
         timeout = scaled(_STARTUP_TIMEOUT)
-        stderr_path = self._datadir / _STDERR_LOG
         try:
             exit_code = process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:

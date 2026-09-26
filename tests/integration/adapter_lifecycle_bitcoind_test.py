@@ -85,7 +85,8 @@ def test_stop_reports_a_node_killed_out_from_under_it(
     rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(bitcoind_path, tmp_path / "node", rpc_port, p2p_port)
     adapter.start()
-    process = adapter._process
+    running = adapter._running
+    process = None if running is None else running.process
     try:
         assert process is not None
         os.kill(process.pid, signal.SIGKILL)

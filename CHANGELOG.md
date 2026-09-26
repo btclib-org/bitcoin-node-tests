@@ -279,3 +279,8 @@ stays out, its subject a Core script rather than a node (issue #14).
 `get_utxo` and a new `get_utxos` take Core's `confirmed_only` and
 `mark_as_spent`, an unnamed coin being the largest matured one as in Core, and
 `resync` asks `gettxout` which coins a block mined elsewhere holds (closes #69).
+
+### `feature_presegwit_node_upgrade` joins the option family
+
+A lower `-testactivationheight=segwit@N` refuses to restart a chain mined
+past it, in Core's own words, and `-reindex` upgrades it (issue #3).

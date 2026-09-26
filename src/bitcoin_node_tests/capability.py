@@ -190,8 +190,9 @@ class Capability(Enum):
     `TEST_ACTIVATION_HEIGHT` -- hold one buried soft fork's own deployment
     inactive until a caller-chosen height, Core's own debug-only
     `-testactivationheight=<deployment>@<height>`. Regtest's own chain
-    parameters activate every buried deployment -- BIP34, BIP66, BIP65,
-    CSV -- from height 1 otherwise (`src/kernel/chainparams.cpp`'s
+    parameters activate every buried deployment otherwise -- BIP34, BIP66,
+    BIP65 and CSV from height 1, segwit from genesis
+    (`src/kernel/chainparams.cpp`'s
     own comment on each, "Always active unless overridden", measured
     against the pinned `31.1`), so this is what lets a test hold one of
     them back long enough to observe the boundary at all

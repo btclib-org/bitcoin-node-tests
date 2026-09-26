@@ -106,6 +106,7 @@ def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:
     assert "-bind=127.0.0.1:18444" in command
     assert "-printtoconsole=0" in command
     assert "-debug=net" in command
+    assert "-debug=addrman" in command
 
 
 def test_rpc_client_authenticates_by_the_datadir_s_cookie(tmp_path: Path) -> None:

@@ -243,3 +243,9 @@ reverse (closes #71).
 A node still running once the wait after `terminate` expires is killed
 rather than left holding its datadir and ports, and a `TimeoutError`
 carrying its stderr says so (closes #76).
+
+### `test_addrv2_unrecognized_network` is ported, over `-debug=addrman`
+
+`-debug=addrman` joins `-debug=net`, so the address-manager lines Core's own
+`test_addrv2_unrecognized_network` asserts are in the log it reads, and
+that test joins `p2p_invalid_messages`' `addrv2` checks (issue #5).

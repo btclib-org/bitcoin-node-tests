@@ -113,8 +113,9 @@ class BitcoindAdapter(NodeAdapter):
     too: this is Core's own binary, so `blk*.dat` under `blocks/` is the
     format it already writes, not one this adapter has to add anything
     for. `Capability.DEBUG_LOG` is `debug_log_path` below, over the
-    node's own `-debug=net`: bitcoind's own binary is what writes Core's
-    own wording, which is the fact this capability names.
+    node's own `-debug=net` and `-debug=addrman`: bitcoind's own binary
+    is what writes Core's own wording, which is the fact this capability
+    names.
     `Capability.UA_COMMENT` is unconditional too: `-uacomment` is Core's
     own flag, so this is the one node under test that always has it,
     whatever a later option capability turns out to name.
@@ -226,13 +227,16 @@ class BitcoindAdapter(NodeAdapter):
         throwaway regtest node run from a test suite wants none of the
         three. `-fallbackfee` is set because a chain with no fee history
         refuses to fund a transaction without it, which `Capability.MINE`
-        meets the moment a caller spends what it mines. `-debug=net` is
-        `Capability.DEBUG_LOG`'s own condition: Core's own `net` category
-        log lines, the ones the log family's tests read, are
-        `LogDebug`'s (`src/util/log.h`) and print at all only where their
-        own category is enabled -- unconditional here rather than left to
-        a per-test option, `-debug` being a request no test of this
-        family needs to make for itself.
+        meets the moment a caller spends what it mines. `-debug=net` and
+        `-debug=addrman` are `Capability.DEBUG_LOG`'s own condition: the
+        log lines the log family's tests read are `LogDebug`'s
+        (`src/util/log.h`), in Core's own `net` and `addrman` categories,
+        and print at all only where their own category is enabled.
+        `-debug` accumulates, each occurrence enabling one more category,
+        so the two are two entries rather than one replacing the other --
+        unconditional here rather than left to a per-test option, since
+        `_check_extra_args` (`node.py`) refuses an `extra_args` entry
+        naming `-debug` once this argv sets it.
         """
         return [
             self._executable,
@@ -247,6 +251,7 @@ class BitcoindAdapter(NodeAdapter):
             "-fallbackfee=0.0002",
             "-printtoconsole=0",
             "-debug=net",
+            "-debug=addrman",
         ]
 
     @override

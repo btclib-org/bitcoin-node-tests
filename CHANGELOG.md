@@ -213,3 +213,9 @@ each gain a `Capability`; `mempool_datacarrier`, `mempool_dust` and
 `feature_prune_stale_fork`, `rpc_validateaddress`, `feature_nulldummy`,
 `feature_versionbits_warning`, `rpc_signer` and
 `feature_presegwit_node_upgrade` need a mechanism `TF2.md` names (issue #3).
+
+### The `btclib-node` jobs gain the pinned `bitcoind`, and the mixed cluster runs
+
+`btclib-node` and `btclib-node-main` install the same pinned release the
+`bitcoind` job does and set `TF2_BITCOIND`, so the mixed cluster runs
+there instead of skipping (closes #61).

@@ -30,6 +30,14 @@ name: node-integration
 # `TF2_BTCLIB_NODE_PYTHON` at it -- never at the interpreter running
 # `pytest` itself.
 #
+# `btclib-node` and `btclib-node-main` also install the same pinned
+# `bitcoind` the job above does, and set `TF2_BITCOIND` from it (issue
+# bitcoin-node-tests#61): without one,
+# `mixed_cluster_block_sync_btclib_node_test.py` -- the "most valuable
+# case" of ISS 43, needing both nodes at once -- skips on every job that
+# runs `*_btclib_node_test.py`, `bitcoind`'s own `exclude-classname`
+# exempting it there.
+#
 # `core-master` and `btclib-node-main` are ISS 8's decision of
 # 2026-09-25: the pinned release stays the only required check -- a
 # required check depending on a moving upstream would fail this
@@ -67,6 +75,14 @@ permissions:
 concurrency:
   group: node-integration-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+# the pinned bitcoind for every job that installs its own: the
+# `bitcoind` job's `with:` below names the same pair, a `workflow_call`
+# job's `with:` having no `env` context to read these from
+env:
+  BITCOIND_VERSION: "31.1"
+  BITCOIND_SHA256: >-
+    b80d9c3e04da78fb6f0569685673418cf686fadba9042d926d13fb87ff503f9e
 
 jobs:
   bitcoind:
@@ -121,12 +137,26 @@ jobs:
           BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
         run: |
           "$BTCLIB_NODE_PYTHON" -m pip install --disable-pip-version-check btclib-node
+      # the workflow's own pin, so the mixed cluster is tested against
+      # the same oracle everything else in this file is. Referenced by
+      # path, as the action's own file explains, and zizmor's suggested
+      # `$/` form is not a syntax GitHub Actions has -- actionlint
+      # refuses it here as it does in reusable-integration-bitcoind.yml's
+      # own identical call
+      - name: Install bitcoind
+        id: bitcoind
+        uses: ./.github/actions/install-bitcoind # zizmor: ignore[self-repository]
+        with:
+          version: ${{ env.BITCOIND_VERSION }}
+          sha256: ${{ env.BITCOIND_SHA256 }}
       - name: Run the integration tests against btclib-node
         env:
           BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
+          BITCOIND_PATH: ${{ steps.bitcoind.outputs.path }}
         run: |
           export TF2_INTEGRATION=1
           export TF2_BTCLIB_NODE_PYTHON="$BTCLIB_NODE_PYTHON"
+          export TF2_BITCOIND="$BITCOIND_PATH"
           uv run --locked --no-default-groups --group test \
             pytest tests/integration/*_btclib_node_test.py
 
@@ -327,11 +357,25 @@ jobs:
           ')
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "### btclib-node built from \`$sha\`" >> "$GITHUB_STEP_SUMMARY"
+      # the workflow's own pin, so the mixed cluster is tested against
+      # the same oracle everything else in this file is. Referenced by
+      # path, as the action's own file explains, and zizmor's suggested
+      # `$/` form is not a syntax GitHub Actions has -- actionlint
+      # refuses it here as it does in reusable-integration-bitcoind.yml's
+      # own identical call
+      - name: Install bitcoind
+        id: bitcoind
+        uses: ./.github/actions/install-bitcoind # zizmor: ignore[self-repository]
+        with:
+          version: ${{ env.BITCOIND_VERSION }}
+          sha256: ${{ env.BITCOIND_SHA256 }}
       - name: Run the integration tests against btclib-node's main
         env:
           BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
+          BITCOIND_PATH: ${{ steps.bitcoind.outputs.path }}
         run: |
           export TF2_INTEGRATION=1
           export TF2_BTCLIB_NODE_PYTHON="$BTCLIB_NODE_PYTHON"
+          export TF2_BITCOIND="$BITCOIND_PATH"
           uv run --locked --no-default-groups --group test \
             pytest tests/integration/*_btclib_node_test.py

@@ -307,3 +307,9 @@ three; fees are in satoshis, and broadcasts pass `maxfeerate` 0 (closes #103).
 
 The below-threshold test asserts `testmempoolaccept`'s reject reason, not only
 its `allowed` flag, as Core's own `mempool_dust.py` does at v31.1 (closes #93).
+
+### `rpc_setban`'s restart check reads `listbanned`, then bitcoind's own log
+
+`listbanned` is asserted right after `restart()`, and the refused dial is
+read over `assert_debug_log` against bitcoind's own `dropped (banned)`, not
+`connect_nodes`'s bare `TimeoutError` alone (closes #94).

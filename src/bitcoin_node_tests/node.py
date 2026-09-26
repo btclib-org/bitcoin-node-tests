@@ -72,6 +72,14 @@ _STDERR_DIR = "stderr"
 # btclib-node's `main` at f8f7143
 _CLEAN_EXIT = 0
 
+# every option naming the chain a node runs: Core's `-chain=` and the four
+# flags each equivalent to one of its values (`SetupChainParamsBaseOptions`,
+# `src/chainparamsbase.cpp`)
+_CHAIN_SELECTORS = frozenset({"chain", "regtest", "testnet", "testnet4", "signet"})
+
+# the chain `NodeAdapter` starts on where the caller names none
+_DEFAULT_CHAIN = "regtest"
+
 
 def free_port() -> int:
     """Return a port nothing is listening on, by letting the OS pick one.
@@ -186,10 +194,20 @@ def _reserved_option_names(command: Sequence[str]) -> frozenset[str]:
     beside it: an argument `_command` grows is reserved from the commit
     that adds it, with nothing else to update.
 
+    A command naming one of `_CHAIN_SELECTORS` reserves all of them: they
+    are five spellings of one setting, and bitcoind refuses a command line
+    setting more than one (`ArgsManager::GetChainArg`,
+    `src/common/args.cpp`: "Can use at most one").
+
     :param command: an adapter's own argv, `_command()`'s answer.
     """
     names = (_option_name(token) for token in command)
-    return frozenset(_canonical_option_name(name) for name in names if name is not None)
+    reserved = frozenset(
+        _canonical_option_name(name) for name in names if name is not None
+    )
+    if reserved & _CHAIN_SELECTORS:
+        return reserved | _CHAIN_SELECTORS
+    return reserved
 
 
 def _check_extra_args(command: Sequence[str], extra_args: Sequence[str]) -> None:
@@ -401,9 +419,19 @@ class NodeAdapter(ABC):
     `traced_transport` where it is set, wrapping whichever client that
     method already builds -- `rpc_auth`'s credential one included --
     rather than this base class building the client itself.
+
+    `chain` is the chain the node runs, in Core's own `-chain=` vocabulary
+    (`main`, `test`, `testnet4`, `signet`, `regtest`), `regtest` where a
+    caller names none. A subclass's own `chains` names the ones its node
+    can start; any other is refused at construction. The chain decides the
+    option `_command` spells it with, and the subdirectory of `datadir` a
+    subclass reads its cookie and its log from; it is not an `extra_args`
+    entry, `_check_extra_args` refusing every chain selector once
+    `_command` names one.
     """
 
     capabilities: AbstractSet[Capability]
+    chains: AbstractSet[str] = frozenset({_DEFAULT_CHAIN})
 
     def __init__(
         self,
@@ -415,7 +443,15 @@ class NodeAdapter(ABC):
         rpc_auth: tuple[str, str] | None = None,
         *,
         trace_rpc: bool = False,
+        chain: str = _DEFAULT_CHAIN,
     ) -> None:
+        if chain not in self.chains:
+            err_msg = (
+                f"{type(self).__name__} cannot start a node on chain {chain!r}: "
+                f"its chains are {sorted(self.chains)}"
+            )
+            raise ValueError(err_msg)
+        self._chain = chain
         self._executable = executable
         self._datadir = datadir
         self._rpc_port = rpc_port
@@ -446,6 +482,11 @@ class NodeAdapter(ABC):
         path of this datadir's names it.
         """
         return None
+
+    @property
+    def chain(self) -> str:
+        """Return the chain this node runs, in Core's `-chain=` vocabulary."""
+        return self._chain
 
     @property
     def p2p_address(self) -> tuple[str, int]:

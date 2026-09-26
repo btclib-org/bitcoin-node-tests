@@ -883,6 +883,20 @@ class _BuiltWith(NodeAdapter):
         )
 
 
+class _BuiltOnMain(_BuiltWith):
+    """`_BuiltWith`, able to start on the main chain as well."""
+
+    chains: AbstractSet[str] = frozenset({"regtest", "main"})
+
+
+def test_adapter_factory_passes_chain_through() -> None:
+    """`chain` reaches the adapter as given, `regtest` where none is."""
+    make_adapter = AdapterFactory(trace_rpc=False)
+    assert make_adapter(_BuiltOnMain, "node", Path("d"), 1, 2).chain == "regtest"
+    adapter = make_adapter(_BuiltOnMain, "node", Path("d"), 1, 2, chain="main")
+    assert adapter.chain == "main"
+
+
 @pytest.mark.parametrize("trace_rpc", [False, True])
 def test_adapter_factory_passes_its_own_trace_rpc(trace_rpc: bool) -> None:
     """The factory's own `trace_rpc` is what the adapter is built with."""

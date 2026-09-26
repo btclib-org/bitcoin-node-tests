@@ -264,7 +264,7 @@ def test_make_adapter_builds_with_the_tracerpc_option(
     )
     pytester.makepyfile(f"""
         class Recorder:
-            def __init__(self, *args, trace_rpc):
+            def __init__(self, *args, trace_rpc, chain):
                 self.trace_rpc = trace_rpc
 
         def test_make_adapter(make_adapter):

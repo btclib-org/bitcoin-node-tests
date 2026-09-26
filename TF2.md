@@ -1413,13 +1413,13 @@ names a release carrying that fix --
 
 `rpc_validateaddress.py` (`-prune`) sets `self.chain = ""`, Core's own
 main chain: its subject is `validateaddress`'s own bech32/base58 error
-wording, which differs by network, and neither adapter's own `_command`
-can start a node on anything but regtest -- `BitcoindAdapter`'s own
-hardcodes `-regtest`, and appending `-chain=main` through `extra_args`
-reaches bitcoind's own argument parser rather than the adapter, which
-refuses the combination outright. Not a capability a node can lack and
-skip: neither node can be asked to start this way at all --
-[ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63).
+wording, which differs by network. `NodeAdapter`'s own `chain="main"`
+(`node.py`) starts either node there
+([ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63)).
+What the port still needs is the file's own tables of addresses and
+expected answers carried here, and a capability for `validateaddress`
+itself, which `btclib_node.rpc.callbacks` names no callback for --
+[ISS 153](https://github.com/btclib-org/bitcoin-node-tests/issues/153).
 
 `feature_nulldummy.py` (`-testactivationheight=segwit@N`,
 `-addresstype=legacy`) is NULLDUMMY compliance itself: a bare-multisig

@@ -474,3 +474,9 @@ the test file alone; a moved data file is a stale port, named (closes #146).
 A pin whose file upstream deleted or renamed is reported as the commit that
 removed it, which the report says may be a deletion or a rename; "no commit"
 names a path the branch walked never held (closes #150).
+
+### A `NodeAdapter` starts on the chain its caller names
+
+`chain=` picks `main`, `test`, `testnet4`, `signet` or `regtest`, the default;
+`BtclibNodeAdapter` refuses `testnet4`, and any chain but regtest starts with
+`-connect=0`, drawing no peer and asking no seed (closes #63).

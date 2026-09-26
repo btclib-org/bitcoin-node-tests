@@ -124,12 +124,70 @@ def test_command_runs_python_dash_m_btclib_node(tmp_path: Path) -> None:
     adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     command = adapter._command()
     assert command[:3] == [sys.executable, "-m", "btclib_node"]
-    assert "-regtest" in command
+    assert "-chain=regtest" in command
+    assert not {"-connect=0", "-listen=1"} & set(command)
     assert f"-datadir={tmp_path}" in command
     assert "-rpcport=18443" in command
     assert "-rpcbind=127.0.0.1" in command
     assert "-port=18444" in command
     assert not any("-rpcuser" in arg or "-rpcpassword" in arg for arg in command)
+
+
+def test_chains_are_every_one_the_node_names() -> None:
+    """Core's own `-chain=` vocabulary, `testnet4` aside."""
+    assert BtclibNodeAdapter.chains == frozenset({"main", "test", "signet", "regtest"})
+
+
+def test_init_refuses_testnet4(tmp_path: Path) -> None:
+    """The one chain of Core's vocabulary this node does not resolve."""
+    with pytest.raises(ValueError, match=r"cannot start a node on chain 'testnet4'"):
+        BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444, chain="testnet4")
+
+
+@pytest.mark.parametrize("chain", ["main", "test", "signet"])
+def test_command_keeps_any_other_chain_off_the_network(
+    tmp_path: Path, chain: str
+) -> None:
+    """Any chain but regtest names itself, dials nobody, and still listens."""
+    adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444, chain=chain)
+    command = adapter._command()
+    assert f"-chain={chain}" in command
+    assert {"-connect=0", "-listen=1", "-port=18444"} <= set(command)
+
+
+@pytest.mark.parametrize(
+    "chain, subdir",
+    [
+        ("main", "mainnet"),
+        ("test", "testnet"),
+        ("signet", "signet"),
+        ("regtest", "regtest"),
+    ],
+)
+def test_cookie_and_log_are_the_chain_s_own(
+    tmp_path: Path, chain: str, subdir: str
+) -> None:
+    """Every chain writes below the datadir, in a directory of its own name."""
+    adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444, chain=chain)
+    with patch.object(btclib_node_module, "_writes_auth_cookie", return_value=True):
+        client = adapter._rpc_client()
+    assert client.cookie_path == tmp_path / subdir / ".cookie"
+    assert adapter.log_path == tmp_path / subdir / "history.log"
+
+
+def test_capabilities_drop_mine_on_another_chain(tmp_path: Path) -> None:
+    """A build that connects alone still gains no `MINE` off regtest."""
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=True),
+        patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
+    ):
+        adapter = BtclibNodeAdapter(
+            sys.executable, tmp_path, 18443, 18444, chain="signet"
+        )
+    assert adapter.capabilities is BtclibNodeAdapter.capabilities
 
 
 def test_rpc_client_authenticates_with_a_placeholder_credential_pre_1070(

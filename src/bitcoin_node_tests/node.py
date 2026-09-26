@@ -24,6 +24,7 @@ import subprocess
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from contextlib import ExitStack
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 from urllib.request import Request
@@ -44,6 +45,7 @@ __all__ = [
     "connect_nodes",
     "disconnect_nodes",
     "free_port",
+    "free_ports",
     "sync_all",
     "traced_transport",
     "wait_until_disconnected",
@@ -72,11 +74,40 @@ def free_port() -> int:
 
     Bound and closed rather than guessed: a fixed port is what makes two
     runs of this suite -- or a node under test and the maintainer's own
-    -- fight over one socket.
+    -- fight over one socket. Core's own `p2p_port`/`rpc_port`
+    (`test_framework/util.py`) take the opposite trade, a formula over a
+    per-process `PortSeed` and a node index rather than a port the OS
+    ever confirmed was free: that avoids two of Core's own ports
+    colliding at all, at the cost of a seed some caller has to keep
+    unique, which this suite has nothing to hold one in -- `pytest-xdist`
+    workers here share no counterpart to Core's one seed per test
+    process.
+
+    A single call answers for one port. Two calls in a row have nothing
+    telling them apart: each binds, reads its own port back and closes
+    before the next one opens, so the second can be handed the very port
+    the first just freed. `free_ports` below is what a caller after more
+    than one port at once wants instead.
     """
-    with socket.socket() as probe:
-        probe.bind(("127.0.0.1", 0))
-        return int(probe.getsockname()[1])
+    return free_ports(1)[0]
+
+
+def free_ports(count: int) -> tuple[int, ...]:
+    """Return `count` ports nothing is listening on, pairwise distinct.
+
+    Every probe socket stays open until all `count` are bound, so the OS
+    -- which never hands out the port of a socket that is still open --
+    cannot repeat one of them the way `count` separate calls of
+    `free_port` above can: each of those closes its own probe, and so
+    frees its port again, before the next one ever binds.
+
+    :param count: how many ports to return.
+    """
+    with ExitStack() as probes:
+        sockets = [probes.enter_context(socket.socket()) for _ in range(count)]
+        for probe in sockets:
+            probe.bind(("127.0.0.1", 0))
+        return tuple(int(probe.getsockname()[1]) for probe in sockets)
 
 
 def traced_transport(transport: HttpTransport) -> HttpTransport:

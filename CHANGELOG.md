@@ -468,3 +468,9 @@ and the release does not (closes #140).
 A master-only failure reads "file unchanged since the pin" only where no data
 file its Core test loads has moved either, where the entry closing #143 names
 the test file alone; a moved data file is a stale port, named (closes #146).
+
+### The `btclib-node` jobs fail when their tests never reached a node
+
+Each fails on an empty report or on a skip that is not a capability's: an
+`import btclib_node` raising after a good install skips every test, and pytest
+alone exits 0 on that (closes #87).

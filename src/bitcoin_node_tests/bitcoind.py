@@ -147,6 +147,13 @@ class BitcoindAdapter(NodeAdapter):
     plaintext v1 wire format, so a `Peer` reaches this node over v1
     regardless of `-v2transport`, BIP324's own detection accepting a v1
     handshake from either side.
+    `Capability.DATACARRIER`, `Capability.PERMIT_BARE_MULTISIG`,
+    `Capability.DUST_RELAY_FEE` and `Capability.BYTES_PER_SIGOP` are
+    unconditional too: `-datacarrier`, `-datacarriersize`,
+    `-permitbaremultisig`, `-dustrelayfee` and `-bytespersigop` are all
+    ordinary mempool/relay-policy flags of this binary's own, recognised
+    regardless of what a caller sets them to
+    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -164,6 +171,10 @@ class BitcoindAdapter(NodeAdapter):
             Capability.RPC_AUTH_NEGATION,
             Capability.TEST_ACTIVATION_HEIGHT,
             Capability.V2TRANSPORT,
+            Capability.DATACARRIER,
+            Capability.PERMIT_BARE_MULTISIG,
+            Capability.DUST_RELAY_FEE,
+            Capability.BYTES_PER_SIGOP,
         }
     )
 

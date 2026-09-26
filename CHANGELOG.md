@@ -201,3 +201,9 @@ fails on btclib-node (btclib-org/btclib-node#1198); `rpc_createmultisig` is
 A mempool sync wait joins the block one, `rpc_setban` is ported in part,
 a mixed bitcoind/btclib-node cluster gets a fixture, and `connect_nodes`
 dials over v1 unless given `v2transport=True` (issue #43).
+
+### The mempool-policy-option trio joins the option and MiniWallet families
+
+`-datacarrier`, `-permitbaremultisig`, `-dustrelayfee` and `-bytespersigop`
+each gain a `Capability`; `mempool_datacarrier`, `mempool_dust` and
+`mempool_sigoplimit` join the option and MiniWallet families (issue #14).

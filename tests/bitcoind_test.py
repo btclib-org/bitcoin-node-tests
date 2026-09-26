@@ -35,6 +35,10 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.RPC_AUTH_NEGATION,
             Capability.TEST_ACTIVATION_HEIGHT,
             Capability.V2TRANSPORT,
+            Capability.DATACARRIER,
+            Capability.PERMIT_BARE_MULTISIG,
+            Capability.DUST_RELAY_FEE,
+            Capability.BYTES_PER_SIGOP,
         }
     )
 

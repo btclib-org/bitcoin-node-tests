@@ -203,6 +203,22 @@ class Capability(Enum):
     wire format, so this capability is unconditional on node-to-node
     connections alone -- issue
     [bitcoin-node-tests#36](https://github.com/btclib-org/bitcoin-node-tests/issues/36).
+    `DATACARRIER` -- recognise `-datacarrier` and `-datacarriersize`,
+    Core's own pair of relay-policy knobs for an `OP_RETURN` output: the
+    first turns its relay on or off, the second bounds how large one may
+    be. One member for the pair rather than two: neither flag is ever
+    tested apart from the other in
+    [ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+    own `mempool_datacarrier.py`, both landing at once.
+    `PERMIT_BARE_MULTISIG` -- recognise `-permitbaremultisig`, Core's own
+    switch for whether a bare `OP_CHECKMULTISIG` output is relayed at
+    all, checked apart from `DUST_RELAY_FEE` because a test can ask for
+    either alone.
+    `DUST_RELAY_FEE` -- recognise `-dustrelayfee`, Core's own per-kilobyte
+    rate an output's own value is measured against to call it dust.
+    `BYTES_PER_SIGOP` -- recognise `-bytespersigop`, Core's own
+    conversion rate from a sigop to the virtual bytes a transaction's own
+    mempool footprint is billed for.
     """
 
     MINE = "mine"
@@ -218,6 +234,10 @@ class Capability(Enum):
     RPC_AUTH_NEGATION = "rpc_auth_negation"
     TEST_ACTIVATION_HEIGHT = "test_activation_height"
     V2TRANSPORT = "v2transport"
+    DATACARRIER = "datacarrier"
+    PERMIT_BARE_MULTISIG = "permit_bare_multisig"
+    DUST_RELAY_FEE = "dust_relay_fee"
+    BYTES_PER_SIGOP = "bytes_per_sigop"
 
 
 class SkipCounts:

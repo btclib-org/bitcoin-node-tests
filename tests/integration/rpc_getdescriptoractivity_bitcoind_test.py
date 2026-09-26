@@ -17,6 +17,15 @@ suite the way `mini_wallet.py`'s own docstring already draws that line.
 `Capability.DESCRIPTOR_ACTIVITY` gates every subject here, ahead of
 `Capability.MINE` where a subject asks for both.
 
+The subjects paying `_AMOUNT` each start a node of their own
+(`bitcoind_cluster`), as Core's own file sets `setup_clean_chain` ahead
+of paying the same fixed 1 BTC. `MiniWallet.send_to` spends the largest
+coinbase the subject's own wallet has matured, and on the session's
+shared `bitcoind_adapter` that coinbase is mined on top of whatever chain
+the tests before it left: past enough regtest halvings, it is worth less
+than `_AMOUNT`
+([ISS 127](https://github.com/btclib-org/bitcoin-node-tests/issues/127)).
+
 Not the clock family, unlike Core's own file: Core's own `setmocktime`
 call there freezes the clock its own node-driven mining
 (`generatetodescriptor`) reads block times from, ahead of `self.generate
@@ -62,6 +71,8 @@ from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bitcoin_node_tests.bitcoind import BitcoindAdapter
     from bitcoin_node_tests.capability import SkipCounts
 
@@ -90,20 +101,22 @@ def test_no_activity_for_an_unused_address(
 
 
 def test_activity_in_block(
-    bitcoind_adapter: BitcoindAdapter, skip_counts: SkipCounts
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
 ) -> None:
     """A payment confirmed in a named block reports one receive entry."""
-    require(Capability.DESCRIPTOR_ACTIVITY, bitcoind_adapter.capabilities, skip_counts)
-    require(Capability.MINE, bitcoind_adapter.capabilities, skip_counts)
-    wallet = MiniWallet(bitcoind_adapter)
+    (node,) = bitcoind_cluster(1)
+    require(Capability.DESCRIPTOR_ACTIVITY, node.capabilities, skip_counts)
+    require(Capability.MINE, node.capabilities, skip_counts)
+    wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + 1)
     spk = _random_p2tr("regtest")
     tx = wallet.send_to(spk, _AMOUNT)
     (block_hash,) = wallet.generate(1, confirm=[tx])
 
-    height = bitcoind_adapter.rpc.call("getblockheader", [block_hash.hex()])["height"]
+    height = node.rpc.call("getblockheader", [block_hash.hex()])["height"]
 
-    result = bitcoind_adapter.rpc.call(
+    result = node.rpc.call(
         "getdescriptoractivity", [[block_hash.hex()], [f"addr({spk.address})"], True]
     )
     assert list(result.keys()) == ["activity"]
@@ -123,17 +136,19 @@ def test_activity_in_block(
 
 
 def test_no_mempool_inclusion(
-    bitcoind_adapter: BitcoindAdapter, skip_counts: SkipCounts
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
 ) -> None:
     """An unconfirmed payment is excluded when include_mempool is False."""
-    require(Capability.DESCRIPTOR_ACTIVITY, bitcoind_adapter.capabilities, skip_counts)
-    require(Capability.MINE, bitcoind_adapter.capabilities, skip_counts)
-    wallet = MiniWallet(bitcoind_adapter)
+    (node,) = bitcoind_cluster(1)
+    require(Capability.DESCRIPTOR_ACTIVITY, node.capabilities, skip_counts)
+    require(Capability.MINE, node.capabilities, skip_counts)
+    wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + 1)
     spk = _random_p2tr("regtest")
     wallet.send_to(spk, _AMOUNT)
 
-    result = bitcoind_adapter.rpc.call(
+    result = node.rpc.call(
         "getdescriptoractivity", [[], [f"addr({spk.address})"], False]
     )
     assert result["activity"] == []

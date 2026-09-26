@@ -41,7 +41,7 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import SkipCounts
 from bitcoin_node_tests.node import free_ports
-from bitcoin_node_tests.timeout_factor import set_factor
+from bitcoin_node_tests.timeout_factor import scaled, set_factor
 from tests.conftest import fold_worker_tally, stash_or_report, stop_all
 
 if TYPE_CHECKING:
@@ -133,6 +133,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+@pytest.hookimpl(tryfirst=True)
 def pytest_configure(config: pytest.Config) -> None:
     """Set this process's own `--timeout-factor`, before any node starts.
 
@@ -140,9 +141,28 @@ def pytest_configure(config: pytest.Config) -> None:
     xdist worker runs its own `pytest_configure`, and every worker is
     handed the same command line, so every process scales the same way.
 
+    The factor scales `[tool.pytest.ini_options]`'s own `timeout` too, a
+    per-test bound that stayed put while the waits under it grew being
+    what would fail a run the factor was given to let finish. It is
+    scaled here, ahead of pytest-timeout's own `pytest_configure`, which
+    reads `--timeout` before `PYTEST_TIMEOUT` before the ini value: a
+    bound given either way is the caller's own and is left as given.
+    Under xdist each worker re-parses the controller's command line
+    rather than inheriting its option values, so it finds no `--timeout`,
+    scales the ini value once itself, and reaches the same bound; a
+    caller's `--timeout` is on that command line, so every process leaves
+    it alone.
+
     :param config: the pytest session configuration.
     """
     set_factor(config.getoption("--timeout-factor"))
+    ini_timeout = config.getini("timeout")
+    if (
+        config.getoption("timeout") is None
+        and "PYTEST_TIMEOUT" not in os.environ
+        and ini_timeout
+    ):
+        config.option.timeout = scaled(float(ini_timeout))
 
 
 @pytest.fixture(scope="session")

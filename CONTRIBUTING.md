@@ -525,6 +525,10 @@ reason. `node.wait_until` is the shared, scaled loop
 `tests/integration/`'s own test modules poll a predicate through, rather
 than each reimplementing one unscaled beside it
 ([ISS 90](https://github.com/btclib-org/bitcoin-node-tests/issues/90)).
+The same `pytest_configure` scales `pyproject.toml`'s own per-test
+`timeout` by the factor, unless pytest-timeout's own `--timeout` or
+`PYTEST_TIMEOUT` names a bound of the caller's own
+([ISS 91](https://github.com/btclib-org/bitcoin-node-tests/issues/91)).
 
 `--v2transport` and `--v1transport`: through the adapter rather than a
 pytest option, since this suite has no central test-framework object

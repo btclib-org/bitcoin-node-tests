@@ -18,10 +18,8 @@ that many processes.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import pytest
+import pytest
 
 # the project root, so the nested session below -- which starts in its
 # own temporary directory, well outside this tree -- can still import
@@ -157,6 +155,66 @@ def test_timeout_factor_option_defaults_to_1x(
     """)
     result = pytester.runpytest_subprocess()
     result.assert_outcomes(passed=1)
+
+
+# what pytest-timeout enforces is what is asserted, not `--timeout` alone:
+# it reads its setting once, in its own `pytest_configure`, so a scaled
+# option written after that read would change nothing. The header is the
+# controller's reading; `_env_timeout`, pytest-timeout's private attribute
+# holding that reading, is checked inside the test, so under `-n 2` it is
+# a worker's own
+_PER_TEST_TIMEOUT_INI = """
+    [pytest]
+    timeout = 40
+"""
+
+_PER_TEST_TIMEOUT_TEST = """
+    def test_the_bound(request):
+        assert request.config._env_timeout == {expected!r}
+"""
+
+
+@pytest.mark.parametrize(
+    "args, expected",
+    [
+        ((), 40.0),
+        (("--timeout-factor", "2.5"), 100.0),
+        (("--timeout-factor", "2.5", "-p", "xdist", "-n", "2"), 100.0),
+        (("--timeout-factor", "2.5", "--timeout", "7"), 7.0),
+    ],
+)
+def test_timeout_factor_option_scales_the_ini_timeout(
+    pytester: pytest.Pytester,
+    monkeypatch: pytest.MonkeyPatch,
+    args: tuple[str, ...],
+    expected: float,
+) -> None:
+    """The ini's own `timeout` grows with the waits; a given `--timeout` not."""
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    monkeypatch.delenv("PYTEST_TIMEOUT", raising=False)
+    pytester.makeini(_PER_TEST_TIMEOUT_INI)
+    pytester.makeconftest(_OPTION_CONFTEST)
+    pytester.makepyfile(_PER_TEST_TIMEOUT_TEST.format(expected=expected))
+    result = pytester.runpytest_subprocess(*args)
+    result.assert_outcomes(passed=1)
+    result.stdout.fnmatch_lines([f"timeout: {expected}s"])
+
+
+def test_timeout_factor_option_leaves_pytest_timeout_env_as_given(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`PYTEST_TIMEOUT` is the caller's own bound, and is not scaled."""
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    monkeypatch.setenv("PYTEST_TIMEOUT", "9")
+    pytester.makeini(_PER_TEST_TIMEOUT_INI)
+    pytester.makeconftest(_OPTION_CONFTEST)
+    pytester.makepyfile("""
+        def test_the_bound(request):
+            assert request.config.getoption("timeout") is None
+    """)
+    result = pytester.runpytest_subprocess("--timeout-factor", "2.5")
+    result.assert_outcomes(passed=1)
+    result.stdout.fnmatch_lines(["timeout: 9.0s"])
 
 
 def test_tracerpc_option_defaults_to_false(

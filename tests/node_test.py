@@ -336,6 +336,61 @@ def test_restart_stops_then_starts(tmp_path: Path) -> None:
     process.terminate.assert_called_once()
 
 
+def test_restart_extra_args_replace_the_constructor_s_for_that_start_only(
+    tmp_path: Path,
+) -> None:
+    """Given `extra_args` apply to one start; the next falls back, as Core's."""
+    datadir = tmp_path / "node"
+    process = MagicMock()
+    process.poll.return_value = None
+    adapter = _FakeAdapter(
+        "fake-node", datadir, 0, 0, extra_args=["-uacomment=a"], rpc=_FakeRpc()
+    )
+    command = ["fake-node", f"-datadir={datadir}"]
+    with patch("subprocess.Popen", return_value=process) as popen:
+        adapter.start()
+        adapter.restart(["-bantime=1234"])
+        adapter.restart([])
+        adapter.restart()
+    assert [c.args[0] for c in popen.call_args_list] == [
+        [*command, "-uacomment=a"],
+        [*command, "-bantime=1234"],
+        command,
+        [*command, "-uacomment=a"],
+    ]
+
+
+def test_restart_refuses_a_reserved_option_before_stopping(tmp_path: Path) -> None:
+    """A refused replacement leaves the running node running, untouched."""
+    process = MagicMock()
+    process.poll.return_value = None
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", return_value=process) as popen:
+        adapter.start()
+        with pytest.raises(ValueError, match=r"^extra_args reuses -datadir"):
+            adapter.restart(["-datadir=/elsewhere"])
+    assert popen.call_count == 1
+    process.terminate.assert_not_called()
+
+
+def test_restart_whose_start_fails_leaves_nothing_running(tmp_path: Path) -> None:
+    """A node refusing its new argv is killed and forgotten; it starts again."""
+    datadir = tmp_path / "node"
+    running = MagicMock()
+    running.poll.return_value = None
+    refused = _FakeProcess(exit_after=0)
+    adapter = _FakeAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", side_effect=[running, refused, running]) as popen:
+        adapter.start()
+        with pytest.raises(RuntimeError, match="exited with 1"):
+            adapter.restart(["-bantime=x"])
+        assert refused.killed
+        adapter.stop()  # nothing left to terminate
+        running.terminate.assert_called_once()
+        adapter.start()
+    assert popen.call_args.args[0] == ["fake-node", f"-datadir={datadir}"]
+
+
 def test_set_mock_time_calls_setmocktime(tmp_path: Path) -> None:
     """`set_mock_time` is `setmocktime`, the timestamp its own one argument."""
     rpc = _FakeRpc()

@@ -45,7 +45,23 @@ def test_a_ban_survives_a_restart_until_it_is_removed(
     require(Capability.BAN, btclib_node_adapter.capabilities, skip_counts)
 
 
+def test_a_noban_permission_reconnects_a_banned_peer(
+    btclib_node_adapter: BtclibNodeAdapter,
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the same request `rpc_setban_bitcoind_test.py` makes."""
+    require(Capability.BAN, btclib_node_adapter.capabilities, skip_counts)
+
+
 def test_a_non_ip_address_can_be_banned_and_unbanned(
+    btclib_node_adapter: BtclibNodeAdapter,
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the same request `rpc_setban_bitcoind_test.py` makes."""
+    require(Capability.BAN, btclib_node_adapter.capabilities, skip_counts)
+
+
+def test_bantime_given_at_a_restart_sets_a_new_ban_s_duration(
     btclib_node_adapter: BtclibNodeAdapter,
     skip_counts: SkipCounts,
 ) -> None:

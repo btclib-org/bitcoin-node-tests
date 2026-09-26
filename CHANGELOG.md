@@ -261,3 +261,9 @@ only one (closes #79).
 `feature_utxo_set_hash`, `rpc_getdescriptoractivity` and `rpc_getblockstats`
 join the MiniWallet family, each RPC with its own capability; `p2p_leak_tx`
 joins it and the clock family, and `Peer` gains `sync_with_ping` (issue #14).
+
+### `NodeAdapter.restart` takes replacement `extra_args` for one start
+
+`restart([...])` uses them for that start alone, as Core's `restart_node`
+does, and `rpc_setban`'s `-whitelist` and `-bantime` sections are ported on
+it (closes #51).

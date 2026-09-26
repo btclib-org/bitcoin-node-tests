@@ -817,7 +817,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_createmultisig.py` | `771200ca4362` | 2026-06-30 | pass | bitcoind only |
 | `rpc_setban.py` (ban) | `fa21edddb272` | 2026-03-27 | pass | skip (ban) |
 | `rpc_setban.py` (restart) | same | same | pass | skip (ban) |
+| `rpc_setban.py` (noban) | same | same | pass | skip (ban) |
 | `rpc_setban.py` (non-IP) | same | same | pass | skip (ban) |
+| `rpc_setban.py` (bantime) | same | same | pass | skip (ban) |
 | `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
@@ -1305,18 +1307,30 @@ does not carry this row. It wants `peer.py`'s own wire instead --
 BIP152's `sendcmpct` and `cmpctblock`, which `btclib.p2p.compact_blocks`
 already carries -- and stays open under this issue.
 
-`rpc_echo_payload.py` is the family's other open candidate. Its subject
-is an RPC server's own, not bitcoind's alone: a payload of any size is
-either answered or refused, never left to time out, with `-rpcworkqueue`
-and `-rpcthreads` set low only so that concurrent callers fill the queue.
-Another node's RPC server could make the same promise, so the options
-are a capability `btclib-node` does not declare yet (neither is in its
-`cli.py`), not a bitcoind-only row, and the test stays open under this
-issue. Core's test sends each payload through `echo` or through
-`sendrawtransaction`, chosen at random; `btclib-node`'s
-`rpc/callbacks.py` has the second and not the first, so a port also
-needs `echo`, and accepts a refusal in the node's own wording rather
-than Core's `Work queue depth exceeded`.
+`rpc_echo_payload.py` is another of the family's open candidates. Its
+subject is an RPC server's own, not bitcoind's alone: a payload of any
+size is either answered or refused, never left to time out, with
+`-rpcworkqueue` and `-rpcthreads` set low only so that concurrent
+callers fill the queue. Another node's RPC server could make the same
+promise, so the options are a capability `btclib-node` does not declare
+yet (neither is in its `cli.py`), not a bitcoind-only row, and the test
+stays open under this issue. Core's test sends each payload through
+`echo` or through `sendrawtransaction`, chosen at random;
+`btclib-node`'s `rpc/callbacks.py` has the second and not the first, so
+a port also needs `echo`, and accepts a refusal in the node's own
+wording rather than Core's `Work queue depth exceeded`.
+
+`feature_presegwit_node_upgrade.py` (`-testactivationheight=segwit@N`)
+is another open candidate. It stops the node, expects a lower
+`-testactivationheight=segwit@N` to refuse to start with a named init
+error, then starts it again with `-reindex` added to that same lower
+height -- each restart naming `extra_args` other than the ones the node
+last held, which `NodeAdapter.restart` (`node.py`) takes for one start
+([ISS 51](https://github.com/btclib-org/bitcoin-node-tests/issues/51)).
+The refused start is read the way `rpc_users_bitcoind_test.py` and
+`feature_blocksdir_bitcoind_test.py` already read theirs, a
+`RuntimeError` carrying the node's stderr; the test stays open under
+this issue.
 
 Of the rest of the family's own census, string-literal matches and
 nothing more: `feature_bind_extra.py` and `rpc_bind.py` read the
@@ -1386,16 +1400,6 @@ runs, tracks or verifies an external process a node itself spawns; both
 are
 [ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)'s
 own subject, "drives another binary", rather than this issue's.
-
-`feature_presegwit_node_upgrade.py` (`-testactivationheight=segwit@N`)
-stops the node, expects a lower `-testactivationheight=segwit@N` to
-refuse to start with a named init error, then starts it again with
-`-reindex` added to that same lower height -- each restart naming
-`extra_args` other than the ones the node last held.
-`NodeAdapter.restart` (`node.py`) restarts only over the `extra_args` a
-node was constructed with;
-[ISS 51](https://github.com/btclib-org/bitcoin-node-tests/issues/51) is
-what a restart naming a different argv needs.
 
 `feature_framework_miniwallet.py`'s own row is the MiniWallet family's
 first ([ISS bitcoin-node-tests#4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)),
@@ -1497,11 +1501,7 @@ first read, but each also restarts its node with an option --
 `-maxmempool`/`-persistmempool` in turn -- that `btclib-node`'s own
 `cli.py` does not register, so the option family's own exclusion reaches
 them too: ISS 14's, same as the wallet, log, disk and clock files below.
-Both need `NodeAdapter.restart` to take a *different* `extra_args` than
-the one it started with, which blocks even bitcoind's own row before the
-option-family exclusion is ever reached
-([ISS bitcoin-node-tests#51](https://github.com/btclib-org/bitcoin-node-tests/issues/51)),
-and both call `get_utxo(confirmed_only=True)` against a cache with no
+Both call `get_utxo(confirmed_only=True)` against a cache with no
 fact to answer it from
 ([ISS bitcoin-node-tests#69](https://github.com/btclib-org/bitcoin-node-tests/issues/69)).
 `rpc_packages.py` alone also calls `test_framework.mempool_util.fill_mempool`,
@@ -1535,10 +1535,9 @@ version, which `create_self_transfer` does not yet parametrize.
 `mempool_truc.py` needs no second node and no option at its own base
 `set_test_params` (`self.extra_args = [[]]`), but several of its own
 subtests restart with one in turn
-(`-limitclustercount`/`-limitclustersize`/`-acceptnonstdtxn`/`-minrelaytxfee`/`-persistmempool`):
-`NodeAdapter.restart`'s own gap (ISS 51) blocks it before TRUC's own
-transaction version and `confirmed_only` (ISS 69) needs are ever
-reached.
+(`-limitclustercount`/`-limitclustersize`/`-acceptnonstdtxn`/`-minrelaytxfee`/`-persistmempool`),
+which `NodeAdapter.restart` (`node.py`) takes for one start; TRUC's own
+transaction version and `confirmed_only` (ISS 69) are what block it.
 
 `feature_dersig.py`, `feature_cltv.py` and `feature_csv_activation.py`
 are ISS 14's own softfork-activation-height trio, the option and
@@ -1710,18 +1709,19 @@ passes after, on every `btclib-node` build measured.
 a node repeatedly, some of those with different `extra_args` than it
 started with and some with the same. The different-`extra_args`
 restarts -- the `-whitelist` noban-permission section and the
-`-bantime` persistence section -- are a mechanism `NodeAdapter.restart`
-(`node.py`) does not offer, reusing the constructor's own `extra_args`
-unconditionally, and no family of this repository has needed that yet;
-both sections are dropped rather than building it here, out of this
-issue's own charter, and filed as
-[ISS bitcoin-node-tests#51](https://github.com/btclib-org/bitcoin-node-tests/issues/51).
-The same-`extra_args` restarts are ported, `restart` already offering
-exactly that: a ban surviving a plain restart, checked through
+`-bantime` section -- are `NodeAdapter.restart` (`node.py`) given its
+own `extra_args`, which it uses for that start alone, the way Core's
+own `restart_node(i, extra_args)` does
+([ISS bitcoin-node-tests#51](https://github.com/btclib-org/bitcoin-node-tests/issues/51)):
+a banned peer connecting once the node is restarted with its address
+whitelisted, `getpeerinfo` naming `noban` among its permissions while
+`listbanned` still lists the ban; and a ban added after a restart with
+`-bantime` given that duration. The same-`extra_args` restarts are
+`restart` given none: a ban surviving a plain restart, checked through
 `connect_nodes`' own handshake wait timing out on a still-banned dial
-rather than through Core's own `assert_debug_log` (a capability this
-repository does not have yet), and reconnection succeeding again once
-the ban is lifted. Kept alongside them: a live connection dropping the
+rather than through Core's own `assert_debug_log`, the dial being a fact
+the wire carries, and reconnection succeeding again once the ban is
+lifted. Kept alongside them: a live connection dropping the
 moment `setban` matches its address, `node.wait_until_disconnected`
 standing in for Core's own wait on `is_connected_to` going false; and
 the non-IP address check, which needs no second node at all.

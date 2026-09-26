@@ -121,10 +121,15 @@ def _tx_paying(wallet: MiniWallet, output_script: ScriptPubKey, value: int) -> T
     return tx
 
 
-def _allowed(adapter: BitcoindAdapter, tx: Tx) -> bool:
+def _mempool_accept(adapter: BitcoindAdapter, tx: Tx) -> dict[str, object]:
+    """Return `testmempoolaccept`'s own result dict for `tx`, unfiltered."""
     tx_hex = tx.serialize(True, check_validity=False).hex()
-    result = adapter.rpc.call("testmempoolaccept", [[tx_hex]])[0]
-    return bool(result["allowed"])
+    result: dict[str, object] = adapter.rpc.call("testmempoolaccept", [[tx_hex]])[0]
+    return result
+
+
+def _allowed(adapter: BitcoindAdapter, tx: Tx) -> bool:
+    return bool(_mempool_accept(adapter, tx)["allowed"])
 
 
 def test_a_value_clearly_below_the_dust_threshold_is_refused(
@@ -141,7 +146,9 @@ def test_a_value_clearly_below_the_dust_threshold_is_refused(
         wallet.generate(COINBASE_MATURITY + len(_output_scripts()))
         for output_script, description in _output_scripts():
             tx = _tx_paying(wallet, output_script, _CLEARLY_DUST)
-            assert not _allowed(adapter, tx), f"{description} accepted a dust value"
+            result = _mempool_accept(adapter, tx)
+            assert result["allowed"] is False, f"{description}: {result}"
+            assert result["reject-reason"] == "dust", f"{description}: {result}"
     finally:
         adapter.stop()
 

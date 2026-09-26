@@ -302,3 +302,8 @@ prefix (closes #83).
 `create_self_transfer` and `send_self_transfer` take Core's `fee_rate`, `fee`,
 `version`, `locktime` and `sequence` with its defaults, the multi pair the last
 three; fees are in satoshis, and broadcasts pass `maxfeerate` 0 (closes #103).
+
+### `mempool_dust`'s refusal cases assert the reason is dust
+
+The below-threshold test asserts `testmempoolaccept`'s reject reason, not only
+its `allowed` flag, as Core's own `mempool_dust.py` does at v31.1 (closes #93).

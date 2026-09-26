@@ -50,9 +50,9 @@ table, measured at the same two revisions --
 [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088)
 already tracks it, filed independently of this adapter.
 
-`Capability.UA_COMMENT` is not declared: measured against `cli.py`'s
-own `_build_parser` at `btclib-node` `18b6ae1e`, `-uacomment` is not
-one of its registered flags.
+`Capability.UA_COMMENT` is not declared: measured against `cli.py`'s own
+`_build_parser` at the released `2026.9.24` (`422d2640`) and its `_OPTIONS`
+at `main` (`8ded5494`) alike, `-uacomment` is registered by neither.
 
 `Capability.CLOCK` is not declared: `setmocktime` names no callback in
 `src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at
@@ -79,24 +79,25 @@ rpcauth` and start anyway rather than to enforce it -- so an instance
 built against it does not gain the capability; one built against a
 `main` carrying #1070 does.
 
-`Capability.RPC_AUTH_NEGATION` is never declared, on either build:
-`cli.py`'s own module docstring states this module has no generic
-negation, registering `-nolisten` and `-norpccookiefile` by hand as the
-two negated spellings it recognises -- `-norpcauth` is not a third, so
-it is refused as an unrecognised argument (the released build) or as an
-"Invalid parameter" (`main`, whose own `_parse_args` added that wording
-for a flag-shaped token no registered option names) rather than accepted
-and clearing every `-rpcauth` given before it. Filed as
-[ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176).
+`Capability.RPC_AUTH_NEGATION` is never declared. The released
+`2026.9.24` (`422d2640`) refuses `-norpcauth` as an unrecognised argument:
+its `cli.py`'s module docstring states it has no generic negation,
+`-nolisten` being the one negated spelling it registers, by hand. `main`
+(`8ded5494`) reads `-norpcauth` as the negation clearing every `-rpcauth`
+given before it -- its `cli.py`'s module docstring has `-noname` as
+`-name` negated, and `rpcauth` is one of its `_OPTIONS` -- the behaviour
+[ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176)
+asks for; declaring the capability on such a build is
+[ISS 130](https://github.com/btclib-org/bitcoin-node-tests/issues/130).
 
-`Capability.V2TRANSPORT` is never declared: `cli.py`'s own
-`_build_parser` names no `-v2transport` flag at all, measured at
-`btclib-node` `18b6ae1e2c74`, and `rpc/callbacks.py`'s own `addnode`
-reads a `v2transport` parameter only to discard it -- "`v2transport` is
-read and type-checked, matching Core's own optional third argument, and
-otherwise unused: BIP324 is not a transport this node speaks yet" is
-that module's own wording -- so there is no BIP324 codec behind either
-spelling for this capability to name.
+`Capability.V2TRANSPORT` is never declared: `cli.py`'s own `_build_parser` at
+the released `2026.9.24` (`422d2640`) and its `_OPTIONS` at `main` (`8ded5494`)
+name no `-v2transport` flag, and `rpc/callbacks.py`'s own `addnode`
+reads a `v2transport` parameter only to discard it -- "`v2transport` is read
+and type-checked, matching Core's own optional third argument, and otherwise
+unused: BIP324 is not a transport this node speaks yet" is that module's own
+wording -- so there is no BIP324 codec behind either spelling for this
+capability to name.
 
 `Capability.INBOUND_EVICTION` is declared per instance too, by
 `_evicts_inbound`'s own probe: a build carrying

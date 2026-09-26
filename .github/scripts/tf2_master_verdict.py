@@ -14,13 +14,14 @@ the first is measured the way `ISS 8`'s decision of 2026-09-25 lays down,
 `master`, and this script names the outcome one of two ways:
 
 - **stale port** -- the Core test file `TF2.md`'s per-test ledger pins
-  the failing test to has moved since that pin. The defect is this
-  repository's own: the port was read from a revision upstream has since
-  changed, and needs a fresh reading rather than a report to Core.
-- **file unchanged since the pin** -- the file has no commit on `master`
-  since the pin, and this names neither a cause nor an owner. Core's
-  behaviour may have changed under that file, through a data file it
-  loads, or under a different file; the failure may not reproduce; or
+  the failing test to, or a data file it loads, has moved since that
+  pin. The defect is this repository's own: the port was read from a
+  revision upstream has since changed, and needs a fresh reading rather
+  than a report to Core. The report line names the path that moved.
+- **file unchanged since the pin** -- neither the file nor a data file it
+  loads has a commit on `master` since the pin, and this names neither a
+  cause nor an owner. Core's behaviour may have changed under that file,
+  or under a different file; the failure may not reproduce; or
   the port may never have matched the file it cites: the required job
   passes such a port wherever the pinned release predates a behaviour
   change the pin already carries, and only `master` fails it
@@ -42,12 +43,46 @@ ledger's own table rather than from the module's docstring a second
 time: the table is what a weekly re-check would move, where the
 docstring is prose nothing here re-derives automatically.
 
-This script opens no issue and reaches the network once per master-only
-failure, for the Core file's last commit on `master`
+The data files a Core test loads are `_DATA_FILES`, stated here rather
+than parsed out of Core's file, which reaches them in more than one way:
+an argument default, an `open()` beside `__file__`, a `from data import`.
+Run from this tree, with `<core>` a Core checkout, this prints each cited
+Core test beside each file of `test/functional/data/` whose name, less
+its suffix, the test mentions as a word, which is what `_DATA_FILES`
+holds; the package marker and the README are left out, `__init__` being
+a method name as well. `awk` keeps the directory's own files, so
+`data/util/` and what it holds are not read; no cited test reads it:
+
+    git grep -h -o "Read from Core's \`test/functional/[^\`]*\`" \
+            -- 'tests/integration/*_bitcoind_test.py' \
+        | sed -E 's/.*functional\/([^`]*)`/\1/' | sort -u \
+        | while read -r f; do
+            git -C <core> ls-tree origin/master test/functional/data/ \
+                | awk '$2 == "blob" {print $4}' \
+                | grep -v -E '/(__init__\.py|README\.md)$' \
+                | while read -r d; do
+                    n=$(basename "${d%.*}")
+                    if git -C <core> show "origin/master:test/functional/$f" \
+                            | grep -q -w -- "$n"; then
+                        echo "$f ${d#test/functional/}"
+                    fi
+                done
+        done
+
+A path has moved since the pin where its last commit on `master` is
+neither the pin itself nor in the pin's own history, which
+`repos/bitcoin/bitcoin/compare/<pin>...<commit>` answers as its `status`.
+Committer dates do not answer it: a commit dated before the pin can land
+on `master` after it, through a merge the pin's history does not hold.
+
+This script opens no issue. Per master-only failure it reaches the
+network once for the Core test file and once for each data file it
+loads, for that path's last commit on `master`
 (`repos/bitcoin/bitcoin/commits`, `check_vendored_vectors.py`'s own
-`_latest_commit` in miniature) -- everything else is read from the two
-JUnit reports and from `TF2.md` on disk. What it prints is the whole
-report: the workflow step redirects it into `$GITHUB_STEP_SUMMARY`
+`_latest_commit` in miniature), and once more for each path whose last
+commit is not the pin, for the comparison -- everything else is read
+from the two JUnit reports and from `TF2.md` on disk. What it prints is
+the whole report: the workflow step redirects it into `$GITHUB_STEP_SUMMARY`
 rather than this script writing there itself, matching neither of the
 two scripts beside it needing to know the runner is there at all.
 
@@ -83,6 +118,20 @@ _ROW_FILE = re.compile(r"^`([\w./-]+\.py)`")
 _PIN = re.compile(r"[0-9a-f]{8,40}")
 
 _UNCHANGED = "file unchanged since the pin"
+
+# each cited Core test file loading a file of `test/functional/data/`,
+# against those files, relative to `test/functional/`: the census
+# command in the module docstring is what fills it, measured at Core's
+# `ed7dd7cf4e`
+_DATA_FILES: dict[str, tuple[str, ...]] = {
+    "rpc_createmultisig.py": ("data/rpc_bip67.json",),
+    "rpc_getblockstats.py": ("data/rpc_getblockstats.json",),
+}
+
+# `repos/{owner}/{repo}/compare/<pin>...<commit>`'s own `status` values
+# for a commit the pin's history holds: `identical` where it is the pin
+# itself, `behind` where it is an ancestor of it
+_IN_PIN_HISTORY = frozenset({"identical", "behind"})
 
 
 def _cells(row: str) -> list[str]:
@@ -179,11 +228,13 @@ def _latest_commit(path: str) -> tuple[str, str] | None:
     """Return the sha and date of the most recent commit touching a Core path.
 
     :param path: the path, relative to `bitcoin/bitcoin`'s own root
-        (`test/functional/<file>.py`).
+        (`test/functional/<file>.py`, or a data file under
+        `test/functional/data/`).
     :returns: the commit sha and the committer date's first ten
         characters, or None where upstream has no commit touching that
-        path at all -- renamed or deleted since the ledger's own pin was
-        read.
+        path at all, a path `master` never held. A path deleted or
+        renamed away answers with the commit that removed it, which the
+        pin's history does not hold, so it reads as moved.
     """
     result = subprocess.run(  # noqa: S603
         [
@@ -210,21 +261,48 @@ def _latest_commit(path: str) -> tuple[str, str] | None:
     return sha, date
 
 
-def classify(pin: str, latest_commit: str) -> str:
-    """Name this repository's verdict on a master-only failure.
+def _in_pin_history(pin: str, commit: str) -> bool:
+    """Say whether a commit is the pin itself or one of its ancestors.
+
+    :param pin: `TF2.md`'s own pin, an abbreviated sha.
+    :param commit: a full sha `_latest_commit` named.
+    :returns: True where `repos/bitcoin/bitcoin/compare` answers the
+        commit as the pin or behind it, False where the commit is ahead
+        of the pin or on a line the pin's history does not hold.
+    """
+    result = subprocess.run(  # noqa: S603
+        [
+            _GH,
+            "api",
+            "--method",
+            "GET",
+            f"repos/{_UPSTREAM_REPO}/compare/{pin}...{commit}",
+            "-f",
+            "per_page=1",
+            "--jq",
+            ".status",
+        ],
+        capture_output=True,
+        check=True,
+        encoding="utf-8",
+    )
+    return result.stdout.strip() in _IN_PIN_HISTORY
+
+
+def has_moved(pin: str, latest_commit: str) -> bool:
+    """Say whether a Core path has a commit on `master` since the pin.
 
     :param pin: `TF2.md`'s own pin for the Core test file, from
         `ledger_pins` -- an abbreviated sha.
-    :param latest_commit: the sha `_latest_commit` names as that file's
+    :param latest_commit: the sha `_latest_commit` names as the path's
         tip on `master` -- the API's own full sha, which the pin is a
-        prefix of where the file has not moved.
-    :returns: `"stale port"` where the file has moved since the pin -- the
-        port's own defect -- or `"file unchanged since the pin"` where it
-        has not, which names no owner: see the module docstring.
+        prefix of where that commit is the pin itself.
+    :returns: False where the commit is the pin, with no call made, or in
+        the pin's own history; True otherwise.
     """
     if latest_commit.startswith(pin):
-        return _UNCHANGED
-    return "stale port"
+        return False
+    return not _in_pin_history(pin, latest_commit)
 
 
 def verdicts(
@@ -237,8 +315,9 @@ def verdicts(
     :param pinned: `parse_junit`'s reading of the pinned-release run.
     :param root: the directory a JUnit `classname` resolves under.
     :returns: one line per master-only failure, naming the Core file, its
-        pin and this repository's own verdict, or the reason no verdict
-        could be reached.
+        pin and this repository's own verdict -- with each path that moved
+        since the pin, where one did -- or the reason no verdict could be
+        reached.
     """
     pins = ledger_pins(ledger_text)
     lines = []
@@ -254,25 +333,46 @@ def verdicts(
                 " for it"
             )
             continue
-        latest = _latest_commit(f"test/functional/{core_file}")
-        if latest is None:
+        data_files = _DATA_FILES.get(core_file, ())
+        latest: dict[str, tuple[str, str]] = {}
+        gone = None
+        for path in (core_file, *data_files):
+            found = _latest_commit(f"test/functional/{path}")
+            if found is None:
+                gone = path
+                break
+            latest[path] = found
+        if gone is not None:
             lines.append(
                 f"- `{key}` (`{core_file}`, pinned `{pin}`): `{_UPSTREAM_REPO}` has"
-                " no commit touching this path any more"
+                f" no commit touching `{gone}` at all"
             )
             continue
-        latest_commit, latest_date = latest
-        verdict = classify(pin, latest_commit)
+        moved = [path for path, (sha, _) in latest.items() if has_moved(pin, sha)]
+        if moved:
+            changes = "; ".join(
+                f"`{path}` last changed on master in `{latest[path][0]}`"
+                f" ({latest[path][1]})"
+                for path in moved
+            )
+            lines.append(
+                f"- `{key}` (`{core_file}`): **stale port** -- TF2.md pins"
+                f" `{pin}`, and {changes}"
+            )
+            continue
+        latest_commit, latest_date = latest[core_file]
         line = (
-            f"- `{key}` (`{core_file}`): **{verdict}** -- TF2.md pins `{pin}`,"
+            f"- `{key}` (`{core_file}`): **{_UNCHANGED}** -- TF2.md pins `{pin}`,"
             f" its last commit on master is `{latest_commit}` ({latest_date})"
         )
-        if verdict == _UNCHANGED:
-            line += (
-                ": the cause is not measured, and the port may never have"
-                f" matched the file; check the port against `{core_file}` at"
-                f" `{pin}` first"
-            )
+        if data_files:
+            names = ", ".join(f"`{path}`" for path in data_files)
+            line += f", and no commit since the pin touches {names}, which it loads"
+        line += (
+            ": the cause is not measured, and the port may never have"
+            f" matched the file; check the port against `{core_file}` at"
+            f" `{pin}` first"
+        )
         lines.append(line)
     return lines
 

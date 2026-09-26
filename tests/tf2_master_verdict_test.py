@@ -4,10 +4,12 @@
 
 """Tests for the master-only failure classifier of `.github/scripts`.
 
-Its only external dependency is `gh`, called once per master-only
-failure for the Core file's last commit on `master`. Every test here
-replaces `subprocess.run` with `FakeGh`, which answers the way a real
-`gh api repos/bitcoin/bitcoin/commits` would rather than reaching
+Its only external dependency is `gh`, called per master-only failure
+for the last commit on `master` of the Core file and of each data file
+it loads, and for whether such a commit is in the pin's own history.
+Every test here replaces `subprocess.run` with `FakeGh`, which answers
+the way a real `gh api repos/bitcoin/bitcoin/commits` or
+`gh api repos/bitcoin/bitcoin/compare` would rather than reaching
 GitHub.
 
 The script is loaded by path, `.github/scripts` being no package, the
@@ -44,23 +46,30 @@ def verdict(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
 
 
 class FakeGh:
-    """A `subprocess.run` stand-in, answering `gh api .../commits` alone.
+    """A `subprocess.run` stand-in, answering `gh api` for commits and compare.
 
     `commits` maps a path to the (sha, date) `_latest_commit` should
     report for it; a path absent from it answers with no commit at all,
-    matching upstream having nothing to say about a renamed or deleted
-    file. Every call is recorded in `calls`.
+    matching upstream having no commit for a path `master` never held.
+    `statuses` maps `"<pin>...<commit>"` to the `status` a
+    comparison answers, `ahead` where it names none. Every call is
+    recorded in `calls`.
     """
 
     def __init__(self) -> None:
         self.commits: dict[str, tuple[str, str]] = {}
+        self.statuses: dict[str, str] = {}
         self.calls: list[list[str]] = []
 
     def __call__(
         self, argv: list[str], **_kwargs: object
     ) -> subprocess.CompletedProcess[str]:
-        """Record the call, and answer the path it asked about."""
+        """Record the call, and answer the path or the pair it asked about."""
         self.calls.append(list(argv))
+        endpoint = argv[4]
+        if "/compare/" in endpoint:
+            status = self.statuses.get(endpoint.rsplit("/", 1)[1], "ahead")
+            return subprocess.CompletedProcess(argv, 0, stdout=f"{status}\n")
         path = next(a.removeprefix("path=") for a in argv if a.startswith("path="))
         found = self.commits.get(path)
         commits = (
@@ -125,7 +134,26 @@ _LEDGER = """\
 | `feature_framework_miniwallet.py` \
 | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) \
 | 2025-12-16 | pass | skip |
+| `rpc_getblockstats.py` | `b7cbd804284b` | 2026-05-25 | pass | skip (stats) |
 """
+
+# the API's own full sha for a commit the ledger pins as `b7cbd804284b`
+_STATS_SHA = "b7cbd804284bc0ffeec0ffeec0ffeec0ffee0123"
+
+_STATS_CLASSNAME = "tests.integration.rpc_getblockstats_bitcoind_test"
+
+
+def _stats_module(root: Path) -> None:
+    """Write a module citing `rpc_getblockstats.py`, which loads a data file."""
+    module = root / "tests" / "integration"
+    module.mkdir(parents=True)
+    (module / "rpc_getblockstats_bitcoind_test.py").write_text(
+        _module(
+            "Read from Core's `test/functional/rpc_getblockstats.py`"
+            " (`b7cbd804284b`, 2026-05-25)."
+        ),
+        encoding="utf-8",
+    )
 
 
 def test_ledger_pins_reads_the_first_row_and_resolves_same(
@@ -289,10 +317,10 @@ def test_latest_commit_reads_the_sha_and_the_date(
     )
 
 
-def test_latest_commit_answers_none_for_a_path_gone_upstream(
+def test_latest_commit_answers_none_for_a_path_never_upstream(
     verdict: ModuleType, fake_gh: FakeGh
 ) -> None:
-    """No commit touching the path at all is a path upstream no longer has."""
+    """No commit touching the path at all is a path `master` never held."""
     assert verdict._latest_commit(f"{_DIR}/gone.py") is None
 
 
@@ -300,18 +328,58 @@ def test_latest_commit_answers_none_for_a_path_gone_upstream(
 _FULL_SHA = "0d1301b47a35c0ffeec0ffeec0ffeec0ffee0123"
 
 
-def test_classify_stale_port(verdict: ModuleType) -> None:
-    """The file has moved since the pin: this repository's own defect."""
-    assert verdict.classify("0d1301b47a35", "fedcba987654" + "0" * 28) == "stale port"
+_LATER_SHA = "fedcba987654" + "0" * 28
 
 
-def test_classify_file_unchanged_since_the_pin(verdict: ModuleType) -> None:
-    """The file has not moved: named as measured, with no owner.
+def test_has_moved_is_false_for_the_pin_itself_with_no_call(
+    verdict: ModuleType, fake_gh: FakeGh
+) -> None:
+    """The pin itself has not moved, and needs no comparison to say so.
 
     The API answers a full sha, which the ledger's abbreviated pin is a
     prefix of ([ISS 83](https://github.com/btclib-org/bitcoin-node-tests/issues/83)).
     """
-    assert verdict.classify("0d1301b47a35", _FULL_SHA) == "file unchanged since the pin"
+    assert verdict.has_moved("0d1301b47a35", _FULL_SHA) is False
+    assert fake_gh.calls == []
+
+
+@pytest.mark.parametrize(
+    "status,moved",
+    [("behind", False), ("identical", False), ("ahead", True), ("diverged", True)],
+)
+def test_has_moved_reads_the_comparison_status(
+    verdict: ModuleType, fake_gh: FakeGh, status: str, moved: bool
+) -> None:
+    """A commit in the pin's history has not moved; one ahead or aside has.
+
+    A data file's last commit can be an ancestor of the pin rather than
+    the pin itself, which the prefix alone would call moved.
+    """
+    fake_gh.statuses[f"0d1301b47a35...{_LATER_SHA}"] = status
+    assert verdict.has_moved("0d1301b47a35", _LATER_SHA) is moved
+    assert (
+        fake_gh.calls[0][4]
+        == f"repos/bitcoin/bitcoin/compare/0d1301b47a35...{_LATER_SHA}"
+    )
+
+
+def test_data_files_name_only_cited_core_files(verdict: ModuleType) -> None:
+    """Each `_DATA_FILES` key is a Core file a `*_bitcoind_test.py` cites.
+
+    A key no module cites any more is a mapping nothing reads; whether
+    Core gained a data file is the census in the script's own docstring,
+    which needs a Core checkout this suite does not have.
+    """
+    integration = Path(__file__).parent / "integration"
+    cited = {
+        match.group(1)
+        for module in integration.glob("*_bitcoind_test.py")
+        if (match := verdict._CITATION.search(module.read_text(encoding="utf-8")))
+    }
+    assert set(verdict._DATA_FILES) <= cited
+    for data_files in verdict._DATA_FILES.values():
+        assert data_files
+        assert all(path.startswith("data/") for path in data_files)
 
 
 def test_verdicts_classifies_a_master_only_failure(
@@ -372,6 +440,58 @@ def test_verdicts_sends_an_unchanged_file_to_the_port_first(
     assert "regression" not in lines[0]
 
 
+def test_verdicts_names_a_data_file_that_moved_alone(
+    verdict: ModuleType, fake_gh: FakeGh, tmp_path: Path
+) -> None:
+    """A data file moved and its test file did not: a stale port, named.
+
+    [ISS 146](https://github.com/btclib-org/bitcoin-node-tests/issues/146).
+    """
+    _stats_module(tmp_path)
+    fake_gh.commits[f"{_DIR}/rpc_getblockstats.py"] = (_STATS_SHA, "2026-05-25")
+    fake_gh.commits[f"{_DIR}/data/rpc_getblockstats.json"] = (_LATER_SHA, "2026-07-01")
+    master = {f"{_STATS_CLASSNAME}::test_a": "fail"}
+    lines = verdict.verdicts(_LEDGER, master, {}, tmp_path)
+    assert lines == [
+        (
+            f"- `{_STATS_CLASSNAME}::test_a` (`rpc_getblockstats.py`):"
+            " **stale port** -- TF2.md pins `b7cbd804284b`, and"
+            " `data/rpc_getblockstats.json` last changed on master in"
+            f" `{_LATER_SHA}` (2026-07-01)"
+        )
+    ]
+
+
+def test_verdicts_reads_an_older_data_file_as_unchanged(
+    verdict: ModuleType, fake_gh: FakeGh, tmp_path: Path
+) -> None:
+    """A data file whose last commit the pin's history holds has not moved."""
+    _stats_module(tmp_path)
+    fake_gh.commits[f"{_DIR}/rpc_getblockstats.py"] = (_STATS_SHA, "2026-05-25")
+    fake_gh.commits[f"{_DIR}/data/rpc_getblockstats.json"] = (_LATER_SHA, "2019-05-10")
+    fake_gh.statuses[f"b7cbd804284b...{_LATER_SHA}"] = "behind"
+    master = {f"{_STATS_CLASSNAME}::test_a": "fail"}
+    lines = verdict.verdicts(_LEDGER, master, {}, tmp_path)
+    assert len(lines) == 1
+    assert "**file unchanged since the pin**" in lines[0]
+    assert (
+        "and no commit since the pin touches `data/rpc_getblockstats.json`,"
+        " which it loads:"
+    ) in lines[0]
+
+
+def test_verdicts_names_a_data_file_never_upstream(
+    verdict: ModuleType, fake_gh: FakeGh, tmp_path: Path
+) -> None:
+    """A data file with no commit upstream is named, not the test file."""
+    _stats_module(tmp_path)
+    fake_gh.commits[f"{_DIR}/rpc_getblockstats.py"] = (_STATS_SHA, "2026-05-25")
+    master = {f"{_STATS_CLASSNAME}::test_a": "fail"}
+    lines = verdict.verdicts(_LEDGER, master, {}, tmp_path)
+    assert len(lines) == 1
+    assert "no commit touching `data/rpc_getblockstats.json` at all" in lines[0]
+
+
 def test_verdicts_names_a_test_with_no_core_citation(
     verdict: ModuleType, tmp_path: Path
 ) -> None:
@@ -398,10 +518,10 @@ def test_verdicts_names_a_file_the_ledger_has_no_row_for(
     assert "names no row" in lines[0]
 
 
-def test_verdicts_names_a_path_gone_upstream(
+def test_verdicts_names_a_path_never_upstream(
     verdict: ModuleType, fake_gh: FakeGh, tmp_path: Path
 ) -> None:
-    """A ledger pin whose path upstream no longer has is named as such."""
+    """A ledger pin whose path has no commit upstream is named as such."""
     module = tmp_path / "tests" / "integration"
     module.mkdir(parents=True)
     (module / "feature_blocksdir_bitcoind_test.py").write_text(
@@ -414,7 +534,7 @@ def test_verdicts_names_a_path_gone_upstream(
     master = {"tests.integration.feature_blocksdir_bitcoind_test::test_a": "fail"}
     lines = verdict.verdicts(_LEDGER, master, {}, tmp_path)
     assert len(lines) == 1
-    assert "no commit touching this path" in lines[0]
+    assert "no commit touching `feature_blocksdir.py` at all" in lines[0]
 
 
 def test_verdicts_is_empty_with_no_master_only_failure(

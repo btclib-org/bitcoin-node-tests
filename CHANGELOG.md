@@ -219,3 +219,9 @@ each gain a `Capability`; `mempool_datacarrier`, `mempool_dust` and
 `btclib-node` and `btclib-node-main` install the same pinned release the
 `bitcoind` job does and set `TF2_BITCOIND`, so the mixed cluster runs
 there instead of skipping (closes #61).
+
+### `feature_filelock`'s btclib-node test accepts either build's own wording
+
+The released build's own uncaught RocksDB wording and the fixed build's
+own clean "Cannot obtain a lock on directory" are both matched, rather
+than only the first (closes #67).

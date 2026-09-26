@@ -853,17 +853,22 @@ charter's own "wallet ... tests stay out". What is kept whole is the
 disk-family's own subject: a second process started over a datadir, or
 a blocksdir, a first one already holds is fatal on both nodes, matched
 against each one's own wording -- bitcoind's own "Cannot obtain a lock
-on directory ...", a clean init error, and btclib-node's own uncaught
-`Exception: IO error: While lock file: .../LOCK: Resource temporarily
-unavailable`, measured live rather than a friendly message this node
-does not write; the chainstate and the blocks databases are each their
-own `Rdict` (RocksDB), which is what raises it, not a lock this adapter
-or that one adds. That the second node crashes on an uncaught exception
-rather than exiting the way Core's own init error does is
-[ISS btclib-node#1147](https://github.com/btclib-org/btclib-node/issues/1147),
-filed on that repository's own tracker (rule 3): the row's verdict stays
-**pass** regardless, each node's stderr matched against its own wording
-rather than against a shared shape.
+on directory ...", a clean init error. btclib-node answers with the
+wording its own build emits, and the row's own test accepts either
+rather than fixing one: the released build (PyPI, and every build
+before [ISS btclib-node#1147](https://github.com/btclib-org/btclib-node/issues/1147)
+landed) leaves its chainstate and blocks databases -- each its own
+`Rdict` (RocksDB) -- to fail uncaught, measured live as `Exception: IO
+error: While lock file: .../LOCK: Resource temporarily unavailable`,
+naming the RocksDB-internal subdirectory rather than a friendly message
+this build does not write; a build past that issue's fix (`main`) locks
+the data directory and then the blocks directory before either store
+opens and answers with Core's own clean wording, "Cannot obtain a lock
+on directory ...", naming the directory `Node.__init__` locked. The
+row's verdict stays **pass** on either build, each node's stderr matched
+against its own wording rather than against a shared shape; once every
+build this repository runs against is past #1147, btclib-node's own
+wording collapses onto bitcoind's.
 
 `rpc_whitelist.py`'s row is a smaller claim than Core's own file: named
 users exercising `rpcwhitelist` and `rpcwhitelistdefault` rather than

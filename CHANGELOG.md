@@ -420,3 +420,9 @@ bitcoind's `debug.log` or btclib-node's `history.log` (closes #134).
 A probe asks the build's own `cli.build_config` whether `-norpcauth` discards
 an `-rpcauth` given before it, so `rpc_users`'s negation test runs against
 `btclib-node`'s `main` and skips against the release (closes #130).
+
+### `BitcoindAdapter` passes `-rpcallowip`, so its `-rpcbind` takes effect
+
+A taken `127.0.0.1` RPC port now fails bitcoind's init and `start` on the exit
+code, where bitcoind ignored `-rpcbind` alone, served RPC on `::1` and left
+`start` to time out (closes #135).

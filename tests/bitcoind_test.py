@@ -109,6 +109,7 @@ def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:
     assert f"-datadir={tmp_path}" in command
     assert "-rpcport=18443" in command
     assert "-rpcbind=127.0.0.1" in command
+    assert "-rpcallowip=127.0.0.1" in command
     assert "-bind=127.0.0.1:18444" in command
     assert "-printtoconsole=0" in command
     assert "-debug=net" in command

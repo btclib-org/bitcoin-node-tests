@@ -12,24 +12,18 @@ Read from Core's `test/functional/rpc_setban.py` (`fa21edddb272`,
 matched by address rather than by `getnetworkinfo`'s own subversion
 string, `connect_nodes`'s own docstring has why.
 
-This rewrite drops two of Core's own four sections: the `-whitelist`
-noban-permission section and the `-bantime` persistence section each
-restart a node with different `extra_args` than it started with (Core's
-own `restart_node(1, [...])`), a mechanism `NodeAdapter` does not offer
--- `restart` (`node.py`) reuses the constructor's own `extra_args`
-unconditionally -- and no family of this repository has needed yet
-([ISS bitcoin-node-tests#51](https://github.com/btclib-org/bitcoin-node-tests/issues/51)).
-Kept are the other two of Core's own four: a ban surviving a plain
-restart with the same `extra_args` it already had, which `restart`
-already does, and reconnection succeeding again once the ban is
-removed -- plus the whole of the file's own multi-node subject that
-needs no restart at all, a ban dropping a live connection, and the
-non-IP address check that needs no second node either. Core's own
-reconnection wait after the first restart uses `assert_debug_log`,
-naming a peer's own log lines by number; this repository has no
-capability that reads a node's own log yet, so the same wait is made
-instead through `connect_nodes`' own handshake wait timing out, a
-banned dial never completing one.
+Core's own `-whitelist=127.0.0.1` section, granting a banned peer the
+noban permission, and its `-bantime=1234` section, setting the duration
+a new ban is given, restart a node with `extra_args` it did not start
+with: `restart([...])` (`node.py`) uses them for that start alone,
+matching Core's own `restart_node(1, [...])`. Where Core restarts with
+`[]`, the node's own start argv, `restart()` is the same restart. Core's
+own reconnection wait after the first restart uses
+`assert_debug_log`; a banned dial is also visible on the wire, never
+completing a handshake, so the same wait is made through
+`connect_nodes`' own handshake wait timing out and needs no
+`Capability.DEBUG_LOG` (`capability.py`'s own rule for a fact the wire
+carries).
 
 `Capability.BAN` is bitcoind's alone: `setban`, `listbanned` and
 `clearbanned` name no callback in `btclib-node`'s own dispatch table, on
@@ -107,6 +101,26 @@ def test_a_ban_survives_a_restart_until_it_is_removed(
     assert "noban" not in peers[0]["permissions"]
 
 
+def test_a_noban_permission_reconnects_a_banned_peer(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """Core's own subject: `-whitelist` given at a restart overrides the ban."""
+    node0, node1 = bitcoind_cluster(2)
+    require(Capability.CONNECT, node0.capabilities, skip_counts)
+    require(Capability.BAN, node1.capabilities, skip_counts)
+
+    node1.rpc.call("setban", ["127.0.0.1", "add"])
+    node1.restart(["-whitelist=127.0.0.1"])
+    connect_nodes(node0, node1)
+    peers = node1.rpc.call("getpeerinfo")
+    assert isinstance(peers, list)
+    assert "noban" in peers[0]["permissions"]
+    banned = node1.rpc.call("listbanned")
+    assert isinstance(banned, list)
+    assert [entry["address"] for entry in banned] == ["127.0.0.1/32"]
+
+
 def test_a_non_ip_address_can_be_banned_and_unbanned(
     bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
     skip_counts: SkipCounts,
@@ -123,3 +137,18 @@ def test_a_non_ip_address_can_be_banned_and_unbanned(
 
     node.rpc.call("setban", [tor_address, "remove"])
     assert node.rpc.call("listbanned") == []
+
+
+def test_bantime_given_at_a_restart_sets_a_new_ban_s_duration(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """Core's own subject: a ban added after `-bantime=1234` lasts that long."""
+    (node,) = bitcoind_cluster(1)
+    require(Capability.BAN, node.capabilities, skip_counts)
+
+    node.restart(["-bantime=1234"])
+    node.rpc.call("setban", ["127.0.0.1", "add"])
+    banned = node.rpc.call("listbanned")
+    assert isinstance(banned, list)
+    assert banned[0]["ban_duration"] == 1234

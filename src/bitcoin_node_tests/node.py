@@ -242,8 +242,9 @@ class NodeAdapter(ABC):
     `-blocksdir`, a `-conf` naming a file this same caller wrote --
     passes it here rather than a subclass growing a parameter for every
     option a test happens to need. An entry naming an option `_command`
-    already sets is refused at construction, rather than silently
-    overriding it the way bitcoind's own last-one-wins parsing would.
+    already sets is refused at construction, and in the replacement
+    `restart` takes, rather than silently overriding it the way
+    bitcoind's own last-one-wins parsing would.
 
     `rpc_auth` is the credential a subclass's own `_rpc_client` builds
     its readiness and its ordinary RPC client from instead of its own
@@ -341,11 +342,19 @@ class NodeAdapter(ABC):
             message carries what it wrote to stderr.
         :raises TimeoutError: the RPC never answered.
         """
+        self._start(self._extra_args)
+
+    def _start(self, extra_args: tuple[str, ...]) -> None:
+        """Do what `start` documents, appending `extra_args` to `_command`.
+
+        :param extra_args: already checked against `_command`, by
+            `__init__` or by `restart`.
+        """
         self._datadir.mkdir(parents=True, exist_ok=True)
         stderr_path = self._datadir / _STDERR_LOG
         with stderr_path.open("wb") as stderr_file:
             self._process = subprocess.Popen(  # noqa: S603
-                [*self._command(), *self._extra_args],
+                [*self._command(), *extra_args],
                 stderr=stderr_file,
             )
         try:
@@ -396,15 +405,33 @@ class NodeAdapter(ABC):
             )
             raise TimeoutError(err_msg) from None
 
-    def restart(self) -> None:
+    def restart(self, extra_args: Sequence[str] | None = None) -> None:
         """Stop and start again, over the same data directory.
 
         The one of the six parts every adapter answers identically: the
         data directory is the caller's, named once in `__init__`, so a
         restart resumes the same chain rather than a fresh one.
+
+        `extra_args`, where given, replaces the constructor's own for this
+        start alone, and a later `start` or `restart` without it goes back
+        to the constructor's: Core's own `restart_node(i, extra_args)`
+        (`test_framework.py`), whose `TestNode.start` falls back to the
+        node's own `extra_args` wherever none is passed. An empty sequence
+        is a start with no extra argument at all.
+
+        :param extra_args: what to append after `_command`'s own argv for
+            this start, in place of the constructor's.
+        :raises ValueError: an entry of `extra_args` names an option
+            `_command` already sets, refused the way `__init__` refuses
+            one and before the running node is stopped.
         """
+        if extra_args is None:
+            args = self._extra_args
+        else:
+            _check_extra_args(self._command(), extra_args)
+            args = tuple(extra_args)
         self.stop()
-        self.start()
+        self._start(args)
 
     def set_mock_time(self, timestamp: int) -> None:
         """Set this node's own clock, over `setmocktime`.

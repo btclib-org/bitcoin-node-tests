@@ -194,6 +194,9 @@ extend-ignore-re = ['[0-9A-Za-z+/]{26,}={0,2}']
 # as a misspelt "set" and rewrites in place
 TxOutSer = "TxOutSer"
 tx_out_ser = "tx_out_ser"
+# a btclib-node commit's own short sha: its middle characters spell `ded`,
+# which typos reads as a misspelt "dead" and rewrites in place
+"8ded5494" = "8ded5494"
 
 [tool.typos.type.verbatim]
 extend-glob = ["CHANGELOG.md", ".pre-commit-config.yaml", "TF2.md"]

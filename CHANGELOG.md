@@ -396,3 +396,9 @@ overwrote the one `node-stderr.log` a running node's `stop` read (closes #105).
 `test_activity_in_block` and `test_no_mempool_inclusion` pay 1 BTC from a
 fresh node, as Core's own file does, not from the shared one, where a long
 enough chain leaves every coinbase the test matures worth less (closes #127).
+
+### `UA_COMMENT` and `V2TRANSPORT` measure both `btclib-node` builds
+
+`cli.py`'s `_build_parser` is gone from `btclib-node`'s `main`, replaced by a
+module-level `_OPTIONS` dict; the `UA_COMMENT` and `V2TRANSPORT` docstrings
+now measure both the released build and `main` (closes #59).

@@ -1225,22 +1225,22 @@ moment that test is ported rather than for the whole of Core's option
 surface up front -- `capability.py`'s own docstring has the case
 against a single parameterized capability instead, and the charter's
 own carve-out for a bitcoind-only option, which `-uacomment` is not.
-`-uacomment` is not one of `cli.py`'s registered flags at `btclib-node`'s
-current `main` (`btclib_node.py`'s own docstring has the measurement),
-so this row's `btclib-node` cell is a counted skip.
+`-uacomment` is not one of `cli.py`'s registered flags, on the released build
+or on `main` (`btclib_node.py`'s own docstring has the measurement), so this
+row's `btclib-node` cell is a counted skip.
 
-No test measured for this family asks for an option `btclib-node` does
-register (`cli.py`'s own `_build_parser`) and needs nothing else from
-step 5, `MINE` or an outbound connection: `p2p_add_connections.py` is
-the one dedicated `-maxconnections` test and needs `Capability.CONNECT`
-throughout; `feature_discover.py`'s own `-discover` is neutered by this
-adapter's own fixed `-bind` -- measured against the pinned bitcoind
-binary, `getnetworkinfo`'s `localaddresses` answers empty whether
-`-discover` is passed bare or given its own disabling value, so the
-option has nothing to demonstrate under either adapter's own command
-line. So this row exercises the skip
-arm alone; the pass-through arm has no candidate yet, rather than one
-being skipped over.
+No test measured for this family asks for an option `btclib-node` does register
+and needs nothing else from step 5, `MINE` or an outbound connection:
+`p2p_add_connections.py` is the one dedicated `-maxconnections` test and needs
+`Capability.CONNECT` throughout, on a build where the option is registered at
+all -- `cli.py`'s own `_build_parser` on the released build has no
+`-maxconnections` flag, only `_OPTIONS` on `main` does; `feature_discover.py`'s
+own `-discover` is neutered by this adapter's own fixed `-bind` -- measured
+against the pinned bitcoind binary, `getnetworkinfo`'s `localaddresses` answers
+empty whether `-discover` is passed bare or given its own disabling value, so
+the option has nothing to demonstrate under either adapter's own command line.
+So this row exercises the skip arm alone; the pass-through arm has no candidate
+yet, rather than one being skipped over.
 
 Most of the option family's remaining tests ask for another step-5
 mechanism alongside an option -- MiniWallet, `assert_debug_log`,
@@ -1604,11 +1604,11 @@ reads only `DEPLOYMENT_HEIGHTINCB`, `DEPLOYMENT_DERSIG` and
 `DEPLOYMENT_CLTV` for its version check, `DEPLOYMENT_CSV` never joining
 it, so there is no such refusal for CSV's own activation to produce.
 Every `btclib-node` cell across the trio is a counted skip on
-`Capability.TEST_ACTIVATION_HEIGHT` alone, ahead of `Capability.MINE`
-which every row also needs: measured against `cli.py`'s own
-`_build_parser`, `-testactivationheight` is not one of its registered
-flags on the build this repository's own `TF2_BTCLIB_NODE_PYTHON` names,
-so `require` never reaches the second capability at all.
+`Capability.TEST_ACTIVATION_HEIGHT` alone, ahead of `Capability.MINE` which
+every row also needs: measured against `cli.py`'s registered options,
+`_build_parser` on the released build and `_OPTIONS` on `main`,
+`-testactivationheight` is not one of its registered flags, so `require` never
+reaches the second capability at all.
 
 `feature_dirsymlinks.py`'s row is Core's own claim in full
 ([ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7),

@@ -39,6 +39,8 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.PERMIT_BARE_MULTISIG,
             Capability.DUST_RELAY_FEE,
             Capability.BYTES_PER_SIGOP,
+            Capability.LIMIT_CLUSTER_COUNT,
+            Capability.LIMIT_CLUSTER_SIZE,
         }
     )
 

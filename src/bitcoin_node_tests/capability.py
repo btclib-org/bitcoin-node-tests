@@ -219,6 +219,16 @@ class Capability(Enum):
     `BYTES_PER_SIGOP` -- recognise `-bytespersigop`, Core's own
     conversion rate from a sigop to the virtual bytes a transaction's own
     mempool footprint is billed for.
+    `LIMIT_CLUSTER_COUNT` -- recognise `-limitclustercount`, Core's own
+    cap on how many transactions, in-mempool and in-package together, one
+    mempool cluster may hold
+    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+    own `mempool_package_limits.py`). Checked apart from
+    `LIMIT_CLUSTER_SIZE`: a test can ask for either alone, and each
+    ported file so far does.
+    `LIMIT_CLUSTER_SIZE` -- recognise `-limitclustersize`, Core's own cap
+    on one cluster's own total virtual size
+    (`mempool_updatefromblock.py`).
     """
 
     MINE = "mine"
@@ -238,6 +248,8 @@ class Capability(Enum):
     PERMIT_BARE_MULTISIG = "permit_bare_multisig"
     DUST_RELAY_FEE = "dust_relay_fee"
     BYTES_PER_SIGOP = "bytes_per_sigop"
+    LIMIT_CLUSTER_COUNT = "limit_cluster_count"
+    LIMIT_CLUSTER_SIZE = "limit_cluster_size"
 
 
 class SkipCounts:

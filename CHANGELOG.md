@@ -225,3 +225,9 @@ there instead of skipping (closes #61).
 The released build's own uncaught RocksDB wording and the fixed build's
 own clean "Cannot obtain a lock on directory" are both matched, rather
 than only the first (closes #67).
+
+### The mempool-cluster-option pair joins the option and MiniWallet families
+
+`-limitclustercount` and `-limitclustersize` each gain a `Capability`;
+`mempool_package_limits` and `mempool_updatefromblock` join them, and
+`MiniWallet` gains multi-coin, chained and exactly-sized transfers (issue #14).

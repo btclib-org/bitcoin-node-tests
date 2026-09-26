@@ -2,14 +2,15 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_invalid_messages`, three of its four `addrv2` checks: bitcoind.
+"""Core's `p2p_invalid_messages`, its four `addrv2` checks: bitcoind.
 
 Read from Core's `test/functional/p2p_invalid_messages.py`
 (`3fd68a95e68b`, 2026-04-07)'s own `test_addrv2_empty`,
-`test_addrv2_no_addresses` and `test_addrv2_too_long_address`, each
-through the shared `test_addrv2`: an `addrv2` with a hand-built payload,
-its own `serialize` overridden so the raw octets travel unchecked by
-either side's own codec, over a `SenderOfAddrV2` -- Core's own peer that
+`test_addrv2_no_addresses`, `test_addrv2_too_long_address` and
+`test_addrv2_unrecognized_network`, each through the shared
+`test_addrv2`: an `addrv2` with a hand-built payload, its own
+`serialize` overridden so the raw octets travel unchecked by either
+side's own codec, over a `SenderOfAddrV2` -- Core's own peer that
 waits for the node's `sendaddrv2` before sending anything, so a node not
 yet announcing BIP155 support is never bombarded with a message it may
 not recognise. This repository's own `Peer.handshake` already negotiates
@@ -26,17 +27,24 @@ wire-and-log pair of the same shape that module already uses: a `ping`
 round-trip confirms the connection is still there, and
 `Capability.DEBUG_LOG` gates the log half.
 
-`test_addrv2_unrecognized_network` is not ported: it needs bitcoind's own
-`Added N addresses (of M) from ...` line, which is `LogDebug(BCLog::ADDRMAN,
-...)` (`src/addrman.cpp`) rather than `BCLog::NET`, and this repository's
-own `BitcoindAdapter._command` fixes `-debug=net` for the whole log family
-rather than per test. The one `NET`-category line the same code path also
-writes, `Received addr: N addresses (M processed, K rate-limited)`, names
-a fact, but measured live over several runs it always answers `(1
-processed, 1 rate-limited)` for the same two entries -- this
-connection's own initial `peer.m_addr_token_bucket`, not a fact about an
-unrecognized network or about `addrv2` at all. `TF2.md` names this row's
-own gap.
+`test_addrv2_unrecognized_network`'s two log lines past the first,
+`9.9.9.9:8333` and `Added 1 addresses`, are `LogDebug(BCLog::ADDRMAN,
+...)`'s (`src/addrman.cpp`), which `BitcoindAdapter._command`'s own
+`-debug=addrman` enables. Its node is started for it, with two settings
+Core's own run of this file has and `bitcoind_adapter` does not.
+`-whitelist=addr@127.0.0.1` is `InvalidMessagesTest.set_test_params`'s
+own: without `NetPermissionFlags::Addr`, `net_processing.cpp`'s own
+address-rate limiter processes one of the two entries and defers the
+other, and `std::shuffle` picks which, so `9.9.9.9` is added on some
+runs and not on others. `-connect=0` is what Core's own `write_config`
+(`test_framework/util.py`) gives every node, and what keeps
+`CConnman::Start` (`src/net.cpp`) from starting `ThreadOpenConnections`:
+measured against the pinned `31.1` without it, once `9.9.9.9` is in the
+address manager that thread selects it over and over, each selection
+one more `addrman` line in the log. The wire half starts one of these
+nodes too rather than using `bitcoind_adapter`, which a session shares:
+left holding the address, that node would write those lines for the
+rest of the session.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """
@@ -44,18 +52,24 @@ own gap.
 from __future__ import annotations
 
 import secrets
+import time
+from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 import pytest
 from btclib.p2p import Message, Ping, Pong
 from btclib.p2p.magic import magic_from_chain
 
+from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
+from bitcoin_node_tests.node import free_port
 from bitcoin_node_tests.peer import Peer
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
+    from collections.abc import Iterator
+    from pathlib import Path
+
     from bitcoin_node_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
@@ -174,3 +188,79 @@ def test_addrv2_too_long_address_is_logged(
         peer.handshake()
         peer.send_raw(_addrv2_message(_TOO_LONG_ADDRESS))
         _sync(peer)
+
+
+@contextmanager
+def _addr_node(bitcoind_path: str, datadir: Path) -> Iterator[BitcoindAdapter]:
+    """Yield a started node exempt from address-rate limiting, never dialling.
+
+    The module docstring is why each of the two flags is here.
+    """
+    adapter = BitcoindAdapter(
+        bitcoind_path,
+        datadir,
+        free_port(),
+        free_port(),
+        extra_args=("-whitelist=addr@127.0.0.1", "-connect=0"),
+    )
+    adapter.start()
+    try:
+        yield adapter
+    finally:
+        adapter.stop()
+
+
+def _unrecognized_network() -> bytes:
+    """Return Core's own `test_addrv2_unrecognized_network` payload.
+
+    Two entries stamped with the current time: an unrecognized network id,
+    to be ignored without impeding the next entry, and `9.9.9.9:8333`,
+    to be added.
+    """
+    now = int(time.time()).to_bytes(4, "little").hex()
+    return bytes.fromhex(
+        "02"  # two entries
+        + now  # time
+        + "01"  # service flags, COMPACTSIZE(NODE_NETWORK)
+        + "99"  # network type (unrecognized)
+        + "02"  # address length, COMPACTSIZE(2)
+        + "ab" * 2  # address
+        + "208d"  # port
+        + now  # time
+        + "01"  # service flags, COMPACTSIZE(NODE_NETWORK)
+        + "01"  # network type (IPv4)
+        + "04"  # address length, COMPACTSIZE(4)
+        + "09" * 4  # address
+        + "208d"  # port
+    )
+
+
+def test_addrv2_unrecognized_network_keeps_the_connection(
+    bitcoind_path: str, tmp_path: Path
+) -> None:
+    """The wire half: an entry of an unknown network is ignored, not fatal."""
+    with (
+        _addr_node(bitcoind_path, tmp_path) as node,
+        Peer(node.p2p_address, _MAGIC) as peer,
+    ):
+        peer.handshake()
+        peer.send_raw(_addrv2_message(_unrecognized_network()))
+        _sync(peer)
+
+
+def test_addrv2_unrecognized_network_is_logged(
+    bitcoind_path: str, tmp_path: Path, skip_counts: SkipCounts
+) -> None:
+    """The log half: the entry after the unrecognized one is still added."""
+    with _addr_node(bitcoind_path, tmp_path) as node:
+        require(Capability.DEBUG_LOG, node.capabilities, skip_counts)
+        with (
+            Peer(node.p2p_address, _MAGIC) as peer,
+            assert_debug_log(
+                node.debug_log_path,
+                ["received: addrv2 (25 bytes)", "9.9.9.9:8333", "Added 1 addresses"],
+            ),
+        ):
+            peer.handshake()
+            peer.send_raw(_addrv2_message(_unrecognized_network()))
+            _sync(peer)

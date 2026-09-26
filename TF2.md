@@ -793,6 +793,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_invalid_messages.py` (addrv2 no addr, log) | same | same | pass | skip |
 | `p2p_invalid_messages.py` (addrv2 long, wire) | same | same | pass | fail ([ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170)) |
 | `p2p_invalid_messages.py` (addrv2 long, log) | same | same | pass | skip |
+| `p2p_invalid_messages.py` (addrv2 net id, wire) | same | same | pass | pass |
+| `p2p_invalid_messages.py` (addrv2 net id, log) | same | same | pass | skip |
 | `p2p_leak.py` (wire) | `01b8a117d2c5` | 2026-06-04 | pass | pass |
 | `p2p_leak.py` (log) | `01b8a117d2c5` | 2026-06-04 | pass | skip |
 | `p2p_net_deadlock.py` | `a0473442d1c2` | 2024-07-16 | pass | skip (raw_msg) |
@@ -1089,7 +1091,7 @@ guard against a *pre-verack* repeat.
 [ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)
 names it.
 
-Most of Core's own `test_addrv2_*` checks join the same shape, through a
+Core's own `test_addrv2_*` checks join the same shape, through a
 raw `addrv2` message rather than through `btclib.p2p.AddrV2`'s own codec
 -- `test_addrv2_empty`, `test_addrv2_no_addresses` and
 `test_addrv2_too_long_address`, each asserting the connection survives a
@@ -1110,21 +1112,19 @@ names, rather than the checksum and msgtype rows' own frame-level one.
 `test_addrv2_no_addresses` raises nothing -- an empty list is valid --
 so it passes on both nodes.
 
-`test_addrv2_unrecognized_network` is not ported: Core's own assertion
-needs bitcoind's own `Added ... addresses (of ...) from ...` line, which
-is `LogDebug(BCLog::ADDRMAN, ...)` (`src/addrman.cpp`) rather than
-`BCLog::NET`, and `BitcoindAdapter._command`'s own `-debug=net` is fixed
-for the whole log family rather than adjustable per test. The one
-`NET`-category line the same code path also writes, `Received addr: ...
-addresses (... processed, ... rate-limited)`, does name a fact, but
-measured live over several runs it always answers with the same address
-processed and the other one rate-limited -- `peer.m_addr_token_bucket`'s
-own address-rate limiter deciding which entry goes through and which is
-deferred, not a fact about an unrecognized network or about `addrv2` at
-all. A row asserting it would test this connection's own initial
-token-bucket state rather than the claim `test_addrv2_unrecognized_network`
-is about, so it stays open rather than being ported against an accounting
-detail this test does not otherwise touch.
+`test_addrv2_unrecognized_network` joins them. Its assertion lines
+past Core's first are `LogDebug(BCLog::ADDRMAN, ...)`'s (`src/addrman.cpp`),
+and `BitcoindAdapter._command` enables that category beside `net`,
+`-debug` accumulating rather than one occurrence replacing another. Its
+node is started for the test, with the address-relay permission and the
+disabled autoconnect Core's own run of the file has and the session's
+shared node does not:
+`tests/integration/p2p_invalid_messages_addrv2_bitcoind_test.py`'s own
+docstring has why each is needed, including the `addrman` lines a node
+holding the gossiped address writes without the second, measured
+against the pinned release. It passes on both nodes: `AddrV2.parse`
+reads an entry of a network id BIP155 does not name the way it reads any
+other, so btclib-node raises nothing either.
 
 `p2p_bip434_feature.py`'s row is ported, narrowed to what a build lacking
 BIP434 support disconnects for anyway rather than to `FEATURE`'s own

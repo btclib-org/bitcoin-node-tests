@@ -26,6 +26,7 @@ is about needs nothing more than that to show.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 import pytest
@@ -43,10 +44,22 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.integration
 
 
+def _blocksdir_refusal(blocksdir: Path) -> str:
+    """Return a pattern for Core's whole refusal of a nonexistent `blocksdir`.
+
+    Core's file compares the whole message, the path included; anchored
+    past `_wait_for_rpc`'s own `stderr: ` (`node.py`) and at the message's
+    end, so that a stderr carrying anything beside the refusal fails it.
+    """
+    core = f'Error: Specified blocks directory "{blocksdir}" does not exist.'
+    return rf"stderr: {re.escape(core)}\Z"
+
+
 def test_nonexistent_blocksdir_refuses_to_start(
     make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
 ) -> None:
     """`-blocksdir` naming a directory that does not exist is fatal."""
+    blocksdir = tmp_path / "nonexistent"
     rpc_port, p2p_port = free_ports(2)
     adapter = make_adapter(
         BitcoindAdapter,
@@ -54,11 +67,9 @@ def test_nonexistent_blocksdir_refuses_to_start(
         tmp_path / "datadir",
         rpc_port,
         p2p_port,
-        extra_args=(f"-blocksdir={tmp_path / 'nonexistent'}",),
+        extra_args=(f"-blocksdir={blocksdir}",),
     )
-    with pytest.raises(
-        RuntimeError, match='Specified blocks directory ".*" does not exist'
-    ):
+    with pytest.raises(RuntimeError, match=_blocksdir_refusal(blocksdir)):
         adapter.start()
 
 

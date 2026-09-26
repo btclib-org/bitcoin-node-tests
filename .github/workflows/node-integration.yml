@@ -22,13 +22,13 @@ name: node-integration
 # ordinary pull request already asks bitcoind the question, which is
 # most of what a weekly repeat would buy.
 #
-# `btclib-node` is kept out of this project's own environment regardless
-# of `requires-python` (issue bitcoin-node-tests#42's own question is
-# whether that should change now that the floor is 3.12). So this job
-# sets up a second interpreter of its own, 3.14, installs `btclib-node`
-# into that one alone, and points `tests/integration/conftest.py`'s
-# `TF2_BTCLIB_NODE_PYTHON` at it -- never at the interpreter running
-# `pytest` itself.
+# `btclib-node` is not a dependency of this project's own environment,
+# for the reasons `pyproject.toml`'s comment on `[dependency-groups]`
+# gives. So each job running it sets up a second interpreter of its own,
+# the one its `Setup a second interpreter for btclib-node` step names,
+# installs `btclib-node` into that one alone, and points
+# `tests/integration/conftest.py`'s `TF2_BTCLIB_NODE_PYTHON` at it --
+# never at the interpreter running `pytest` itself.
 #
 # `btclib-node` and `btclib-node-main` also install the same pinned
 # `bitcoind` the job above does, and set `TF2_BITCOIND` from it (issue

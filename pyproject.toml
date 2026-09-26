@@ -118,19 +118,24 @@ docs = [
     "myst-parser>=5.1.0",
     "sphinx>=9.1.0",
 ]
-# btclib-node is not a dependency group of this project. Against this
-# tree's former `requires-python = ">=3.15"`, measured live, `uv sync`
-# resolving it failed outright: `rocksdict`, btclib-node's own
-# dependency, shipped no `cp315` wheel. That specific incompatibility is
-# gone now that requires-python reads ">=3.12" -- rocksdict ships a
-# `cp312` wheel, measured against its own PyPI listing -- but the
-# separation stays regardless: `tests/integration/conftest.py`'s
-# `btclib_node_python` fixture names an interpreter of its own
-# (`TF2_BTCLIB_NODE_PYTHON`) rather than this environment, so a
-# contributor who never touches `tests/integration` against btclib-node
-# never installs its compiled dependency either. Whether the two should
-# share one environment now that the version floor allows it is issue
-# bitcoin-node-tests#42.
+# btclib-node is not a dependency group of this project, and
+# `tests/integration/conftest.py`'s `btclib_node_python` fixture names an
+# interpreter of its own (`TF2_BTCLIB_NODE_PYTHON`) instead, one
+# btclib-node was installed into. btclib-node's own requires-python --
+# its PyPI metadata, and the pyproject.toml on btclib-org/btclib-node's
+# main -- starts above the floor requires-python above names, so `uv
+# lock` refuses an unconditional group. A group gated on a
+# `python_version` marker locks, and buys nothing:
+#
+# - `.python-version` names an interpreter below btclib-node's floor, so
+#   the group installs nothing into the environment a contributor gets by
+#   default, and node-integration.yml's btclib-node jobs, whose `uv run`
+#   takes that interpreter, still set up a second one of their own.
+# - uv.lock would pin one release of btclib-node, where the suite runs
+#   against its latest release, its `main` (the `btclib-node-main` job)
+#   and a developer's own checkout -- each an interpreter
+#   `TF2_BTCLIB_NODE_PYTHON` already names, whatever build it carries, so
+#   the fixture stays the one mechanism rather than one of two.
 dev = [
     { include-group = "test" },
     { include-group = "lint" },

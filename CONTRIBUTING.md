@@ -323,10 +323,10 @@ skipping itself without it, matching the switch btclib's own
 `BTCLIB_INTEGRATION`, tf2 being this repository's own label.
 `TF2_BITCOIND` and `TF2_BTCLIB_NODE_PYTHON` name the two nodes:
 a `bitcoind` on `PATH` or named directly, and the interpreter
-`btclib-node` is importable by -- never this project's own, kept
-separate from it regardless of what `requires-python` names (issue
-bitcoin-node-tests#42). Both skip cleanly, naming what to set, rather
-than failing on a program this repository does not ship.
+`btclib-node` is importable by -- never this project's own, which
+carries no group installing it (`pyproject.toml`'s comment on
+`[dependency-groups]` has why). Both skip cleanly, naming what to set,
+rather than failing on a program this repository does not ship.
 
 ```shell
 TF2_INTEGRATION=1 uv run pytest tests/integration
@@ -354,9 +354,8 @@ TF2_INTEGRATION=1 \
 ```
 
 A btclib-node developer, against their own checkout's own environment,
-where `uv sync` installs `btclib-node` editable -- kept separate from
-the interpreter running `pytest` regardless of version (issue
-bitcoin-node-tests#42):
+where `uv sync` installs `btclib-node` editable -- an interpreter
+separate from the one running `pytest`, for the reasons above:
 
 ```shell
 uv sync --project ../btclib-node
@@ -635,8 +634,11 @@ second command beyond the one above: `TF2_INTEGRATION=1 uv run pytest
 tests/integration` against a bitcoind that job installs and verifies.
 The `btclib-node` job needs the second interpreter the workflow's own
 header explains, so reproducing it is that same command with
-`TF2_BTCLIB_NODE_PYTHON` pointed at a 3.14 (or later, once `rocksdict`
-ships one) interpreter `btclib-node` was installed into. `btclib-node-main`
+`TF2_BTCLIB_NODE_PYTHON` pointed at an interpreter `btclib-node` was
+installed into -- one its own `requires-python` admits and its
+`rocksdict` dependency ships a wheel for, `rocksdict` publishing no
+sdist -- the job's own being the one its `Setup a second interpreter
+for btclib-node` step names. `btclib-node-main`
 is the same command again, `TF2_BTCLIB_NODE_PYTHON` pointed at an
 interpreter carrying that project's own `main` rather than its last
 release. `core-master` is `TF2_BITCOIND` pointed at a `bitcoind` built locally

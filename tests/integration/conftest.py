@@ -262,16 +262,14 @@ def btclib_node_python() -> str:
     """Return the interpreter to run btclib-node with, skipping without one.
 
     `TF2_BTCLIB_NODE_PYTHON` names it; `sys.executable` where unset. This
-    project carries no dependency group installing `btclib-node`,
-    kept separate from this environment regardless of version (issue
-    bitcoin-node-tests#42) -- `pyproject.toml`'s own comment on
-    `[dependency-groups]` has the reason. So `btclib-node` needs an
-    interpreter of its own, installed into some other environment by
-    hand, and named here rather than assumed. Probed by actually
-    importing the package under that interpreter rather than by
-    `shutil.which`: there is no console script this adapter runs
-    (`btclib_node.py`'s own docstring is why), so nothing on `PATH`
-    would ever answer for it.
+    project carries no dependency group installing `btclib-node` --
+    `pyproject.toml`'s own comment on `[dependency-groups]` has the
+    reasons. So `btclib-node` needs an interpreter of its own, installed
+    into some other environment by hand, and named here rather than
+    assumed. Probed by actually importing the package under that
+    interpreter rather than by `shutil.which`: there is no console script
+    this adapter runs (`btclib_node.py`'s own docstring is why), so
+    nothing on `PATH` would ever answer for it.
     """
     _require_integration()
     python = os.environ.get("TF2_BTCLIB_NODE_PYTHON") or sys.executable

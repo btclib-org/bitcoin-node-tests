@@ -9,11 +9,10 @@ Read from Core's `test/functional/rpc_getblockstats.py` (`b7cbd804284b`,
 together
 ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
 `MiniWallet.create_self_transfer`/`generate` (`Capability.MINE`) build a
-chain carrying an `OP_RETURN` output, `btclib.coinstats.bogo_size` -- the
-same function `feature_utxo_set_hash_bitcoind_test.py`'s own `CoinStats`
-calls -- computes what `getblockstats`'s own `utxo_size_inc*` fields
-answer independently rather than trusting a hard-coded literal, and a
-direct read of `blk00000.dat` (`Capability.BLK_FILES`) under the node's
+chain carrying an `OP_RETURN` output, each coin's serialized `TxOut` plus
+`getblockstats`'s own per-coin overhead computes what its `utxo_size_inc*`
+fields answer independently rather than trusting a hard-coded literal,
+and a direct read of `blk00000.dat` (`Capability.BLK_FILES`) under the node's
 own datadir is disk's own contribution: renaming it away is what makes
 `getblockstats` answer "Block not found on disk". `Capability.BLOCK_STATS`
 gates every subject here: `getblockstats` names no callback in
@@ -25,6 +24,17 @@ calls `setmocktime` only in `load_test_data`, so that a node replaying
 its fixture's old blocks leaves Initial Block Download; this port mines
 fresh blocks with `MiniWallet` rather than replaying that fixture, so
 nothing here waits on the freeze.
+
+That overhead is `PER_UTXO_OVERHEAD` in Core's `src/rpc/blockchain.cpp`:
+the outpoint, then `Coin`'s height and coinbase flag, which `Coin` packs
+into one `uint32_t`. Builds older than `v32.0.0`, the first release
+carrying [bitcoin/bitcoin#31449](https://github.com/bitcoin/bitcoin/pull/31449)
+(`5f36e0ff1e76`), charge one byte more, a `bool` for the flag. Which
+build is running is read off `getnetworkinfo`'s own `version`
+([ISS bitcoin-node-tests#35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+as `feature_torcontrol_bitcoind_test.py` does; a `master` build reporting
+`31.99`, between that merge and the bump to `32.99`, carries the change
+under the older version and fails here.
 
 A smaller claim than Core's own file: kept is the genesis block's own
 statistics (independently computed rather than copied from Core's own
@@ -57,7 +67,6 @@ import pytest
 from bitcoin_core_rpc import RpcError
 from btclib.block import genesis_block
 from btclib.block.block import Block
-from btclib.coinstats import bogo_size
 from btclib.tx import TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
@@ -74,8 +83,24 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.integration
 
-_GENESIS_COINBASE_SPK = genesis_block("regtest").transactions[0].vout[0].script_pub_key
-_GENESIS_BOGO_SIZE = bogo_size(_GENESIS_COINBASE_SPK.script)
+_GENESIS_COINBASE_OUT = genesis_block("regtest").transactions[0].vout[0]
+# the outpoint's txid and index, then `Coin`'s packed height|coinbase
+_PER_UTXO_OVERHEAD = 32 + 4 + 4
+# Core's own `CLIENT_VERSION`, at or past which the overhead above holds;
+# below it, one more byte (the module docstring has the Core pull request)
+_PACKED_COINBASE_FLAG_VERSION = 320000
+
+
+def _coin_size(out: TxOut, overhead: int) -> int:
+    """Size a coin as `getblockstats` does: serialized `TxOut` plus overhead."""
+    return len(out.serialize(check_validity=False)) + overhead
+
+
+def _per_utxo_overhead(adapter: BitcoindAdapter) -> int:
+    """Return `PER_UTXO_OVERHEAD` as the running build defines it."""
+    if adapter.rpc.call("getnetworkinfo")["version"] >= _PACKED_COINBASE_FLAG_VERSION:
+        return _PER_UTXO_OVERHEAD
+    return _PER_UTXO_OVERHEAD + 1
 
 
 def test_genesis_block_statistics(
@@ -87,7 +112,8 @@ def test_genesis_block_statistics(
     assert stats["blockhash"] == genesis_block("regtest").header.hash.hex()
     assert bitcoind_adapter.rpc.call("getblockstats", [stats["blockhash"]]) == stats
     assert stats["utxo_increase"] == 1
-    assert stats["utxo_size_inc"] == _GENESIS_BOGO_SIZE
+    overhead = _per_utxo_overhead(bitcoind_adapter)
+    assert stats["utxo_size_inc"] == _coin_size(_GENESIS_COINBASE_OUT, overhead)
     # spendable-looking and unspendable (btclib.coinstats's own module
     # docstring): the real UTXO set never gains genesis's own coinbase
     assert stats["utxo_increase_actual"] == 0
@@ -121,17 +147,19 @@ def test_op_return_is_counted_but_not_actual(
     # the witness commitment and the nulldata output are both unspendable,
     # so only the reward and the change count -- 2 outs, 1 in
     assert stats["utxo_increase_actual"] == 1
-    p2tr_bogo_size = bogo_size(wallet.script_pub_key.script)
+    overhead = _per_utxo_overhead(bitcoind_adapter)
+    # an amount serializes fixed-width, so a zero one sizes the spent coin
+    p2tr_size = _coin_size(TxOut(0, wallet.script_pub_key), overhead)
     # every output the block adds, spendable or not, minus the coin spent
     added = sum(
-        bogo_size(out.script_pub_key.script)
+        _coin_size(out, overhead)
         for block_tx in block.transactions
         for out in block_tx.vout
     )
-    assert stats["utxo_size_inc"] == added - p2tr_bogo_size
+    assert stats["utxo_size_inc"] == added - p2tr_size
     # reward and change are both p2tr, the same shape as the coin spent:
-    # two added and one removed nets exactly one p2tr's own bogo size
-    assert stats["utxo_size_inc_actual"] == p2tr_bogo_size
+    # two added and one removed nets exactly one p2tr coin's own size
+    assert stats["utxo_size_inc_actual"] == p2tr_size
 
 
 def test_selected_stats_narrow_the_answer(

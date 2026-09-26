@@ -42,11 +42,10 @@ from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import SkipCounts
 from bitcoin_node_tests.node import free_ports
 from bitcoin_node_tests.timeout_factor import set_factor
+from tests.conftest import fold_worker_tally, stash_or_report, stop_all
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Sequence
-
-    from bitcoin_node_tests.node import NodeAdapter
+    from collections.abc import Callable, Iterator
 
 # one tally per process, shared by every fixture and test below:
 # `pytest_sessionfinish` reports it once, rather than once per node this
@@ -67,17 +66,10 @@ def skip_counts() -> SkipCounts:
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """Hand a worker's own tally to the controller, or report the total.
 
-    Every one of the processes `-n auto` starts runs this hook, and
-    `session.config.workeroutput` is what tells them apart: it exists
-    only inside an xdist worker (`xdist.remote` sets it at worker
-    start-up), never in the controller and never in a plain `-n 0` run.
-    A worker's own tally counts only the tests *it* ran, so a worker
-    stashes it there instead of reporting it -- the controller reads it
-    back through `node.workeroutput` in `pytest_testnodedown` below, and
-    folds it in before this same hook runs on the controller itself. A
-    plain run started with `-n 0` is not a worker either, and needs no
-    folding: it is the one process that ran every test, so the tally
-    below is already the whole run's.
+    Every one of the processes `-n auto` starts runs this hook; the body
+    is `tests/conftest.py`'s own `stash_or_report`, which
+    `[tool.coverage.run]`'s own `omit` cannot reach there, this module
+    being under the omitted `tests/integration/*`.
 
     A fixture's own teardown print is captured with everything else a
     test writes and shown only where that test failed; this hook runs
@@ -91,11 +83,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     :param exitstatus: unused; the hook's own signature names it.
     """
     del exitstatus
-    workeroutput = getattr(session.config, "workeroutput", None)
-    if workeroutput is not None:
-        workeroutput["skip_counts"] = _skip_counts.as_mapping()
-        return
-    print(_skip_counts.report())  # noqa: T201
+    stash_or_report(_skip_counts, getattr(session.config, "workeroutput", None))
 
 
 def pytest_testnodedown(node: object, error: object | None) -> None:
@@ -105,7 +93,8 @@ def pytest_testnodedown(node: object, error: object | None) -> None:
     worker as it goes down (finishes or crashes) -- and, for every
     worker, before the controller reaches its own `pytest_sessionfinish`
     above, which is what reports the sum. Absent under `-n 0`, there
-    being no worker to go down.
+    being no worker to go down. The body is `tests/conftest.py`'s own
+    `fold_worker_tally`.
 
     :param node: the worker that just finished; `node.workeroutput` is
         what `pytest_sessionfinish` above stashed in its own process,
@@ -115,9 +104,7 @@ def pytest_testnodedown(node: object, error: object | None) -> None:
     :param error: unused; the hook's own signature names it.
     """
     del error
-    workeroutput = getattr(node, "workeroutput", None)
-    if workeroutput is not None:
-        _skip_counts.add_mapping(workeroutput.get("skip_counts", {}))
+    fold_worker_tally(_skip_counts, getattr(node, "workeroutput", None))
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -179,24 +166,6 @@ def bitcoind_path() -> str:
     return path
 
 
-def _stop_all(adapters: Sequence[NodeAdapter]) -> None:
-    """Stop every one of `adapters`, last started first.
-
-    Nested `try`/`finally` rather than a `contextlib.ExitStack`: each
-    stop runs even where a later-started one raised -- a node `stop` had
-    to kill, or one that had crashed -- and every error raised is kept,
-    each chained to the one before, where an `ExitStack` runs its
-    callbacks outside an `except` block and keeps only the last error it
-    meets.
-    """
-    if not adapters:
-        return
-    try:
-        adapters[-1].stop()
-    finally:
-        _stop_all(adapters[:-1])
-
-
 @pytest.fixture(scope="session")
 def bitcoind_adapter(
     bitcoind_path: str, tmp_path_factory: pytest.TempPathFactory, trace_rpc: bool
@@ -248,7 +217,7 @@ def bitcoind_cluster(
     try:
         yield _start
     finally:
-        _stop_all(started)
+        stop_all(started)
 
 
 @pytest.fixture(scope="session")

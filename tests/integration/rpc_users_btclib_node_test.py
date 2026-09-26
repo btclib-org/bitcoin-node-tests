@@ -36,18 +36,15 @@ blank and non-blank rpcauth" check, below -- `config.py`'s own
 first value that fails to parse regardless of where it sits among the
 well-formed ones, so a blank `-rpcauth=` refuses startup wherever it is
 given among named entries, measured live in every ordering Core's own
-file checks. Ported too, but never run here: Core's own "-norpcauth
-disables previous -rpcauth params" check, gated on
-`Capability.RPC_AUTH_NEGATION` (`capability.py`) rather than folded into
-`RPC_AUTH_CONFIG` -- `-norpcauth` is not one of `cli.py`'s own
-registered flags on either build measured, released or the `main` sha
-named above, refused before a node ever starts (`Error parsing command
-line arguments: Invalid parameter -norpcauth` on `main`, argparse's own
-"unrecognized arguments" on the released build) rather than accepted and
-disabling anything the way Core's own negation does
-([ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176)).
-`BtclibNodeAdapter` never declares the capability, on either build, so
-this test's own row here is a counted skip.
+file checks. Ported too: Core's own "-norpcauth disables previous
+-rpcauth params" check, gated on `Capability.RPC_AUTH_NEGATION`
+(`capability.py`) rather than folded into `RPC_AUTH_CONFIG`, a build
+reading `rpc.auth` and still refusing `-norpcauth` being the reason
+(`btclib_node.py`'s own module docstring names it).
+`BtclibNodeAdapter` declares the capability where `_negates_rpcauth`
+finds the build reads the negation, so the test runs against `main` and
+is a counted skip against the released build, whose argparse refuses
+`-norpcauth` as "unrecognized arguments" before a node ever starts.
 
 `-rpcuser`/`-rpcpassword` and `-norpccookiefile` are recognised on the
 same build `-rpcauth` is, `cli.py`'s own `_RECOGNIZED_KEYS` naming all
@@ -248,9 +245,9 @@ def test_norpcauth_disables_previous_rpcauth(
 ) -> None:
     """`-norpcauth` disables every `-rpcauth` value given before it.
 
-    `BtclibNodeAdapter` never declares `Capability.RPC_AUTH_NEGATION`, on
-    either build, so this always skips -- this module's own docstring
-    has the measurement.
+    Skipped where `BtclibNodeAdapter` does not declare
+    `Capability.RPC_AUTH_NEGATION` -- this module's own docstring names
+    the build.
     """
     datadir = tmp_path / "datadir"
     rpc_port, p2p_port = free_ports(2)

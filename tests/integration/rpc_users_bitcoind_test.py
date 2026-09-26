@@ -50,11 +50,10 @@ through all four. Ported, against its own capability rather than
 `RPC_AUTH_CONFIG`: Core's own "-norpcauth disables previous -rpcauth
 params" check, `Capability.RPC_AUTH_NEGATION`
 (`capability.py`) -- a fact `BitcoindAdapter` declares unconditionally
-and `BtclibNodeAdapter` never does, `cli.py` registering no `-no<name>`
-negation for `-rpcauth` on either build measured
-([ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176)),
-so this test's own row on that node is a counted skip rather than a
-narrowed run. Dropped last: `platform.system() == 'Windows'`
+and `BtclibNodeAdapter` declares only on a build its own
+`_negates_rpcauth` finds reading `-norpcauth`, so this test's own row on
+any other build of that node is a counted skip rather than a narrowed
+run. Dropped last: `platform.system() == 'Windows'`
 is never this repository's own gate (`CONTRIBUTING.md`'s own table: one
 image, `ubuntu-latest`), so the branch `test_rpccookieperms` takes on
 it is unreachable here and the POSIX permission check below is the

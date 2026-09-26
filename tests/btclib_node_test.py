@@ -29,11 +29,27 @@ def test_capabilities_gain_rpc_auth_config_where_the_build_writes_a_cookie(
     """An instance built with a post-1070 executable declares both."""
     with (
         patch.object(btclib_node_module, "_writes_auth_cookie", return_value=True),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
         patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
         {Capability.CONNECT, Capability.RPC_AUTH_CONFIG}
+    )
+
+
+def test_capabilities_gain_rpc_auth_negation_where_the_build_negates(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a `-norpcauth`-reading executable declares it."""
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=True),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=True),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+    ):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities == frozenset(
+        {Capability.CONNECT, Capability.RPC_AUTH_CONFIG, Capability.RPC_AUTH_NEGATION}
     )
 
 
@@ -43,6 +59,7 @@ def test_capabilities_gain_inbound_eviction_where_the_build_evicts(
     """An instance built with a post-1064 executable declares eviction."""
     with (
         patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
         patch.object(btclib_node_module, "_evicts_inbound", return_value=True),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
@@ -57,6 +74,7 @@ def test_capabilities_stay_connect_alone_where_the_build_does_not(
     """An instance built with a pre-1070 executable keeps the class set."""
     with (
         patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
         patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
@@ -187,3 +205,22 @@ def test_evicts_inbound_is_false_when_the_import_fails() -> None:
     btclib_node_module._evicts_inbound.cache_clear()
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
         assert btclib_node_module._evicts_inbound("fake-python-pre-1064") is False
+
+
+def test_negates_rpcauth_reads_the_probe_s_own_return_code() -> None:
+    """`_negates_rpcauth` is `_NEGATION_PROBE` exiting zero."""
+    btclib_node_module._negates_rpcauth.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._negates_rpcauth("fake-python-1165") is True
+    run.assert_called_once_with(
+        ["fake-python-1165", "-c", btclib_node_module._NEGATION_PROBE],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_negates_rpcauth_is_false_when_the_parse_refuses() -> None:
+    """A nonzero exit -- `-norpcauth` refused, or `tf2` kept -- is `False`."""
+    btclib_node_module._negates_rpcauth.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=2)):
+        assert btclib_node_module._negates_rpcauth("fake-python-pre-1165") is False

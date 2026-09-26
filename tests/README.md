@@ -46,12 +46,11 @@ states rather than all of them. So which of them this repository tests
 is declared here, in two halves that together account for every one of
 them: the table below and the "Not tested here" line under it.
 
-This step of [ISS 2220](https://github.com/btclib-org/btclib/issues/2220)
-carries the organization's apparatus, the ledger, and step 3's own
-adapter -- `bitcoind`, `btclib_node`, `capability`, `node`, `peer` -- with
-real public functions of its own; the test families of later steps are
-what this step still leaves untested rather than what this step lacks
-to test.
+[ISS 2220](https://github.com/btclib-org/btclib/issues/2220)'s charter
+carries the organization's apparatus, the ledger, and the adapter under
+`src/bitcoin_node_tests/` -- `CONTRIBUTING.md`'s *The public surface*
+names its modules -- with real public functions of its own; which
+conventions the table below does not reach, and why, follows it.
 
 | convention | tested in |
 | --- | --- |

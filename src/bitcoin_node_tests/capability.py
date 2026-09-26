@@ -39,12 +39,11 @@ asserts whichever shape that build produces. The enum is for what
 member or it does not, and a run either skips a test for lacking it or
 does not -- and an expectation with no skip attached to it is not that.
 
-`p2p_getdata`, step 3's own test, needs none of the members below: it
-asks only for what every adapter provides unconditionally -- a running
-node, its RPC and its p2p port -- so `require` is exercised by
-`tests/capability_test.py` rather than by that test. The first family's
-other four tests, step 4's, are what exercises `MINE`, `CONNECT` and
-`RAW_MESSAGE` each.
+`p2p_getdata` needs none of the members below: it asks only for what
+every adapter provides unconditionally -- a running node, its RPC and
+its p2p port -- so `require` is exercised by `tests/capability_test.py`
+rather than by that test. `tests/integration/` is where the rest of the
+members are exercised, `MINE`, `CONNECT` and `RAW_MESSAGE` among them.
 
 `UA_COMMENT` is the first of the option family
 ([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3),

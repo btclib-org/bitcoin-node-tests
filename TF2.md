@@ -21,10 +21,10 @@ reading written down once, and moved by whatever moves it.
 
 The file moved here from `btclib`'s own tree
 ([ISS btclib-org/btclib#2220](https://github.com/btclib-org/btclib/issues/2220)),
-which held it while tf2 had no repository of its own. Its prose is
-unchanged by the move: a verdict names btclib's covering module because
-btclib is what covers most of the directory today, this repository's own
-adapter and test families being later steps of that same issue.
+which held it while tf2 had no repository of its own. A verdict names
+btclib's covering module wherever btclib covers the file, and this
+repository's own module or test wherever this repository does;
+`CONTRIBUTING.md`'s *The public surface* names the modules it holds.
 
 ## Reading an entry
 
@@ -58,8 +58,8 @@ per-path pin, which is the one that goes stale loudly.
   entry names that issue.
 - **tf2's (harness)** -- it drives a node: a process, an RPC client, a
   socket, an event loop. Nothing in btclib answers it, and nothing is
-  meant to; this repository's own adapter and harness, later steps of
-  ISS btclib-org/btclib#2220, are where it lands.
+  meant to; this repository's own adapters and harness are where it
+  lands, and an entry this repository already covers names what does.
 - **empty upstream** -- the file has no content at the pinned commit.
   The entry is there so that content arriving in it moves the pin.
 

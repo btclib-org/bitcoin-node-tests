@@ -470,7 +470,7 @@ suite has nothing under.
 | `--portseed` | -- (`node.free_port` asks the OS, never a seed) |
 | `--previous-releases` | -- (no previous-release binaries mechanism) |
 | `--coveragedir` | -- (no RPC-coverage instrumentation) |
-| `--configfile` | belongs to issue bitcoin-node-tests#53 |
+| `--configfile` | -- (`bitcoind.py`'s `_has_wallet` probes the binary) |
 | `--pdbonfailure` | pytest's own `--pdb` |
 | `--usecli` | -- (rule 1 reaches a node only over RPC) |
 | `--valgrind` | through the adapter; see below |

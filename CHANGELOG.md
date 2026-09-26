@@ -372,3 +372,9 @@ waiting out the startup timeout and reporting `TimeoutError` (closes #98).
 Two modules' own polling loops ignored `--timeout-factor`; both now share
 `node.wait_until`, and a `peer.receive`/`future.result` timeout in two
 other modules is scaled the same way (closes #90).
+
+### `tests/integration/conftest.py`'s hooks are thin calls into `tests/conftest.py`
+
+`_stop_all` and the bodies of `pytest_sessionfinish` and
+`pytest_testnodedown` now live in `tests/conftest.py`, outside
+`[tool.coverage.run]`'s `omit`, and are unit-tested there (closes #101).

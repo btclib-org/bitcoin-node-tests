@@ -12,6 +12,11 @@ position of `--cov` in addopts is here for the same reason.
 The guard beside it is driven the same way, with one exception: the run
 it refuses cannot be the run reporting on it either, so the case it
 exists for is taken in a subprocess started from `tests/`.
+
+`stop_all`, `stash_or_report` and `fold_worker_tally` below need neither
+a subprocess nor a real xdist session: each takes a plain sequence or
+mapping rather than the pytest or xdist object it is read off of, so a
+test drives it directly (issue bitcoin-node-tests#101).
 """
 
 import argparse
@@ -25,13 +30,22 @@ from typing import cast
 
 import pytest
 
+from bitcoin_node_tests.capability import (
+    Capability,
+    MissingCapabilityError,
+    SkipCounts,
+    require,
+)
 from tests.conftest import (
     CoverageConfiguration,
     asks_for_everything,
     configuration_went_unread,
     coverage_configuration,
     coverage_fail_under,
+    fold_worker_tally,
     pytest_configure,
+    stash_or_report,
+    stop_all,
 )
 
 _ROOT = Path(__file__).parents[1]
@@ -741,3 +755,98 @@ def test_asks_for_everything_with_no_testpaths_answers_false() -> None:
     answer rather than only the composition above it.
     """
     assert not asks_for_everything(["tests"], [], _ROOT)
+
+
+class _RecordingAdapter:
+    """A `Stoppable` stand-in whose `stop` records its own name and order."""
+
+    def __init__(
+        self, name: str, order: list[str], raises: Exception | None = None
+    ) -> None:
+        self._name = name
+        self._order = order
+        self._raises = raises
+
+    def stop(self) -> None:
+        """Record this adapter's own name, then raise where asked to."""
+        self._order.append(self._name)
+        if self._raises is not None:
+            raise self._raises
+
+
+def test_stop_all_stops_last_started_first() -> None:
+    """Three adapters, started a-b-c, stop in the order c-b-a."""
+    order: list[str] = []
+    adapters = [_RecordingAdapter(name, order) for name in ("a", "b", "c")]
+    stop_all(adapters)
+    assert order == ["c", "b", "a"]
+
+
+def test_stop_all_of_no_adapters_does_nothing() -> None:
+    """An empty sequence stops nothing and raises nothing."""
+    stop_all([])
+
+
+def test_stop_all_stops_every_adapter_even_when_one_raises() -> None:
+    """A failing `stop` does not skip the adapters started before it.
+
+    Each failure chains to the next, in the same order `stop` is called:
+    the last-raised exception -- `a`'s own, `a` being stopped last -- is
+    what propagates, and its `__context__` is `b`'s, whose own
+    `__context__` is `c`'s.
+    """
+    order: list[str] = []
+    exc_a, exc_b, exc_c = RuntimeError("a"), RuntimeError("b"), RuntimeError("c")
+    adapters = [
+        _RecordingAdapter("a", order, exc_a),
+        _RecordingAdapter("b", order, exc_b),
+        _RecordingAdapter("c", order, exc_c),
+    ]
+    with pytest.raises(RuntimeError) as excinfo:
+        stop_all(adapters)
+    assert order == ["c", "b", "a"]
+    assert excinfo.value is exc_a
+    assert excinfo.value.__context__ is exc_b
+    assert exc_b.__context__ is exc_c
+
+
+def test_stash_or_report_stashes_the_tally_when_a_workeroutput_exists() -> None:
+    """A present `workeroutput` gets the tally; nothing is printed."""
+    counts = SkipCounts()
+    with pytest.raises(MissingCapabilityError):
+        require(Capability.MINE, frozenset(), counts)
+    workeroutput: dict[str, object] = {}
+    stash_or_report(counts, workeroutput)
+    assert workeroutput == {"skip_counts": {"mine": 1}}
+
+
+def test_stash_or_report_prints_the_report_without_a_workeroutput(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """No `workeroutput` at all: the tally's own report is printed instead."""
+    counts = SkipCounts()
+    with pytest.raises(MissingCapabilityError):
+        require(Capability.CONNECT, frozenset(), counts)
+    stash_or_report(counts, None)
+    assert capsys.readouterr().out == "skips per capability:\nconnect: 1\n"
+
+
+def test_fold_worker_tally_adds_a_present_worker_s_tally() -> None:
+    """A worker's own stashed mapping is folded into the running tally."""
+    counts = SkipCounts()
+    fold_worker_tally(counts, {"skip_counts": {"mine": 2, "connect": 1}})
+    assert list(counts) == [(Capability.CONNECT, 1), (Capability.MINE, 2)]
+
+
+def test_fold_worker_tally_defaults_to_no_counts_without_the_key() -> None:
+    """A `workeroutput` that never stashed a tally folds in nothing."""
+    counts = SkipCounts()
+    fold_worker_tally(counts, {})
+    assert list(counts) == []
+
+
+def test_fold_worker_tally_does_nothing_without_a_workeroutput() -> None:
+    """No `workeroutput`, the worker never having got that far, is a no-op."""
+    counts = SkipCounts()
+    fold_worker_tally(counts, None)
+    assert list(counts) == []

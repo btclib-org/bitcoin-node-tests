@@ -11,17 +11,24 @@ started from `tests/` finds no `fail_under`, no `source` and no
 point such a run at its configuration or to make it say it is ungated,
 and this file is the second of the two: such a run is refused
 (btclib-org/.github#443).
+
+`stop_all`, `stash_or_report` and `fold_worker_tally` are what
+`tests/integration/conftest.py`'s own hooks call: `[tool.coverage.run]`'s
+`omit` excludes that whole module, so their bodies live here, in the one
+other file the "python tests naming" hook lets sit beside `*_test.py`
+files without being one itself, and are measured by an ordinary run
+(issue bitcoin-node-tests#101).
 """
 
 import os
-from collections.abc import Generator
+from collections.abc import Generator, Mapping, Sequence
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, cast
 
 import pytest
 from hypothesis import settings
 
-from bitcoin_node_tests.capability import MissingCapabilityError
+from bitcoin_node_tests.capability import MissingCapabilityError, SkipCounts
 
 pytest_plugins = ["pytester"]
 
@@ -210,3 +217,85 @@ def pytest_configure(config: pytest.Config) -> None:
         config.getini("testpaths"),
         config.rootpath,
     )
+
+
+class Stoppable(Protocol):
+    """What `stop_all` needs of an adapter: `NodeAdapter.stop`, structurally.
+
+    A `Protocol` rather than `bitcoin_node_tests.node.NodeAdapter` itself,
+    so a test can stand one up without a real `NodeAdapter` subclass.
+    """
+
+    def stop(self) -> None:
+        """Stop this adapter; `NodeAdapter.stop`'s own contract."""
+
+
+def stop_all(adapters: Sequence[Stoppable]) -> None:
+    """Stop every one of `adapters`, last started first.
+
+    `tests/integration/conftest.py`'s own `bitcoind_cluster` fixture calls
+    this from its teardown. Nested `try`/`finally` rather than a
+    `contextlib.ExitStack`: each stop runs even where a later-started one
+    raised -- a node `stop` had to kill, or one that had crashed -- and
+    every error raised is kept, each chained to the one before, where an
+    `ExitStack` runs its callbacks outside an `except` block and keeps
+    only the last error it meets.
+
+    :param adapters: the adapters to stop, in the order they were
+        started.
+    """
+    if not adapters:
+        return
+    try:
+        adapters[-1].stop()
+    finally:
+        stop_all(adapters[:-1])
+
+
+def stash_or_report(
+    skip_counts: SkipCounts, workeroutput: dict[str, object] | None
+) -> None:
+    """Stash this process's own tally for the controller, or print the total.
+
+    `tests/integration/conftest.py`'s own `pytest_sessionfinish` calls
+    this with `session.config.workeroutput`, which exists only inside an
+    xdist worker (`xdist.remote` sets it at worker start-up), never in
+    the controller and never in a plain `-n 0` run -- a worker stashes
+    its own tally there instead of printing it, and `fold_worker_tally`
+    below is what the controller reads it back through, before this same
+    function prints the sum on the controller's own process. A plain
+    `-n 0` run is not a worker either, and needs no folding: it is the
+    one process that ran every test, so its own tally is already the
+    whole run's.
+
+    :param skip_counts: this process's own running tally.
+    :param workeroutput: `session.config.workeroutput`, or `None` outside
+        an xdist worker.
+    """
+    if workeroutput is not None:
+        workeroutput["skip_counts"] = skip_counts.as_mapping()
+        return
+    print(skip_counts.report())  # noqa: T201
+
+
+def fold_worker_tally(
+    skip_counts: SkipCounts, workeroutput: Mapping[str, object] | None
+) -> None:
+    """Add one xdist worker's own tally into `skip_counts`, as it exits.
+
+    `tests/integration/conftest.py`'s own `pytest_testnodedown` calls this
+    with `node.workeroutput`. xdist calls that hook only in the controller
+    process, once per worker as it goes down (finishes or crashes) -- and,
+    for every worker, before the controller reaches its own
+    `stash_or_report` above, which is what reports the sum. Never called
+    under `-n 0`, there being no worker to go down.
+
+    :param skip_counts: the controller's own running tally.
+    :param workeroutput: what that worker's own `stash_or_report` stashed
+        in its process, crossed over by xdist as plain data, or `None`
+        where the worker never got that far.
+    """
+    if workeroutput is not None:
+        skip_counts.add_mapping(
+            cast("Mapping[str, int]", workeroutput.get("skip_counts", {}))
+        )

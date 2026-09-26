@@ -26,6 +26,7 @@ from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability
 from bitcoin_node_tests.mini_wallet import (
+    DEFAULT_FEE_RATE,
     FEE,
     MiniWallet,
     Utxo,
@@ -39,6 +40,13 @@ if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
 
 _GENESIS = "00" * 32
+
+# the vsize of every unpadded `create_self_transfer`, the figure Core's own
+# `create_self_transfer` (`wallet.py`) prices its fee at for this coin shape
+_SELF_TRANSFER_VSIZE = 104
+
+# `DEFAULT_FEE_RATE` over that vsize, satoshis: 300 sat/vB times 104 vB
+_DEFAULT_FEE = 31_200
 
 # Core's own published address for the internal key 1 and a single OP_TRUE
 # leaf (`test_framework/address.py`'s own
@@ -110,8 +118,10 @@ class _FakeRpc:
         # the only call left this fake ever answers: sendrawtransaction
         assert method == "sendrawtransaction"
         assert params is not None
-        tx_hex = params[0]
+        tx_hex, maxfeerate = params
         assert isinstance(tx_hex, str)
+        # `wallet.py`'s own `sendrawtransaction` lifts the fee ceiling
+        assert maxfeerate == 0
         self.sent.append(tx_hex)
         if self._send_answer == "sentinel":
             return _txid_of(tx_hex)
@@ -319,7 +329,7 @@ def test_create_self_transfer_spends_a_matured_coin() -> None:
     assert len(tx.vin) == 1
     assert len(tx.vout) == 1
     assert tx.vout[0].script_pub_key == wallet.script_pub_key
-    assert wallet.get_balance() == balance_before - FEE
+    assert wallet.get_balance() == balance_before - _DEFAULT_FEE
 
 
 def test_create_self_transfer_can_spend_a_coin_it_already_created() -> None:
@@ -866,7 +876,7 @@ def test_get_utxo_takes_the_largest_matured_coin_not_the_oldest() -> None:
     first = wallet.create_self_transfer()
     assert first.vin[0].prev_out.tx_id.hex() == _coinbase_txid(rpc, 0)
 
-    # cached last, and 50 BTC less FEE outweighs the 25 BTC coinbases
+    # cached last, and 50 BTC less its fee outweighs the 25 BTC coinbases
     # still ahead of it in the order they were cached
     assert wallet.get_utxo().outpoint == OutPoint(first.id, 0)
 
@@ -906,7 +916,7 @@ def test_a_coin_taken_without_being_marked_spent_is_dropped_once_spent() -> None
     assert wallet.get_balance() == balance
 
     wallet.create_self_transfer(utxo_to_spend=coin)
-    assert wallet.get_balance() == balance - FEE
+    assert wallet.get_balance() == balance - _DEFAULT_FEE
     with pytest.raises(LookupError, match="no coin"):
         wallet.get_utxo(txid=coin.outpoint.tx_id.hex())
 
@@ -1022,3 +1032,234 @@ def test_confirmed_only_reaches_get_utxo_from_every_spend(
 
     with pytest.raises(LookupError, match="confirmed"):
         spend(wallet)
+
+
+def _funded_wallet() -> tuple[_FakeRpc, MiniWallet, Utxo]:
+    """Return a wallet holding one matured coin, and that coin, still cached."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    return rpc, wallet, wallet.get_utxo(mark_as_spent=False)
+
+
+def test_create_self_transfer_defaults_are_core_s_own() -> None:
+    """Core's defaults: 0.003 BTC/kvB, version 2, `nLockTime`, `nSequence` 0."""
+    _, wallet, coin = _funded_wallet()
+
+    tx = wallet.create_self_transfer(utxo_to_spend=coin)
+
+    assert DEFAULT_FEE_RATE * _SELF_TRANSFER_VSIZE // 1000 == _DEFAULT_FEE
+    assert tx.vsize == _SELF_TRANSFER_VSIZE
+    assert coin.value - tx.vout[0].value == _DEFAULT_FEE
+    assert tx.version == 2
+    assert tx.lock_time == 0
+    assert tx.vin[0].sequence == 0
+
+
+@pytest.mark.parametrize(
+    "fee_rate,fee",
+    [
+        (0, 0),
+        (1000, 104),
+        # 1283.88 sat: rounded up, never down, as `CFeeRate::GetFee` does
+        (12_345, 1284),
+    ],
+)
+def test_create_self_transfer_prices_fee_rate_over_its_own_vsize(
+    fee_rate: int, fee: int
+) -> None:
+    """`fee_rate` is satoshis per 1000 virtual bytes, rounded up."""
+    _, wallet, coin = _funded_wallet()
+
+    tx = wallet.create_self_transfer(utxo_to_spend=coin, fee_rate=fee_rate)
+
+    assert coin.value - tx.vout[0].value == fee
+
+
+def test_create_self_transfer_takes_fee_over_fee_rate() -> None:
+    """A nonzero `fee` is the fee, whatever `fee_rate` says."""
+    _, wallet, coin = _funded_wallet()
+
+    tx = wallet.create_self_transfer(utxo_to_spend=coin, fee=5000, fee_rate=1)
+
+    assert coin.value - tx.vout[0].value == 5000
+
+
+def test_create_self_transfer_prices_fee_rate_over_target_vsize() -> None:
+    """With `target_vsize` and no `fee`, the padded size is what is priced."""
+    _, wallet, coin = _funded_wallet()
+
+    tx = wallet.create_self_transfer(
+        utxo_to_spend=coin, fee_rate=12_345, target_vsize=250
+    )
+
+    assert tx.vsize == 250
+    # 3086.25 sat, rounded up; the padding output itself carries nothing
+    assert coin.value - sum(out.value for out in tx.vout) == 3087
+    assert tx.vout[1].value == 0
+
+
+def test_create_self_transfer_keeps_fee_with_target_vsize() -> None:
+    """With `target_vsize` and a `fee`, the fee is still exactly `fee`."""
+    _, wallet, coin = _funded_wallet()
+
+    tx = wallet.create_self_transfer(utxo_to_spend=coin, fee=777, target_vsize=250)
+
+    assert tx.vsize == 250
+    assert coin.value - sum(out.value for out in tx.vout) == 777
+
+
+@pytest.mark.parametrize("fee_rate,fee", [(-1, 0), (0, -1)])
+def test_create_self_transfer_refuses_a_negative_fee_before_taking_a_coin(
+    fee_rate: int, fee: int
+) -> None:
+    """A negative `fee_rate` or `fee` is refused, no coin leaving the cache."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    balance_before = wallet.get_balance()
+
+    with pytest.raises(ValueError, match="must not be negative"):
+        wallet.create_self_transfer(fee_rate=fee_rate, fee=fee)
+
+    assert wallet.get_balance() == balance_before
+
+
+def test_create_self_transfer_refuses_a_fee_the_coin_cannot_cover() -> None:
+    """A fee at or beyond the coin's own value leaves nothing to send."""
+    _, wallet, coin = _funded_wallet()
+    with pytest.raises(ValueError, match="cannot cover"):
+        wallet.create_self_transfer(utxo_to_spend=coin, fee=coin.value)
+
+
+def test_create_self_transfer_sets_version_locktime_and_sequence() -> None:
+    """`version`, `locktime` and `sequence` are the tx's own fields."""
+    _, wallet, coin = _funded_wallet()
+
+    tx = wallet.create_self_transfer(
+        utxo_to_spend=coin, version=3, locktime=500, sequence=0xFFFFFFFD
+    )
+
+    assert tx.version == 3
+    assert tx.lock_time == 500
+    assert tx.vin[0].sequence == 0xFFFFFFFD
+
+
+def test_create_self_transfer_takes_a_one_element_sequence() -> None:
+    """A list of one `nSequence` is taken the way a bare one is."""
+    _, wallet, coin = _funded_wallet()
+
+    tx = wallet.create_self_transfer(utxo_to_spend=coin, sequence=[7])
+
+    assert tx.vin[0].sequence == 7
+
+
+def test_create_self_transfer_refuses_more_sequences_than_inputs() -> None:
+    """More `nSequence` values than inputs is refused, not truncated."""
+    _, wallet, coin = _funded_wallet()
+    with pytest.raises(ValueError, match="2 sequence"):
+        wallet.create_self_transfer(utxo_to_spend=coin, sequence=[1, 2])
+
+
+def test_send_self_transfer_forwards_every_parameter() -> None:
+    """What `send_self_transfer` sends is `create_self_transfer`'s answer."""
+    rpc, wallet, coin = _funded_wallet()
+
+    tx = wallet.send_self_transfer(
+        utxo_to_spend=coin,
+        fee_rate=1000,
+        target_vsize=300,
+        version=3,
+        locktime=9,
+        sequence=5,
+    )
+
+    assert rpc.sent == [tx.serialize(True, check_validity=False).hex()]
+    assert tx.vsize == 300
+    assert coin.value - sum(out.value for out in tx.vout) == 300
+    assert (tx.version, tx.lock_time, tx.vin[0].sequence) == (3, 9, 5)
+
+
+def test_send_self_transfer_forwards_fee_and_confirmed_only() -> None:
+    """`fee` and `confirmed_only` reach `create_self_transfer` too."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    coin = wallet.get_utxo(mark_as_spent=False, confirmed_only=True)
+
+    tx = wallet.send_self_transfer(fee=4321, confirmed_only=True)
+
+    assert tx.vin[0].prev_out == coin.outpoint
+    assert coin.value - tx.vout[0].value == 4321
+
+
+def test_create_self_transfer_multi_defaults_are_core_s_own() -> None:
+    """Version 2, `nLockTime` 0 and every input's own `nSequence` 0."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 2)
+    coins = wallet.get_utxos()[:2]
+
+    tx = wallet.create_self_transfer_multi(utxos_to_spend=coins)
+
+    assert tx.version == 2
+    assert tx.lock_time == 0
+    assert [tx_in.sequence for tx_in in tx.vin] == [0, 0]
+
+
+def test_create_self_transfer_multi_sets_one_sequence_on_every_input() -> None:
+    """A bare `sequence` is every input's; `version`, `locktime` the tx's."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 2)
+    coins = wallet.get_utxos()[:2]
+
+    tx = wallet.create_self_transfer_multi(
+        utxos_to_spend=coins, version=3, locktime=42, sequence=0xFFFFFFFE
+    )
+
+    assert tx.version == 3
+    assert tx.lock_time == 42
+    assert [tx_in.sequence for tx_in in tx.vin] == [0xFFFFFFFE] * 2
+
+
+def test_create_self_transfer_multi_sets_a_sequence_per_input() -> None:
+    """A list of `nSequence` values is paired with the coins, in order."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 2)
+    coins = wallet.get_utxos()[:2]
+
+    tx = wallet.create_self_transfer_multi(utxos_to_spend=coins, sequence=[3, 4])
+
+    assert [tx_in.prev_out for tx_in in tx.vin] == [coin.outpoint for coin in coins]
+    assert [tx_in.sequence for tx_in in tx.vin] == [3, 4]
+
+
+def test_create_self_transfer_multi_refuses_too_few_sequences() -> None:
+    """One `nSequence` for two coins is refused, `wallet.py`'s own assert."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 2)
+    coins = wallet.get_utxos()[:2]
+    with pytest.raises(ValueError, match="1 sequence"):
+        wallet.create_self_transfer_multi(utxos_to_spend=coins, sequence=[3])
+
+
+def test_send_self_transfer_multi_forwards_version_locktime_and_sequence() -> None:
+    """The three fields reach `create_self_transfer_multi` through this call."""
+    rpc, wallet, _ = _funded_wallet()
+
+    tx = wallet.send_self_transfer_multi(version=3, locktime=8, sequence=6)
+
+    assert rpc.sent == [tx.serialize(True, check_validity=False).hex()]
+    assert (tx.version, tx.lock_time, tx.vin[0].sequence) == (3, 8, 6)
+
+
+def test_send_to_spends_with_core_s_own_fields() -> None:
+    """`create_self_transfer(fee_rate=0)`'s fields, as `wallet.py` builds."""
+    _, wallet, _ = _funded_wallet()
+
+    tx = wallet.send_to(nulldata_script_pub_key(b""), 1)
+
+    assert (tx.version, tx.lock_time, tx.vin[0].sequence) == (2, 0, 0)

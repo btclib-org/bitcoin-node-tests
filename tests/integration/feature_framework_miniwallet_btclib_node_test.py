@@ -51,3 +51,17 @@ def test_mini_wallet_confirmed_only_tells_mined_coins_from_mempool_ones(
 ) -> None:
     """The target: the same request the bitcoind module makes."""
     require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+
+
+def test_mini_wallet_fee_rate_is_the_fee_the_node_reports(
+    btclib_node_adapter: BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """The target: the same request the bitcoind module makes."""
+    require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+
+
+def test_mini_wallet_version_3_is_held_to_truc_policy(
+    btclib_node_adapter: BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """The target: the same request the bitcoind module makes."""
+    require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)

@@ -16,10 +16,11 @@ Dropped: Core's own file's whole body, which builds eighty-three inputs
 and tests BIP68's relative locktimes, BIP112's `OP_CHECKSEQUENCEVERIFY`
 and BIP113's median-time-past cutover against real transactions --
 `MiniWallet`'s own `ADDRESS_OP_TRUE` coins spend through a single fixed
-tapscript leaf carrying neither opcode, and a version this harness could
-build (a caller-chosen leaf, or a caller-chosen `nSequence`/`nLockTime`
-on `create_self_transfer`) is a capability this file's own two
-mechanisms do not already reach, so it stays open under
+tapscript leaf carrying neither opcode. A version this harness could
+build needs a caller-chosen leaf for BIP112's opcode, and
+`create_self_transfer`'s own `sequence` and `locktime` for BIP68's and
+BIP113's fields -- more than this file's own two mechanisms, so it stays
+open under
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14).
 Kept: `getdeploymentinfo`'s own `csv` entry, transitioning one block
 before the configured height the same way `bip66`'s and `bip65`'s do in

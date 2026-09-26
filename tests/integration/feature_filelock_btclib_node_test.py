@@ -11,18 +11,27 @@ No `Capability` is asked for -- the refusal is a process fact every
 `NodeAdapter` already answers (`node.py`'s own `start`), not one either
 node declares or withholds.
 
-`btclib_node`'s own chainstate and block databases are each their own
-`Rdict` (RocksDB), which takes an exclusive lock on its own directory:
+Two wordings are live across the builds this suite runs against, both
+this node's own rather than bitcoind's, and the match below accepts
+either rather than picking one -- the smaller design against a version
+switch, since nothing here needs to know which build is running, only
+that its own refusal names the directory it could not lock. The
+released build (PyPI, `2026.9.24` and every build before
+[ISS btclib-node#1147](https://github.com/btclib-org/btclib-node/issues/1147)
+landed) leaves each database's own `Rdict` (RocksDB) to fail uncaught:
 measured live, a second `python -m btclib_node` pointed at a datadir (or
-a blocksdir) already open exits 1 with an uncaught `Exception: IO
-error: While lock file: <path>/LOCK: Resource temporarily unavailable`
--- the same category of fact bitcoind's own "Cannot obtain a lock on
-directory" names, in this node's own wording rather than a friendly
-message of its own. That the exception is uncaught, where bitcoind's
-own is a clean init error, is
-[ISS btclib-node#1147](https://github.com/btclib-org/btclib-node/issues/1147),
-filed on that repository's own tracker; the match below is against this
-node's own traceback text and is unaffected by whether it is caught.
+a blocksdir) already open exits 1 with `Exception: IO error: While lock
+file: <path>/LOCK: Resource temporarily unavailable`, naming the
+`chainstate` or the `blocks` subdirectory RocksDB itself opened. A build
+past #1147's fix (`main`) locks the data directory and then the blocks
+directory before either store opens, and answers the same conflict with
+Core's own clean init error, "Error: Cannot obtain a lock on directory
+<path>. btclib-node is probably already running.", naming the directory
+`Node.__init__` locked rather than a RocksDB-internal path -- measured
+live against a `main` build, `<datadir>/regtest` for the first test
+below and `<first datadir>/regtest/blocks` for the second, matching
+`feature_filelock_bitcoind_test.py`'s own wording once every build in
+this suite's own matrix is past the fix.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/feature_filelock_btclib_node_test.py
@@ -42,6 +51,20 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.integration
 
+# The released build's own uncaught RocksDB wording, naming the
+# subdirectory its `Rdict` opened, alternated with the fixed build's own
+# clean refusal, naming the directory `Node.__init__` locked instead --
+# see the module docstring for which build emits which. Each alternative
+# pins its own directory, so neither test accepts the other's refusal.
+_DATADIR_LOCK_REFUSAL = (
+    r"chainstate[/\\]LOCK"
+    r"|Cannot obtain a lock on directory \S*[/\\]regtest\. "
+)
+_BLOCKSDIR_LOCK_REFUSAL = (
+    r"blocks[/\\]LOCK"
+    r"|Cannot obtain a lock on directory \S*[/\\]regtest[/\\]blocks\. "
+)
+
 
 def test_second_instance_on_same_datadir_refuses_to_start(
     btclib_node_python: str, tmp_path: Path
@@ -54,7 +77,7 @@ def test_second_instance_on_same_datadir_refuses_to_start(
         second = BtclibNodeAdapter(
             btclib_node_python, datadir, free_port(), free_port()
         )
-        with pytest.raises(RuntimeError, match=r"chainstate[/\\]LOCK"):
+        with pytest.raises(RuntimeError, match=_DATADIR_LOCK_REFUSAL):
             second.start()
     finally:
         first.stop()
@@ -77,7 +100,7 @@ def test_second_instance_on_same_blocksdir_refuses_to_start(
             free_port(),
             extra_args=(f"-blocksdir={first_datadir}",),
         )
-        with pytest.raises(RuntimeError, match=r"blocks[/\\]LOCK"):
+        with pytest.raises(RuntimeError, match=_BLOCKSDIR_LOCK_REFUSAL):
             second.start()
     finally:
         first.stop()

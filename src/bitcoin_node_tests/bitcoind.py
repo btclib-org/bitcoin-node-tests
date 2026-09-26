@@ -255,6 +255,24 @@ class BitcoindAdapter(NodeAdapter):
         unconditional here rather than left to a per-test option, since
         `_check_extra_args` (`node.py`) refuses an `extra_args` entry
         naming `-debug` once this argv sets it.
+
+        `-rpcallowip=127.0.0.1` is what makes `-rpcbind` bind at all:
+        Core's `HTTPBindAddresses` (`src/httpserver.cpp`) ignores
+        `-rpcbind` unless `-rpcallowip` is also given, binds `::1` and
+        `127.0.0.1` instead, and starts where either one binds. With both
+        given, `127.0.0.1` is the one RPC endpoint, so a port another
+        process already holds there fails init and the process exits,
+        which `_wait_for_rpc` (`node.py`) reports on its exit code rather
+        than waiting out its timeout against a node answering on `::1`
+        alone (measured against the pinned `31.1`,
+        [ISS 135](https://github.com/btclib-org/bitcoin-node-tests/issues/135)).
+        It admits no client the default does not: `InitHTTPAllowList`
+        admits `127.0.0.0/8` and `::1` whatever `-rpcallowip` names.
+        Core's own framework passes neither option (`util.py`'s
+        `write_config`), its ports coming from `--portseed` (`util.py`'s
+        `p2p_port`) rather than from the OS, as `free_ports` (`node.py`)
+        takes them. `-bind` needs no such partner: `CConnman::InitBinds`
+        (`src/net.cpp`) fails init on any `-bind` address it cannot bind.
         """
         return [
             self._executable,
@@ -262,6 +280,7 @@ class BitcoindAdapter(NodeAdapter):
             f"-datadir={self._datadir}",
             f"-rpcport={self._rpc_port}",
             "-rpcbind=127.0.0.1",
+            "-rpcallowip=127.0.0.1",
             f"-bind=127.0.0.1:{self._p2p_port}",
             "-natpmp=0",
             "-discover=0",

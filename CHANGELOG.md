@@ -319,3 +319,8 @@ read over `assert_debug_log` against bitcoind's own `dropped (banned)`, not
 `capability.py`'s module docstring names the mechanism that turns
 `MissingCapabilityError` into a skip as `tests/conftest.py`'s own
 `pytest_runtest_call` hookwrapper (closes #97).
+
+### `nocleanup_bitcoind_test` stops its node on a failing assertion too
+
+The datadir-survives-`stop` assertion now runs inside a `try`/`finally`, so
+a failure no longer leaves the node running past the test (closes #95).

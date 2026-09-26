@@ -38,7 +38,9 @@ def test_stop_leaves_the_datadir_and_its_debug_log_on_disk(
     adapter = BitcoindAdapter(bitcoind_path, datadir, free_port(), free_port())
     adapter.start()
     log_path = adapter.debug_log_path
-    assert log_path.exists()
-    adapter.stop()
+    try:
+        assert log_path.exists()
+    finally:
+        adapter.stop()
     assert datadir.exists()
     assert log_path.exists()

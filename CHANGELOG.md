@@ -492,3 +492,9 @@ and on for a release, which guix builds with the wallet (closes #53).
 Each fails on an empty report or on a skip that is not a capability's: an
 `import btclib_node` raising after a good install skips every test, and pytest
 alone exits 0 on that (closes #87).
+
+### `btclib-node` keeps its own interpreter rather than a dependency group
+
+`pyproject.toml`'s `[dependency-groups]` comment says why: btclib-node's floor
+sits above the interpreter `.python-version` names, and `TF2_BTCLIB_NODE_PYTHON`
+names any build of it -- a release, its `main`, a checkout (closes #42).

@@ -1746,11 +1746,16 @@ a banned peer connecting once the node is restarted with its address
 whitelisted, `getpeerinfo` naming `noban` among its permissions while
 `listbanned` still lists the ban; and a ban added after a restart with
 `-bantime` given that duration. The same-`extra_args` restarts are
-`restart` given none: a ban surviving a plain restart, checked through
-`connect_nodes`' own handshake wait timing out on a still-banned dial
-rather than through Core's own `assert_debug_log`, the dial being a fact
-the wire carries, and reconnection succeeding again once the ban is
-lifted. Kept alongside them: a live connection dropping the
+`restart` given none: a ban surviving a plain restart, checked against
+`listbanned` before the refused reconnection is attempted at all, since
+a bare `TimeoutError` out of `connect_nodes` answers a slow start as
+readily as a refused one
+([ISS 94](https://github.com/btclib-org/bitcoin-node-tests/issues/94)).
+The dial itself is then read the way Core's own reconnection wait is,
+over `assert_debug_log` rather than the timeout alone: bitcoind's own
+`CreateNodeFromAcceptedSocket` (`src/net.cpp`) logs `dropped (banned)`
+the moment it refuses the accepted socket. Reconnection succeeds again
+once the ban is lifted. Kept alongside them: a live connection dropping the
 moment `setban` matches its address, `node.wait_until_disconnected`
 standing in for Core's own wait on `is_connected_to` going false; and
 the non-IP address check, which needs no second node at all.

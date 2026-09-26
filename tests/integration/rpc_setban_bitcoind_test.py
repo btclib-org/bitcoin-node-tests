@@ -17,13 +17,19 @@ noban permission, and its `-bantime=1234` section, setting the duration
 a new ban is given, restart a node with `extra_args` it did not start
 with: `restart([...])` (`node.py`) uses them for that start alone,
 matching Core's own `restart_node(1, [...])`. Where Core restarts with
-`[]`, the node's own start argv, `restart()` is the same restart. Core's
-own reconnection wait after the first restart uses
-`assert_debug_log`; a banned dial is also visible on the wire, never
-completing a handshake, so the same wait is made through
-`connect_nodes`' own handshake wait timing out and needs no
-`Capability.DEBUG_LOG` (`capability.py`'s own rule for a fact the wire
-carries).
+`[]`, the node's own start argv, `restart()` is the same restart.
+
+The plain restart's own ban check reads `listbanned` first, the way
+Core's own `is_banned` helper does, before the refused reconnection is
+even attempted: a `TimeoutError` out of `connect_nodes` is otherwise no
+different from a slow start, a port problem or a handshake stall, none
+of them the ban this test names
+([ISS 94](https://github.com/btclib-org/bitcoin-node-tests/issues/94)).
+The dial itself is then read the way Core's own reconnection wait is,
+over `assert_debug_log` (`debug_log.py`) rather than the timeout alone:
+bitcoind's own `CreateNodeFromAcceptedSocket` (`src/net.cpp`) logs
+`dropped (banned)` the moment it refuses the accepted socket, which
+`Capability.DEBUG_LOG` gates.
 
 `Capability.BAN` is bitcoind's alone: `setban`, `listbanned` and
 `clearbanned` name no callback in `btclib-node`'s own dispatch table, on
@@ -40,6 +46,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from bitcoin_node_tests.capability import Capability, require
+from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.node import connect_nodes, wait_until_disconnected
 
 if TYPE_CHECKING:
@@ -84,13 +91,21 @@ def test_a_ban_survives_a_restart_until_it_is_removed(
     node0, node1 = bitcoind_cluster(2)
     require(Capability.CONNECT, node0.capabilities, skip_counts)
     require(Capability.BAN, node1.capabilities, skip_counts)
+    require(Capability.DEBUG_LOG, node1.capabilities, skip_counts)
 
     connect_nodes(node0, node1)
     node1.rpc.call("setban", ["127.0.0.1", "add"])
     wait_until_disconnected(node0, node1)
 
     node1.restart()
-    with pytest.raises(TimeoutError):
+    banned = node1.rpc.call("listbanned")
+    assert isinstance(banned, list)
+    assert [entry["address"] for entry in banned] == ["127.0.0.1/32"]
+
+    with (
+        assert_debug_log(node1.debug_log_path, ["dropped (banned)"]),
+        pytest.raises(TimeoutError),
+    ):
         connect_nodes(node0, node1, timeout=2.0)
 
     node1.rpc.call("setban", ["127.0.0.1", "remove"])

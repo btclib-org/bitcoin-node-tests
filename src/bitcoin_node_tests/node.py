@@ -48,6 +48,7 @@ __all__ = [
     "free_ports",
     "sync_all",
     "traced_transport",
+    "wait_until",
     "wait_until_disconnected",
     "wait_until_mempools_agree",
     "wait_until_tips_agree",
@@ -629,6 +630,33 @@ def _wait_for_handshake(node: NodeAdapter, peer_id: object, deadline: float) -> 
                 break
         time.sleep(0.1)
     err_msg = f"{node} never completed its own handshake with peer {peer_id!r}"
+    raise TimeoutError(err_msg)
+
+
+def wait_until(predicate: Callable[[], bool], *, timeout: float = 30.0) -> None:
+    """Poll `predicate` every 0.1 s until it returns `True`, or raise.
+
+    Core's own `TestNode.wait_until` (`test_framework/test_node.py`) calls
+    `wait_until_helper_internal` (`test_framework/util.py`) with that
+    node's `--timeout-factor`; this package spawns no `TestNode` for a
+    method like that to live on, so a free function serves in its place,
+    and a test-local wait that needs nothing beyond a predicate calls it
+    instead of reimplementing this loop, unscaled, beside it
+    ([ISS 90](https://github.com/btclib-org/bitcoin-node-tests/issues/90)).
+
+    :param predicate: checked every 0.1 s until it returns `True`.
+    :param timeout: how long to keep polling, before `--timeout-factor`'s
+        own scaling (`timeout_factor.scaled`).
+    :raises TimeoutError: `predicate` never returned `True` within
+        `timeout`.
+    """
+    timeout = scaled(timeout)
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return
+        time.sleep(0.1)
+    err_msg = f"condition not met within {timeout} s"
     raise TimeoutError(err_msg)
 
 

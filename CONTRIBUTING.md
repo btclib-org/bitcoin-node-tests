@@ -513,7 +513,7 @@ each request and reply as it is made, matching Core's own wording.
 `--timeout-factor`: scales every wait this suite's own adapters and
 `Peer` make by default -- `NodeAdapter.start`'s own startup wait and
 `NodeAdapter.stop`'s own wait for the process to exit, `connect_nodes`,
-`wait_until_disconnected`, `wait_until_tips_agree`,
+`wait_until`, `wait_until_disconnected`, `wait_until_tips_agree`,
 `wait_until_mempools_agree` and `assert_debug_log` in `node.py` and
 `debug_log.py` (`disconnect_nodes` and `sync_all` through the waits they
 call), and `Peer`'s own
@@ -521,7 +521,10 @@ connection and per-call timeouts in `peer.py` -- through
 `timeout_factor.py`'s own `scaled`, set once per process by
 `tests/integration/conftest.py`'s own `pytest_configure`, the same
 per-process scope `SkipCounts` already carries for the same `-n auto`
-reason.
+reason. `node.wait_until` is the shared, scaled loop
+`tests/integration/`'s own test modules poll a predicate through, rather
+than each reimplementing one unscaled beside it
+([ISS 90](https://github.com/btclib-org/bitcoin-node-tests/issues/90)).
 
 `--v2transport` and `--v1transport`: through the adapter rather than a
 pytest option, since this suite has no central test-framework object

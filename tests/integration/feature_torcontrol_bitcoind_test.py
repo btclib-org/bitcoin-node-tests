@@ -53,16 +53,14 @@ from __future__ import annotations
 
 import socket
 import threading
-import time
 from typing import TYPE_CHECKING, override
 
 import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.node import free_port, free_ports
+from bitcoin_node_tests.node import free_port, free_ports, wait_until
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from pathlib import Path
 
 pytestmark = pytest.mark.integration
@@ -74,8 +72,6 @@ pytestmark = pytest.mark.integration
 # docstring above has the measurement against the pinned `31.1` and
 # against Core's own `master`.
 _POW_DEFENSES_VERSION = 320000
-
-_POLL_INTERVAL = 0.1
 
 
 class _OnionBitcoindAdapter(BitcoindAdapter):
@@ -187,23 +183,6 @@ class _MockTorControlServer:
         return "510 Unrecognized command\r\n"
 
 
-def _wait_until(predicate: Callable[[], bool], *, timeout: float = 10.0) -> None:
-    """Poll `predicate` until true, or raise once `timeout` elapses.
-
-    :param predicate: checked every `_POLL_INTERVAL` until it answers true.
-    :param timeout: how long to keep polling.
-    :raises TimeoutError: `predicate` never answered true in time.
-    """
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        if predicate():
-            return
-        time.sleep(_POLL_INTERVAL)
-    if not predicate():
-        err_msg = f"condition not met within {timeout} s"
-        raise TimeoutError(err_msg)
-
-
 def test_torcontrol_drives_a_tor_control_session_to_add_onion(
     bitcoind_path: str, tmp_path: Path
 ) -> None:
@@ -230,7 +209,7 @@ def test_torcontrol_drives_a_tor_control_session_to_add_onion(
         adapter.start()
         try:
             client_version = adapter.rpc.call("getnetworkinfo")["version"]
-            _wait_until(lambda: len(mock_tor.received_commands) >= 4)
+            wait_until(lambda: len(mock_tor.received_commands) >= 4)
         finally:
             adapter.stop()
     finally:

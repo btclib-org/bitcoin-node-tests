@@ -27,6 +27,7 @@ from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.peer import Peer
+from bitcoin_node_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from bitcoin_node_tests.bitcoind import BitcoindAdapter
@@ -68,7 +69,7 @@ def _assert_disconnects_on(
         peer.send(message, check_validity=False)
         with pytest.raises(ConnectionError):
             while True:
-                peer.receive(timeout=10.0)
+                peer.receive(timeout=scaled(10.0))
 
 
 def _assert_answers_within(

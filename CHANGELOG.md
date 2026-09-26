@@ -462,3 +462,9 @@ the port may never have matched that file, so it is checked first (closes #143).
 A probe of the build's own `rpc.callbacks.callbacks` declares `BAN` where it
 names `setban`, `listbanned` and `clearbanned`, as `btclib-node`'s `main` does
 and the release does not (closes #140).
+
+### `tf2_master_verdict` reads the data files a Core test loads
+
+A master-only failure reads "file unchanged since the pin" only where no data
+file its Core test loads has moved either, where the entry closing #143 names
+the test file alone; a moved data file is a stale port, named (closes #146).

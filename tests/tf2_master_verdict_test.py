@@ -296,14 +296,22 @@ def test_latest_commit_answers_none_for_a_path_gone_upstream(
     assert verdict._latest_commit(f"{_DIR}/gone.py") is None
 
 
+# the API's own full sha for a commit the ledger pins as `0d1301b47a35`
+_FULL_SHA = "0d1301b47a35c0ffeec0ffeec0ffeec0ffee0123"
+
+
 def test_classify_stale_port(verdict: ModuleType) -> None:
     """The file has moved since the pin: this repository's own defect."""
-    assert verdict.classify("0d1301b47a35", "fedcba987654") == "stale port"
+    assert verdict.classify("0d1301b47a35", "fedcba987654" + "0" * 28) == "stale port"
 
 
 def test_classify_candidate_regression(verdict: ModuleType) -> None:
-    """The file has not moved: a finding for Core, once checked by hand."""
-    assert verdict.classify("0d1301b47a35", "0d1301b47a35") == "candidate regression"
+    """The file has not moved: a finding for Core, once checked by hand.
+
+    The API answers a full sha, which the ledger's abbreviated pin is a
+    prefix of ([ISS 83](https://github.com/btclib-org/bitcoin-node-tests/issues/83)).
+    """
+    assert verdict.classify("0d1301b47a35", _FULL_SHA) == "candidate regression"
 
 
 def test_verdicts_classifies_a_master_only_failure(
@@ -427,7 +435,7 @@ def test_main_prints_a_master_only_verdict(
         ),
         encoding="utf-8",
     )
-    fake_gh.commits[f"{_DIR}/feature_blocksdir.py"] = ("0d1301b47a35", "2026-03-24")
+    fake_gh.commits[f"{_DIR}/feature_blocksdir.py"] = (_FULL_SHA, "2026-03-24")
     master = tmp_path / "master.xml"
     master.write_text(_junit([(classname, "test_a", "fail")]), encoding="utf-8")
     pinned = tmp_path / "pinned.xml"

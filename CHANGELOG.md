@@ -290,3 +290,9 @@ past it, in Core's own words, and `-reindex` upgrades it (issue #3).
 `stop` raises on a node that exited with a code other than 0, carrying its
 stderr; a second `start` raises; `mine` loads its wallet after a restart or
 over a reused datadir (closes #84) (closes #86) (closes #92).
+
+### `tf2_master_verdict` can answer "candidate regression"
+
+`classify` compared `TF2.md`'s abbreviated pin with the API's full sha, so
+every master-only failure read as a stale port; the pin is now matched as a
+prefix (closes #83).

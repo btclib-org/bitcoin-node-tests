@@ -158,7 +158,20 @@ jobs:
           export TF2_BTCLIB_NODE_PYTHON="$BTCLIB_NODE_PYTHON"
           export TF2_BITCOIND="$BITCOIND_PATH"
           uv run --locked --no-default-groups --group test \
-            pytest tests/integration/*_btclib_node_test.py
+            pytest tests/integration/*_btclib_node_test.py \
+            --junitxml=integration.xml
+      # the `bitcoind` job's own "did the node tests run" question, asked
+      # here with capability skips exempted -- the script's docstring has
+      # why. !cancelled(): the step above fails on btclib-node's own
+      # disagreements, and whether the tests reached the node is a
+      # separate answer. It colours this job and not the run: the job's
+      # `continue-on-error` covers every step of it, and whether these
+      # jobs gate anything is ISS 8's decision
+      - name: Fail if the node tests did not run
+        if: ${{ !cancelled() }}
+        run: |
+          uv run --locked --no-default-groups --group test \
+            python .github/scripts/check_node_ran.py integration.xml
 
   core-master:
     name: Regtest against Core built from master
@@ -378,4 +391,11 @@ jobs:
           export TF2_BTCLIB_NODE_PYTHON="$BTCLIB_NODE_PYTHON"
           export TF2_BITCOIND="$BITCOIND_PATH"
           uv run --locked --no-default-groups --group test \
-            pytest tests/integration/*_btclib_node_test.py
+            pytest tests/integration/*_btclib_node_test.py \
+            --junitxml=integration.xml
+      # `btclib-node`'s own step above, over this job's own report
+      - name: Fail if the node tests did not run
+        if: ${{ !cancelled() }}
+        run: |
+          uv run --locked --no-default-groups --group test \
+            python .github/scripts/check_node_ran.py integration.xml

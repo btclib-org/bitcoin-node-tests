@@ -486,3 +486,9 @@ names a path the branch walked never held (closes #150).
 Only `MINE` rests on a `test/config.ini` component, `ENABLE_WALLET`; the adapter
 still probes the binary, and a test holds `MINE` to that file in a build tree
 and on for a release, which guix builds with the wallet (closes #53).
+
+### The `btclib-node` jobs fail when their tests never reached a node
+
+Each fails on an empty report or on a skip that is not a capability's: an
+`import btclib_node` raising after a good install skips every test, and pytest
+alone exits 0 on that (closes #87).

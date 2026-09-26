@@ -60,6 +60,12 @@ _STARTUP_TIMEOUT = 30.0
 # where `start` and `stop` each read it back into the error they raise
 _STDERR_LOG = "node-stderr.log"
 
+# the exit code `stop` accepts, for every adapter: Core's own
+# `TestNode.stop_node` expects 0, and each node exits 0 on `terminate`'s
+# SIGTERM -- measured on bitcoind 31.1, btclib-node 2026.9.24 and
+# btclib-node's `main` at f8f7143
+_CLEAN_EXIT = 0
+
 
 def free_port() -> int:
     """Return a port nothing is listening on, by letting the OS pick one.
@@ -177,6 +183,14 @@ def _check_extra_args(command: Sequence[str], extra_args: Sequence[str]) -> None
             raise ValueError(err_msg)
 
 
+def _read_stderr(stderr_path: Path) -> str:
+    """Return what a node wrote to `stderr_path`, for the error raised on it.
+
+    :param stderr_path: where `start` redirected the node's own stderr.
+    """
+    return stderr_path.read_bytes().decode("utf-8", errors="replace").strip()
+
+
 def _wait_for_rpc(
     rpc: _RpcProbe,
     process: _Process,
@@ -204,10 +218,9 @@ def _wait_for_rpc(
     while time.monotonic() < deadline:
         exit_code = process.poll()
         if exit_code is not None:
-            stderr = stderr_path.read_bytes().decode("utf-8", errors="replace").strip()
             err_msg = (
                 f"node process exited with {exit_code} before its RPC "
-                f"answered -- stderr: {stderr}"
+                f"answered -- stderr: {_read_stderr(stderr_path)}"
             )
             raise RuntimeError(err_msg)
         try:
@@ -338,10 +351,21 @@ class NodeAdapter(ABC):
         no-op after it
         ([ISS 79](https://github.com/btclib-org/bitcoin-node-tests/issues/79)).
 
-        :raises RuntimeError: the process exited before answering; the
-            message carries what it wrote to stderr.
+        A process this adapter already holds is refused rather than
+        replaced: the replaced one would keep running past `stop`, holding
+        its datadir's lock and its ports
+        ([ISS 92](https://github.com/btclib-org/bitcoin-node-tests/issues/92)).
+        Core's own `TestNode.assert_start_raises_init_error` asserts the
+        same of its node before spawning one.
+
+        :raises RuntimeError: this adapter already holds a process, which
+            `stop` ends; or the process exited before answering, the
+            message carrying what it wrote to stderr.
         :raises TimeoutError: the RPC never answered.
         """
+        if self._process is not None:
+            err_msg = "node already started: stop it before starting it again"
+            raise RuntimeError(err_msg)
         self._start(self._extra_args)
 
     def _start(self, extra_args: tuple[str, ...]) -> None:
@@ -371,7 +395,7 @@ class NodeAdapter(ABC):
             raise
 
     def stop(self) -> None:
-        """Terminate the process and wait for it to exit.
+        """Terminate the process, wait for it to exit, and read how it did.
 
         A no-op where nothing was ever started, which is what lets a
         fixture's own teardown call this unconditionally rather than
@@ -383,27 +407,57 @@ class NodeAdapter(ABC):
         ends one; the slow shutdown is then raised, not hidden
         ([ISS 76](https://github.com/btclib-org/bitcoin-node-tests/issues/76)).
 
+        An exit code other than `_CLEAN_EXIT` is raised too, whether the
+        process had already exited before this call -- a crash during the
+        test, which a test's own last RPC call would not have seen -- or
+        exited so on `terminate`: Core's own `TestNode.stop_node` checks
+        the code the same way
+        ([ISS 84](https://github.com/btclib-org/bitcoin-node-tests/issues/84)).
+        A process that had already exited with `_CLEAN_EXIT`, the way an
+        RPC `stop` ends one, is a clean stop.
+
+        Stderr is carried in the error and does not fail a clean exit on
+        its own, unlike Core's `expected_stderr=''`: `_STDERR_LOG` is one
+        file per datadir, so a second process refused over the same
+        datadir writes its init error into the log of a node that then
+        stops cleanly, as `feature_filelock_bitcoind_test.py`'s second
+        process does.
+
+        Each of these raises only once the process has exited and been
+        forgotten, so nothing is left running and a second `stop` is a
+        no-op.
+
         :raises TimeoutError: the process ignored the termination for the
             whole wait and was killed; the message carries what it wrote
             to stderr.
+        :raises RuntimeError: the process exited with a code other than
+            `_CLEAN_EXIT`; the message carries the code, whether it had
+            already exited before this call, and what it wrote to stderr.
         """
         if self._process is None:
             return
         process, self._process = self._process, None
+        already_exited = process.poll() is not None
         process.terminate()
         timeout = scaled(_STARTUP_TIMEOUT)
+        stderr_path = self._datadir / _STDERR_LOG
         try:
-            process.wait(timeout=timeout)
+            exit_code = process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait(timeout=timeout)
-            stderr_path = self._datadir / _STDERR_LOG
-            stderr = stderr_path.read_bytes().decode("utf-8", errors="replace").strip()
             err_msg = (
                 f"node process ignored terminate for {timeout}s and was "
-                f"killed -- stderr: {stderr}"
+                f"killed -- stderr: {_read_stderr(stderr_path)}"
             )
             raise TimeoutError(err_msg) from None
+        if exit_code != _CLEAN_EXIT:
+            when = "before stop was called" if already_exited else "on terminate"
+            err_msg = (
+                f"node process exited with {exit_code} {when} -- "
+                f"stderr: {_read_stderr(stderr_path)}"
+            )
+            raise RuntimeError(err_msg)
 
     def restart(self, extra_args: Sequence[str] | None = None) -> None:
         """Stop and start again, over the same data directory.

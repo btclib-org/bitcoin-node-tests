@@ -145,10 +145,20 @@ def test_debug_log_path_is_the_datadir_s_own_regtest_debug_log(
 
 
 class _FakeRpc:
-    """Enough of `BitcoinCoreRpcClient` for `mine`: `call`, and `for_wallet`."""
+    """Enough of `BitcoinCoreRpcClient` for `mine`: `call`, and `for_wallet`.
 
-    def __init__(self) -> None:
+    `loaded` and `on_disk` are the wallets bitcoind would answer
+    `listwallets` and `listwalletdir` with, `createwallet` adding to both
+    and `loadwallet` to the first -- the state a restart (`on_disk` alone)
+    or a second adapter over the same datadir leaves behind.
+    """
+
+    def __init__(
+        self, loaded: set[str] | None = None, on_disk: set[str] | None = None
+    ) -> None:
         self.calls: list[tuple[str, list[Any] | None]] = []
+        self.loaded = set() if loaded is None else loaded
+        self.on_disk = set(self.loaded) if on_disk is None else on_disk
         self._answers: dict[str, Any] = {
             "getnewaddress": "bcrt1qexampleaddress",
             "generatetoaddress": ["a" * 64],
@@ -156,6 +166,19 @@ class _FakeRpc:
 
     def call(self, method: str, params: list[Any] | None = None) -> Any:
         self.calls.append((method, params))
+        if method == "listwallets":
+            return sorted(self.loaded)
+        if method == "listwalletdir":
+            return {
+                "wallets": [{"name": n, "warnings": []} for n in sorted(self.on_disk)]
+            }
+        if method == "createwallet":
+            assert params is not None
+            self.on_disk.add(params[0])
+            self.loaded.add(params[0])
+        if method == "loadwallet":
+            assert params is not None
+            self.loaded.add(params[0])
         return self._answers.get(method)
 
     def for_wallet(self, name: str) -> _FakeRpc:
@@ -175,8 +198,37 @@ def test_mine_creates_a_wallet_once_and_generates_to_it(tmp_path: Path) -> None:
 
     assert first == second == ["a" * 64]
     assert rpc.calls.count(("createwallet", ["miner"])) == 1
+    assert ("loadwallet", ["miner"]) not in rpc.calls
+    assert ("for_wallet", ["miner"]) in rpc.calls
     assert ("generatetoaddress", [1, "bcrt1qexampleaddress"]) in rpc.calls
     assert ("generatetoaddress", [2, "bcrt1qexampleaddress"]) in rpc.calls
+
+
+def test_mine_loads_a_wallet_on_disk_rather_than_creating_it(tmp_path: Path) -> None:
+    """After a restart, or over a reused datadir, the wallet is loaded."""
+    with patch.object(bitcoind_module, "_has_wallet", return_value=True):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
+    rpc = _FakeRpc(on_disk={"miner"})
+
+    with patch.object(adapter, "_rpc_client", return_value=rpc):
+        adapter.mine(1)
+
+    assert rpc.calls.count(("loadwallet", ["miner"])) == 1
+    assert ("createwallet", ["miner"]) not in rpc.calls
+
+
+def test_mine_leaves_an_already_loaded_wallet_alone(tmp_path: Path) -> None:
+    """A wallet already loaded is neither loaded nor created again."""
+    with patch.object(bitcoind_module, "_has_wallet", return_value=True):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
+    rpc = _FakeRpc(loaded={"miner"})
+
+    with patch.object(adapter, "_rpc_client", return_value=rpc):
+        adapter.mine(1)
+
+    assert not {"loadwallet", "createwallet", "listwalletdir"} & {
+        method for method, _ in rpc.calls
+    }
 
 
 def test_init_refuses_extra_args_naming_bind_the_command_sets(tmp_path: Path) -> None:

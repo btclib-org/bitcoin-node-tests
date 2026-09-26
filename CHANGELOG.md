@@ -284,3 +284,9 @@ stays out, its subject a Core script rather than a node (issue #14).
 
 A lower `-testactivationheight=segwit@N` refuses to restart a chain mined
 past it, in Core's own words, and `-reindex` upgrades it (issue #3).
+
+### `NodeAdapter.stop` reports a crashed node, and `start` refuses a second
+
+`stop` raises on a node that exited with a code other than 0, carrying its
+stderr; a second `start` raises; `mine` loads its wallet after a restart or
+over a reused datadir (closes #84) (closes #86) (closes #92).

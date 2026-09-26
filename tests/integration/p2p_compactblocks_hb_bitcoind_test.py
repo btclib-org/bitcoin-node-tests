@@ -29,7 +29,6 @@ unconditionally, so this is Core's own claim in full.
 
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING
 
 import pytest
@@ -38,6 +37,7 @@ from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import (
     connect_nodes,
     disconnect_nodes,
+    wait_until,
     wait_until_tips_agree,
 )
 
@@ -77,16 +77,16 @@ def _connect_and_track_on_node1(
         connect_nodes(node1, other)
     else:
         connect_nodes(other, node1)
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
+
+    def _new_peer_appeared() -> bool:
         after = {peer["id"] for peer in node1.rpc.call("getpeerinfo")}
         new_ids = after - before
         if new_ids:
             peer_ids[key] = new_ids.pop()
-            return
-        time.sleep(0.1)
-    err_msg = f"node 1 never showed a new peer for {other} within {timeout} s"
-    raise TimeoutError(err_msg)
+            return True
+        return False
+
+    wait_until(_new_peer_appeared, timeout=timeout)
 
 
 def _hb_to(node1: BitcoindAdapter, peer_id: int) -> bool:
@@ -102,16 +102,6 @@ def _hb_from(node: BitcoindAdapter) -> bool:
     """Return whether this node's own (and only) peer selected it as HB."""
     peers = node.rpc.call("getpeerinfo")
     return bool(peers[0]["bip152_hb_from"])
-
-
-def _wait_until(predicate: Callable[[], bool], *, timeout: float = 30.0) -> None:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        if predicate():
-            return
-        time.sleep(0.1)
-    err_msg = f"condition not met within {timeout} s"
-    raise TimeoutError(err_msg)
 
 
 def test_reserved_high_bandwidth_slot_for_the_outbound_peer(
@@ -160,7 +150,7 @@ def test_reserved_high_bandwidth_slot_for_the_outbound_peer(
         node0.mine(1)
         wait_until_tips_agree([node0, *nodes.values()])
         disconnect_nodes(nodes[i], node0)
-        _wait_until(lambda: status_to() == status_from())
+        wait_until(lambda: status_to() == status_from())
         return status_to()
 
     for i in (3, 4, 5):

@@ -31,6 +31,7 @@ from bitcoin_node_tests.node import (
     free_ports,
     sync_all,
     traced_transport,
+    wait_until,
     wait_until_disconnected,
     wait_until_mempools_agree,
     wait_until_tips_agree,
@@ -691,6 +692,34 @@ def test_rpc_property_returns_a_fresh_client_each_time(tmp_path: Path) -> None:
     second = adapter.rpc
     assert first is not second
     assert len(calls) == 2
+
+
+def test_wait_until_returns_once_the_predicate_is_true() -> None:
+    """The wait ends the moment `predicate` answers `True`, and not before."""
+    calls: list[int] = []
+
+    def _predicate() -> bool:
+        calls.append(len(calls))
+        return len(calls) >= 3
+
+    wait_until(_predicate, timeout=30.0)
+    assert len(calls) == 3
+
+
+def test_wait_until_raises_on_a_timeout() -> None:
+    """A deadline already past skips the loop, matching `connect_nodes`."""
+    with pytest.raises(TimeoutError, match="condition not met"):
+        wait_until(lambda: False, timeout=0.0)
+
+
+def test_wait_until_timeout_is_scaled_by_the_global_factor() -> None:
+    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    set_factor(0.0)
+    try:
+        with pytest.raises(TimeoutError, match="condition not met"):
+            wait_until(lambda: False, timeout=1000.0)
+    finally:
+        set_factor(1.0)
 
 
 class _PeerInfoSequenceRpc(_FakeRpc):

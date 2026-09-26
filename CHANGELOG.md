@@ -366,3 +366,9 @@ carry the owner and repository, `TF2.md`'s own form (closes #100).
 An `RpcError` other than `-28 RPC_IN_WARMUP`, or an `HttpError` carrying 401
 or 403, fails at once with the node's own error as its cause, instead of
 waiting out the startup timeout and reporting `TimeoutError` (closes #98).
+
+### A shared, scaled `node.wait_until` replaces the unscaled test-local waits
+
+Two modules' own polling loops ignored `--timeout-factor`; both now share
+`node.wait_until`, and a `peer.receive`/`future.result` timeout in two
+other modules is scaled the same way (closes #90).

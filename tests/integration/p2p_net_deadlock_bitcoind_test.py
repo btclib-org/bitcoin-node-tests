@@ -29,6 +29,7 @@ import pytest
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import connect_nodes, wait_until_tips_agree
+from bitcoin_node_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -63,7 +64,7 @@ def test_simultaneous_large_messages_do_not_deadlock(
             executor.submit(node1.rpc.call, "sendmsgtopeer", [0, "unknown", message]),
         ]
         for future in futures:
-            future.result(timeout=60.0)
+            future.result(timeout=scaled(60.0))
 
     node0.mine(1)
     wait_until_tips_agree([node0, node1])

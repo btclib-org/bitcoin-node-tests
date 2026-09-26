@@ -452,8 +452,12 @@ commit  fa5f29774872d18febc0df38831a6e45f3de69cc  2025-12-16
 behind  0 revisions; that commit is the tip of the path
 ```
 
-Verdict: **tf2's (harness)**. It fills and reads a running node's
-mempool.
+Verdict: **tf2's (harness)**. `fill_mempool` is ported, in
+`src/bitcoin_node_tests/mempool_util.py`, over a throwaway `MiniWallet`
+from `mini_wallet.py`
+([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
+`assert_mempool_contents`, `tx_in_orphanage` and `create_large_orphan`
+are not.
 
 ### `test/functional/test_framework/messages.py`
 
@@ -1529,7 +1533,7 @@ first read, but each also restarts its node with an option --
 `cli.py` does not register, so the option family's own exclusion reaches
 them too: ISS 14's, same as the wallet, log, disk and clock files below.
 `rpc_packages.py` alone also calls `test_framework.mempool_util.fill_mempool`,
-unported
+now built as `mempool_util.fill_mempool`
 ([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
 `mempool_sigoplimit.py`, named alongside them for the same reason, is
 ported below, its own paragraph naming what of it is kept.
@@ -1551,11 +1555,12 @@ the wallet files excepted.
 mempool-policy files, are read this round too and stay open.
 `mempool_package_rbf.py` drives a second node in Core's own file, never
 read from -- its own `sync_all` calls confirm nothing either test
-asserts on -- dropped as a smaller claim, so what actually blocks it is
-the same `fill_mempool` (ISS 70) `rpc_packages.py` needs above; the
-caller-chosen fee, sequence and TRUC's own non-default transaction
-version its own self-transfers pass are what `create_self_transfer`
-takes
+asserts on -- dropped as a smaller claim, so what actually blocked it was
+the same `fill_mempool` `rpc_packages.py` needed above, now built
+([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)),
+and the caller-chosen fee, sequence and TRUC's own non-default
+transaction version its own self-transfers pass, which
+`create_self_transfer` takes
 ([ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103)).
 `mempool_truc.py` needs no second node and no option at its own base
 `set_test_params` (`self.extra_args = [[]]`), but several of its own

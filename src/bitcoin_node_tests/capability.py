@@ -231,6 +231,11 @@ class Capability(Enum):
     `LIMIT_CLUSTER_SIZE` -- recognise `-limitclustersize`, Core's own cap
     on one cluster's own total virtual size
     (`mempool_updatefromblock.py`).
+    `MAXMEMPOOL` -- recognise `-maxmempool`, Core's own cap, in megabytes,
+    on the mempool's own total size -- what
+    `mempool_util.fill_mempool` needs a node started small enough under
+    to reach eviction at all
+    ([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
     `DESCRIPTOR_ACTIVITY` -- answer `getdescriptoractivity`, Core's own
     RPC pairing spend and receive events with the descriptors and blocks
     a caller names. Named for the RPC rather than for an option, the way
@@ -275,6 +280,7 @@ class Capability(Enum):
     BYTES_PER_SIGOP = "bytes_per_sigop"
     LIMIT_CLUSTER_COUNT = "limit_cluster_count"
     LIMIT_CLUSTER_SIZE = "limit_cluster_size"
+    MAXMEMPOOL = "maxmempool"
     DESCRIPTOR_ACTIVITY = "descriptor_activity"
     BLOCK_STATS = "block_stats"
     FASTPRUNE = "fastprune"

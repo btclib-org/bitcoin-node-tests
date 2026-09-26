@@ -154,12 +154,12 @@ class BitcoindAdapter(NodeAdapter):
     handshake from either side.
     `Capability.DATACARRIER`, `Capability.PERMIT_BARE_MULTISIG`,
     `Capability.DUST_RELAY_FEE`, `Capability.BYTES_PER_SIGOP`,
-    `Capability.LIMIT_CLUSTER_COUNT` and `Capability.LIMIT_CLUSTER_SIZE`
-    are unconditional too: `-datacarrier`, `-datacarriersize`,
-    `-permitbaremultisig`, `-dustrelayfee`, `-bytespersigop`,
-    `-limitclustercount` and `-limitclustersize` are all ordinary
-    mempool/relay-policy flags of this binary's own, recognised
-    regardless of what a caller sets them to
+    `Capability.LIMIT_CLUSTER_COUNT`, `Capability.LIMIT_CLUSTER_SIZE` and
+    `Capability.MAXMEMPOOL` are unconditional too: `-datacarrier`,
+    `-datacarriersize`, `-permitbaremultisig`, `-dustrelayfee`,
+    `-bytespersigop`, `-limitclustercount`, `-limitclustersize` and
+    `-maxmempool` are all ordinary mempool/relay-policy flags of this
+    binary's own, recognised regardless of what a caller sets them to
     ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
     `Capability.DESCRIPTOR_ACTIVITY` and `Capability.BLOCK_STATS` are
     unconditional too: `getdescriptoractivity` and `getblockstats` are
@@ -193,6 +193,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.BYTES_PER_SIGOP,
             Capability.LIMIT_CLUSTER_COUNT,
             Capability.LIMIT_CLUSTER_SIZE,
+            Capability.MAXMEMPOOL,
             Capability.DESCRIPTOR_ACTIVITY,
             Capability.BLOCK_STATS,
             Capability.FASTPRUNE,

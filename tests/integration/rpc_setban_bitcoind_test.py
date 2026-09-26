@@ -31,10 +31,9 @@ bitcoind's own `CreateNodeFromAcceptedSocket` (`src/net.cpp`) logs
 `dropped (banned)` the moment it refuses the accepted socket, which
 `Capability.DEBUG_LOG` gates.
 
-`Capability.BAN` is bitcoind's alone: `setban`, `listbanned` and
-`clearbanned` name no callback in `btclib-node`'s own dispatch table, on
-either build measured (`btclib_node.py`'s own docstring;
-[ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088)).
+`BitcoindAdapter` declares `Capability.BAN` for every build, and
+`BtclibNodeAdapter` only for a build whose dispatch table names `setban`,
+`listbanned` and `clearbanned` (`btclib_node.py`'s own docstring).
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """

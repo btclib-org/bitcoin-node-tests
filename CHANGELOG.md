@@ -456,3 +456,9 @@ release, where a solo node never connects a submitted block (closes #56).
 A master-only failure whose Core file has not moved since its pin reads "file
 unchanged since the pin" where it read "candidate regression", naming no owner:
 the port may never have matched that file, so it is checked first (closes #143).
+
+### `BtclibNodeAdapter` declares `BAN` on a build serving a ban list
+
+A probe of the build's own `rpc.callbacks.callbacks` declares `BAN` where it
+names `setban`, `listbanned` and `clearbanned`, as `btclib-node`'s `main` does
+and the release does not (closes #140).

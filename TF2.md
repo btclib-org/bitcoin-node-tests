@@ -836,6 +836,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_scanblocks.py` | `aeca0610865e` | 2026-07-01 | pass | skip |
 | `rpc_scanblocks.py` (no index) | same | same | pass | skip |
 | `p2p_eviction.py` | `1b76e0473647` | 2026-07-24 | pass, `-maxconnections` read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (inbound_eviction) on the build; skip (mine) on a build past [ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064) |
+| `feature_presegwit_node_upgrade.py` | [`fad7bd9ba3ee`](https://github.com/bitcoin/bitcoin/commit/fad7bd9ba3ee) | 2026-01-14 | pass | skip (test_activation_height) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1324,17 +1325,39 @@ stays open under this issue. Core's test sends each payload through
 a port also needs `echo`, and accepts a refusal in the node's own
 wording rather than Core's `Work queue depth exceeded`.
 
-`feature_presegwit_node_upgrade.py` (`-testactivationheight=segwit@N`)
-is another open candidate. It stops the node, expects a lower
-`-testactivationheight=segwit@N` to refuse to start with a named init
-error, then starts it again with `-reindex` added to that same lower
-height -- each restart naming `extra_args` other than the ones the node
-last held, which `NodeAdapter.restart` (`node.py`) takes for one start
-([ISS 51](https://github.com/btclib-org/bitcoin-node-tests/issues/51)).
-The refused start is read the way `rpc_users_bitcoind_test.py` and
-`feature_blocksdir_bitcoind_test.py` already read theirs, a
-`RuntimeError` carrying the node's stderr; the test stays open under
-this issue.
+`feature_presegwit_node_upgrade.py`'s row keeps every assertion Core's
+own file makes: a fresh chain with segwit inactive under
+`-testactivationheight=segwit@N`; the height mined below it; a restart
+naming a lower height the chain already runs past refused, with a
+non-zero exit and a stderr equal to Core's own `expected_msg` whole, the
+`ErrorMatch.FULL_TEXT` comparison `assert_start_raises_init_error` makes
+by default; and, restarted with `-reindex` added, a chain one block short
+of the lower height with segwit active. Each restart names `extra_args`
+other than the ones the node last held, which `NodeAdapter.restart`
+(`node.py`) takes for one start
+([ISS 51](https://github.com/btclib-org/bitcoin-node-tests/issues/51)),
+and the refused one is read the way `rpc_users_bitcoind_test.py` and
+`feature_blocksdir_bitcoind_test.py` read theirs, a `RuntimeError`
+carrying the node's stderr. Dropped is the empty stderr Core's own
+`TestNode.stop_node` expects of every stop: a check its harness makes
+around each stop rather than one this file makes, and `NodeAdapter.stop`
+makes it for no test.
+
+The blocks are Core's own shape rather than `MiniWallet.generate`'s: a
+coinbase carrying the witness commitment and, segwit not yet active, no
+witness nonce, which is what Core's own `generate` mines here
+(`GenerateCoinbaseCommitment` and `UpdateUncommittedBlockStructures`,
+`src/validation.cpp`). `CheckWitnessMalleation` refuses that pair once
+segwit's rules apply, and that refusal is what stops the reindexed chain
+short. A `MiniWallet` block carries neither, and a chain of them
+reindexes to its full height instead, measured against the pinned
+bitcoind; so this port builds Core's coinbase itself and submits it over
+`submitblock`. `tests/integration/feature_presegwit_node_upgrade_bitcoind_test.py`'s
+own docstring has the argument, and the wait for `getmempoolinfo`'s
+`loaded` that Core's own start makes and `NodeAdapter.start` does not.
+`btclib-node`'s cell is a counted skip on
+`Capability.TEST_ACTIVATION_HEIGHT`, as the activation-height trio's
+are.
 
 Of the rest of the family's own census, string-literal matches and
 nothing more: `feature_bind_extra.py` and `rpc_bind.py` read the

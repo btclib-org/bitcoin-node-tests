@@ -16,6 +16,13 @@ coin mined without a node wallet, cached without `scantxoutset`, and
 spendable -- rather than `target_vsize` padding or a second, tagged
 wallet's own namespacing, neither of which bears on how the cache is fed.
 
+The third test asks what Core's own file never calls and several other
+Core files do: `confirmed_only`
+([ISS 69](https://github.com/btclib-org/bitcoin-node-tests/issues/69)),
+over a cache holding a coin this wallet's own `generate` confirmed, one
+a block the node mined itself confirmed (`generateblock`, naming that one
+transaction), and one only the mempool holds.
+
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """
 
@@ -69,3 +76,43 @@ def test_mini_wallet_spends_two_coins_in_a_row(
     assert first.id.hex() in mempool
     assert second.id.hex() in mempool
     assert first.id != second.id
+
+
+def test_mini_wallet_confirmed_only_tells_mined_coins_from_mempool_ones(
+    bitcoind_adapter: BitcoindAdapter, skip_counts: SkipCounts
+) -> None:
+    """A mix of confirmed and mempool-only coins filters as the node sees it."""
+    require(Capability.MINE, bitcoind_adapter.capabilities, skip_counts)
+    rpc = bitcoind_adapter.rpc
+    wallet = MiniWallet(bitcoind_adapter)
+    wallet.generate(COINBASE_MATURITY + 2)
+    # named rather than left to `get_utxo`'s largest-first pick, which
+    # takes a self-transfer's own coin over a coinbase a halving shrank
+    coinbases = wallet.get_utxos(mark_as_spent=False)
+    assert len(coinbases) == 3
+
+    mined_here = wallet.send_self_transfer(utxo_to_spend=coinbases[0])
+    wallet.generate(1, confirm=[mined_here])
+    mined_by_node = wallet.send_self_transfer(utxo_to_spend=coinbases[1])
+    rpc.call("generateblock", [wallet.script_pub_key.address, [mined_by_node.id.hex()]])
+    mempool_only = wallet.send_self_transfer(utxo_to_spend=coinbases[2])
+    wallet.resync()
+
+    confirmed = {mined_here.id, mined_by_node.id}
+    everything = wallet.get_utxos(include_immature_coinbase=True, mark_as_spent=False)
+    kept = wallet.get_utxos(
+        include_immature_coinbase=True, mark_as_spent=False, confirmed_only=True
+    )
+    spends = confirmed | {mempool_only.id}
+    assert {u.outpoint.tx_id for u in everything if not u.coinbase} == spends
+    assert {u.outpoint.tx_id for u in kept if not u.coinbase} == confirmed
+    with pytest.raises(LookupError, match="confirmed"):
+        wallet.get_utxo(txid=mempool_only.id.hex(), confirmed_only=True)
+
+    # the node's own answer agrees, coin by coin
+    for tx in (mined_here, mined_by_node, mempool_only):
+        in_utxo_set = rpc.call("gettxout", [tx.id.hex(), 0, False]) is not None
+        assert in_utxo_set == (tx.id in confirmed)
+    mempool = rpc.call("getrawmempool")
+    assert isinstance(mempool, list)
+    assert mempool_only.id.hex() in mempool

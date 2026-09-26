@@ -273,3 +273,9 @@ it (closes #51).
 Each gains a `Capability` for what it asks of a node, `btclib-node`'s adapter
 declaring inbound eviction wherever its build has it; `tool_utxo_to_sqlite`
 stays out, its subject a Core script rather than a node (issue #14).
+
+### `MiniWallet` knows which of its coins a block holds
+
+`get_utxo` and a new `get_utxos` take Core's `confirmed_only` and
+`mark_as_spent`, an unnamed coin being the largest matured one as in Core, and
+`resync` asks `gettxout` which coins a block mined elsewhere holds (closes #69).

@@ -1453,8 +1453,8 @@ builds.
 `mempool_resurrect.py` and `mempool_spend_coinbase.py` are ported, their
 own rows above: `mini_wallet.py`'s own `get_utxo` (a cached coin by its
 own txid, maturity aside), `create_self_transfer` and `send_self_transfer`
-(`utxo_to_spend`, spending a caller-named coin in place of the next
-automatically matured one) and `resync` (re-reading the tip after a chain
+(`utxo_to_spend`, spending a caller-named coin in place of the one
+`get_utxo` would pick) and `resync` (re-reading the tip after a chain
 move this wallet did not itself make) are what `mempool_spend_coinbase.py`
 needed and `build_fork` (Core's own `create_empty_fork`, `blocktools.py`)
 is what `mempool_resurrect.py` needed beyond the mechanism above, each
@@ -1505,9 +1505,6 @@ first read, but each also restarts its node with an option --
 `-maxmempool`/`-persistmempool` in turn -- that `btclib-node`'s own
 `cli.py` does not register, so the option family's own exclusion reaches
 them too: ISS 14's, same as the wallet, log, disk and clock files below.
-Both call `get_utxo(confirmed_only=True)` against a cache with no
-fact to answer it from
-([ISS bitcoin-node-tests#69](https://github.com/btclib-org/bitcoin-node-tests/issues/69)).
 `rpc_packages.py` alone also calls `test_framework.mempool_util.fill_mempool`,
 unported
 ([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
@@ -1531,16 +1528,20 @@ the wallet files excepted.
 mempool-policy files, are read this round too and stay open.
 `mempool_package_rbf.py` drives a second node in Core's own file, never
 read from -- its own `sync_all` calls confirm nothing either test
-asserts on -- dropped as a smaller claim, so what actually blocks it
-is the same `confirmed_only`/`get_utxos` gap (ISS 69) and `fill_mempool` (ISS 70)
-`rpc_packages.py` needs above, plus TRUC's own non-default transaction
-version, which `create_self_transfer` does not yet parametrize.
+asserts on -- dropped as a smaller claim, so what actually blocks it is
+the same `fill_mempool` (ISS 70) `rpc_packages.py` needs above, plus the
+caller-chosen fee, sequence and TRUC's own non-default transaction
+version its own self-transfers pass, none of which `create_self_transfer`
+takes yet
+([ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103)).
 `mempool_truc.py` needs no second node and no option at its own base
 `set_test_params` (`self.extra_args = [[]]`), but several of its own
 subtests restart with one in turn
 (`-limitclustercount`/`-limitclustersize`/`-acceptnonstdtxn`/`-minrelaytxfee`/`-persistmempool`),
-which `NodeAdapter.restart` (`node.py`) takes for one start; TRUC's own
-transaction version and `confirmed_only` (ISS 69) are what block it.
+which `NodeAdapter.restart` (`node.py`) takes for one start; what
+blocks it is the caller-chosen fee rate and TRUC's own transaction
+version its own self-transfers pass, which `create_self_transfer` does
+not take yet ([ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103)).
 
 `feature_dersig.py`, `feature_cltv.py` and `feature_csv_activation.py`
 are ISS 14's own softfork-activation-height trio, the option and

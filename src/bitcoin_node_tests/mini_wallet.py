@@ -119,6 +119,16 @@ that many virtual bytes, `_pad_to_vsize` mirroring Core's own `bulk_vout`
 multi-output call caches more than one coin under the same `txid`, and a
 caller spending them in an order its own loop chooses rather than the
 order they were cached needs the pair rather than the first match alone.
+
+[ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103):
+an RBF or TRUC test's subject is the fee, the sequence or the version, so
+the self-transfers take what Core's own take -- `fee_rate`, `fee`,
+`version`, `locktime` and `sequence` on `create_self_transfer`, the last
+three on `create_self_transfer_multi` -- with Core's own defaults and fee
+arithmetic. Where Core's own take BTC `Decimal`s these take satoshis, and
+satoshis per 1000 virtual bytes for a rate: the unit `fee_per_output`
+already has in Core, and `create_self_transfer`'s own docstring has what
+else differs.
 """
 
 from __future__ import annotations
@@ -148,6 +158,7 @@ if TYPE_CHECKING:
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
+    "DEFAULT_FEE_RATE",
     "FEE",
     "MiniWallet",
     "Utxo",
@@ -175,6 +186,10 @@ _ANYONE_CAN_SPEND = ScriptPubKey.p2tr(_INTERNAL_PUBKEY, _SCRIPT_TREE, network="r
 # one, the same shape Core's own `send_to` (`wallet.py`) takes and for
 # the same reason
 FEE = 1000
+
+# satoshis per 1000 virtual bytes: Core's own `create_self_transfer` default
+# (`wallet.py`), `Decimal("0.003")` BTC/kvB
+DEFAULT_FEE_RATE = 300_000
 
 # regtest's own halving schedule (`CONSENSUS_PARAMS["regtest"]`): every 150
 # blocks rather than mainnet's 210_000, `subsidy`'s own default -- this
@@ -642,17 +657,73 @@ class MiniWallet:
             for vout in range(outputs)
         )
 
+    def _self_transfer_tx(
+        self,
+        utxos: Sequence[Utxo],
+        amount_per_output: int,
+        num_outputs: int,
+        *,
+        version: int,
+        locktime: int,
+        sequence: int | Sequence[int],
+    ) -> Tx:
+        """Return an unpadded, uncached tx spending `utxos` into equal outputs.
+
+        Shared by `create_self_transfer` and `create_self_transfer_multi`,
+        which differ only in how they arrive at `amount_per_output`.
+
+        :raises ValueError: `sequence` is a sequence whose length is not
+            the number of `utxos` -- `wallet.py`'s own `assert_equal`.
+        """
+        sequences = [sequence] * len(utxos) if isinstance(sequence, int) else sequence
+        if len(sequences) != len(utxos):
+            err_msg = f"{len(sequences)} sequence(s) for {len(utxos)} coin(s)"
+            raise ValueError(err_msg)
+        tx_in = [
+            TxIn(
+                utxo.outpoint,
+                script_sig=b"",
+                sequence=utxo_sequence,
+                script_witness=_witness(),
+            )
+            for utxo, utxo_sequence in zip(utxos, sequences, strict=True)
+        ]
+        tx_out = [
+            TxOut(amount_per_output, _ANYONE_CAN_SPEND) for _ in range(num_outputs)
+        ]
+        return Tx(version=version, lock_time=locktime, vin=tx_in, vout=tx_out)
+
     def create_self_transfer(
         self,
         *,
+        fee_rate: int = DEFAULT_FEE_RATE,
+        fee: int = 0,
         utxo_to_spend: Utxo | None = None,
         target_vsize: int = 0,
         confirmed_only: bool = False,
+        version: int = 2,
+        locktime: int = 0,
+        sequence: int | Sequence[int] = 0,
     ) -> Tx:
         """Return an unbroadcast tx spending one coin, paid to itself.
 
-        `send_self_transfer` is the caller wanting it broadcast too.
+        `create_self_transfer` (`wallet.py`), its fee arithmetic included:
+        `fee` where nonzero, otherwise `fee_rate` over the tx's own vsize,
+        or over `target_vsize` where that is nonzero, rounded up to the
+        next satoshi -- the result `wallet.py` reaches both through
+        `get_fee` and through truncating the output's own value. Core's
+        own method takes BTC `Decimal`s; this one takes satoshis and
+        satoshis per 1000 virtual bytes, the unit `CFeeRate`'s own integer
+        constructor takes, so a Core rate of at most eight decimals
+        converts exactly. Core prices the fee at a fixed 104 virtual bytes
+        for `ADDRESS_OP_TRUE` and asserts the tx has them; this one reads
+        the vsize off the tx it built, the same 104 for the one coin shape
+        this class spends. `send_self_transfer` is the caller wanting it
+        broadcast too.
 
+        :param fee_rate: satoshis per 1000 virtual bytes, used where `fee`
+            is `0`; `DEFAULT_FEE_RATE`, Core's own default, where not given.
+        :param fee: the absolute fee in satoshis; `0` defers to `fee_rate`.
         :param utxo_to_spend: the coin to spend, `get_utxo`'s own answer
             typically; `get_utxo()`'s own largest matured coin where
             `None`, its maturity check applying only then -- a caller
@@ -660,64 +731,120 @@ class MiniWallet:
             `create_self_transfer` (`wallet.py`)'s own shape.
         :param target_vsize: where nonzero, an `OP_RETURN` output padding
             the tx to exactly this many virtual bytes -- `_pad_to_vsize`,
-            paid by `utxo_to_spend` alongside `FEE`, beyond the single
-            spendable output this method still returns exactly one of.
+            beyond the single spendable output this method still returns
+            exactly one of -- and the size `fee_rate` is priced at.
         :param confirmed_only: forwarded to `get_utxo` where
             `utxo_to_spend` is `None`.
+        :param version: the tx's own version; `3` makes it TRUC (BIP431).
+        :param locktime: the tx's own `nLockTime`.
+        :param sequence: the input's own `nSequence`, or a one-element
+            sequence of it, as Core's own forwarding to
+            `create_self_transfer_multi` takes either.
         :raises LookupError: `utxo_to_spend` is `None` and no coin of this
             wallet has matured yet (or is confirmed, with `confirmed_only`).
-        :raises ValueError: `target_vsize` is smaller than this tx's own
-            vsize before the padding output is even added.
+        :raises ValueError: `fee_rate` or `fee` is negative, refused
+            before any coin is taken; the fee leaves the coin nothing to
+            send, Core's own `RuntimeError`; `sequence` is a sequence of
+            other than one element; or `target_vsize` is smaller than this
+            tx's own vsize before the padding output is even added.
         """
+        if fee_rate < 0 or fee < 0:
+            err_msg = f"fee_rate {fee_rate} and fee {fee} must not be negative"
+            raise ValueError(err_msg)
         utxo = (
             utxo_to_spend
             if utxo_to_spend is not None
             else self.get_utxo(confirmed_only=confirmed_only)
         )
-        tx_in = TxIn(
-            utxo.outpoint,
-            script_sig=b"",
-            sequence=0xFFFFFFFE,
-            script_witness=_witness(),
+        tx = self._self_transfer_tx(
+            [utxo], 0, 1, version=version, locktime=locktime, sequence=sequence
         )
-        tx_out = TxOut(utxo.value - FEE, _ANYONE_CAN_SPEND)
-        tx = Tx(version=2, lock_time=0, vin=[tx_in], vout=[tx_out])
+        if not fee:
+            # CFeeRate::GetFee: rounded up, never down, to the next satoshi
+            fee = -(-fee_rate * (target_vsize or tx.vsize) // 1000)
+        if utxo.value <= fee:
+            err_msg = f"coin of {utxo.value} sat cannot cover a {fee}-sat fee"
+            raise ValueError(err_msg)
+        tx.vout[0] = TxOut(utxo.value - fee, _ANYONE_CAN_SPEND)
         if target_vsize:
             _pad_to_vsize(tx, target_vsize)
         self._cache(tx, 1)
         return tx
 
-    def send_self_transfer(
-        self, *, utxo_to_spend: Utxo | None = None, confirmed_only: bool = False
-    ) -> Tx:
-        """Create, broadcast and cache a self-transfer; return the sent tx.
+    def _send(self, tx: Tx) -> Tx:
+        """Broadcast `tx` over `sendrawtransaction`, and return it.
 
-        The new coin `create_self_transfer` already cached is spendable
-        the moment this returns: unlike a coinbase, `get_utxo` never holds
-        a non-coinbase coin back as immature.
+        `maxfeerate` 0, as `wallet.py`'s own `sendrawtransaction` passes
+        it: a caller-chosen `fee` or `fee_rate` is never refused for
+        exceeding the node's own default ceiling.
 
-        :param utxo_to_spend: forwarded to `create_self_transfer`.
-        :param confirmed_only: forwarded to `create_self_transfer`.
-        :raises LookupError: `utxo_to_spend` is `None` and no coin of this
-            wallet has matured yet (or is confirmed, with `confirmed_only`).
         :raises TypeError: `sendrawtransaction` answered something other
-            than the sent tx's own id.
+            than `tx`'s own id.
         """
-        tx = self.create_self_transfer(
-            utxo_to_spend=utxo_to_spend, confirmed_only=confirmed_only
-        )
         tx_hex = tx.serialize(True, check_validity=False).hex()
-        txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
+        txid = self._node.rpc.call("sendrawtransaction", [tx_hex, 0])
         if txid != tx.id.hex():
             err_msg = f"sendrawtransaction answered {txid!r}, not {tx.id.hex()!r}"
             raise TypeError(err_msg)
         return tx
+
+    def send_self_transfer(
+        self,
+        *,
+        fee_rate: int = DEFAULT_FEE_RATE,
+        fee: int = 0,
+        utxo_to_spend: Utxo | None = None,
+        target_vsize: int = 0,
+        confirmed_only: bool = False,
+        version: int = 2,
+        locktime: int = 0,
+        sequence: int | Sequence[int] = 0,
+    ) -> Tx:
+        """Create, broadcast and cache a self-transfer; return the sent tx.
+
+        Every parameter is forwarded to `create_self_transfer`, as Core's
+        own `send_self_transfer` (`wallet.py`) forwards its `kwargs`, and
+        the broadcast passes `maxfeerate` 0, as Core's own does, so no fee
+        is refused for exceeding the node's default ceiling. The new coin
+        `create_self_transfer` already cached is spendable the moment this
+        returns: unlike a coinbase, `get_utxo` never holds a non-coinbase
+        coin back as immature.
+
+        :param fee_rate: forwarded to `create_self_transfer`.
+        :param fee: forwarded to `create_self_transfer`.
+        :param utxo_to_spend: forwarded to `create_self_transfer`.
+        :param target_vsize: forwarded to `create_self_transfer`.
+        :param confirmed_only: forwarded to `create_self_transfer`.
+        :param version: forwarded to `create_self_transfer`.
+        :param locktime: forwarded to `create_self_transfer`.
+        :param sequence: forwarded to `create_self_transfer`.
+        :raises LookupError: `utxo_to_spend` is `None` and no coin of this
+            wallet has matured yet (or is confirmed, with `confirmed_only`).
+        :raises ValueError: forwarded from `create_self_transfer`.
+        :raises TypeError: `sendrawtransaction` answered something other
+            than the sent tx's own id.
+        """
+        return self._send(
+            self.create_self_transfer(
+                fee_rate=fee_rate,
+                fee=fee,
+                utxo_to_spend=utxo_to_spend,
+                target_vsize=target_vsize,
+                confirmed_only=confirmed_only,
+                version=version,
+                locktime=locktime,
+                sequence=sequence,
+            )
+        )
 
     def create_self_transfer_multi(
         self,
         *,
         utxos_to_spend: Sequence[Utxo] | None = None,
         num_outputs: int = 1,
+        version: int = 2,
+        locktime: int = 0,
+        sequence: int | Sequence[int] = 0,
         fee_per_output: int = FEE,
         target_vsize: int = 0,
         confirmed_only: bool = False,
@@ -726,16 +853,20 @@ class MiniWallet:
 
         `create_self_transfer_multi` (`wallet.py`): every input the coins
         `utxos_to_spend` names, every output the same size, `fee_per_output`
-        satoshis short of an equal share of the inputs' own total -- Core's
-        own method takes a BTC `Decimal` fee; this one, like every fee
-        `MiniWallet` already handles, takes satoshis. `send_self_transfer_multi`
-        is the caller wanting it broadcast too; a single new coin wants
-        `create_self_transfer` instead, `num_outputs` fixed at one there
-        rather than a parameter of it.
+        satoshis short of an equal share of the inputs' own total, Core's
+        own unit for this one parameter. It takes no `fee_rate`, as Core's
+        does not. `send_self_transfer_multi` is the caller wanting it
+        broadcast too; a single new coin wants `create_self_transfer`
+        instead, `num_outputs` fixed at one there rather than a parameter
+        of it.
 
         :param utxos_to_spend: the coins to spend; `get_utxo()`'s own
             largest matured coin alone where `None`.
         :param num_outputs: how many equal-sized outputs to create.
+        :param version: the tx's own version; `3` makes it TRUC (BIP431).
+        :param locktime: the tx's own `nLockTime`.
+        :param sequence: every input's own `nSequence`, or one per input,
+            in the order of `utxos_to_spend`.
         :param fee_per_output: satoshis short of an equal share of the
             inputs' own total value, per output.
         :param target_vsize: where nonzero, an `OP_RETURN` output padding
@@ -748,8 +879,9 @@ class MiniWallet:
             `confirmed_only`).
         :raises ValueError: the inputs' own total, less `fee_per_output`
             times `num_outputs`, does not divide into `num_outputs`
-            positive shares; or `target_vsize` is smaller than this tx's
-            own vsize before the padding output is even added.
+            positive shares; `sequence` is a sequence whose length is not
+            the number of coins spent; or `target_vsize` is smaller than
+            this tx's own vsize before the padding output is even added.
         """
         utxos = (
             list(utxos_to_spend)
@@ -765,19 +897,14 @@ class MiniWallet:
                 f"{num_outputs} output(s)"
             )
             raise ValueError(err_msg)
-        tx_in = [
-            TxIn(
-                utxo.outpoint,
-                script_sig=b"",
-                sequence=0xFFFFFFFE,
-                script_witness=_witness(),
-            )
-            for utxo in utxos
-        ]
-        tx_out = [
-            TxOut(amount_per_output, _ANYONE_CAN_SPEND) for _ in range(num_outputs)
-        ]
-        tx = Tx(version=2, lock_time=0, vin=tx_in, vout=tx_out)
+        tx = self._self_transfer_tx(
+            utxos,
+            amount_per_output,
+            num_outputs,
+            version=version,
+            locktime=locktime,
+            sequence=sequence,
+        )
         if target_vsize:
             _pad_to_vsize(tx, target_vsize)
         self._cache(tx, num_outputs)
@@ -788,14 +915,22 @@ class MiniWallet:
         *,
         utxos_to_spend: Sequence[Utxo] | None = None,
         num_outputs: int = 1,
+        version: int = 2,
+        locktime: int = 0,
+        sequence: int | Sequence[int] = 0,
         fee_per_output: int = FEE,
         target_vsize: int = 0,
         confirmed_only: bool = False,
     ) -> Tx:
         """Create, broadcast and cache a multi-output self-transfer.
 
+        The broadcast passes `maxfeerate` 0, as `send_self_transfer`'s does.
+
         :param utxos_to_spend: forwarded to `create_self_transfer_multi`.
         :param num_outputs: forwarded to `create_self_transfer_multi`.
+        :param version: forwarded to `create_self_transfer_multi`.
+        :param locktime: forwarded to `create_self_transfer_multi`.
+        :param sequence: forwarded to `create_self_transfer_multi`.
         :param fee_per_output: forwarded to `create_self_transfer_multi`.
         :param target_vsize: forwarded to `create_self_transfer_multi`.
         :param confirmed_only: forwarded to `create_self_transfer_multi`.
@@ -806,19 +941,18 @@ class MiniWallet:
         :raises TypeError: `sendrawtransaction` answered something other
             than the sent tx's own id.
         """
-        tx = self.create_self_transfer_multi(
-            utxos_to_spend=utxos_to_spend,
-            num_outputs=num_outputs,
-            fee_per_output=fee_per_output,
-            target_vsize=target_vsize,
-            confirmed_only=confirmed_only,
+        return self._send(
+            self.create_self_transfer_multi(
+                utxos_to_spend=utxos_to_spend,
+                num_outputs=num_outputs,
+                version=version,
+                locktime=locktime,
+                sequence=sequence,
+                fee_per_output=fee_per_output,
+                target_vsize=target_vsize,
+                confirmed_only=confirmed_only,
+            )
         )
-        tx_hex = tx.serialize(True, check_validity=False).hex()
-        txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
-        if txid != tx.id.hex():
-            err_msg = f"sendrawtransaction answered {txid!r}, not {tx.id.hex()!r}"
-            raise TypeError(err_msg)
-        return tx
 
     def create_self_transfer_chain(
         self, *, chain_length: int, utxo_to_spend: Utxo | None = None
@@ -866,11 +1000,7 @@ class MiniWallet:
             chain_length=chain_length, utxo_to_spend=utxo_to_spend
         )
         for tx in chain:
-            tx_hex = tx.serialize(True, check_validity=False).hex()
-            txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
-            if txid != tx.id.hex():
-                err_msg = f"sendrawtransaction answered {txid!r}, not {tx.id.hex()!r}"
-                raise TypeError(err_msg)
+            self._send(tx)
         return chain
 
     def send_to(self, script_pub_key: ScriptPubKey, value: int) -> Tx:
@@ -878,12 +1008,13 @@ class MiniWallet:
 
         `send_to` (`wallet.py`): a second output pays `script_pub_key`,
         and the first keeps `FEE` sat back for the fee and returns the
-        rest to this wallet as change -- the same fixed-fee shape
-        `create_self_transfer` already uses, so the spent coin's own
-        value beyond `value` and `FEE` is not simply burned as a fee the
-        way it would be paying a single output alone. The coin spent is
-        `get_utxo()`'s own, the largest matured one, as `wallet.py`'s own
-        `send_to` takes it.
+        rest to this wallet as change, so the spent coin's own value
+        beyond `value` and `FEE` is not simply burned as a fee the way it
+        would be paying a single output alone. The coin spent is
+        `get_utxo()`'s own, the largest matured one, and the tx around it
+        is the one `create_self_transfer(fee_rate=0)` builds -- version 2,
+        `nLockTime` and `nSequence` 0 -- as `wallet.py`'s own `send_to`
+        takes both.
 
         :param script_pub_key: what the new, second output pays.
         :param value: the new output's own satoshi value.
@@ -901,22 +1032,9 @@ class MiniWallet:
             )
             raise ValueError(err_msg)
         change = utxo.value - value - FEE
-        tx_in = TxIn(
-            utxo.outpoint,
-            script_sig=b"",
-            sequence=0xFFFFFFFE,
-            script_witness=_witness(),
+        tx = self._self_transfer_tx(
+            [utxo], change, 1, version=2, locktime=0, sequence=0
         )
-        tx = Tx(
-            version=2,
-            lock_time=0,
-            vin=[tx_in],
-            vout=[TxOut(change, _ANYONE_CAN_SPEND), TxOut(value, script_pub_key)],
-        )
+        tx.vout.append(TxOut(value, script_pub_key))
         self._cache(tx, 1)
-        tx_hex = tx.serialize(True, check_validity=False).hex()
-        txid = self._node.rpc.call("sendrawtransaction", [tx_hex])
-        if txid != tx.id.hex():
-            err_msg = f"sendrawtransaction answered {txid!r}, not {tx.id.hex()!r}"
-            raise TypeError(err_msg)
-        return tx
+        return self._send(tx)

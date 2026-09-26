@@ -1552,19 +1552,21 @@ mempool-policy files, are read this round too and stay open.
 `mempool_package_rbf.py` drives a second node in Core's own file, never
 read from -- its own `sync_all` calls confirm nothing either test
 asserts on -- dropped as a smaller claim, so what actually blocks it is
-the same `fill_mempool` (ISS 70) `rpc_packages.py` needs above, plus the
+the same `fill_mempool` (ISS 70) `rpc_packages.py` needs above; the
 caller-chosen fee, sequence and TRUC's own non-default transaction
-version its own self-transfers pass, none of which `create_self_transfer`
-takes yet
+version its own self-transfers pass are what `create_self_transfer`
+takes
 ([ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103)).
 `mempool_truc.py` needs no second node and no option at its own base
 `set_test_params` (`self.extra_args = [[]]`), but several of its own
 subtests restart with one in turn
 (`-limitclustercount`/`-limitclustersize`/`-acceptnonstdtxn`/`-minrelaytxfee`/`-persistmempool`),
-which `NodeAdapter.restart` (`node.py`) takes for one start; what
-blocks it is the caller-chosen fee rate and TRUC's own transaction
-version its own self-transfers pass, which `create_self_transfer` does
-not take yet ([ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103)).
+which `NodeAdapter.restart` (`node.py`) takes for one start; the
+caller-chosen fee rate and TRUC's own transaction version its own
+self-transfers pass are what `create_self_transfer` and
+`create_self_transfer_multi` take
+([ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103)),
+so it is an open candidate for a port of its own.
 
 `feature_dersig.py`, `feature_cltv.py` and `feature_csv_activation.py`
 are ISS 14's own softfork-activation-height trio, the option and
@@ -1829,8 +1831,8 @@ byte-length refusal is the historical "standard" bound, which a
 library should enforce before the request is ever sent), and
 `MiniWallet.send_to` (Core's own `wallet.py`), paying a second output
 while keeping a fixed-fee change output cached back to the wallet the
-way `create_self_transfer` already does. Both are unit-tested against
-the fake RPC alongside the rest of `mini_wallet_test.py`.
+way `create_self_transfer` caches its own output. Both are unit-tested
+against the fake RPC alongside the rest of `mini_wallet_test.py`.
 
 `mempool_datacarrier.py`'s own row is a smaller claim than Core's own
 file: kept is that the default setting relays a sizeable `OP_RETURN`,
@@ -1899,9 +1901,9 @@ demonstrates -- and its own descendant-size case
 enough to make a real functional-test run slow, disproportionate for a
 size boundary neither kept case needs to also cover. `mini_wallet.py`
 gains `create_self_transfer_multi` and `create_self_transfer_chain`
-(Core's own methods of the same names, `fee_per_output` in satoshis
-rather than Core's BTC `Decimal`) and a `target_vsize` on every
-`create_self_transfer*` method, an `OP_RETURN` of literal `OP_1`
+(Core's own methods of the same names, `fee_per_output` in satoshis as
+in Core) and a `target_vsize` on every `create_self_transfer*` method,
+an `OP_RETURN` of literal `OP_1`
 opcodes padding a transaction to an exact size the way Core's own
 `bulk_vout` does; `get_utxo` gains a `vout` alongside `txid`,
 disambiguating several cached coins a multi-output call caches under

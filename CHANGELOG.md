@@ -296,3 +296,9 @@ over a reused datadir (closes #84) (closes #86) (closes #92).
 `classify` compared `TF2.md`'s abbreviated pin with the API's full sha, so
 every master-only failure read as a stale port; the pin is now matched as a
 prefix (closes #83).
+
+### `MiniWallet`'s self-transfers take Core's fee, version and sequence
+
+`create_self_transfer` and `send_self_transfer` take Core's `fee_rate`, `fee`,
+`version`, `locktime` and `sequence` with its defaults, the multi pair the last
+three; fees are in satoshis, and broadcasts pass `maxfeerate` 0 (closes #103).

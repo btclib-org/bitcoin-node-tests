@@ -27,10 +27,27 @@ def test_capabilities_gain_rpc_auth_config_where_the_build_writes_a_cookie(
     tmp_path: Path,
 ) -> None:
     """An instance built with a post-1070 executable declares both."""
-    with patch.object(btclib_node_module, "_writes_auth_cookie", return_value=True):
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=True),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+    ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
         {Capability.CONNECT, Capability.RPC_AUTH_CONFIG}
+    )
+
+
+def test_capabilities_gain_inbound_eviction_where_the_build_evicts(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a post-1064 executable declares eviction."""
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=True),
+    ):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities == frozenset(
+        {Capability.CONNECT, Capability.INBOUND_EVICTION}
     )
 
 
@@ -38,7 +55,10 @@ def test_capabilities_stay_connect_alone_where_the_build_does_not(
     tmp_path: Path,
 ) -> None:
     """An instance built with a pre-1070 executable keeps the class set."""
-    with patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False):
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+    ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities is BtclibNodeAdapter.capabilities
 
@@ -142,3 +162,22 @@ def test_writes_auth_cookie_is_cached_per_executable() -> None:
         second = btclib_node_module._writes_auth_cookie("fake-python-cached")
     assert first is second is True
     run.assert_called_once()
+
+
+def test_evicts_inbound_reads_the_probe_s_own_return_code() -> None:
+    """`_evicts_inbound` is `import btclib_node.p2p.eviction` exiting zero."""
+    btclib_node_module._evicts_inbound.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._evicts_inbound("fake-python-1064") is True
+    run.assert_called_once_with(
+        ["fake-python-1064", "-c", "import btclib_node.p2p.eviction"],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_evicts_inbound_is_false_when_the_import_fails() -> None:
+    """A nonzero exit -- the module missing -- answers `False`."""
+    btclib_node_module._evicts_inbound.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
+        assert btclib_node_module._evicts_inbound("fake-python-pre-1064") is False

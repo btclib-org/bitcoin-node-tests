@@ -98,6 +98,16 @@ otherwise unused: BIP324 is not a transport this node speaks yet" is
 that module's own wording -- so there is no BIP324 codec behind either
 spelling for this capability to name.
 
+`Capability.INBOUND_EVICTION` is declared per instance too, by
+`_evicts_inbound`'s own probe: a build carrying
+`btclib_node.p2p.eviction`, a port of Core's `SelectNodeToEvict`
+landed by
+[ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064),
+disconnects an unprotected inbound peer once its inbound slots are full,
+and registers `-maxconnections` to bound them. PyPI's `2026.9.24`
+release carries neither, so an instance built against it does not gain
+the capability.
+
 `Capability.DESCRIPTOR_ACTIVITY` and `Capability.BLOCK_STATS` are never
 declared, on either build: neither `getdescriptoractivity` nor
 `getblockstats` names a callback in `src/btclib_node/rpc/callbacks.py`'s
@@ -169,6 +179,24 @@ def _writes_auth_cookie(executable: str) -> bool:
     return probe.returncode == 0
 
 
+@lru_cache
+def _evicts_inbound(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node evicts inbound peers.
+
+    `import btclib_node.p2p.eviction` exiting zero, in the standing of
+    `_writes_auth_cookie` above: no port bound, no data directory
+    created, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", "import btclib_node.p2p.eviction"],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 class BtclibNodeAdapter(NodeAdapter):
     """A regtest `btclib-node`, run as `python -m btclib_node`.
 
@@ -193,7 +221,7 @@ class BtclibNodeAdapter(NodeAdapter):
         *,
         trace_rpc: bool = False,
     ) -> None:
-        """Construct the adapter, then add `RPC_AUTH_CONFIG` where it holds.
+        """Construct the adapter, then add each probed capability that holds.
 
         `super().__init__` runs first -- `NodeAdapter.__init__`'s own
         `_check_extra_args(self._command(), extra_args)` needs
@@ -202,9 +230,10 @@ class BtclibNodeAdapter(NodeAdapter):
         up declaring. `_writes_auth_cookie` is then the same probe
         `_rpc_client` below already makes for cookie authentication, not
         a second one: the module docstring's own paragraph on
-        `Capability.RPC_AUTH_CONFIG` is why one probe answers both. The
+        `Capability.RPC_AUTH_CONFIG` is why one probe answers both, and
+        `_evicts_inbound` answers `Capability.INBOUND_EVICTION`. The
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
-        is left untouched where the probe answers `False`.
+        is left untouched where both probes answer `False`.
         """
         super().__init__(
             executable,
@@ -215,8 +244,13 @@ class BtclibNodeAdapter(NodeAdapter):
             rpc_auth,
             trace_rpc=trace_rpc,
         )
+        probed = set()
         if _writes_auth_cookie(executable):
-            self.capabilities = type(self).capabilities | {Capability.RPC_AUTH_CONFIG}
+            probed.add(Capability.RPC_AUTH_CONFIG)
+        if _evicts_inbound(executable):
+            probed.add(Capability.INBOUND_EVICTION)
+        if probed:
+            self.capabilities = type(self).capabilities | probed
 
     @override
     def _command(self) -> list[str]:

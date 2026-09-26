@@ -267,3 +267,9 @@ joins it and the clock family, and `Peer` gains `sync_with_ping` (issue #14).
 `restart([...])` uses them for that start alone, as Core's `restart_node`
 does, and `rpc_setban`'s `-whitelist` and `-bantime` sections are ported on
 it (closes #51).
+
+### `feature_fastprune`, `p2p_eviction` and `rpc_scanblocks` are ported
+
+Each gains a `Capability` for what it asks of a node, `btclib-node`'s adapter
+declaring inbound eviction wherever its build has it; `tool_utxo_to_sqlite`
+stays out, its subject a Core script rather than a node (issue #14).

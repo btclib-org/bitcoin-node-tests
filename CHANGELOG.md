@@ -414,3 +414,9 @@ beneath it (closes #91).
 Its `TimeoutError` names the failures waited out, as Core's
 `wait_for_rpc_connection` does, then the start's stderr and what it appended to
 bitcoind's `debug.log` or btclib-node's `history.log` (closes #134).
+
+### `BtclibNodeAdapter` declares `RPC_AUTH_NEGATION` on a build reading `-norpcauth`
+
+A probe asks the build's own `cli.build_config` whether `-norpcauth` discards
+an `-rpcauth` given before it, so `rpc_users`'s negation test runs against
+`btclib-node`'s `main` and skips against the release (closes #130).

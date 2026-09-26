@@ -79,16 +79,18 @@ rpcauth` and start anyway rather than to enforce it -- so an instance
 built against it does not gain the capability; one built against a
 `main` carrying #1070 does.
 
-`Capability.RPC_AUTH_NEGATION` is never declared. The released
-`2026.9.24` (`422d2640`) refuses `-norpcauth` as an unrecognised argument:
-its `cli.py`'s module docstring states it has no generic negation,
-`-nolisten` being the one negated spelling it registers, by hand. `main`
-(`8ded5494`) reads `-norpcauth` as the negation clearing every `-rpcauth`
-given before it -- its `cli.py`'s module docstring has `-noname` as
-`-name` negated, and `rpcauth` is one of its `_OPTIONS` -- the behaviour
+`Capability.RPC_AUTH_NEGATION` is declared per instance too, by
+`_negates_rpcauth`'s own probe: a build whose `cli.py` reads `-noname` as
+`-name` negated, `rpcauth` among its `_OPTIONS`, discards every
+`-rpcauth` given before `-norpcauth` -- `main` from btclib-node PR 1165
+(`995dd1d0`) on, the behaviour
 [ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176)
-asks for; declaring the capability on such a build is
-[ISS 130](https://github.com/btclib-org/bitcoin-node-tests/issues/130).
+asks for. `_writes_auth_cookie` does not answer it: `995dd1d0`'s parent
+`b1184d7c` imports `btclib_node.rpc.auth` and still refuses `-norpcauth`
+as an "Invalid parameter". The released `2026.9.24` (`422d2640`) refuses
+it as argparse's "unrecognized arguments", `-nolisten` being the one
+negated spelling its `_build_parser` registers, so an instance built
+against it does not gain the capability.
 
 `Capability.V2TRANSPORT` is never declared: `cli.py`'s own `_build_parser` at
 the released `2026.9.24` (`422d2640`) and its `_OPTIONS` at `main` (`8ded5494`)
@@ -199,6 +201,39 @@ def _evicts_inbound(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# `tf2` is no `<user>:<salt>$<hash>`, so `RpcAuthEntry.parse` refuses it
+# wherever it survives the command line: `build_config` returns only where
+# `-norpcauth` discarded it. `-noconf` keeps any `bitcoin.conf` out of it.
+_NEGATION_PROBE = (
+    "from btclib_node.cli import build_config; "
+    'build_config(["-regtest", "-noconf", "-rpcauth=tf2", "-norpcauth"])'
+)
+
+
+@lru_cache
+def _negates_rpcauth(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node reads `-norpcauth`.
+
+    Asks the build's own `cli.build_config` -- which reads the command
+    line as `main` does, and takes no lock and creates no directory -- to
+    read `-rpcauth` followed by its negation, and answers whether it
+    returns:
+    `_NEGATION_PROBE` above is why returning means the value was
+    discarded rather than merely accepted. A build with no generic
+    negation refuses the argument and exits nonzero. Otherwise in the
+    standing of `_writes_auth_cookie` above: no port bound, and cached
+    per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _NEGATION_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 class BtclibNodeAdapter(NodeAdapter):
     """A regtest `btclib-node`, run as `python -m btclib_node`.
 
@@ -232,10 +267,11 @@ class BtclibNodeAdapter(NodeAdapter):
         up declaring. `_writes_auth_cookie` is then the same probe
         `_rpc_client` below already makes for cookie authentication, not
         a second one: the module docstring's own paragraph on
-        `Capability.RPC_AUTH_CONFIG` is why one probe answers both, and
+        `Capability.RPC_AUTH_CONFIG` is why one probe answers both,
+        `_negates_rpcauth` answers `Capability.RPC_AUTH_NEGATION`, and
         `_evicts_inbound` answers `Capability.INBOUND_EVICTION`. The
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
-        is left untouched where both probes answer `False`.
+        is left untouched where every probe answers `False`.
         """
         super().__init__(
             executable,
@@ -249,6 +285,8 @@ class BtclibNodeAdapter(NodeAdapter):
         probed = set()
         if _writes_auth_cookie(executable):
             probed.add(Capability.RPC_AUTH_CONFIG)
+        if _negates_rpcauth(executable):
+            probed.add(Capability.RPC_AUTH_NEGATION)
         if _evicts_inbound(executable):
             probed.add(Capability.INBOUND_EVICTION)
         if probed:

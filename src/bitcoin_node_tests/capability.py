@@ -184,10 +184,10 @@ class Capability(Enum):
     disabling every `-rpcauth` value given before it, the way Core's own
     `rpc_users` checks it. Not `RPC_AUTH_CONFIG` itself: a node can parse
     `-rpcauth` and still have no `-no<name>` negation of any kind, which
-    is `btclib-node`'s own case
-    ([ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176)),
-    so a test asking for the negation needs its own capability rather
-    than riding on the one for the value it negates.
+    is the case of some `btclib-node` builds and not others
+    (`btclib_node.py`'s own module docstring names which), so a test
+    asking for the negation needs its own capability rather than riding
+    on the one for the value it negates.
     `TEST_ACTIVATION_HEIGHT` -- hold one buried soft fork's own deployment
     inactive until a caller-chosen height, Core's own debug-only
     `-testactivationheight=<deployment>@<height>`. Regtest's own chain

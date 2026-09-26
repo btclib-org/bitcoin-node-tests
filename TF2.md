@@ -768,7 +768,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_filelock.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `rpc_whitelist.py` | `fa24693819e0` | 2026-05-26 | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `rpc_users.py` | `faf993ee4421` | 2026-05-26 | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
-| `rpc_users.py` (`-norpcauth`) | same | same | pass | skip (rpc_auth_negation), [ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176) |
+| `rpc_users.py` (`-norpcauth`) | same | same | pass | skip (rpc_auth_negation) on the build; pass on a build past [ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176) |
 | `rpc_users.py` (`-rpcuser`/`-rpcpassword`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `rpc_users.py` (`-norpccookiefile`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) |
@@ -945,18 +945,17 @@ than a fact about `RpcAuthEntry.parse` (`btclib-node`'s own
 between them. Core's own "-norpcauth disables previous -rpcauth params"
 check is ported as its own test and its own row, gated on
 `Capability.RPC_AUTH_NEGATION` rather than folded into the plain
-`rpc_users.py` row's `RPC_AUTH_CONFIG` cell:
-`-norpcauth` is not one of `cli.py`'s own registered flags on either
-build measured, released or `main`, refused before a node ever starts
-rather than accepted and disabling anything the way Core's own negation
-does
-([ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176)).
+`rpc_users.py` row's `RPC_AUTH_CONFIG` cell: a `btclib-node` build can
+read `-rpcauth` and still refuse `-norpcauth` before a node ever starts,
+which `btclib_node.py`'s own module docstring measures.
 `BitcoindAdapter` declares the new capability unconditionally, the same
-way it declares `RPC_AUTH_CONFIG`; `BtclibNodeAdapter` never declares
-it, on either build, `cli.py` having no registered flag for the
-`-norpcauth` row's `btclib-node` cell to become build-dependent on. That
-cell is a counted skip on both builds, unlike the plain `rpc_users.py`
-row's, which turns to a run past ISS btclib-node#1070.
+way it declares `RPC_AUTH_CONFIG`; `BtclibNodeAdapter` declares it per
+instance, where its own `_negates_rpcauth` probe finds the build's
+`cli.build_config` discarding an `-rpcauth` given before `-norpcauth`
+([ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176)).
+The released build's argparse refuses `-norpcauth` as "unrecognized
+arguments", so the `-norpcauth` row's `btclib-node` cell is a counted
+skip on the build and a run on `main`.
 
 Ported with `rpc_auth` (`NodeAdapter.__init__`): `-rpcuser`/
 `-rpcpassword` and `-norpccookiefile`, gated on

@@ -326,11 +326,14 @@ class AdapterFactory:
         p2p_port: int,
         extra_args: Sequence[str] = (),
         rpc_auth: tuple[str, str] | None = None,
+        *,
+        chain: str = "regtest",
     ) -> A:
         """Return `cls(...)`, its `trace_rpc` taken from `--tracerpc`.
 
         :param cls: the adapter class to construct, a test module's own
             subclass included.
+        :param chain: `NodeAdapter`'s own `chain`, passed through.
         :returns: the constructed adapter, not yet started.
         """
         return cls(
@@ -341,4 +344,5 @@ class AdapterFactory:
             extra_args,
             rpc_auth,
             trace_rpc=self._trace_rpc,
+            chain=chain,
         )

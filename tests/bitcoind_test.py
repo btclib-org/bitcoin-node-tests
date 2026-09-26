@@ -105,7 +105,8 @@ def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:
         adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
     command = adapter._command()
     assert command[0] == "bitcoind"
-    assert "-regtest" in command
+    assert "-chain=regtest" in command
+    assert not {"-connect=0", "-dnsseed=0", "-fixedseeds=0"} & set(command)
     assert f"-datadir={tmp_path}" in command
     assert "-rpcport=18443" in command
     assert "-rpcbind=127.0.0.1" in command
@@ -114,6 +115,77 @@ def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:
     assert "-printtoconsole=0" in command
     assert "-debug=net" in command
     assert "-debug=addrman" in command
+
+
+def test_chains_are_every_one_the_release_runs() -> None:
+    """Core's own `-chain=` vocabulary, whole."""
+    assert BitcoindAdapter.chains == frozenset(
+        {"main", "test", "testnet4", "signet", "regtest"}
+    )
+
+
+@pytest.mark.parametrize("chain", ["main", "test", "testnet4", "signet"])
+def test_command_keeps_any_other_chain_off_the_network(
+    tmp_path: Path, chain: str
+) -> None:
+    """Any chain but regtest names itself and asks no seed and no peer."""
+    with patch.object(bitcoind_module, "_has_wallet", return_value=True):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444, chain=chain)
+    command = adapter._command()
+    assert f"-chain={chain}" in command
+    assert {"-connect=0", "-dnsseed=0", "-fixedseeds=0"} <= set(command)
+    assert "-bind=127.0.0.1:18444" in command
+
+
+@pytest.mark.parametrize(
+    "chain, subdir",
+    [
+        ("main", ""),
+        ("test", "testnet3"),
+        ("testnet4", "testnet4"),
+        ("signet", "signet"),
+        ("regtest", "regtest"),
+    ],
+)
+def test_cookie_and_debug_log_are_the_chain_s_own(
+    tmp_path: Path, chain: str, subdir: str
+) -> None:
+    """The main chain writes into the datadir itself, every other one below."""
+    with patch.object(bitcoind_module, "_has_wallet", return_value=True):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444, chain=chain)
+    assert adapter._rpc_client().cookie_path == tmp_path / subdir / ".cookie"
+    assert adapter.debug_log_path == tmp_path / subdir / "debug.log"
+
+
+def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
+    tmp_path: Path,
+) -> None:
+    """`MINE`, `CLOCK` and `TEST_ACTIVATION_HEIGHT` answer on regtest alone."""
+    with patch.object(bitcoind_module, "_has_wallet", return_value=True):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444, chain="main")
+    assert adapter.capabilities == BitcoindAdapter.capabilities - {
+        Capability.MINE,
+        Capability.CLOCK,
+        Capability.TEST_ACTIVATION_HEIGHT,
+    }
+
+
+def test_init_refuses_a_chain_the_release_does_not_run(tmp_path: Path) -> None:
+    """`testnet3` is a directory's name, not a `-chain=` value."""
+    with (
+        patch.object(bitcoind_module, "_has_wallet", return_value=True),
+        pytest.raises(ValueError, match=r"cannot start a node on chain 'testnet3'"),
+    ):
+        BitcoindAdapter("bitcoind", tmp_path, 18443, 18444, chain="testnet3")
+
+
+def test_init_refuses_extra_args_selecting_another_chain(tmp_path: Path) -> None:
+    """`-testnet` in `extra_args` is refused, not handed to bitcoind."""
+    with (
+        patch.object(bitcoind_module, "_has_wallet", return_value=True),
+        pytest.raises(ValueError, match=r"^extra_args reuses -testnet\b"),
+    ):
+        BitcoindAdapter("bitcoind", tmp_path, 18443, 18444, extra_args=["-testnet"])
 
 
 def test_rpc_client_authenticates_by_the_datadir_s_cookie(tmp_path: Path) -> None:

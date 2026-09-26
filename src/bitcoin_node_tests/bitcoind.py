@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""`BitcoindAdapter`: the oracle, bitcoind's own regtest.
+"""`BitcoindAdapter`: the oracle, bitcoind on any chain it runs.
 
 The release is `31.1`, fetched from bitcoincore.org and verified against
 its published sha256, the same one
@@ -39,6 +39,29 @@ __all__ = [
 # the wallet `mine` pays to, loaded from the datadir where a restart or
 # an earlier adapter left it there, created where nothing did
 _MINER_WALLET = "miner"
+
+# the subdirectory of `-datadir` each chain writes its cookie and its
+# `debug.log` into, the main chain writing into `-datadir` itself:
+# `CreateBaseChainParams` (`src/chainparamsbase.cpp`), whose signet entry
+# is `signet` for the default signet a command line with no
+# `-signetchallenge` runs
+_CHAIN_DIRS = {
+    "main": "",
+    "test": "testnet3",
+    "testnet4": "testnet4",
+    "signet": "signet",
+    "regtest": "regtest",
+}
+
+# the capabilities a node on any chain but regtest lacks: `generatetoaddress`
+# gives up after `maxtries` nonces (`src/rpc/mining.cpp`), a bound regtest's
+# own target is met within and another chain's is not in practice;
+# `setmocktime` refuses a chain that is not `IsMockableChain`
+# (`src/rpc/node.cpp`); and `-testactivationheight` is read by
+# `ReadRegTestArgs` (`src/chainparams.cpp`) alone
+_REGTEST_ONLY = frozenset(
+    {Capability.MINE, Capability.CLOCK, Capability.TEST_ACTIVATION_HEIGHT}
+)
 
 
 @lru_cache
@@ -83,7 +106,7 @@ def _has_wallet(executable: str) -> bool:
 
 
 class BitcoindAdapter(NodeAdapter):
-    """A regtest `bitcoind`: cookie authentication, and every capability.
+    """A `bitcoind`: cookie authentication, and every capability.
 
     RPC authenticates by cookie, the file `-datadir` writes once the
     node is listening -- rule 1's "how RPC authenticates", answered by a
@@ -170,6 +193,10 @@ class BitcoindAdapter(NodeAdapter):
     `-maxconnections` and `-blockfilterindex` are this binary's own flags,
     and inbound eviction and `scanblocks` are its own behaviour behind
     the second and the third.
+
+    Every chain the release runs is in `chains`. On any chain but regtest
+    an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
+    answers.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -201,6 +228,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.BLOCK_FILTER_INDEX,
         }
     )
+    chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)
 
     def __init__(
         self,
@@ -212,15 +240,17 @@ class BitcoindAdapter(NodeAdapter):
         rpc_auth: tuple[str, str] | None = None,
         *,
         trace_rpc: bool = False,
+        chain: str = "regtest",
     ) -> None:
-        """Construct the adapter, then drop `MINE` where the build lacks it.
+        """Construct the adapter, then drop what the build or the chain lacks.
 
         `super().__init__` runs first, the same ordering
         `BtclibNodeAdapter.__init__` (`btclib_node.py`) uses and for the
         same reason: `_check_extra_args(self._command(), extra_args)`
         needs `self._executable` set before `_command` can be called.
         `_has_wallet` is then this class's own per-build probe, read once
-        per instance rather than once per `mine` call.
+        per instance rather than once per `mine` call, and
+        `_REGTEST_ONLY` is what any other `chain` drops.
         """
         super().__init__(
             executable,
@@ -230,19 +260,22 @@ class BitcoindAdapter(NodeAdapter):
             extra_args,
             rpc_auth,
             trace_rpc=trace_rpc,
+            chain=chain,
         )
         if not _has_wallet(executable):
-            self.capabilities = type(self).capabilities - {Capability.MINE}
+            self.capabilities = self.capabilities - {Capability.MINE}
+        if chain != "regtest":
+            self.capabilities = self.capabilities - _REGTEST_ONLY
 
     @override
     def _command(self) -> list[str]:
-        """Return bitcoind's own argv, a loopback-only, ephemeral regtest.
+        """Return bitcoind's own argv, a loopback-only, ephemeral node.
 
         `-natpmp=0`, `-discover=0` and `-listenonion=0`: `-bind` already
         names the one address this node listens on regardless of
         `-listen`'s own default, so nothing here needs to reach a
         gateway, a public address lookup or a Tor control port -- a
-        throwaway regtest node run from a test suite wants none of the
+        throwaway node run from a test suite wants none of the
         three. `-fallbackfee` is set because a chain with no fee history
         refuses to fund a transaction without it, which `Capability.MINE`
         meets the moment a caller spends what it mines. `-debug=net` and
@@ -273,10 +306,25 @@ class BitcoindAdapter(NodeAdapter):
         `p2p_port`) rather than from the OS, as `free_ports` (`node.py`)
         takes them. `-bind` needs no such partner: `CConnman::InitBinds`
         (`src/net.cpp`) fails init on any `-bind` address it cannot bind.
+
+        `-chain` names the chain. On any chain but regtest, which has no
+        seed to reach, `-connect=0`, `-dnsseed=0` and `-fixedseeds=0` keep
+        the node off the real network: no outbound connection is drawn,
+        and no DNS or fixed seed is asked for one. Core's own
+        `write_config` (`util.py`) writes all three on every chain,
+        `connect=0` unless a test passes `disable_autoconnect=False`.
+        `-connect=0` would turn listening off by default, but
+        `InitParameterInteraction` (`src/init.cpp`) reads `-bind` first
+        and keeps listening on the address it names.
         """
+        isolation = (
+            []
+            if self._chain == "regtest"
+            else ["-connect=0", "-dnsseed=0", "-fixedseeds=0"]
+        )
         return [
             self._executable,
-            "-regtest",
+            f"-chain={self._chain}",
             f"-datadir={self._datadir}",
             f"-rpcport={self._rpc_port}",
             "-rpcbind=127.0.0.1",
@@ -289,7 +337,13 @@ class BitcoindAdapter(NodeAdapter):
             "-printtoconsole=0",
             "-debug=net",
             "-debug=addrman",
+            *isolation,
         ]
+
+    @property
+    def _chain_dir(self) -> Path:
+        """Return the directory of this node's cookie and log: `_CHAIN_DIRS`."""
+        return self._datadir / _CHAIN_DIRS[self._chain]
 
     @override
     def _rpc_client(self) -> BitcoinCoreRpcClient:
@@ -316,18 +370,18 @@ class BitcoindAdapter(NodeAdapter):
             return BitcoinCoreRpcClient(
                 url, user=user, password=password, transport=transport
             )
-        cookie_path = self._datadir / "regtest" / ".cookie"
+        cookie_path = self._chain_dir / ".cookie"
         return BitcoinCoreRpcClient(url, cookie_path=cookie_path, transport=transport)
 
     @property
     def debug_log_path(self) -> Path:
         """Return this node's own `debug.log`, `Capability.DEBUG_LOG`'s fact.
 
-        `-datadir`'s own `regtest/debug.log`, the same layout the cookie
-        file above reads from -- bitcoind's own convention, not a name
-        this adapter invents.
+        `debug.log` in `_chain_dir`, the directory the cookie file above
+        is read from -- bitcoind's own convention, not a name this adapter
+        invents.
         """
-        return self._datadir / "regtest" / "debug.log"
+        return self._chain_dir / "debug.log"
 
     @override
     def _log_path(self) -> Path:

@@ -157,6 +157,18 @@ __all__ = [
 _RPC_USER = "tf2"
 _RPC_PASSWORD = "tf2"  # noqa: S105 -- ignored by a pre-#1070 build; see above
 
+# each chain `-chain=` names, in Core's vocabulary, and the subdirectory of
+# `-datadir` the node writes its cookie and its log into: `chains.py`'s own
+# `name` of the chain `cli.py`'s `_CHAIN_ALIASES` resolves it to, measured at
+# the released `2026.9.24` and at `main` (`35b26d2e`) alike. Neither names
+# `testnet4`.
+_CHAIN_DIRS = {
+    "main": "mainnet",
+    "test": "testnet",
+    "signet": "signet",
+    "regtest": "regtest",
+}
+
 
 @lru_cache
 def _writes_auth_cookie(executable: str) -> bool:
@@ -307,16 +319,21 @@ def _serves_ban_list(executable: str) -> bool:
 
 
 class BtclibNodeAdapter(NodeAdapter):
-    """A regtest `btclib-node`, run as `python -m btclib_node`.
+    """A `btclib-node`, run as `python -m btclib_node`.
 
     Not the console script `pip install btclib-node` also provides:
     `cli.py`'s own module docstring is where the reason not to run that
     entry point directly from a spawning process is argued --
     `ReimportedMainProcessError` reaching every path but the one
     `python -m` and its own `__main__.py` exempt.
+
+    `chains` is every chain `_CHAIN_DIRS` names, `testnet4` not among
+    them. On any chain but regtest an instance drops `Capability.MINE`:
+    `MiniWallet` builds regtest's own blocks alone.
     """
 
     capabilities: AbstractSet[Capability] = frozenset({Capability.CONNECT})
+    chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)
 
     @override
     def __init__(
@@ -329,6 +346,7 @@ class BtclibNodeAdapter(NodeAdapter):
         rpc_auth: tuple[str, str] | None = None,
         *,
         trace_rpc: bool = False,
+        chain: str = "regtest",
     ) -> None:
         """Construct the adapter, then add each probed capability that holds.
 
@@ -345,7 +363,9 @@ class BtclibNodeAdapter(NodeAdapter):
         `_connects_alone` answers `Capability.MINE`, and
         `_serves_ban_list` answers `Capability.BAN`. The
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
-        is left untouched where every probe answers `False`.
+        is left untouched where every probe answers `False`. A `chain`
+        other than regtest drops `Capability.MINE` whatever its probe
+        answers.
         """
         super().__init__(
             executable,
@@ -355,6 +375,7 @@ class BtclibNodeAdapter(NodeAdapter):
             extra_args,
             rpc_auth,
             trace_rpc=trace_rpc,
+            chain=chain,
         )
         probed = set()
         if _writes_auth_cookie(executable):
@@ -363,7 +384,7 @@ class BtclibNodeAdapter(NodeAdapter):
             probed.add(Capability.RPC_AUTH_NEGATION)
         if _evicts_inbound(executable):
             probed.add(Capability.INBOUND_EVICTION)
-        if _connects_alone(executable):
+        if _connects_alone(executable) and chain == "regtest":
             probed.add(Capability.MINE)
         if _serves_ban_list(executable):
             probed.add(Capability.BAN)
@@ -405,17 +426,34 @@ class BtclibNodeAdapter(NodeAdapter):
         `-rpcuser`/`-rpcpassword`: a build before ISS btclib-node#1070
         refuses either flag outright, so the credential is `_rpc_client`
         below's alone, never this argv's.
+
+        `-chain` names the chain. On any chain but regtest, which has no
+        seed to reach, `-connect=0` keeps the node from reaching the real
+        network: the node's own `P2pManager` asks no DNS or fixed seed and
+        draws no outbound connection once `-connect` is given, `0`
+        dialling nobody. `-listen=1` keeps the `-port` listener `-connect`
+        would turn off by default, the listener every inbound connection a
+        test makes dials. That listener binds every interface, on every
+        chain, this node having no `-bind` to narrow it
+        (ISS btclib-org/btclib-node#1257).
         """
+        isolation = [] if self._chain == "regtest" else ["-connect=0", "-listen=1"]
         return [
             self._executable,
             "-m",
             "btclib_node",
-            "-regtest",
+            f"-chain={self._chain}",
             f"-datadir={self._datadir}",
             f"-rpcport={self._rpc_port}",
             "-rpcbind=127.0.0.1",
             f"-port={self._p2p_port}",
+            *isolation,
         ]
+
+    @property
+    def _chain_dir(self) -> Path:
+        """Return the directory of this node's cookie and log: `_CHAIN_DIRS`."""
+        return self._datadir / _CHAIN_DIRS[self._chain]
 
     @override
     def _rpc_client(self) -> BitcoinCoreRpcClient:
@@ -430,9 +468,8 @@ class BtclibNodeAdapter(NodeAdapter):
         one -- the caller that put either flag on the command line already
         knows the credential to authenticate with instead. Absent that,
         cookie authentication, `BitcoindAdapter`'s own mechanism, where
-        `_writes_auth_cookie` finds the build writes one -- the same
-        `<datadir>/regtest/.cookie` layout, `chains.RegTest`'s own `name`
-        matching bitcoind's `regtest` subdirectory. A build with no
+        `_writes_auth_cookie` finds the build writes one, in `_chain_dir`.
+        A build with no
         Core-style RPC authentication at all is given the placeholder
         credential instead, which it never checks. `self._trace_rpc`
         (`--tracerpc`) decides whether either path wraps its transport in
@@ -452,7 +489,7 @@ class BtclibNodeAdapter(NodeAdapter):
         if _writes_auth_cookie(self._executable):
             return BitcoinCoreRpcClient(
                 url,
-                cookie_path=self._datadir / "regtest" / ".cookie",
+                cookie_path=self._chain_dir / ".cookie",
                 transport=transport,
             )
         return BitcoinCoreRpcClient(
@@ -465,11 +502,10 @@ class BtclibNodeAdapter(NodeAdapter):
 
         Not `debug_log_path`: `BitcoindAdapter`'s own name is Core's file,
         and this node writes no file of that name. `history.log` is
-        `btclib_node`'s own, under the same `<datadir>/regtest/` layout
-        the cookie file above reads from -- measured live, at the sha
-        this module's own docstring pins.
+        `btclib_node`'s own, in `_chain_dir`, the directory the cookie
+        file above is read from.
         """
-        return self._datadir / "regtest" / "history.log"
+        return self._chain_dir / "history.log"
 
     @override
     def _log_path(self) -> Path:

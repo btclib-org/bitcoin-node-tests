@@ -286,6 +286,54 @@ def test_init_refuses_extra_args_naming_a_reserved_option(
         )
 
 
+@pytest.mark.parametrize(
+    "extra_arg", ["-chain=main", "-testnet", "-testnet4", "--signet", "-nosignet"]
+)
+def test_init_refuses_every_chain_selector_once_the_command_names_one(
+    tmp_path: Path, extra_arg: str
+) -> None:
+    """`-regtest` in `_command` reserves the other four spellings too."""
+    with pytest.raises(ValueError, match=r"^extra_args reuses -"):
+        _MultiOptionAdapter(
+            "fake-node", tmp_path / "node", 0, 0, extra_args=[extra_arg], rpc=_FakeRpc()
+        )
+
+
+def test_init_accepts_a_chain_selector_where_the_command_names_none(
+    tmp_path: Path,
+) -> None:
+    """The five are reserved as a group only where `_command` names one."""
+    adapter = _FakeAdapter(
+        "fake-node", tmp_path / "node", 0, 0, extra_args=["-testnet"], rpc=_FakeRpc()
+    )
+    assert adapter._extra_args == ("-testnet",)
+
+
+def test_chain_is_regtest_where_the_caller_names_none(tmp_path: Path) -> None:
+    """`chain` defaults to `regtest`, the one chain the base class names."""
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    assert adapter.chain == "regtest"
+    assert NodeAdapter.chains == frozenset({"regtest"})
+
+
+def test_init_refuses_a_chain_the_adapter_does_not_name(tmp_path: Path) -> None:
+    """A chain outside `chains` is refused before `_command` is ever read."""
+    with pytest.raises(ValueError, match=r"cannot start a node on chain 'main'"):
+        _FakeAdapter("fake-node", tmp_path / "node", 0, 0, chain="main", rpc=_FakeRpc())
+
+
+def test_init_accepts_a_chain_the_adapter_names(tmp_path: Path) -> None:
+    """A subclass widening `chains` can be built on any chain it names."""
+
+    class _MainAdapter(_FakeAdapter):
+        chains: AbstractSet[str] = frozenset({"regtest", "main"})
+
+    adapter = _MainAdapter(
+        "fake-node", tmp_path / "node", 0, 0, chain="main", rpc=_FakeRpc()
+    )
+    assert adapter.chain == "main"
+
+
 def test_init_accepts_extra_args_naming_no_reserved_option(tmp_path: Path) -> None:
     """An option `_command` never sets, or no option at all, passes through."""
     extra_args = ["-blocksdir=/elsewhere", "-no", "-", "positional"]

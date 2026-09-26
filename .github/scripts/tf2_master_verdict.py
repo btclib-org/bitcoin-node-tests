@@ -204,15 +204,18 @@ def classify(pin: str, latest_commit: str) -> str:
     """Name this repository's verdict on a master-only failure.
 
     :param pin: `TF2.md`'s own pin for the Core test file, from
-        `ledger_pins`.
+        `ledger_pins` -- an abbreviated sha.
     :param latest_commit: the sha `_latest_commit` names as that file's
-        tip on `master`.
+        tip on `master` -- the API's own full sha, which the pin is a
+        prefix of where the file has not moved.
     :returns: `"stale port"` where the file has moved since the pin -- the
         port's own defect -- or `"candidate regression"` where it has
         not, a finding for Core once every citation behind it is
         verified by hand.
     """
-    return "stale port" if latest_commit != pin else "candidate regression"
+    if latest_commit.startswith(pin):
+        return "candidate regression"
+    return "stale port"
 
 
 def verdicts(

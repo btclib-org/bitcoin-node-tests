@@ -402,3 +402,9 @@ enough chain leaves every coinbase the test matures worth less (closes #127).
 `cli.py`'s `_build_parser` is gone from `btclib-node`'s `main`, replaced by a
 module-level `_OPTIONS` dict; the `UA_COMMENT` and `V2TRANSPORT` docstrings
 now measure both the released build and `main` (closes #59).
+
+### Every test runs under a per-test timeout
+
+`pytest-timeout` joins `harness`, and `[tool.pytest.ini_options]`'s `timeout`
+fails a test that hangs by name, scaled by `--timeout-factor` with the waits
+beneath it (closes #91).

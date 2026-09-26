@@ -92,6 +92,7 @@ harness = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "pytest-randomly>=5.0.0",
+    "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.8.0",
 ]
 test = [{ include-group = "harness" }]
@@ -167,6 +168,26 @@ source-exclude = [
 testpaths = ["tests"]
 addopts = "-ra --cov --durations=8 -n auto --dist worksteal --strict-config --strict-markers"
 xfail_strict = true
+# What one test is given, setup and teardown included, before
+# pytest-timeout fails it by name: a hang on a node's process, socket or
+# RPC otherwise runs on until the workflow's own `timeout-minutes` ends
+# the job with no test named (section 7 of the organization standard).
+# Measured on 2026-09-26 against bitcoind 31.1 and the released
+# btclib-node at once, on a machine other sessions were loading, under
+# `-n auto` and again under `-n 2`:
+#
+#   TF2_INTEGRATION=1 TF2_BITCOIND=<bitcoind> \
+#       TF2_BTCLIB_NODE_PYTHON=<python> \
+#       uv run pytest tests/integration --no-cov --durations=15
+#
+# the slowest were btclib-node tests failing on a `peer.py` wait at its
+# default deadline, 34.27s at most, and the slowest passing one was
+# `p2p_invalid_locator_bitcoind_test.py::test_max_locator_size`, 18.85s.
+# The bound sits far above the defaults `node.py` and `peer.py` give
+# their waits, so a missed deadline still fails naming the condition it
+# waited on rather than as a timeout; `tests/integration/conftest.py`'s
+# own `pytest_configure` scales it by `--timeout-factor` along with them.
+timeout = 300
 filterwarnings = ["error"]
 # --strict-markers is on, so a marker is declared here or it is a typo.
 # `integration` is what needs a real node: those tests skip themselves

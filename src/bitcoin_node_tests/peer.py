@@ -213,6 +213,34 @@ class Peer:
         err_msg = "connection was not closed within the wait"
         raise AssertionError(err_msg)
 
+    def sync_with_ping(self, *, timeout: float | None = None) -> None:
+        """Send two `ping`s, and wait for the `pong` answering the second.
+
+        A node processes a connection's messages in the order they
+        arrive, so that `pong` says every message sent ahead of the pings
+        has been processed; the first `ping` is what makes the node
+        process a message twice, and so run its own send loop for this
+        connection at least once in between. Core's
+        `P2PInterface.sync_with_ping` is the same barrier, built the same
+        way, and its `TestNode.add_p2p_connection` runs it after the
+        handshake: `handshake` returns on the node's own `verack`, which
+        the node sends before it has processed this peer's.
+
+        :param timeout: how long to wait, scaled by `--timeout-factor`
+            like every other explicit wait; `self._timeout` (scaled
+            already, at construction) where `None`.
+        :raises TimeoutError: no matching `pong` arrived in time.
+        """
+        # nonzero, so that the answer to the first ping never matches
+        nonce = secrets.randbelow(2**64 - 1) + 1
+        self.send(Ping(0))
+        self.send(Ping(nonce))
+        self.wait_for(
+            "pong",
+            predicate=lambda m: Pong.parse(m.payload).nonce == nonce,
+            timeout=timeout,
+        )
+
     def handshake(self) -> Version:
         """Exchange `version`/`verack`, and return the node's own `version`.
 

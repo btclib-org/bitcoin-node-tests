@@ -157,6 +157,10 @@ class BitcoindAdapter(NodeAdapter):
     mempool/relay-policy flags of this binary's own, recognised
     regardless of what a caller sets them to
     ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
+    `Capability.DESCRIPTOR_ACTIVITY` and `Capability.BLOCK_STATS` are
+    unconditional too: `getdescriptoractivity` and `getblockstats` are
+    both RPCs of this binary's own, answered regardless of which
+    descriptor, block or statistic a caller names.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -180,6 +184,8 @@ class BitcoindAdapter(NodeAdapter):
             Capability.BYTES_PER_SIGOP,
             Capability.LIMIT_CLUSTER_COUNT,
             Capability.LIMIT_CLUSTER_SIZE,
+            Capability.DESCRIPTOR_ACTIVITY,
+            Capability.BLOCK_STATS,
         }
     )
 

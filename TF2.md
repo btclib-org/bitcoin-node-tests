@@ -823,6 +823,13 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
 | `mempool_package_limits.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_updatefromblock.py` | `fa6b05c96ffb` | 2026-03-12 | pass | skip |
+| `p2p_leak_tx.py` (in block) | `fa5f29774872` | 2025-12-16 | pass | skip |
+| `p2p_leak_tx.py` (replaced) | same | same | pass | skip |
+| `p2p_leak_tx.py` (unannounced) | same | same | pass | skip |
+| `feature_utxo_set_hash.py` | `58eeab790d98` | 2026-05-13 | pass | skip |
+| `rpc_getdescriptoractivity.py` | `3fd68a95e68b` | 2026-04-07 | pass | skip |
+| `rpc_getdescriptoractivity.py` (mempool) | same | same | pass | skip |
+| `rpc_getblockstats.py` | `b7cbd804284b` | 2026-05-25 | pass | skip (stats) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1892,3 +1899,88 @@ Both files' own `btclib-node` cells are a counted skip on their own
 option capability alone, ahead of `Capability.MINE`: neither
 `-limitclustercount` nor `-limitclustersize` is one of `cli.py`'s
 registered flags, on the released build or on `main`.
+
+`p2p_leak_tx.py`'s own rows are the clock and MiniWallet families
+together, each subject its own pytest function over `Peer` and
+`NodeAdapter` rather than Core's own
+`P2PInterface`/`P2PDataStore`/`P2PTxInvStore`. "in block" is Core's own
+`test_tx_in_block`: a `getdata` built from the `inv` the node announces,
+sent only after the transaction has been mined into a block, is still
+answered with the transaction. Each connection is synced with a ping
+after its handshake, as Core's `TestNode.add_p2p_connection` does, so
+the node has processed this peer's own `verack` before any transaction
+is broadcast or the mock clock moves. Each subject starts its own node
+rather than sharing one across the module: `mempool_sequence` is a
+counter over a node's whole lifetime, and `pytest-randomly` does not
+hold that ordering against a shared node still. The `btclib-node` cells
+skip on `Capability.CLOCK`, the first capability each subject asks for
+on either node.
+
+`feature_utxo_set_hash.py`'s row computes the UTXO set's own
+commitments independently, walking every block this harness's own chain
+holds back off `getblock`, rather than trusting Core's own Python
+reimplementation of the same arithmetic the way Core's own file does:
+MuHash with `btclib.coinstats.CoinStats`, and `hash_serialized_3` as the
+SHA256d Core's `kernel/coinstats.cpp` takes over the same `TxOutSer`
+bytes, in its coins-view cursor's own order. Kept is that both agree
+with `gettxoutsetinfo` over a chain carrying a coinbase-only run and one
+spend; dropped is Core's own hard-coded `hash_serialized_3`/`muhash`
+literals, deterministic only on Core's own exact chain.
+
+Neither `feature_utxo_set_hash.py` nor `rpc_getdescriptoractivity.py`
+nor `rpc_getblockstats.py` is the clock family, despite Core's own file
+calling `setmocktime` in each. In `feature_utxo_set_hash.py` and
+`rpc_getdescriptoractivity.py` that call freezes the clock Core's own
+node-driven mining (`generatetodescriptor`) reads block times from,
+where this harness's own `MiniWallet.generate` always builds a block's
+own time from the wall clock instead -- freezing the node's clock ahead
+of a `generate` call produces a `time-too-new` refusal rather than the
+freeze Core's own file relies on, measured live on the first block mined
+after the freeze. In `rpc_getblockstats.py` an ordinary run calls it
+only in `load_test_data`, so that a node replaying its fixture's old
+blocks leaves Initial Block Download; this port mines fresh blocks
+rather than replaying that fixture, so nothing in it waits on the
+freeze.
+
+`rpc_getdescriptoractivity.py`'s own rows and `rpc_getblockstats.py`'s
+own row are new capabilities rather than options:
+`Capability.DESCRIPTOR_ACTIVITY` and `Capability.BLOCK_STATS`
+(`capability.py`) name the RPC itself, `getdescriptoractivity` and
+`getblockstats` naming no callback in `btclib-node`'s own dispatch
+table on either build -- measured live, both answer "Method not found"
+there. The `rpc_getblockstats.py` cell abbreviates its capability to
+`(stats)` and the `rpc_getdescriptoractivity.py` cells name none, so
+this paragraph is where both names are spelled out.
+`rpc_getdescriptoractivity.py`'s own first row needs no `MiniWallet`,
+and is what runs on bitcoind directly; its `(mempool)` row folds
+together Core's own `test_activity_in_block` and
+`test_no_mempool_inclusion`, both needing `Capability.MINE` on top of
+the RPC itself. `rpc_getdescriptoractivity.py`'s own kept and dropped
+set: kept is that an unused address carries no activity; that a payment
+to a key-path p2tr output confirmed in a named block makes `activity`
+the answer's only key and reports one `receive` entry, checked for its
+`type`, `blockhash`, `height`, `txid`, `vout` and `amount` and for its
+`output_spk`'s `hex`, `address`, `type`, the witness version opening
+its `asm` and the `rawtr` function opening its `desc`; that an
+unconfirmed payment is excluded when `include_mempool` is `False`; and
+its RPC-argument errors for a bad blockhash, a bad descriptor and a
+missing argument; dropped is Core's own multiple-address query, its
+receive-then-spend, its mix of a confirmed and an unconfirmed payment,
+and its no-address (`RAW_P2PK`) case, this repository's own `MiniWallet`
+building only Core's `ADDRESS_OP_TRUE` mode. `rpc_getblockstats.py`'s
+own kept and dropped set: kept is the genesis block's own statistics --
+independently computed with `btclib.coinstats.bogo_size` rather than
+copied from Core's own literals, genesis being a network constant this
+harness's own chain shares with Core's -- and the same answer when the
+block is selected by hash; that an `OP_RETURN` output is counted in
+`utxo_increase`/`utxo_size_inc` but excluded from
+`utxo_increase_actual`/`utxo_size_inc_actual`; that `stats=[...]`
+narrows the answer; its height error messages; its statistic-name error
+message wherever the invalid name sits in the list, and naming the name
+given rather than a fixed one; mainnet's genesis hash answering "Block
+not found"; its required-argument usage string; and a `blk00000.dat`
+renamed away answering "Block not found on disk". Dropped is Core's own
+vendored fixture and every comparison it feeds -- the full key set, the
+heights and each statistic of the blocks it replays, by height and by
+hash -- its per-stat query loop over those blocks, and its
+`submitheader`-only-known-block case.

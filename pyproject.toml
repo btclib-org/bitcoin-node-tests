@@ -189,6 +189,12 @@ extend-exclude = [".secrets.baseline", "uv.lock"]
 [tool.typos.default]
 extend-ignore-re = ['[0-9A-Za-z+/]{26,}={0,2}']
 
+[tool.typos.default.extend-identifiers]
+# Core's TxOutSer and btclib.coinstats' own tx_out_ser, which typos reads
+# as a misspelt "set" and rewrites in place
+TxOutSer = "TxOutSer"
+tx_out_ser = "tx_out_ser"
+
 [tool.typos.type.verbatim]
 extend-glob = ["CHANGELOG.md", ".pre-commit-config.yaml", "TF2.md"]
 extend-ignore-re = ['`[^`]*`']

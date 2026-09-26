@@ -40,7 +40,7 @@ p2p, which this repository's own `Capability.CONNECT` already reaches.
 `Capability.DISCONNECT` is not declared, on either build: `addnode` is
 answered (this module's own opening paragraph) but `disconnectnode`
 names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
-table, measured at the released `2026.9.24` (`382a29fb`) and at `main`
+table, measured at the released `2026.9.24` (`422d2640`) and at `main`
 (`d98bd7d6`) alike. Filed as
 [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193).
 
@@ -97,6 +97,12 @@ read and type-checked, matching Core's own optional third argument, and
 otherwise unused: BIP324 is not a transport this node speaks yet" is
 that module's own wording -- so there is no BIP324 codec behind either
 spelling for this capability to name.
+
+`Capability.DESCRIPTOR_ACTIVITY` and `Capability.BLOCK_STATS` are never
+declared, on either build: neither `getdescriptoractivity` nor
+`getblockstats` names a callback in `src/btclib_node/rpc/callbacks.py`'s
+own dispatch table, measured at the released `2026.9.24` (`422d2640`)
+and at `main` (`d7693b2f5a16`) alike.
 """
 
 from __future__ import annotations
@@ -120,8 +126,8 @@ __all__ = [
     "BtclibNodeAdapter",
 ]
 
-# btclib-node's own build before ISS btclib-node#1070 (`382a29fb`, still
-# what PyPI's `2026.9.24` release installs) checks no credential at all
+# btclib-node's own build before ISS btclib-node#1070 (`422d2640`, what
+# PyPI's `2026.9.24` release installs) checks no credential at all
 # and binds RPC to 127.0.0.1 only -- ISS 2135's own census, quoted in ISS
 # 2220 -- so a placeholder is what `bitcoin_core_rpc.BitcoinCoreRpcClient`
 # is given for that build instead of one the constructor refuses to be

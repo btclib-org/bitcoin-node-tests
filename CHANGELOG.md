@@ -354,3 +354,9 @@ each naming a stale subset of it (closes #96).
 The window between `start()` and this test's own first `stop()`, in both
 twins, now runs inside a `try`/`finally` that kills the process only if it
 is still alive (closes #114).
+
+### A reference to another repository's issue is qualified with its owner and name
+
+Bare `ISS 2220` in a comment or docstring resolved to this tracker,
+where no such issue exists; citations of btclib and btclib-node now
+carry the owner and repository, `TF2.md`'s own form (closes #100).

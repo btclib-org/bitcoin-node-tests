@@ -75,9 +75,9 @@ per-function tests this step already has.
 
 **The suite opens no socket** is the one of the three that this
 package's own subject makes an odd fit rather than merely an unbuilt
-walk: rule 1 of ISS 2220 is that reaching a node is a socket, so a
-generic check for "every construction that could reach the network
-carries the argument that keeps it hermetic" would have to tell
+walk: rule 1 of ISS btclib-org/btclib#2220 is that reaching a node is a
+socket, so a generic check for "every construction that could reach the
+network carries the argument that keeps it hermetic" would have to tell
 `peer_test.py`'s own loopback-bound `_FakeNode` -- hermetic by
 construction, and the only socket the unit suite opens -- from
 `tests/integration/`'s deliberately real one, gated instead by

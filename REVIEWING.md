@@ -478,8 +478,8 @@ because that document, and not this one, is where the rule lives.
   [ISS 2220](https://github.com/btclib-org/btclib/issues/2220),
   `CONTRIBUTING.md`'s *The one constraint*.
 - Does a test **use Core's own names or spellings** where btclib already
-  has one? Rule 2 of ISS 2220: consensus constants keep Core's spelling,
-  and nothing else is aliased.
+  has one? Rule 2 of ISS btclib-org/btclib#2220: consensus constants
+  keep Core's spelling, and nothing else is aliased.
 - Does an entry of `TF2.md` **carry a line number into another
   repository**, or a revision copied beside a citation rather than left
   to the ledger? `TF2.md`'s own *Citing the framework* states the rule.
@@ -489,4 +489,5 @@ because that document, and not this one, is where the rule lives.
   refused: it lists non-recursively and reports every nested file as
   gone.
 - A new capability a node is asked to declare: does it name **what the
-  node can do rather than how it spells it** (rule 4 of ISS 2220)?
+  node can do rather than how it spells it** (rule 4 of
+  ISS btclib-org/btclib#2220)?

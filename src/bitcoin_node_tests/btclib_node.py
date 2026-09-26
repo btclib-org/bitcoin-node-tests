@@ -138,9 +138,10 @@ __all__ = [
 
 # btclib-node's own build before ISS btclib-node#1070 (`422d2640`, what
 # PyPI's `2026.9.24` release installs) checks no credential at all
-# and binds RPC to 127.0.0.1 only -- ISS 2135's own census, quoted in ISS
-# 2220 -- so a placeholder is what `bitcoin_core_rpc.BitcoinCoreRpcClient`
-# is given for that build instead of one the constructor refuses to be
+# and binds RPC to 127.0.0.1 only -- ISS btclib-org/btclib#2135's own
+# census, quoted in ISS btclib-org/btclib#2220 -- so a placeholder is
+# what `bitcoin_core_rpc.BitcoinCoreRpcClient` is given for that build
+# instead of one the constructor refuses to be
 # built with none of: `_writes_auth_cookie` below is what decides whether
 # it is used at all, rather than the cookie every later build writes.
 _RPC_USER = "tf2"

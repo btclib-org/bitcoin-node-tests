@@ -40,7 +40,7 @@ import pytest
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import SkipCounts
-from bitcoin_node_tests.node import free_port
+from bitcoin_node_tests.node import free_ports
 from bitcoin_node_tests.timeout_factor import set_factor
 
 if TYPE_CHECKING:
@@ -202,11 +202,12 @@ def bitcoind_adapter(
     bitcoind_path: str, tmp_path_factory: pytest.TempPathFactory, trace_rpc: bool
 ) -> Iterator[BitcoindAdapter]:
     """Yield a `BitcoindAdapter` over a regtest node started this session."""
+    rpc_port, p2p_port = free_ports(2)
     adapter = BitcoindAdapter(
         bitcoind_path,
         tmp_path_factory.mktemp("bitcoind"),
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         trace_rpc=trace_rpc,
     )
     adapter.start()
@@ -232,11 +233,12 @@ def bitcoind_cluster(
 
     def _start(count: int) -> list[BitcoindAdapter]:
         for _ in range(count):
+            rpc_port, p2p_port = free_ports(2)
             adapter = BitcoindAdapter(
                 bitcoind_path,
                 tmp_path_factory.mktemp("bitcoind"),
-                free_port(),
-                free_port(),
+                rpc_port,
+                p2p_port,
                 trace_rpc=trace_rpc,
             )
             adapter.start()
@@ -283,11 +285,12 @@ def btclib_node_adapter(
     btclib_node_python: str, tmp_path_factory: pytest.TempPathFactory, trace_rpc: bool
 ) -> Iterator[BtclibNodeAdapter]:
     """Yield a `BtclibNodeAdapter`, a regtest node started this session."""
+    rpc_port, p2p_port = free_ports(2)
     adapter = BtclibNodeAdapter(
         btclib_node_python,
         tmp_path_factory.mktemp("btclib-node"),
-        free_port(),
-        free_port(),
+        rpc_port,
+        p2p_port,
         trace_rpc=trace_rpc,
     )
     adapter.start()
@@ -316,15 +319,22 @@ def mixed_cluster(
     Function-scoped like `bitcoind_cluster`, not session-scoped like
     either adapter fixture above: a fresh chain and a fresh pair of ports
     per test, the same reason `bitcoind_cluster` gives for its own.
+
+    Both adapters are constructed, and so both draw their ports, before
+    either starts -- unlike `bitcoind_cluster`'s own loop, which starts
+    each node before the next one draws its ports. `free_ports` reserves
+    all four here in one call rather than as two pairs, which is what
+    keeps this node's ports from landing on the other's.
     """
+    rpc_port1, p2p_port1, rpc_port2, p2p_port2 = free_ports(4)
     bitcoind = BitcoindAdapter(
-        bitcoind_path, tmp_path_factory.mktemp("bitcoind"), free_port(), free_port()
+        bitcoind_path, tmp_path_factory.mktemp("bitcoind"), rpc_port1, p2p_port1
     )
     btclib_node = BtclibNodeAdapter(
         btclib_node_python,
         tmp_path_factory.mktemp("btclib-node"),
-        free_port(),
-        free_port(),
+        rpc_port2,
+        p2p_port2,
     )
     bitcoind.start()
     try:

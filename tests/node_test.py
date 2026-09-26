@@ -16,7 +16,7 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, ClassVar, Self, override
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
@@ -27,6 +27,7 @@ from bitcoin_node_tests.node import (
     connect_nodes,
     disconnect_nodes,
     free_port,
+    free_ports,
     sync_all,
     traced_transport,
     wait_until_disconnected,
@@ -108,6 +109,80 @@ def test_free_port_returns_a_bindable_port() -> None:
     port = free_port()
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", port))
+
+
+def test_free_ports_returns_pairwise_distinct_bindable_ports() -> None:
+    """Every port `free_ports` returns is free, and none repeats another."""
+    import socket  # noqa: PLC0415
+
+    ports = free_ports(3)
+    assert len(set(ports)) == len(ports)
+    for port in ports:
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", port))
+
+
+class _RecyclingSocket:
+    """A `socket.socket` stand-in whose OS reissues a just-closed port.
+
+    `bind` hands out the lowest of two ports (`0` and `1`) not currently
+    held by another instance of this class -- modelling the one fact
+    `free_port` and `free_ports` differ on: whether a port is still
+    reserved by a probe that has not yet closed. Two ports are enough to
+    force the collision ISS 85 measured at random in the real ephemeral
+    range: `free_port` called twice closes its first probe, freeing port
+    `0`, before its second one ever binds, so the second gets `0` back
+    every time under this fake; `free_ports` closes neither until both
+    are bound, so its second probe only ever sees port `1` still free.
+    """
+
+    _held: ClassVar[set[int]] = set()
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        del args, kwargs
+        self._port = -1  # not yet bound; not a member of the pool below
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        del exc_info
+        self.close()
+
+    def bind(self, address: tuple[str, int]) -> None:
+        del address
+        self._port = next(c for c in (0, 1) if c not in _RecyclingSocket._held)
+        _RecyclingSocket._held.add(self._port)
+
+    def getsockname(self) -> tuple[str, int]:
+        return ("127.0.0.1", self._port)
+
+    def close(self) -> None:
+        _RecyclingSocket._held.discard(self._port)
+
+
+def test_free_ports_does_not_repeat_a_port_the_os_would_reissue(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Two ports drawn together never collide, even where two drawn apart do.
+
+    [ISS 85](https://github.com/btclib-org/bitcoin-node-tests/issues/85)'s
+    own defect, reproduced under `_RecyclingSocket`'s tiny pool rather
+    than left to the real ephemeral range's own odds. Two sequential
+    `free_port` calls collide on port `0` every time here, its second
+    probe binding only after the first has already closed and freed it;
+    `free_ports(2)` holds both probes open until each is bound, so its
+    second one is forced onto port `1` instead.
+    """
+    monkeypatch.setattr("socket.socket", _RecyclingSocket)
+    _RecyclingSocket._held.clear()
+
+    sequential = (free_port(), free_port())
+    assert sequential == (0, 0)
+
+    _RecyclingSocket._held.clear()
+    together = free_ports(2)
+    assert together == (0, 1)
 
 
 def test_traced_transport_prints_the_call_and_forwards_the_answer(

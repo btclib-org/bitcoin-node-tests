@@ -324,3 +324,9 @@ read over `assert_debug_log` against bitcoind's own `dropped (banned)`, not
 
 The datadir-survives-`stop` assertion now runs inside a `try`/`finally`, so
 a failure no longer leaves the node running past the test (closes #95).
+
+### `free_ports` reserves every port a fixture needs before any bind
+
+`free_port`, called once per port, can hand two of them the same one; the
+fixtures in `tests/integration/conftest.py` now draw theirs from `free_ports`,
+which holds every probe open until all are bound (closes #85).

@@ -249,3 +249,9 @@ carrying its stderr says so (closes #76).
 `-debug=addrman` joins `-debug=net`, so the address-manager lines Core's own
 `test_addrv2_unrecognized_network` asserts are in the log it reads, and
 that test joins `p2p_invalid_messages`' `addrv2` checks (issue #5).
+
+### A node whose start fails is killed, and every teardown stop is kept
+
+`NodeAdapter.start` kills its process before raising, and the fixtures that
+stop several nodes stop each one and chain every error rather than keeping
+only one (closes #79).

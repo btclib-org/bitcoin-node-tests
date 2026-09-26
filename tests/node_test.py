@@ -67,12 +67,20 @@ class _FakeProcess:
     def __init__(self, exit_after: int | None = None) -> None:
         self._polls = 0
         self._exit_after = exit_after
+        self.killed = False
 
     def poll(self) -> int | None:
         self._polls += 1
         if self._exit_after is not None and self._polls > self._exit_after:
             return 1
         return None
+
+    def kill(self) -> None:
+        self.killed = True
+
+    def wait(self, timeout: float | None = None) -> int:
+        del timeout
+        return -9
 
 
 class _FakeAdapter(NodeAdapter):
@@ -233,12 +241,17 @@ def test_start_raises_on_a_timeout(tmp_path: Path) -> None:
     adapter = _FakeAdapter(
         "fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc(answers_after=10**6)
     )
+    process = _FakeProcess()
     with (
-        patch("subprocess.Popen", return_value=_FakeProcess()),
+        patch("subprocess.Popen", return_value=process),
         patch.object(node_module, "_STARTUP_TIMEOUT", 0.0),
         pytest.raises(TimeoutError, match="did not answer"),
     ):
         adapter.start()
+    # nothing is left running: the process is killed and forgotten, so a
+    # teardown's own `stop` after it has nothing to terminate
+    assert process.killed
+    adapter.stop()
 
 
 def test_start_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:

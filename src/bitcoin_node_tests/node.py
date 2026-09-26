@@ -44,7 +44,10 @@ __all__ = [
     "connect_nodes",
     "disconnect_nodes",
     "free_port",
+    "sync_all",
     "traced_transport",
+    "wait_until_disconnected",
+    "wait_until_mempools_agree",
     "wait_until_tips_agree",
 ]
 
@@ -450,7 +453,11 @@ def _wait_for_handshake(node: NodeAdapter, peer_id: object, deadline: float) -> 
 
 
 def connect_nodes(
-    first: NodeAdapter, second: NodeAdapter, *, timeout: float = 30.0
+    first: NodeAdapter,
+    second: NodeAdapter,
+    *,
+    timeout: float = 30.0,
+    v2transport: bool = False,
 ) -> None:
     """Connect `first` to `second`, over `addnode onetry` and `getpeerinfo`.
 
@@ -481,11 +488,34 @@ def connect_nodes(
     `sendmsgtopeer` on `second` answer "Could not send message to peer"
     moments after `first` alone would already report the connection.
 
+    `addnode`'s own third argument, `v2transport`, is passed explicitly,
+    `False` unless the caller asks otherwise, rather than left to
+    `first`'s own default: bitcoind's own default is
+    `True` since the pinned `31.1` (measured live -- a bare `addnode
+    ... "onetry"` against a `BtclibNodeAdapter` never completes a
+    handshake, bitcoind's own `debug.log` reading "start sending v2
+    handshake to peer=0" immediately followed by "socket closed,
+    disconnecting peer=0"), and no adapter this repository builds speaks
+    BIP324 -- `peer.py`'s own module docstring already states this
+    suite's own wire is v1 only, and `btclib-node`'s own `add_node`
+    reads and type-checks the argument without ever acting on it
+    (`rpc/callbacks.py`'s own docstring). bitcoind itself never falls
+    back to v1 once a v2 attempt is reset
+    ([ISS btclib-node#1197](https://github.com/btclib-org/btclib-node/issues/1197)),
+    which is why it is stated rather than left to a fallback. Core's own
+    `connect_nodes` (`test_framework.py`) makes the identical choice
+    through its own `peer_advertises_v2` parameter, defaulting to
+    whichever side is dialling; here the default is v1, the one wire
+    every adapter speaks, and a test whose subject is BIP324 between two
+    nodes declaring `Capability.V2TRANSPORT` passes `v2transport=True`.
+
     :param first: the node asked to dial.
     :param second: the node dialled.
     :param timeout: how long to wait for both sides to report the
         connection and its handshake, before `--timeout-factor`'s own
         scaling (`timeout_factor.scaled`).
+    :param v2transport: `addnode`'s own `v2transport` argument, whether
+        `first` dials over BIP324.
     :raises TimeoutError: either side never reported the connection, or
         its handshake, in time.
     """
@@ -493,7 +523,7 @@ def connect_nodes(
     host, port = second.p2p_address
     address = f"{host}:{port}"
     before_second = _peer_ids(second.rpc.call("getpeerinfo"))
-    first.rpc.call("addnode", [address, "onetry"])
+    first.rpc.call("addnode", [address, "onetry", v2transport])
     deadline = time.monotonic() + timeout
 
     first_peer = _wait_for_peer(
@@ -512,6 +542,47 @@ def connect_nodes(
     _wait_for_handshake(second, second_peer["id"], deadline)
 
 
+def wait_until_disconnected(
+    node: NodeAdapter, peer: NodeAdapter, *, timeout: float = 30.0
+) -> None:
+    """Wait until `node`'s own `getpeerinfo` no longer names `peer`'s address.
+
+    Core's own `is_connected_to`
+    (`test/functional/test_framework/test_node.py`) is `self.wait_until`
+    wrapped around it, matched by `getnetworkinfo`'s own subversion
+    string; this matches by p2p address instead, for the same reason
+    `connect_nodes` above does -- this adapter's own nodes carry no
+    per-node subversion tag. So `node` is the side that dialled: its
+    outbound entry carries `peer`'s own listening address, where `peer`'s
+    inbound entry for `node` carries an ephemeral port no `p2p_address`
+    names, and a call with the two swapped returns at once.
+
+    Unlike `disconnect_nodes` below, this makes no RPC call of its own:
+    the drop it waits for is triggered some other way -- `rpc_setban`'s
+    own subject, a `setban` on `peer`'s own side dropping the connection
+    it matches -- and `disconnect_nodes` is `first.rpc.call
+    ("disconnectnode", ...)` followed by exactly this wait, `first` for
+    `node` and `second` for `peer`.
+
+    :param node: the node whose own `getpeerinfo` is polled.
+    :param peer: the peer whose address must disappear from it.
+    :param timeout: how long to wait, before `--timeout-factor`'s own
+        scaling.
+    :raises TimeoutError: `node` still reports `peer` after `timeout`.
+    """
+    timeout = scaled(timeout)
+    host, port = peer.p2p_address
+    address = f"{host}:{port}"
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        peers = node.rpc.call("getpeerinfo")
+        if isinstance(peers, list) and address not in {p["addr"] for p in peers}:
+            return
+        time.sleep(0.1)
+    err_msg = f"{node} still reports a peer at {address} after {timeout} s"
+    raise TimeoutError(err_msg)
+
+
 def disconnect_nodes(
     first: NodeAdapter, second: NodeAdapter, *, timeout: float = 30.0
 ) -> None:
@@ -519,10 +590,10 @@ def disconnect_nodes(
 
     Core's own `disconnect_nodes`
     (`test/functional/test_framework/test_node.py`): `disconnectnode`
-    asks `first` to drop `second`'s own p2p address, and polling
-    `getpeerinfo` for that address to disappear is how this waits for the
-    drop to land, the same wait `connect_nodes` above makes for a
-    connection appearing rather than vanishing.
+    asks `first` to drop `second`'s own p2p address, and
+    `wait_until_disconnected` above is how this waits for the drop to
+    land, the same wait `connect_nodes` above makes for a connection
+    appearing rather than vanishing.
 
     Matched against `connect_nodes(first, second)`: `first` is the side
     that dialled, so `second`'s address is what its own outbound entry
@@ -536,18 +607,10 @@ def disconnect_nodes(
         before `--timeout-factor`'s own scaling.
     :raises TimeoutError: `first` still reports the peer after `timeout`.
     """
-    timeout = scaled(timeout)
     host, port = second.p2p_address
     address = f"{host}:{port}"
     first.rpc.call("disconnectnode", [address])
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        peers = first.rpc.call("getpeerinfo")
-        if isinstance(peers, list) and address not in {peer["addr"] for peer in peers}:
-            return
-        time.sleep(0.1)
-    err_msg = f"{first} still reports a peer at {address} after {timeout} s"
-    raise TimeoutError(err_msg)
+    wait_until_disconnected(first, second, timeout=timeout)
 
 
 def wait_until_tips_agree(
@@ -575,3 +638,50 @@ def wait_until_tips_agree(
         time.sleep(0.1)
     err_msg = f"nodes did not converge on one tip within {timeout} s"
     raise TimeoutError(err_msg)
+
+
+def wait_until_mempools_agree(
+    nodes: Sequence[NodeAdapter], *, timeout: float = 30.0
+) -> None:
+    """Poll every node's `getrawmempool` until they all hold the same set.
+
+    Core's own `sync_mempools` (`test_framework.py`): a transaction
+    relayed over p2p reaches every node in a topology on its own
+    schedule, exactly as a block does, which is `wait_until_tips_agree`
+    above's own reason restated for the mempool rather than the chain.
+    Core's own version also calls `syncwithvalidationinterfacequeue` on
+    every node once they agree, flushing a background validation queue
+    bitcoind's own tests care about; this drops it; it is a call this
+    adapter's own node has no equivalent of, and no capability declares.
+
+    :param nodes: the nodes to poll, at least one.
+    :param timeout: how long to wait for every mempool to match, before
+        `--timeout-factor`'s own scaling.
+    :raises TimeoutError: the nodes never agreed within `timeout`.
+    """
+    timeout = scaled(timeout)
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        pools = {frozenset(node.rpc.call("getrawmempool")) for node in nodes}
+        if len(pools) == 1:
+            return
+        time.sleep(0.1)
+    err_msg = f"nodes did not converge on one mempool within {timeout} s"
+    raise TimeoutError(err_msg)
+
+
+def sync_all(nodes: Sequence[NodeAdapter], *, timeout: float = 30.0) -> None:
+    """Wait for every node's tip, then every node's mempool, to agree.
+
+    Core's own `sync_all` (`test_framework.py`): `wait_until_tips_agree`
+    first, since a mempool's own transactions are commonly what a block
+    just mined is meant to clear -- checking the mempool first could
+    observe an old one, on a node whose new tip has not landed yet.
+
+    :param nodes: the nodes to wait on, at least one.
+    :param timeout: forwarded to each of the two waits in turn, each
+        scaling it by `--timeout-factor`, so the call bounds at twice the
+        scaled value rather than once.
+    """
+    wait_until_tips_agree(nodes, timeout=timeout)
+    wait_until_mempools_agree(nodes, timeout=timeout)

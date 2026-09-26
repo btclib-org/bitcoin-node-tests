@@ -813,6 +813,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_dirsymlinks.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `feature_posix_fs_permissions.py` | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)) |
 | `rpc_createmultisig.py` | `771200ca4362` | 2026-06-30 | pass | bitcoind only |
+| `rpc_setban.py` (ban) | `fa21edddb272` | 2026-03-27 | pass | skip (ban) |
+| `rpc_setban.py` (restart) | same | same | pass | skip (ban) |
+| `rpc_setban.py` (non-IP) | same | same | pass | skip (ban) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1547,3 +1550,137 @@ malleability and a `getdata`-driven send/reject cycle matched against
 `Capability.DEBUG_LOG`'s own wording. Neither mechanism is this batch's
 to build; both stay open under [ISS 6](https://github.com/btclib-org/bitcoin-node-tests/issues/6)
 for a later one, as its own comment already said they would.
+
+## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
+
+[ISS 43](https://github.com/btclib-org/bitcoin-node-tests/issues/43):
+`node.connect_nodes` and `node.wait_until_tips_agree` (Core's own
+`sync_blocks`) already existed, from step 3's own adapter
+(commit `4e64822`); this issue adds what step 3 did not need yet.
+`node.wait_until_mempools_agree` is Core's own `sync_mempools`, and
+`node.sync_all` is `wait_until_tips_agree` then `wait_until_mempools_agree`,
+matching Core's own `sync_all`'s order and dropping only
+`syncwithvalidationinterfacequeue`, a background-queue flush neither
+adapter has an equivalent of. `node.wait_until_disconnected` is the wait
+half of `disconnect_nodes` pulled out on its own, for a drop triggered
+some other way than this suite's own `disconnectnode` call -- `setban`'s
+own subject. Each is unit-tested against a fake RPC client, `node_test.py`'s
+own style throughout.
+
+`Capability.DISCONNECT` (`disconnectnode`) and `Capability.BAN`
+(`setban`/`listbanned`/`clearbanned`) join `Capability.CONNECT` as
+node-linking's own RPCs: `addnode`, `disconnectnode` and `setban` are
+each their own, so a node answering one is not thereby assumed to
+answer either of the others. Both are in bitcoind's own `help` listing
+with no argument, unconditional the same way `CONNECT` already is.
+`btclib-node` declares neither, on either build measured: `BAN` is
+already [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088);
+`DISCONNECT` is new, filed as
+[ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193).
+
+**A real finding, from building the mechanism rather than from reading
+about it**: `connect_nodes`'s own `addnode ... "onetry"` left bitcoind's
+own `v2transport` argument unset -- harmless between a pair of
+`BitcoindAdapter`s, both defaulting the same way, but fatal the moment
+`first` is a `BitcoindAdapter` dialling a `BtclibNodeAdapter`: bitcoind's
+own `debug.log` read "start sending v2 handshake" immediately followed
+by "socket closed, disconnecting", and the handshake wait timed out. No
+test built before this issue ever dialled one kind of node from the
+other, so nothing had exercised this path. bitcoind itself never falls
+back to v1 once a v2 attempt is reset by the other side
+([ISS btclib-node#1197](https://github.com/btclib-org/btclib-node/issues/1197)),
+so `connect_nodes` now passes `v2transport` explicitly rather than
+leaning on a fallback, matching Core's own `connect_nodes`'s
+`peer_advertises_v2` parameter, here with a default of `False`, the one wire
+every adapter this repository builds speaks -- `btclib-node`'s own
+`add_node` reads and type-checks the argument without ever acting on it,
+[ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)
+being why. A test whose subject is BIP324 itself,
+`v2transport_option_bitcoind_test.py`, passes `True`. Measured against
+the fix: the mixed-cluster test below, which timed out before it and
+passes after, on every `btclib-node` build measured.
+
+`rpc_setban.py` is ported, its own rows above. Core's own file restarts
+a node repeatedly, some of those with different `extra_args` than it
+started with and some with the same. The different-`extra_args`
+restarts -- the `-whitelist` noban-permission section and the
+`-bantime` persistence section -- are a mechanism `NodeAdapter.restart`
+(`node.py`) does not offer, reusing the constructor's own `extra_args`
+unconditionally, and no family of this repository has needed that yet;
+both sections are dropped rather than building it here, out of this
+issue's own charter, and filed as
+[ISS bitcoin-node-tests#51](https://github.com/btclib-org/bitcoin-node-tests/issues/51).
+The same-`extra_args` restarts are ported, `restart` already offering
+exactly that: a ban surviving a plain restart, checked through
+`connect_nodes`' own handshake wait timing out on a still-banned dial
+rather than through Core's own `assert_debug_log` (a capability this
+repository does not have yet), and reconnection succeeding again once
+the ban is lifted. Kept alongside them: a live connection dropping the
+moment `setban` matches its address, `node.wait_until_disconnected`
+standing in for Core's own wait on `is_connected_to` going false; and
+the non-IP address check, which needs no second node at all.
+`Capability.BAN` is `btclib-node`'s counted skip on every row, on every
+build measured.
+
+A cluster mixing bitcoind and btclib-node -- the issue's own "most
+valuable case" -- is `tests/integration/conftest.py`'s new
+`mixed_cluster` fixture: one fresh node of each kind, started
+independently and left to a test's own `connect_nodes` to wire together,
+matching `bitcoind_cluster`'s own shape.
+`tests/integration/mixed_cluster_block_sync_btclib_node_test.py`
+exercises it: bitcoind mines, and btclib-node -- never asked to mine
+anything itself -- receives the block over a real connection and its own
+tip converges. Not a per-test ledger row: no Core file poses this
+question, Core's own tests running one binary against copies of itself.
+**Passes on every `btclib-node` build measured** -- the released PyPI
+build `btclib_node.py`'s own docstring pins, and `main` at `d98bd7d6` --
+the v2transport fix above is what this needed, not `Capability.MINE`,
+which `btclib-node` still does not declare
+([ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)):
+nothing here asks the connecting side to mine anything of its own.
+
+Re-run against btclib-node's own `main` (`d98bd7d6`) rather than only the
+released build: `p2p_invalid_messages_dropped_btclib_node_test.py`'s
+msgtype, checksum and duplicate-version rows,
+`p2p_getdata_btclib_node_test.py`'s row, and
+`p2p_invalid_messages_misbehaving_btclib_node_test.py`'s oversized-`inv`
+row now pass -- [ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130),
+[ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133),
+[ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)
+and [ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145)
+each fixed there since. `p2p_invalid_messages_addrv2_btclib_node_test.py`'s
+addrv2-empty and addrv2-long rows still fail on `main`,
+[ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170)
+still open. This table keeps the released build's own verdicts, per its
+own reading rules above; the `main` job
+(`node-integration.yml`'s own `btclib-node-main`) is what this
+observation came from, and it gates nothing (`CONTRIBUTING.md`'s *What
+gates a merge, and what only reports*).
+
+Of the issue's own census list, the mechanism no longer blocks
+`interface_rest.py` (option, MiniWallet, disk, plus `sync_all` across a
+pair of nodes) or `mining_getblocktemplate_longpoll.py` (the log family,
+MiniWallet, plus a node observing another's mined block over real
+propagation) on that ground alone -- each still needs its own read
+against the option, MiniWallet and log families' own open issues
+([ISS 3](https://github.com/btclib-org/bitcoin-node-tests/issues/3),
+[ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4) and
+[ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5))
+before it can be scheduled, not having had one this round.
+`rpc_txoutproof.py` needs `sync_txindex`, Core's own wait for a
+`-txindex` to catch up, which is a different primitive from
+`wait_until_tips_agree`/`wait_until_mempools_agree` and is not built by
+this issue. `p2p_disconnect_ban.py`'s own remaining "Test disconnectnode
+RPCs" section -- everything but the `setban`/banlist half this round
+left aside -- needs nothing this issue does not already provide, and is
+this repository's own next-smallest candidate. `feature_assumeutxo.py`
+stays disqualified on the sixth thing the census already named: a
+background IBD racing a live feed, which no mechanism here builds.
+`feature_fee_estimation.py`, `mempool_reorg.py`, `mining_basic.py`,
+`p2p_segwit.py`, `feature_bip68_sequence.py` and `rpc_rawtransaction.py`
+were not re-read this round and stay open exactly as the census left
+them. `p2p_v2_transport.py` stays blocked on BIP324 itself, which
+neither adapter speaks
+([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190));
+`p2p_blockfilters.py` on `-blockfilterindex` and BIP157, neither
+adapter's own surface.

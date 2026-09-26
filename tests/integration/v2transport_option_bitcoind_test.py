@@ -74,7 +74,7 @@ def test_v2transport_1_connects_nodes_over_bip324(
     first.start()
     second.start()
     try:
-        connect_nodes(first, second)
+        connect_nodes(first, second, v2transport=True)
         assert _transport_protocol(first) == "v2"
         assert _transport_protocol(second) == "v2"
     finally:

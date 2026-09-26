@@ -37,6 +37,19 @@ already made and closed on -- reading Core's own files was refused in
 favour of `-connect`/`-addnode` delivering the same blocks over loopback
 p2p, which this repository's own `Capability.CONNECT` already reaches.
 
+`Capability.DISCONNECT` is not declared, on either build: `addnode` is
+answered (this module's own opening paragraph) but `disconnectnode`
+names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
+table, measured at the released `2026.9.24` (`382a29fb`) and at `main`
+(`d98bd7d6`) alike. Filed as
+[ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193).
+
+`Capability.BAN` is not declared either, on either build: `setban`,
+`listbanned` and `clearbanned` name no callback in the same dispatch
+table, measured at the same two revisions --
+[ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088)
+already tracks it, filed independently of this adapter.
+
 `Capability.UA_COMMENT` is not declared: measured against `cli.py`'s
 own `_build_parser` at `btclib-node` `18b6ae1e`, `-uacomment` is not
 one of its registered flags.

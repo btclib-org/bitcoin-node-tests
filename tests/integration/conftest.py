@@ -276,3 +276,45 @@ def btclib_node_adapter(
         yield adapter
     finally:
         adapter.stop()
+
+
+@pytest.fixture
+def mixed_cluster(
+    bitcoind_path: str,
+    btclib_node_python: str,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Iterator[tuple[BitcoindAdapter, BtclibNodeAdapter]]:
+    """Yield one fresh `BitcoindAdapter` and one fresh `BtclibNodeAdapter`.
+
+    [ISS 43](https://github.com/btclib-org/bitcoin-node-tests/issues/43)'s
+    own "most valuable case": a cluster of two different kinds of node,
+    started independently and never wired together by this fixture --
+    matching `bitcoind_cluster` above, a test's own `connect_nodes` is
+    what joins them. Both fixtures this depends on skip the whole module
+    without their own node, so a test naming this one skips the same way
+    rather than starting only one side of the pair.
+
+    Function-scoped like `bitcoind_cluster`, not session-scoped like
+    either adapter fixture above: a fresh chain and a fresh pair of ports
+    per test, the same reason `bitcoind_cluster` gives for its own.
+    """
+    bitcoind = BitcoindAdapter(
+        bitcoind_path, tmp_path_factory.mktemp("bitcoind"), free_port(), free_port()
+    )
+    btclib_node = BtclibNodeAdapter(
+        btclib_node_python,
+        tmp_path_factory.mktemp("btclib-node"),
+        free_port(),
+        free_port(),
+    )
+    bitcoind.start()
+    try:
+        btclib_node.start()
+    except BaseException:
+        bitcoind.stop()
+        raise
+    try:
+        yield bitcoind, btclib_node
+    finally:
+        btclib_node.stop()
+        bitcoind.stop()

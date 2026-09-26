@@ -480,3 +480,9 @@ names a path the branch walked never held (closes #150).
 `chain=` picks `main`, `test`, `testnet4`, `signet` or `regtest`, the default;
 `BtclibNodeAdapter` refuses `testnet4`, and any chain but regtest starts with
 `-connect=0`, drawing no peer and asking no seed (closes #63).
+
+### `BitcoindAdapter`'s wallet probe is checked against a build tree's record
+
+Only `MINE` rests on a `test/config.ini` component, `ENABLE_WALLET`; the adapter
+still probes the binary, and a test holds `MINE` to that file in a build tree
+and on for a release, which guix builds with the wallet (closes #53).

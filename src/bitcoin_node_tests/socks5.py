@@ -5,16 +5,16 @@
 """`Socks5Proxy`: a SOCKS5 server a node is pointed at, recording what it asks.
 
 Core's own `Socks5Server` (`test/functional/test_framework/socks5.py`),
-read rather than copied: a loopback listener speaking the server half of
-SOCKS5 (RFC 1928) and of its username/password method (RFC 1929), which
-answers every `CONNECT` with success and records it as a
-`Socks5Request` -- the address type, the host, the port and the
-credentials the node sent -- for the test to read back with
-`next_request`. `btclib` names SOCKS nowhere, so this is tf2's harness
-rather than a covering module. It is a module of the adapter rather
-than a class inside one test, as the mock Tor control server of
-`tests/integration/feature_torcontrol_bitcoind_test.py` is, because
-Core's own is framework code several of its tests share --
+read rather than copied: a listener on IPv4 or IPv6 loopback, or on a
+unix socket, speaking the server half of SOCKS5 (RFC 1928) and of its
+username/password method (RFC 1929), which answers every `CONNECT`
+with success and records it as a `Socks5Request` -- the address type,
+the host, the port and the credentials the node sent -- for the test to
+read back with `next_request`. `btclib` names SOCKS nowhere, so this is
+tf2's harness rather than a covering module. It is a module of the
+adapter rather than a class inside one test, as the mock Tor control
+server of `tests/integration/feature_torcontrol_bitcoind_test.py` is,
+because Core's own is framework code several of its tests share --
 `feature_proxy.py`, `feature_anchors.py` and `p2p_private_broadcast.py`
 among them.
 
@@ -36,10 +36,13 @@ from __future__ import annotations
 
 import contextlib
 import queue
+import shutil
 import socket
+import tempfile
 import threading
 from dataclasses import dataclass
 from enum import IntEnum
+from pathlib import Path
 from typing import Self
 
 from bitcoin_node_tests.timeout_factor import scaled
@@ -79,6 +82,9 @@ class AddressType(IntEnum):
 
 # the length of a host of each fixed-length address type
 _HOST_LENGTH = {AddressType.IPV4: 4, AddressType.IPV6: 16}
+
+# the loopback address a TCP proxy binds, by family
+_LOOPBACK: dict[int, str] = {socket.AF_INET: "127.0.0.1", socket.AF_INET6: "::1"}
 
 
 @dataclass(frozen=True)
@@ -127,43 +133,85 @@ def _check_version(received: int, expected: int, what: str) -> None:
 
 
 class Socks5Proxy:
-    """A SOCKS5 server on `127.0.0.1`, recording each `CONNECT` it answers.
+    """A local SOCKS5 server, recording each `CONNECT` it answers.
 
     The contract:
 
-    - bound at construction to `127.0.0.1` and a port the OS chooses, and
-      accepting from then on, on a thread of its own, so `address` is
-      dialable before the caller starts the node that dials it;
+    - bound at construction to `family`'s loopback address and a port the
+      OS chooses -- or, for `AF_UNIX`, to a socket file in a directory of
+      its own under the system's temporary directory -- and accepting
+      from then on, on a thread of its own, so `endpoint` is dialable
+      before the caller starts the node that dials it;
     - one connection at a time: each is negotiated to its request on that
       thread, then held open, unread, until `close`;
     - the username/password method is chosen where `authentication` is
       set and the client offers it, and no authentication otherwise,
       where the client offers that -- the choice Core's own server makes
       between its `auth` and `unauth` settings, `unauth` always on;
-    - `close` stops accepting and closes every connection it holds.
+    - `close` stops accepting, closes every connection it holds, and
+      removes a unix socket's file and directory.
+
+    The temporary directory is the system's rather than a test's own
+    `tmp_path`, as Core's `feature_proxy.py` takes its path from
+    `tempfile`: a unix socket's path is bounded by the size of
+    `sockaddr_un`'s own `sun_path`, which a test's own directory can
+    outgrow.
 
     :param authentication: offer RFC 1929's username/password method.
+    :param family: `AF_INET`, `AF_INET6` or `AF_UNIX`.
     :param timeout: how long `next_request` waits, and how long one
         client is given to finish its negotiation, before
         `--timeout-factor`'s own scaling (`timeout_factor.scaled`).
     """
 
-    def __init__(self, *, authentication: bool = False, timeout: float = 30.0) -> None:
+    def __init__(
+        self,
+        *,
+        authentication: bool = False,
+        family: int = socket.AF_INET,
+        timeout: float = 30.0,
+    ) -> None:
         self._authentication = authentication
+        self._family = family
         self._timeout = scaled(timeout)
         self._results: queue.Queue[Socks5Request | Exception] = queue.Queue()
         self._held: list[socket.socket] = []
         self._negotiating: socket.socket | None = None
         self._closing = threading.Event()
-        self._socket = socket.create_server(("127.0.0.1", 0))
+        self._directory: Path | None = None
+        if family == socket.AF_UNIX:
+            self._directory = Path(tempfile.mkdtemp())
+            self._socket = socket.socket(family)
+            self._socket.bind(str(self._directory / "socks5"))
+            self._socket.listen()
+        elif family in _LOOPBACK:
+            self._socket = socket.create_server((_LOOPBACK[family], 0), family=family)
+        else:
+            err_msg = f"no SOCKS5 proxy on {family!r}"
+            raise ValueError(err_msg)
         self._thread = threading.Thread(target=self._serve, daemon=True)
         self._thread.start()
 
     @property
-    def address(self) -> tuple[str, int]:
-        """Return `(host, port)` this proxy is bound to."""
+    def address(self) -> tuple[str, int] | str:
+        """Return the `(host, port)` a client connects to, or a unix path."""
+        if self._family == socket.AF_UNIX:
+            return str(self._socket.getsockname())
         host, port = self._socket.getsockname()[:2]
         return str(host), int(port)
+
+    @property
+    def endpoint(self) -> str:
+        """Return this proxy as `-proxy` and `getnetworkinfo` spell it.
+
+        `host:port`, an IPv6 host in brackets, or a socket's path behind
+        Core's own `unix:` prefix (`IsUnixSocketPath`, `src/netbase.cpp`).
+        """
+        address = self.address
+        if isinstance(address, str):
+            return f"unix:{address}"
+        host, port = address
+        return f"[{host}]:{port}" if ":" in host else f"{host}:{port}"
 
     def next_request(self) -> Socks5Request:
         """Return the oldest request not yet returned.
@@ -187,12 +235,13 @@ class Socks5Proxy:
     def close(self) -> None:
         """Stop accepting, and close every connection held open.
 
-        A connection to the proxy's own address is what wakes the thread
-        blocked in `accept`, the way Core's own `Socks5Server.stop` does. A
-        client still negotiating is shut down first, so the thread returns
-        to `accept` without waiting out that client's timeout; the join is
-        bounded by the same timeout all the same, as Core's own `stop`
-        bounds its handlers' joins.
+        A connection to the proxy's own address, in its own family, is what
+        wakes the thread blocked in `accept`, the way Core's own
+        `Socks5Server.stop` does. A client still negotiating is shut down
+        first, so the thread returns to `accept` without waiting out that
+        client's timeout; the join is bounded by the same timeout all the
+        same, as Core's own `stop` bounds its handlers' joins. A unix
+        socket's file goes with the directory holding it.
         """
         if self._closing.is_set():
             return
@@ -201,11 +250,14 @@ class Socks5Proxy:
         if negotiating is not None:
             with contextlib.suppress(OSError):
                 negotiating.shutdown(socket.SHUT_RDWR)
-        socket.create_connection(self.address).close()
+        with socket.socket(self._family) as waker:
+            waker.connect(self._socket.getsockname())
         self._thread.join(timeout=self._timeout)
         self._socket.close()
         for connection in self._held:
             connection.close()
+        if self._directory is not None:
+            shutil.rmtree(self._directory)
 
     def __enter__(self) -> Self:
         return self

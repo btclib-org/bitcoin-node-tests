@@ -903,6 +903,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_signrawtransactionwithkey.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (sign_raw_transaction) |
 | `rpc_scantxoutset.py` | [`b388674acf06`](https://github.com/bitcoin/bitcoin/commit/b388674acf06) | 2026-08-06 | pass, `start`'s refusal of a null scan-object list asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (scan_utxo_set) |
 | `feature_proxy.py` | [`f82043af507a`](https://github.com/bitcoin/bitcoin/commit/f82043af507a) | 2026-06-30 | pass | skip (proxy) |
+| `feature_proxy.py` (`-cjdnsreachable`) | same | same | pass | skip (cjdns) |
+| `feature_proxy.py` (`-i2psam`) | same | same | pass | skip (i2p_sam) |
+| `feature_proxy.py` (`-onlynet`) | same | same | pass | skip (onlynet) |
 | `wallet_signmessagewithaddress.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_blank.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_coinbase_category.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
@@ -1671,7 +1674,7 @@ ledger it lists nothing; against one naming none of the files below, it
 lists those files, each going where its line says:
 
 - `p2p_node_network_limited.py`, the row above, the option family's;
-- `feature_proxy.py`, the row above, ported in part on the proxy
+- `feature_proxy.py`, the rows above, ported on the proxy
   [ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)
   builds;
 - `interface_usdt_net.py`, a USDT tracepoint test
@@ -2885,20 +2888,26 @@ under its `keep_alive` setting. The node keeps the peer, and
 `getpeerinfo` lists it, until `close` or until the node's own
 `-peertimeout` drops a peer that never answered.
 `socks5_test.py` drives it against a client written octet by octet.
-`Capability.PROXY` is what a test asks for: `-proxy`, `-onion` and
-`-proxyrandomize`, bitcoind's own flags. `btclib-node`
-declares it on no build, `cli.py` registering none of them
-(`btclib_node.py`'s own docstring names the commits read).
+It listens on IPv4 loopback, or on IPv6 loopback or a unix socket where
+its `family` asks, and `endpoint` spells each the way `-proxy` takes it.
+`Capability.PROXY` is what a test asks for: `-proxy`, with its
+`=<network>` suffix and a `unix:` path, `-onion` and `-proxyrandomize`,
+bitcoind's own flags. `Capability.CJDNS`, `Capability.I2P_SAM` and
+`Capability.ONLYNET` are `-cjdnsreachable`, `-i2psam` and `-onlynet`.
+`btclib-node` declares none of them on any build, `cli.py` registering
+none of those flags (`btclib_node.py`'s own docstring names the commits
+read).
 
-`feature_proxy.py` is the first file ported on it, its row above, in
-part: Core's nodes given `-proxy` alone, `-onion` beside it, and
-`-proxyrandomize` against a proxy offering username/password. Its
-IPv6-loopback and unix-socket proxies, `-cjdnsreachable`, `-i2psam`,
-`-onlynet`, `-proxy`'s `=<network>` suffix and every start it expects
-refused are still owed to the issue.
+`feature_proxy.py` is ported on it, its rows above. Each of Core's
+nodes is a test of its own; every start Core's file expects refused is
+refused with Core's own wording whole; and the starts giving `-proxy` a
+network suffix compare every network's proxy, where Core's file reads
+only the networks each start names.
 `tests/integration/feature_proxy_test.py`'s module docstring has what
-else differs from Core's file. `btclib-node`'s cell is a counted skip on
-`PROXY`.
+differs from Core's file: among it, the start Core expects to succeed
+with `-listenonion` on is dropped, since `BitcoindAdapter`'s own argv
+turns it off. `btclib-node`'s cells are a counted skip on each row's own
+capability.
 
 The rest of the issue is its later batches: `p2p_dns_seeds.py`,
 `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`, `p2p_private_broadcast.py`,

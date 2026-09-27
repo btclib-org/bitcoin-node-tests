@@ -336,14 +336,30 @@ class Capability(Enum):
     descriptors matches, Core's own `scantxoutset`
     (`rpc_scantxoutset.py`). Named for what it reads rather than for the
     RPC's own spelling.
-    `PROXY` -- dial a peer through the SOCKS5 proxy `-proxy` names, an
-    onion one through `-onion`'s where that is given, sending a proxy
-    that accepts username/password credentials of each connection's own
-    under `-proxyrandomize`, and report each network's proxy in
-    `getnetworkinfo` (`feature_proxy.py`,
+    `PROXY` -- dial a peer through the SOCKS5 proxy `-proxy` names, on a
+    TCP address or a `unix:` socket path, for every network or for the one
+    its `=<network>` suffix names, an onion one through `-onion`'s where
+    that is given, sending a proxy that accepts username/password
+    credentials of each connection's own under `-proxyrandomize`; report
+    each network's proxy in `getnetworkinfo`; and refuse to start on a
+    `-proxy` or `-onion` naming no usable proxy (`feature_proxy.py`,
     [ISS bitcoin-node-tests#47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)).
-    One member for the three, as `DATACARRIER` is for its pair: the
-    ported test sets `-onion` and `-proxyrandomize` only beside `-proxy`.
+    One member for the three options, as `DATACARRIER` is for its pair:
+    `-onion` names a SOCKS5 proxy as `-proxy` does, for onion alone, and
+    `-proxyrandomize` qualifies whichever of the two is given.
+    `CJDNS` -- take a CJDNS address, one in `fc00::/8`, as CJDNS once
+    `-cjdnsreachable` says the network is reachable, dial it through the
+    proxy `-proxy` names, and report CJDNS reachable in `getnetworkinfo`
+    (`feature_proxy.py`).
+    `I2P_SAM` -- recognise `-i2psam`, the I2P router's SAM endpoint, and
+    `-i2pacceptincoming`, report that endpoint as I2P's proxy in
+    `getnetworkinfo` with I2P reachable, and refuse to start on one naming
+    no usable address (`feature_proxy.py`). Named for the SAM bridge
+    rather than for I2P: no ported test reaches I2P through it.
+    `ONLYNET` -- recognise `-onlynet`, Core's own restriction of outbound
+    connections to the networks it names, refusing to start on a network
+    it does not know or on one it has no way to reach
+    (`feature_proxy.py`).
     `NODE_WALLET` -- hold wallets of its own and serve Core's wallet RPCs
     over them: `createwallet` at the node's own endpoint, and every method
     a wallet answers -- `getnewaddress`, `signmessage`, `importdescriptors`,
@@ -420,6 +436,9 @@ class Capability(Enum):
     GENERATE = "generate"
     SCAN_UTXO_SET = "scan_utxo_set"
     PROXY = "proxy"
+    CJDNS = "cjdns"
+    I2P_SAM = "i2p_sam"
+    ONLYNET = "onlynet"
     NODE_WALLET = "node_wallet"
     TX_RECONCILIATION = "tx_reconciliation"
     PEER_BLOOM_FILTERS = "peer_bloom_filters"

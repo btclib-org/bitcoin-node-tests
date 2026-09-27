@@ -298,6 +298,13 @@ class Capability(Enum):
     ranged, solvable and carries a private key, and the error a
     malformed one earns (`rpc_getdescriptorinfo.py`). Named for the RPC,
     as `BLOCK_STATS` is.
+    `PEER_TIMEOUT` -- recognise `-peertimeout`, Core's own bound on how
+    long a new connection may go without finishing its handshake, and
+    before which no inactivity check reaches it at all
+    (`p2p_timeouts.py`, `p2p_ping.py`).
+    `MEMPOOL_EXPIRY` -- recognise `-mempoolexpiry`, Core's own age, in
+    hours, past which a transaction leaves the mempool
+    (`mempool_expiry.py`).
     """
 
     MINE = "mine"
@@ -333,6 +340,8 @@ class Capability(Enum):
     ACCEPT_NON_STANDARD = "accept_non_standard"
     SUSPEND_NETWORK = "suspend_network"
     DESCRIPTOR_INFO = "descriptor_info"
+    PEER_TIMEOUT = "peer_timeout"
+    MEMPOOL_EXPIRY = "mempool_expiry"
 
 
 class SkipCounts:

@@ -642,3 +642,9 @@ family's census and where each file it lists goes (closes #3, closes #185).
 bitcoind answers Core's descriptors with their checksums, flags and multipath
 expansions, and refuses each malformed request with Core's own error;
 btclib-node skips on `Capability.DESCRIPTOR_INFO` (closes #174).
+
+### `p2p_timeouts`, `p2p_ping` and `mempool_expiry` are ported
+
+Each runs one body on both nodes under Core's own `-peertimeout` or
+`-mempoolexpiry`, the node's clock moved by `setmocktime`; btclib-node skips on
+the new `Capability.PEER_TIMEOUT` and `Capability.MEMPOOL_EXPIRY` (issue #14).

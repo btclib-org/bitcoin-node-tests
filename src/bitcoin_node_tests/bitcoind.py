@@ -244,6 +244,9 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.DESCRIPTOR_INFO` is unconditional too: `getdescriptorinfo`
     is this binary's own RPC (`src/rpc/output_script.cpp`), with no
     wallet behind it.
+    `Capability.PEER_TIMEOUT` and `Capability.MEMPOOL_EXPIRY` are
+    unconditional too: `-peertimeout` and `-mempoolexpiry` are this
+    binary's own flags (`src/init.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -285,6 +288,8 @@ class BitcoindAdapter(NodeAdapter):
             Capability.ACCEPT_NON_STANDARD,
             Capability.SUSPEND_NETWORK,
             Capability.DESCRIPTOR_INFO,
+            Capability.PEER_TIMEOUT,
+            Capability.MEMPOOL_EXPIRY,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

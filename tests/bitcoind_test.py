@@ -73,6 +73,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.CAPTURE_MESSAGES,
             Capability.BLOCKS_XOR,
             Capability.ORPHANAGE,
+            Capability.BLOCK_PROPOSAL,
         }
     )
 

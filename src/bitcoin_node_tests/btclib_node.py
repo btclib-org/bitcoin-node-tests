@@ -225,6 +225,12 @@ callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch table, and
 no source file names an orphan, measured at the released `2026.9.24`
 (`422d2640`) and at `main` (`1aeebc67`) alike
 ([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
+
+`Capability.BLOCK_PROPOSAL` is never declared either: `getblocktemplate`
+names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
+table, measured at the released `2026.9.24` (`422d2640`) and at `main`
+(`503edaec`) alike, each answering it `Method not found`
+([ISS btclib-node#1427](https://github.com/btclib-org/btclib-node/issues/1427)).
 """
 
 from __future__ import annotations

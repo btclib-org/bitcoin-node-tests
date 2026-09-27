@@ -481,6 +481,7 @@ _ROWS: dict[str, str] = {
     "rpc_orphans": "`rpc_orphans.py`",
     "wallet_simulaterawtx": "`wallet_simulaterawtx.py`",
     "wallet_rescan_unconfirmed": "`wallet_rescan_unconfirmed.py`",
+    "mining_template_verification": "`mining_template_verification.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

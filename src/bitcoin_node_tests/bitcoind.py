@@ -296,6 +296,10 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.ORPHANAGE` is unconditional too: `getorphantxs` is this
     binary's own RPC (`src/rpc/mempool.cpp`), hidden from `help`'s own
     listing and answered on every chain.
+    `Capability.BLOCK_PROPOSAL` is unconditional too: `getblocktemplate`
+    is this binary's own RPC (`src/rpc/mining.cpp`), and its `proposal`
+    mode answers ahead of the checks its `template` mode makes of the
+    chain and the peers.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -355,6 +359,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.CAPTURE_MESSAGES,
             Capability.BLOCKS_XOR,
             Capability.ORPHANAGE,
+            Capability.BLOCK_PROPOSAL,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

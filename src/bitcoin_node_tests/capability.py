@@ -398,6 +398,13 @@ class Capability(Enum):
     what it keeps, with the peers that announced each, over Core's own
     `getorphantxs` (`rpc_orphans.py`). Named for what it keeps rather
     than for the RPC's own spelling, as `SCAN_UTXO_SET` is.
+    `BLOCK_PROPOSAL` -- check a block a client proposes on top of its own
+    tip without storing it or asking for its proof-of-work, and answer
+    `null` where it is valid or BIP22's reason for the first rule it
+    breaks: Core's own `getblocktemplate` in BIP23's `proposal` mode
+    (`mining_template_verification.py`). Not `MINE`: a node can take a
+    client's block over `submitblock` and check none it is not asked to
+    store.
     """
 
     MINE = "mine"
@@ -451,6 +458,7 @@ class Capability(Enum):
     CAPTURE_MESSAGES = "capture_messages"
     BLOCKS_XOR = "blocks_xor"
     ORPHANAGE = "orphanage"
+    BLOCK_PROPOSAL = "block_proposal"
 
 
 class SkipCounts:

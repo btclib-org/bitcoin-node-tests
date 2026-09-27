@@ -167,6 +167,11 @@ at `main` (`4e155386`) alike.
 in `src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at
 the released `2026.9.24` (`422d2640`) and at `main` (`4e155386`) alike
 ([ISS btclib-node#1400](https://github.com/btclib-org/btclib-node/issues/1400)).
+
+`Capability.INVALIDATE_BLOCK` is never declared either: `invalidateblock`
+names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
+table, measured at the released `2026.9.24` and at `main` (`4e155386`)
+alike.
 """
 
 from __future__ import annotations

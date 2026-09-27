@@ -312,6 +312,10 @@ class Capability(Enum):
     wallet (`rpc_createmultisig.py`'s `do_multisig`). One member for the
     pair, as `DATACARRIER` is: the one ported test asking for either asks
     for both.
+    `INVALIDATE_BLOCK` -- mark a block invalid on request, and go back to
+    the best chain not holding it, Core's own `invalidateblock`
+    (`feature_csv_activation.py`, which takes each accepted block back
+    off). Named for the RPC, as `BLOCK_STATS` is.
     """
 
     MINE = "mine"
@@ -350,6 +354,7 @@ class Capability(Enum):
     PEER_TIMEOUT = "peer_timeout"
     MEMPOOL_EXPIRY = "mempool_expiry"
     SIGN_RAW_TRANSACTION = "sign_raw_transaction"
+    INVALIDATE_BLOCK = "invalidate_block"
 
 
 class SkipCounts:

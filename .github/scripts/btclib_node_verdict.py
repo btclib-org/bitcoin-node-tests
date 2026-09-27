@@ -256,7 +256,12 @@ _ROWS: dict[str, str] = {
     "feature_cltv::test_cltv_failures_are_refused_in_a_block": (
         "`feature_cltv.py` (failures, block)"
     ),
-    "feature_csv_activation": "`feature_csv_activation.py`",
+    "feature_csv_activation::test_csv_activates_one_block_before_the_configured_height": (
+        "`feature_csv_activation.py`"
+    ),
+    "feature_csv_activation::test_csv_rules_are_enforced_from_the_configured_height": (
+        "`feature_csv_activation.py` (lock times)"
+    ),
     "feature_nulldummy": "`feature_nulldummy.py`",
     "feature_dirsymlinks": "`feature_dirsymlinks.py`",
     "feature_posix_fs_permissions": "`feature_posix_fs_permissions.py`",

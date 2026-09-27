@@ -58,6 +58,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.PEER_TIMEOUT,
             Capability.MEMPOOL_EXPIRY,
             Capability.SIGN_RAW_TRANSACTION,
+            Capability.INVALIDATE_BLOCK,
         }
     )
 

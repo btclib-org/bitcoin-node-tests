@@ -678,3 +678,9 @@ btclib-node skips on `Capability.SIGN_RAW_TRANSACTION` (issue #167).
 `feature_uacomment`, `rpc_uptime`, `v2transport_option`, `rpc_echo_payload`,
 `feature_fastprune`, `mempool_fill` and `feature_dersig` call one body per test,
 which asks the running node rather than its class for capabilities (issue #125).
+
+### `feature_csv_activation`'s body is ported, with `Capability.INVALIDATE_BLOCK`
+
+BIP68, BIP112 and BIP113 are checked block by block around Core's own
+activation height; one body runs on both nodes, and
+`mini_wallet.build_next_block` takes the time its block carries (closes #167).

@@ -247,6 +247,10 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.PEER_TIMEOUT` and `Capability.MEMPOOL_EXPIRY` are
     unconditional too: `-peertimeout` and `-mempoolexpiry` are this
     binary's own flags (`src/init.cpp`).
+    `Capability.SIGN_RAW_TRANSACTION` is unconditional:
+    `signrawtransactionwithkey` and `combinerawtransaction` are this
+    binary's own RPCs (`src/rpc/rawtransaction.cpp`), with no wallet
+    behind them.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -290,6 +294,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.DESCRIPTOR_INFO,
             Capability.PEER_TIMEOUT,
             Capability.MEMPOOL_EXPIRY,
+            Capability.SIGN_RAW_TRANSACTION,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

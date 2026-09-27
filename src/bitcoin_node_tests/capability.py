@@ -305,6 +305,13 @@ class Capability(Enum):
     `MEMPOOL_EXPIRY` -- recognise `-mempoolexpiry`, Core's own age, in
     hours, past which a transaction leaves the mempool
     (`mempool_expiry.py`).
+    `SIGN_RAW_TRANSACTION` -- sign a raw transaction's inputs with private
+    keys the caller hands it, and merge copies of one transaction each
+    carrying some of the signatures into one: Core's own
+    `signrawtransactionwithkey` and `combinerawtransaction`, which need no
+    wallet (`rpc_createmultisig.py`'s `do_multisig`). One member for the
+    pair, as `DATACARRIER` is: the one ported test asking for either asks
+    for both.
     """
 
     MINE = "mine"
@@ -342,6 +349,7 @@ class Capability(Enum):
     DESCRIPTOR_INFO = "descriptor_info"
     PEER_TIMEOUT = "peer_timeout"
     MEMPOOL_EXPIRY = "mempool_expiry"
+    SIGN_RAW_TRANSACTION = "sign_raw_transaction"
 
 
 class SkipCounts:

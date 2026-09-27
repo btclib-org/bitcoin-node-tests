@@ -895,7 +895,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_add_connections.py` | [`4c79f3a34d00`](https://github.com/bitcoin/bitcoin/commit/4c79f3a34d00) | 2026-09-14 | pass | skip (typed_outbound) |
 | `p2p_add_connections.py` (`manual`) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 | `feature_includeconf.py` (order) | [`fa71c15f8610`](https://github.com/bitcoin/bitcoin/commit/fa71c15f8610) | 2025-11-26 | pass | skip (ua_comment) |
-| `feature_includeconf.py` (double negative) | same | same | pass | fail ([ISS btclib-node#1116](https://github.com/btclib-org/btclib-node/issues/1116)) on the build; fail ([ISS btclib-node#1402](https://github.com/btclib-org/btclib-node/issues/1402)) on a build past [ISS btclib-node#1409](https://github.com/btclib-org/btclib-node/issues/1409) |
+| `feature_includeconf.py` (double negative) | same | same | pass | fail ([ISS btclib-node#1116](https://github.com/btclib-org/btclib-node/issues/1116)) on the build; fail ([ISS btclib-node#1402](https://github.com/btclib-org/btclib-node/issues/1402)) on a build past [ISS btclib-node#1409](https://github.com/btclib-org/btclib-node/issues/1409) and before [ISS btclib-node#1402](https://github.com/btclib-org/btclib-node/issues/1402); pass on a build past [ISS btclib-node#1402](https://github.com/btclib-org/btclib-node/issues/1402) |
 | `feature_includeconf.py` (`-includeconf`) | same | same | pass | fail ([ISS btclib-node#1116](https://github.com/btclib-org/btclib-node/issues/1116)) on the build; pass on a build past [ISS btclib-node#1409](https://github.com/btclib-org/btclib-node/issues/1409) |
 | `feature_includeconf.py` (nested) | same | same | pass | fail ([ISS btclib-node#1403](https://github.com/btclib-org/btclib-node/issues/1403)) on the build; pass on a build past [ISS btclib-node#1403](https://github.com/btclib-org/btclib-node/issues/1403) |
 | `feature_includeconf.py` (missing) | same | same | pass | fail ([ISS btclib-node#1187](https://github.com/btclib-org/btclib-node/issues/1187)) on the build; pass on a build past [ISS btclib-node#1187](https://github.com/btclib-org/btclib-node/issues/1187) |
@@ -2279,10 +2279,13 @@ row is bounded at
 [ISS btclib-node#1187](https://github.com/btclib-org/btclib-node/issues/1187),
 which is about reading `-datadir` and `-conf` lexically normal, because
 the pull request fixing it, btclib-org/btclib-node#1300, also brought
-Core's "Failed to include configuration file" wording. `main` agrees
-with bitcoind on each of them but the double negative `-noincludeconf`
-given a false value, where it also writes a warning about it to stderr
-([ISS btclib-node#1402](https://github.com/btclib-org/btclib-node/issues/1402)).
+Core's "Failed to include configuration file" wording. A build past
+[ISS btclib-node#1409](https://github.com/btclib-org/btclib-node/issues/1409)
+and before
+[ISS btclib-node#1402](https://github.com/btclib-org/btclib-node/issues/1402)
+refuses the double negative `-noincludeconf` given a false value after
+writing a warning about it to stderr, where bitcoind writes the refusal
+alone. `main` agrees with bitcoind on each of them.
 The order row is a counted skip on `Capability.UA_COMMENT`, which neither
 build declares. `feature_reindex_init.py` is Core's own claim in full, its
 `btclib-node` cell a counted skip on `Capability.REINDEX_AFTER_FAILURE`,

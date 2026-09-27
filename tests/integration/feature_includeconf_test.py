@@ -30,8 +30,11 @@ named inside the first and ignored, then both named from `bitcoin.conf`
 -- and every other test writes no `uacomment` line, its subject being a
 refusal or a warning matched against the whole of the node's stderr, as
 `assert_start_raises_init_error` and `stop_node`'s own `expected_stderr`
-match by default. btclib-node, which registers no `-uacomment`, warns
-about the unknown key on stderr, which those tests do not ask about. The
+match by default. btclib-node registers no `-uacomment`, and its
+released build warns about the unknown key on stderr, which those tests
+do not ask about; a build past
+[ISS btclib-node#1295](https://github.com/btclib-org/btclib-node/issues/1295)
+logs it instead. The
 warning Core's `stop_node` expects after the nested step is the nested
 test's to match, not the order test's.
 

@@ -861,3 +861,9 @@ session `-i2pacceptincoming` picks; bitcoind runs with `-debug=i2p`, and
 
 A `-debug` category gates only the log family's `LogDebug` lines; the rest,
 `LogInfo`'s `Reindexing finished` for one, print regardless (closes #240).
+
+### `wallet_anchor` and the decaying miniscript multisig test are ported
+
+`wallet_anchor` and `wallet_miniscript_decaying_multisig_descriptor_psbt` run
+against bitcoind's own wallet, btclib-node skipping each on `NODE_WALLET`
+(issue #45).

@@ -947,6 +947,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `wallet_timelock.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_simulaterawtx.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_rescan_unconfirmed.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
+| `wallet_miniscript_decaying_multisig_descriptor_psbt.py` | [`88f802983571`](https://github.com/bitcoin/bitcoin/commit/88f802983571) | 2026-01-31 | pass | skip (node_wallet) |
+| `wallet_anchor.py` | [`609d265ebc51`](https://github.com/bitcoin/bitcoin/commit/609d265ebc51) | 2025-09-03 | pass | skip (node_wallet) |
 | `wallet_disable.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | bitcoind only |
 | `mempool_accept_wtxid.py` | [`3f5211cba8e7`](https://github.com/bitcoin/bitcoin/commit/3f5211cba8e7) | 2026-01-21 | pass | skip (mine) on the build; fail ([ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `rpc_orphans.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (orphanage) |
@@ -3032,15 +3034,19 @@ and `Capability.MINE`, and its file is the same at the pinned release.
 Each body module's own docstring (`tests/integration/<file>_test.py`)
 has what of Core's harness it stands in for: where Core's harness pays
 its coinbase to the deterministic key it imports into `default_wallet`,
-the body mines to an address of that wallet's own instead; where Core's
-`MiniWallet` spends a coin of the harness's cached chain, the body's
-`MiniWallet` mines until a coin of its own matures.
+the body mines to an address of that wallet's own instead; where the
+harness creates no wallet to import the key into, the body mines to the
+key's own address; where Core's `MiniWallet` spends a coin of the
+harness's cached chain, the body's `MiniWallet` mines until a coin of
+its own matures.
 
 The rest of `wallet_*.py` waits on what each file asks beyond that,
 among it: a second node; a restart with the wallet already on disk
 (`wallet_startup.py`, `wallet_reindex.py`); an extended private key
 built on the client (`wallet_createwallet.py`,
-`wallet_listdescriptors.py`, `wallet_keypool.py`); a previous release
+`wallet_listdescriptors.py`, `wallet_keypool.py`); an RPC the pinned
+release does not have (`wallet_multisig_descriptor_psbt.py`'s
+`derivehdkey`); a previous release
 (`wallet_backwards_compatibility.py`); an external signer
 (`wallet_signer.py`); or Core's `bitcoin-wallet` tool beside the clock
 (`wallet_encryption.py`).

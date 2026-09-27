@@ -23,7 +23,7 @@ it, and Core's `generate` mines to that key's address, so the blocks
 `generate` mines pay a wallet the test never reads, where the ones
 `generatetoaddress` mines pay `w0`. This creates the wallet of that
 name itself and mines the former to an address of its own instead.
-Core's `assert_approx` is `_approx` below, the same default span. Core
+Core's `assert_approx` is `approx` below, the same default span. Core
 reaches each wallet through `get_wallet_rpc`, as this does through
 `rpc.for_wallet`.
 
@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
 
-__all__ = ["simulaterawtransaction_answers_each_wallets_balance_change"]
+__all__ = ["approx", "simulaterawtransaction_answers_each_wallets_balance_change"]
 
 # Core's harness's own `default_wallet_name` (`test_framework.py`)
 _WALLET = "default_wallet"
@@ -69,7 +69,7 @@ _MISSING = "One or more transaction inputs are missing or have been spent alread
 _MINE_CHUNK = 50
 
 
-def _approx(
+def approx(
     value: object, expected: Decimal, span: Decimal = Decimal("0.00001")
 ) -> None:
     """Core's own `assert_approx` (`util.py`): `value` near `expected`.
@@ -159,8 +159,8 @@ def simulaterawtransaction_answers_each_wallets_balance_change(
     bitcoin_fee = funding["fee"]
 
     # w0 sees fee + 5 btc decrease, w2 sees + 5 btc
-    _approx(_change(w0, [tx1]), -(Decimal(5) + bitcoin_fee))
-    _approx(_change(w2, [tx1]), Decimal(5))
+    approx(_change(w0, [tx1]), -(Decimal(5) + bitcoin_fee))
+    approx(_change(w2, [tx1]), Decimal(5))
     # w1 sees same as before
     assert _change(w1, [tx1]) == 5
 
@@ -196,10 +196,10 @@ def simulaterawtransaction_answers_each_wallets_balance_change(
     #   wallet  tx3                         tx4
     #   w0      -5 - bitcoin_fee + 4.9999   -5 - bitcoin_fee
     #   w1      0                           +4.9999
-    _approx(_change(w0, [tx1, tx3]), -Decimal(5) - bitcoin_fee + Decimal("4.9999"))
-    _approx(_change(w1, [tx1, tx3]), Decimal(0))
-    _approx(_change(w0, [tx1, tx4]), -Decimal(5) - bitcoin_fee)
-    _approx(_change(w1, [tx1, tx4]), Decimal("4.9999"))
+    approx(_change(w0, [tx1, tx3]), -Decimal(5) - bitcoin_fee + Decimal("4.9999"))
+    approx(_change(w1, [tx1, tx3]), Decimal(0))
+    approx(_change(w0, [tx1, tx4]), -Decimal(5) - bitcoin_fee)
+    approx(_change(w1, [tx1, tx4]), Decimal("4.9999"))
 
     # they should fail if attempting to include both tx3 and tx4
     for wallet in (w0, w1):
@@ -221,9 +221,9 @@ def simulaterawtransaction_answers_each_wallets_balance_change(
     funding = w0.call("fundrawtransaction", [tx2])
     tx2 = funding["hex"]
     bitcoin_fee2 = funding["fee"]
-    _approx(_change(w0, [tx2]), -(Decimal(10) + bitcoin_fee2))
-    _approx(_change(w1, [tx2]), Decimal(10))
-    _approx(_change(w2, [tx2]), Decimal(0))
+    approx(_change(w0, [tx2]), -(Decimal(10) + bitcoin_fee2))
+    approx(_change(w1, [tx2]), Decimal(10))
+    approx(_change(w2, [tx2]), Decimal(0))
 
     # w0-w2 error due to tx1 already being mined
     for wallet in (w0, w1, w2):

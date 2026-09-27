@@ -251,11 +251,14 @@ class Peer:
     def sync_with_ping(self, *, timeout: float | None = None) -> None:
         """Send two `ping`s, and wait for the `pong` answering the second.
 
-        A node processes a connection's messages in the order they
-        arrive, so that `pong` says every message sent ahead of the pings
-        has been processed; the first `ping` is what makes the node
-        process a message twice, and so run its own send loop for this
-        connection at least once in between. Core's
+        A node processing a connection's messages in the order they
+        arrive, as Core's does, answers the second `ping` only once every
+        message sent ahead of the pings has been processed, and processes
+        the first `ping` as a message of its own before it, so it runs its
+        own send loop for this connection at least once in between. A node
+        answering a `ping` ahead of the messages sent before it
+        ([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410))
+        guarantees neither. Core's
         `P2PInterface.sync_with_ping` is the same barrier, built the same
         way, and its `TestNode.add_p2p_connection` runs it after the
         handshake: `handshake` returns on the node's own `verack`, which

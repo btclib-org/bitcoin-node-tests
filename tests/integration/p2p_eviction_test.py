@@ -37,8 +37,12 @@ tenth of a second for a slow peer and at once for a fast one, and it is
 the `sync_with_ping` barrier Core's `add_p2p_connection` runs after the
 handshake, which returns on the node's own `verack` before the node has
 processed this peer's. Core sends a transaction without waiting for it;
-this waits for that barrier after it too, so the node has accepted it
-before the next peer connects.
+this waits for that barrier after it too, so a node processing each
+peer's messages in order, as Core's does, has accepted it before the next
+peer connects, where one answering a `ping` ahead of the `tx` its peer
+sent first
+([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410))
+need not have.
 
 `p2p_eviction_bitcoind_test.py` and `p2p_eviction_btclib_node_test.py`
 run it, `tests/integration/conftest.py`'s own module docstring having
@@ -127,8 +131,11 @@ def _sync_with_ping(
     """Core's `sync_with_ping`, answering the node's pings on the way.
 
     `ping(0)` and then a nonzero nonce, and a wait for the `pong` carrying
-    that nonce: the node processes a connection's messages in order, so
-    that `pong` says everything sent before it has been processed. Every
+    that nonce: from a node processing each peer's messages in order, as
+    Core's does, that `pong` says everything sent before the pings has been
+    processed, and from one answering a `ping` ahead of them
+    ([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410))
+    it says nothing of them. Every
     `ping` the node sends meanwhile is answered after `pong_delay`; where
     `await_node_ping`, the wait also lasts until one has been, so the node
     has a ping time for this peer before the next one connects.

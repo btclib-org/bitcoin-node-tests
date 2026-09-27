@@ -34,6 +34,7 @@ from btclib.p2p import (
     Message,
     Ping,
     Pong,
+    ServiceFlags,
     Verack,
     Version,
     WtxidRelay,
@@ -228,6 +229,50 @@ def test_wait_for_answers_a_ping_while_waiting_for_something_else(
         assert message.command == "wtxidrelay"
 
         fake_node.expect_pong(nonce)
+    finally:
+        peer.close()
+
+
+def test_last_message_keeps_the_latest_of_each_command(fake_node: _FakeNode) -> None:
+    """A message `wait_for` reads and drops is still the command's latest."""
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=fake_node.answer_handshake)
+        server_thread.start()
+        peer.handshake()
+        server_thread.join(timeout=5.0)
+
+        nonce = fake_node.send_ping()
+        fake_node.send(WtxidRelay())
+        peer.wait_for("wtxidrelay")
+        fake_node.expect_pong(nonce)
+
+        assert Ping.parse(peer.last_message["ping"].payload).nonce == nonce
+        assert peer.last_message["wtxidrelay"].command == "wtxidrelay"
+        assert "verack" in peer.last_message
+    finally:
+        peer.close()
+
+
+def test_handshake_offers_the_services_it_is_given(fake_node: _FakeNode) -> None:
+    """`services` replaces the default `NODE_NETWORK | NODE_WITNESS`."""
+    offered: list[ServiceFlags] = []
+
+    def answer_and_record() -> None:
+        message = fake_node._receive()
+        offered.append(ServiceFlags(Version.parse(message.payload).services))
+        fake_node.send(Version(nonce=secrets.randbelow(2**64)))
+        fake_node._receive()
+        fake_node._receive()
+        fake_node.send(Verack())
+
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=answer_and_record)
+        server_thread.start()
+        peer.handshake(services=ServiceFlags.NODE_NETWORK)
+        server_thread.join(timeout=5.0)
+        assert offered == [ServiceFlags.NODE_NETWORK]
     finally:
         peer.close()
 

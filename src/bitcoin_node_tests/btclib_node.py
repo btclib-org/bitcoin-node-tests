@@ -136,6 +136,11 @@ arguments, none of them a connection type.
 `Capability.RPC_WORK_QUEUE` is never declared either: `cli.py` registers
 neither `-rpcthreads` nor `-rpcworkqueue`, measured at the released
 `2026.9.24` and at `main` (`25776772`) alike.
+
+`Capability.BLOCKS_ONLY` and `Capability.BLOCK_FROM_PEER` are never
+declared either: `cli.py` registers no `-blocksonly`, and
+`getblockfrompeer` names no callback in that same dispatch table,
+measured at the released `2026.9.24` and at `main` (`25776772`) alike.
 """
 
 from __future__ import annotations

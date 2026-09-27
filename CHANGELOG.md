@@ -606,3 +606,9 @@ Core's scenario rather than a stub's `pytest.fail` (issue #125).
 `p2p_handshake`'s redundant `verack`, `p2p_addr_relay`'s oversized `addr` and
 `p2p_addrv2_relay`'s late `sendaddrv2` run on both nodes; `TF2.md` names where
 every other Core test reading the log goes (issue #5).
+
+### The `-blocksonly`, `getblockfilter` and `getblockfrompeer` tests are ported
+
+`p2p_compactblocks_blocksonly`, `rpc_getblockfilter` and `rpc_getblockfrompeer`
+skip on btclib-node; `Peer` gains Core's `last_message` and a `handshake`
+offering chosen services (issue #3).

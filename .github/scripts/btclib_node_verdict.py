@@ -201,6 +201,28 @@ _ROWS: dict[str, str] = {
         "`p2p_handshake.py` (wire)"
     ),
     "p2p_handshake::test_redundant_verack_is_logged": ("`p2p_handshake.py` (log)"),
+    "p2p_handshake::test_outbound_services_decide_the_connection": (
+        "`p2p_handshake.py` (services, wire)"
+    ),
+    "p2p_handshake::test_outbound_services_refusal_is_logged": (
+        "`p2p_handshake.py` (services, log)"
+    ),
+    "p2p_handshake::test_limited_peer_is_kept_only_near_the_tip": (
+        "`p2p_handshake.py` (limited, wire)"
+    ),
+    "p2p_handshake::test_limited_peer_refusal_is_logged": (
+        "`p2p_handshake.py` (limited, log)"
+    ),
+    "p2p_handshake::test_feeler_is_dropped_after_its_version": (
+        "`p2p_handshake.py` (feeler, wire)"
+    ),
+    "p2p_handshake::test_feeler_completion_is_logged": (
+        "`p2p_handshake.py` (feeler, log)"
+    ),
+    "p2p_handshake::test_self_connection_is_dropped": (
+        "`p2p_handshake.py` (self, wire)"
+    ),
+    "p2p_handshake::test_self_connection_is_logged": ("`p2p_handshake.py` (self, log)"),
     "p2p_addr_relay::test_oversized_addr_disconnects_the_peer": (
         "`p2p_addr_relay.py` (wire)"
     ),
@@ -334,6 +356,10 @@ _ROWS: dict[str, str] = {
     "p2p_ping::test_ping_replies_are_reported_on_rpc": "`p2p_ping.py` (wire)",
     "p2p_ping::test_ping_replies_are_logged": "`p2p_ping.py` (log)",
     "mempool_expiry": "`mempool_expiry.py`",
+    "p2p_add_connections": "`p2p_add_connections.py`",
+    "p2p_add_connections::test_manual_connection_past_the_outbound_capacity": (
+        "`p2p_add_connections.py` (`manual`)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

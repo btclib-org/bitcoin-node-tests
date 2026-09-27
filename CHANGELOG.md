@@ -690,3 +690,9 @@ activation height; one body runs on both nodes, and
 `feature_nulldummy`, `feature_presegwit_node_upgrade`, `mempool_datacarrier`,
 `mempool_dust`, `mempool_package_limits`, `mempool_sigoplimit` and
 `mempool_updatefromblock` call one body per test, over either node (issue #125).
+
+### `p2p_add_connections` and the rest of `p2p_handshake` are ported
+
+bitcoind dials typed outbound peers and drops a feeler, a peer short of the
+services its type expects and a dial to itself; `manual` is asserted per build.
+btclib-node skips on `Capability.TYPED_OUTBOUND` (issue #44).

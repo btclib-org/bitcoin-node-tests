@@ -15,20 +15,18 @@ own `capabilities`, never the class's, exactly as
 so every test here counts a skip against that build rather than running
 against it partway.
 
-Two wordings of a malformed `-rpcauth` value's refusal are live across
-the builds past that issue, and `_MALFORMED_ERROR` below accepts either,
-each whole, rather than picking one: the smaller design against a
-version switch. A build before
-[ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210)
-writes `Error: Invalid -rpcauth argument.`, `rpc/auth.py`'s own
-`RpcAuthEntry.parse` raising out of `config.py`'s own `Config` before
-the node runs; `main`, past that issue, logs the same message and
-writes bitcoind's own `Error: Unable to start HTTP server. See debug log
-for details.`, the whole text Core's `rpc_users.py` compares
-(`rpc_users_bitcoind_test.py`'s own `_INIT_ERROR`), `RpcAuth.start`
-refusing once the listener is bound. Measured live: the first at
-`btclib-node` `35b26d2ec08fc28b4f1f14351f005bbe61033cb7`, the second at
-`26bac0f5b78cb9b1ca7ac5fac869bf41e493a8c5`. A cookie the node cannot
+A malformed `-rpcauth` value's refusal is matched in Core's own wording
+alone, `_MALFORMED_ERROR` below: `Error: Unable to start HTTP server.
+See debug log for details.`, the whole text Core's `rpc_users.py`
+compares (`rpc_users_bitcoind_test.py`'s own `_INIT_ERROR`). A build
+past [ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210)
+writes it, `RpcAuth.start` logging "Invalid -rpcauth argument." and
+refusing once the listener is bound -- measured live at `btclib-node`
+`26bac0f5b78cb9b1ca7ac5fac869bf41e493a8c5`. A build past #1070 and
+before #1210 fails the tests matching it, writing `Error: Invalid
+-rpcauth argument.` from `rpc/auth.py`'s own `RpcAuthEntry.parse`
+before the node runs -- measured live at
+`35b26d2ec08fc28b4f1f14351f005bbe61033cb7`. A cookie the node cannot
 write answers with bitcoind's own wording on every build past
 [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070):
 `__init__.py`'s own `RPC_INIT_ERROR` constant is that string verbatim,
@@ -115,15 +113,11 @@ _MALFORMED_RPCAUTH = (
 
 # The whole stderr refusing a malformed `-rpcauth`, anchored past
 # `_wait_for_rpc`'s own `stderr: ` (`node.py`) and at the message's end,
-# so that a stderr carrying anything beside the refusal fails it; the
-# older build's own wording is alternated with Core's, which `main`
-# writes -- see the module docstring.
+# so that a stderr carrying anything beside the refusal fails it.
 _MALFORMED_ERROR = (
-    r"stderr: (?:"
+    "stderr: "
     + re.escape("Error: Unable to start HTTP server. See debug log for details.")
-    + "|"
-    + re.escape("Error: Invalid -rpcauth argument.")
-    + r")\Z"
+    + r"\Z"
 )
 
 # `__init__.py`'s own `RPC_INIT_ERROR`, bitcoind's wording verbatim --

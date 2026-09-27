@@ -774,9 +774,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | Core test | pin | read at | bitcoind | btclib-node |
 | --- | --- | --- | --- | --- |
 | `feature_blocksdir.py` | `0d1301b47a35` | 2026-03-24 | pass | fail ([ISS btclib-node#1416](https://github.com/btclib-org/btclib-node/issues/1416)) on the build; skip (blk) on a build past [ISS btclib-node#1416](https://github.com/btclib-org/btclib-node/issues/1416) |
-| `feature_filelock.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
+| `feature_filelock.py` | `fa5f29774872` | 2025-12-16 | pass | fail ([ISS btclib-node#1147](https://github.com/btclib-org/btclib-node/issues/1147)) on the build; pass on a build past [ISS btclib-node#1147](https://github.com/btclib-org/btclib-node/issues/1147) |
 | `rpc_whitelist.py` | `fa24693819e0` | 2026-05-26 | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
-| `rpc_users.py` | `faf993ee4421` | 2026-05-26 | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
+| `rpc_users.py` | `faf993ee4421` | 2026-05-26 | pass | skip (rpc_auth) on the build; fail ([ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210)) on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) and before [ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210); pass on a build past [ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210) |
 | `rpc_users.py` (`-norpcauth`) | same | same | pass | skip (rpc_auth_negation) on the build; pass on a build past [ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176) |
 | `rpc_users.py` (`-rpcuser`/`-rpcpassword`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `rpc_users.py` (`-norpccookiefile`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
@@ -959,24 +959,15 @@ which files a refused second start happens to leave behind rather than
 about the lock itself, and the wallet-directory lock is dropped on the
 charter's own "wallet ... tests stay out". What is kept whole is the
 disk-family's own subject: a second process started over a datadir, or
-a blocksdir, a first one already holds is fatal on both nodes, matched
-against each one's own wording -- bitcoind's own "Cannot obtain a lock
-on directory ...", a clean init error. btclib-node answers with the
-wording its own build emits, and the row's own test accepts either
-rather than fixing one: the released build (PyPI, and every build
-before [ISS btclib-node#1147](https://github.com/btclib-org/btclib-node/issues/1147)
-landed) leaves its chainstate and blocks databases -- each its own
-`Rdict` (RocksDB) -- to fail uncaught, measured live as `Exception: IO
-error: While lock file: .../LOCK: Resource temporarily unavailable`,
-naming the RocksDB-internal subdirectory rather than a friendly message
-this build does not write; a build past that issue's fix (`main`) locks
-the data directory and then the blocks directory before either store
-opens and answers with Core's own clean wording, "Cannot obtain a lock
-on directory ...", naming the directory `Node.__init__` locked. The
-row's verdict stays **pass** on either build, each node's stderr matched
-against its own wording rather than against a shared shape; once every
-build this repository runs against is past #1147, btclib-node's own
-wording collapses onto bitcoind's.
+a blocksdir, a first one already holds is fatal, matched in Core's own
+wording alone, "Cannot obtain a lock on directory ...", the locked
+directory's path included. btclib-node writes it past
+[ISS btclib-node#1147](https://github.com/btclib-org/btclib-node/issues/1147),
+locking the data directory and then the blocks directory before either
+store opens. The released build fails the row: its chainstate and
+blocks databases -- each its own `Rdict` (RocksDB) -- fail uncaught,
+measured live as `Exception: IO error: While lock file: .../LOCK:
+Resource temporarily unavailable`.
 
 `rpc_whitelist.py`'s row is a smaller claim than Core's own file: named
 users exercising `rpcwhitelist` and `rpcwhitelistdefault` rather than
@@ -1012,7 +1003,7 @@ command line, a wrong password or a wrong user refused where a correct
 one is accepted; `test_rpccookieperms`'s own POSIX permission bits
 (`-rpccookieperms=owner`/`group`/`all`, and the default with none
 given); a roster of Core's own malformed `-rpcauth` values, refused at
-startup and matched against each node's own wording; Core's own
+startup and matched against Core's own wording; Core's own
 "interactions between blank and non-blank rpcauth" check, a blank
 `-rpcauth=` refusing startup wherever it sits among named entries, in
 every ordering Core's own file checks; and the "failure to write
@@ -1079,10 +1070,11 @@ answers with that same wording on btclib-node's `main`, past
 [ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210):
 `RpcAuth.start` logs "Invalid -rpcauth argument." and fails the
 listener, as Core's own `InitRPCAuthentication` refuses it once bound.
-A build before that issue writes "Error: Invalid -rpcauth argument."
+A build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070)
+and before that issue writes "Error: Invalid -rpcauth argument."
 instead, `rpc/auth.py`'s own `RpcAuthEntry.parse` raising out of
-`config.py`'s own `Config`, so btclib-node's test accepts either wording
-whole ([ISS 159](https://github.com/btclib-org/bitcoin-node-tests/issues/159)).
+`config.py`'s own `Config`, and fails the row: btclib-node's test
+matches Core's wording alone.
 
 `p2p_getdata.py`'s row is a smaller claim than Core's own test: Core
 asks its "later valid `getdata`" question of a mined tip, and this asks

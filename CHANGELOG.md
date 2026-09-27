@@ -762,3 +762,9 @@ category; btclib-node skips on the new `Capability.REINDEX` (issue #14).
 `rpc_setban.py`'s non-IP row passes past btclib-org/btclib-node#1218;
 `p2p_eviction.py`'s fails on some runs past btclib-org/btclib-node#1179, a
 `ping` overtaking the `tx` before it (btclib-org/btclib-node#1410) (issue #212).
+
+### `feature_filelock` and `rpc_users` match a refusal in Core's wording alone
+
+btclib-node's lock refusal and malformed `-rpcauth` refusal are each matched in
+Core's wording, as `feature_blocksdir`'s is: the released btclib-node fails
+`feature_filelock` (closes #211).

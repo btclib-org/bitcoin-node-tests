@@ -903,6 +903,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_signrawtransactionwithkey.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (sign_raw_transaction) |
 | `rpc_scantxoutset.py` | [`b388674acf06`](https://github.com/bitcoin/bitcoin/commit/b388674acf06) | 2026-08-06 | pass, `start`'s refusal of a null scan-object list asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (scan_utxo_set) |
 | `feature_proxy.py` | [`f82043af507a`](https://github.com/bitcoin/bitcoin/commit/f82043af507a) | 2026-06-30 | pass | skip (proxy) |
+| `wallet_signmessagewithaddress.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
+| `wallet_blank.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
+| `wallet_coinbase_category.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2758,3 +2761,49 @@ The rest of the issue is its later batches: `p2p_dns_seeds.py`,
 `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`, `p2p_private_broadcast.py`,
 `p2p_private_broadcast_cap.py`, `p2p_private_broadcast_retry_v1.py` and
 `p2p_seednode.py`.
+
+## The node wallet: `Capability.NODE_WALLET`
+
+[ISS 45](https://github.com/btclib-org/bitcoin-node-tests/issues/45)
+holds Core's tests whose subject is bitcoind's own wallet, every
+`wallet_*.py` file of Core's `test/functional/` among them. A port of one
+runs one body over both nodes, each wallet step behind
+`Capability.NODE_WALLET` (`capability.py`). `BitcoindAdapter` declares
+it wherever its build carries the wallet, `_has_wallet` (`bitcoind.py`)
+being the probe it shares with `Capability.MINE`, and no other adapter
+declares it.
+btclib-node keeps no wallet: `rpc/callbacks.py`'s dispatch table names no
+wallet RPC on the released build or on `main` (`d2b4efa5`), so each
+row's `btclib-node` cell is a counted skip on it until
+[ISS 199](https://github.com/btclib-org/bitcoin-node-tests/issues/199)
+gives the btclib side a wallet to reach.
+
+The adapter gains no method for it. A body creates the wallets it names
+over `createwallet` and reaches each through `rpc.for_wallet(name)`,
+`bitcoin_core_rpc`'s own client for `/wallet/<name>`, and
+`BitcoindAdapter`'s own docstring has why every call names its wallet.
+Each body starts a fresh node of its own (`bitcoind_cluster` or
+`btclib_node_cluster`), so the
+wallets it creates, and the option it restarts a node under, stay off
+the node the session shares.
+
+`wallet_signmessagewithaddress.py`, `wallet_blank.py` and
+`wallet_coinbase_category.py` are ported, the rows above, every assertion
+of Core's own kept, and each is the same file at the pinned release. Each
+asks one node for its wallet and for nothing more than an option set at
+start, `Capability.GENERATE` and `Capability.INVALIDATE_BLOCK`. Each body
+module's own docstring (`tests/integration/<file>_test.py`) has what of
+Core's harness it stands in for.
+
+The rest of `wallet_*.py` waits on what each file asks beyond that,
+among it: a second node; a restart with the wallet already on disk
+(`wallet_startup.py`, `wallet_reindex.py`); a coin paid to the
+deterministic key Core's harness imports into its default wallet
+(`wallet_sendmany.py`, `wallet_timelock.py`, the latter on Core's cached
+chain); an extended private key built on the client
+(`wallet_createwallet.py`, `wallet_listdescriptors.py`); a previous
+release (`wallet_backwards_compatibility.py`); an external signer
+(`wallet_signer.py`); or Core's `bitcoin-wallet` tool beside the clock
+(`wallet_encryption.py`). `wallet_disable.py`, which starts its node under
+`-disablewallet`, is a bitcoind-only test in `capability.py`'s own sense
+rather than a `NODE_WALLET` one.

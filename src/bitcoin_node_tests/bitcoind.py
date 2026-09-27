@@ -77,6 +77,11 @@ _REGTEST_ONLY = frozenset(
 # refused on a chain that is not `IsTestChain` (`src/node/mempool_args.cpp`)
 _TEST_CHAIN_ONLY = frozenset({Capability.ACCEPT_NON_STANDARD})
 
+# the capabilities a build without wallet support lacks, `_has_wallet`
+# being what says so: `mine` pays a wallet's own address, and
+# `NODE_WALLET` is the wallet itself
+_WALLET_ONLY = frozenset({Capability.MINE, Capability.NODE_WALLET})
+
 
 @lru_cache
 def _has_wallet(executable: str) -> bool:
@@ -146,10 +151,10 @@ class BitcoindAdapter(NodeAdapter):
     file rather than a credential this adapter invents.
 
     `Capability.MINE` is `generatetoaddress` over a wallet this adapter
-    loads or creates on use, and unlike every other capability below it is
-    not a fact fixed for the whole class: `mine` needs a build with
-    wallet support compiled in, which every release this repository
-    fetches has, but a Core developer's own build tree can configure out
+    loads or creates on use, and it is not a fact fixed for the whole
+    class: `mine` needs a build with wallet support compiled in, which
+    every release this repository fetches has, but a Core developer's own
+    build tree can configure out
     (`cmake -DENABLE_WALLET=OFF`, or `--disable-wallet` under autotools)
     -- ISS 35's own rule (`capability.py`'s module docstring), a fact
     read from the running build rather than assumed for the whole class.
@@ -157,6 +162,17 @@ class BitcoindAdapter(NodeAdapter):
     the capability from an instance built against a `bitcoind` lacking
     it, rather than declaring it and failing `mine`'s own wallet calls
     once a test actually calls it.
+    `Capability.NODE_WALLET` is bitcoind's own built-in wallet, dropped by
+    the same probe (`_WALLET_ONLY`): `_command` passes no
+    `-disablewallet`, so a build with wallet support serves every wallet
+    RPC. This adapter adds no method for it. A test creates the wallets
+    it names and reaches each through `self.rpc.for_wallet(name)`,
+    `bitcoin_core_rpc`'s own client for `/wallet/<name>`, which keeps this
+    client's credential and transport, `--tracerpc` included. It names
+    the wallet on every call, never the node's own endpoint: once `mine`
+    has loaded `_MINER_WALLET` beside a test's own, bitcoind refuses a
+    wallet method there that names no wallet (`RPC_WALLET_NOT_SPECIFIED`,
+    `src/wallet/rpc/util.cpp`).
     `Capability.CONNECT` is `node.connect_nodes`
     (`node.py`), unconditional here since bitcoind answers `addnode` and
     `getnetworkinfo` the way every Core-compatible node does.
@@ -316,6 +332,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.GENERATE,
             Capability.SCAN_UTXO_SET,
             Capability.PROXY,
+            Capability.NODE_WALLET,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)
@@ -354,7 +371,7 @@ class BitcoindAdapter(NodeAdapter):
             chain=chain,
         )
         if not _has_wallet(executable):
-            self.capabilities = self.capabilities - {Capability.MINE}
+            self.capabilities = self.capabilities - _WALLET_ONLY
         if chain != "regtest":
             self.capabilities = self.capabilities - _REGTEST_ONLY
         if chain == "main":

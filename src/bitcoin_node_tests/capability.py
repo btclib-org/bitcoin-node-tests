@@ -23,11 +23,11 @@ from a probe rather than fixed for the whole class:
 `BtclibNodeAdapter.__init__`'s own `_writes_auth_cookie` decides, per
 instance, whether `Capability.RPC_AUTH_CONFIG` is declared at all, and
 `BitcoindAdapter.__init__`'s own `_has_wallet` narrows `Capability.MINE`
-off an instance built against a `bitcoind` without wallet support --
-`self.capabilities = type(self).capabilities - {Capability.MINE}`,
-widening or narrowing the class's own frozen set rather than replacing
-it outright. Where the fact is not whether a capability exists but
-*how* a capability every build declares alike behaves once exercised --
+and `Capability.NODE_WALLET` off an instance built against a `bitcoind`
+without wallet support, widening or narrowing the class's own frozen set
+rather than replacing it outright. Where the fact is not whether a
+capability exists but *how* a capability every build declares alike
+behaves once exercised --
 whether `bitcoind`'s own `ADD_ONION` negotiates BIP434's proof-of-work
 defenses (`tests/integration/feature_torcontrol_bitcoind_test.py`),
 which p2p protocol version a build speaks
@@ -67,8 +67,12 @@ summary's own name for a capability the same as the code's.
 Not every Core option a test names earns a member here. Step 5's own
 charter carries the narrower rule first: "wallet and USDT tests stay
 out" and "a test of bitcoind's own options runs against bitcoind alone".
-An option only bitcoind has a reason to carry -- `-disablewallet`,
-`-torcontrol` -- is never declared or skipped by another node under this
+The first rule's wallet half is overridden by
+[ISS bitcoin-node-tests#45](https://github.com/btclib-org/bitcoin-node-tests/issues/45),
+which brings Core's node-wallet tests in, one body over both nodes behind
+`NODE_WALLET`, which `BitcoindAdapter` alone declares. An option only
+bitcoind has a reason to carry -- `-disablewallet`, `-torcontrol` -- is
+never declared or skipped by another node under this
 mechanism; it is a bitcoind-only test's subject, a shape this module
 does not build.
 [ISS bitcoin-node-tests#23](https://github.com/btclib-org/bitcoin-node-tests/issues/23)
@@ -340,6 +344,18 @@ class Capability(Enum):
     [ISS bitcoin-node-tests#47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)).
     One member for the three, as `DATACARRIER` is for its pair: the
     ported test sets `-onion` and `-proxyrandomize` only beside `-proxy`.
+    `NODE_WALLET` -- hold wallets of its own and serve Core's wallet RPCs
+    over them: `createwallet` at the node's own endpoint, and every method
+    a wallet answers -- `getnewaddress`, `signmessage`, `importdescriptors`,
+    `listtransactions` among them -- at `/wallet/<name>`, the endpoint
+    `bitcoin_core_rpc`'s own `for_wallet` addresses. The subject of Core's
+    own `wallet_*.py`, which drive bitcoind's built-in wallet
+    ([ISS bitcoin-node-tests#45](https://github.com/btclib-org/bitcoin-node-tests/issues/45)).
+    Not `MINE`: that names a block the node accepts as its tip, which a
+    node without a wallet still offers over `submitblock`, where this
+    names the wallet itself. A wallet a separate program keeps for a node
+    is not this member either
+    ([ISS bitcoin-node-tests#199](https://github.com/btclib-org/bitcoin-node-tests/issues/199)).
     """
 
     MINE = "mine"
@@ -383,6 +399,7 @@ class Capability(Enum):
     GENERATE = "generate"
     SCAN_UTXO_SET = "scan_utxo_set"
     PROXY = "proxy"
+    NODE_WALLET = "node_wallet"
 
 
 class SkipCounts:

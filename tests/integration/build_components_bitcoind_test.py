@@ -56,10 +56,10 @@ def _config_ini(bitcoind_path: str) -> Path:
     return Path(found).resolve().parent.parent / "test" / "config.ini"
 
 
-def test_mine_is_declared_exactly_where_the_build_carries_the_wallet(
+def test_the_wallet_ones_are_declared_exactly_where_the_build_carries_it(
     make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
 ) -> None:
-    """`MINE` follows `ENABLE_WALLET` in a build tree, and is on for a release.
+    """`MINE` and `NODE_WALLET` follow `ENABLE_WALLET`; a release has both.
 
     The adapter is constructed and never started: the capability set is
     decided in `__init__`. A build configured without the wallet writes
@@ -83,3 +83,4 @@ def test_mine_is_declared_exactly_where_the_build_carries_the_wallet(
     rpc_port, p2p_port = free_ports(2)
     adapter = make_adapter(BitcoindAdapter, bitcoind_path, tmp_path, rpc_port, p2p_port)
     assert (Capability.MINE in adapter.capabilities) is expected, reason
+    assert (Capability.NODE_WALLET in adapter.capabilities) is expected, reason

@@ -726,3 +726,9 @@ either node (issue #125).
 `socks5.Socks5Proxy` records what a node asks a SOCKS5 proxy for, and bitcoind
 routes each network through the proxy `-proxy` or `-onion` gives it.
 btclib-node skips on `Capability.PROXY` (issue #47).
+
+### The first node-wallet tests are ported, with `Capability.NODE_WALLET`
+
+`wallet_signmessagewithaddress`, `wallet_blank` and `wallet_coinbase_category`
+run against bitcoind's own wallet, reached at `/wallet/<name>`; btclib-node
+skips on `Capability.NODE_WALLET` (issue #45).

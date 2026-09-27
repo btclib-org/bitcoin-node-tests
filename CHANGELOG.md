@@ -798,3 +798,9 @@ against bitcoind's own wallet, btclib-node skipping each on `NODE_WALLET`;
 `socks5.Socks5Proxy` also listens on IPv6 loopback or a unix socket. bitcoind is
 checked through either, and under `-cjdnsreachable`, `-i2psam` or a per-network
 `-proxy`, and on every start Core refuses; btclib-node skips (issue #47).
+
+### `mempool_accept_wtxid` and `rpc_orphans` are ported
+
+bitcoind tells two children sharing a txid apart by wtxid, and keeps a child
+sent ahead of its parent as an orphan. btclib-node skips `rpc_orphans` on the
+new `Capability.ORPHANAGE`; its `main` fails `mempool_accept_wtxid` (issue #4).

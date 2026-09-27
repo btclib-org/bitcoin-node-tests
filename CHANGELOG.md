@@ -786,3 +786,9 @@ of them (btclib-org/btclib-node#1410) (issue #212).
 bitcoind captures a peer's messages under `-capturemessages` and refuses
 `-blocksxor=0` over a stored key; btclib-node skips on the new
 `Capability.CAPTURE_MESSAGES` and `Capability.BLOCKS_XOR` (issue #14).
+
+### More node-wallet tests are ported, and `wallet_disable` on bitcoind alone
+
+`wallet_createwalletdescriptor`, `wallet_sendmany` and `wallet_timelock` run
+against bitcoind's own wallet, btclib-node skipping each on `NODE_WALLET`;
+`wallet_disable` runs against bitcoind alone (issue #45).

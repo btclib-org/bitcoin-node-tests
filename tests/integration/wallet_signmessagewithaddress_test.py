@@ -38,7 +38,7 @@ from bitcoin_core_rpc import RpcError
 from bitcoin_node_tests.capability import Capability, require
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Mapping, Sequence
 
     from bitcoin_core_rpc import BitcoinCoreRpcClient
 
@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
 
-__all__ = ["signmessage_signs_for_the_address_it_names"]
+__all__ = ["refused", "signmessage_signs_for_the_address_it_names"]
 
 # Core's harness's own `default_wallet_name` (`test_framework.py`)
 _WALLET = "default_wallet"
@@ -60,16 +60,17 @@ _RPC_MISC_ERROR = -1
 _RPC_INVALID_ADDRESS_OR_KEY = -5
 
 
-def _refused(
+def refused(
     client: BitcoinCoreRpcClient,
     method: str,
-    params: list[object],
+    params: Sequence[object] | Mapping[str, object],
     code: int,
     message: str,
 ) -> None:
     """Core's own `assert_raises_rpc_error`: `message` a substring, as there.
 
-    Of the node's own message alone: `RpcError`'s text opens with the
+    `params` is positional or named, as `call`'s own. `message` is matched
+    against the node's own message alone: `RpcError`'s text opens with the
     method and the endpoint (`bitcoin_core_rpc`'s own `_result`), so a
     `message` naming the method would match that prefix whatever the node
     answered.
@@ -110,14 +111,14 @@ def signmessage_signs_for_the_address_it_names(
 
     # `signmessage` takes an address and a message, no fewer and no more
     for num_params in (0, 1, 3, 4, 5):
-        _refused(
+        refused(
             wallet,
             "signmessage",
             ["dummy"] * num_params,
             _RPC_MISC_ERROR,
             "signmessage",
         )
-    _refused(
+    refused(
         wallet,
         "signmessage",
         ["invalid_addr", _MESSAGE],

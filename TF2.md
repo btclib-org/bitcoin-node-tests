@@ -941,6 +941,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_mutated_blocks.py` (missing parent, log) | same | same | pass | skip |
 | `p2p_message_capture.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (capture_messages) |
 | `feature_blocksxor.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (blocks_xor) |
+| `feature_remove_pruned_files_on_startup.py` | [`fa9aced8006b`](https://github.com/bitcoin/bitcoin/commit/fa9aced8006b) | 2025-01-22 | pass | skip (fastprune) |
 | `wallet_createwalletdescriptor.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_sendmany.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_timelock.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
@@ -2343,6 +2344,20 @@ Each module docstring has what else differs from Core's file. Every
 `Capability.CAPTURE_MESSAGES` or `Capability.BLOCKS_XOR`, asked for
 first: `cli.py` registers neither option on either build
 (`btclib_node.py`'s own docstring).
+
+`feature_remove_pruned_files_on_startup.py` is ISS 14's too, the option
+and the disk together, as
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags it; its test builds its node through `make_adapter`, under Core's
+`-fastprune` and `-prune` from the first start. It is Core's own claim
+on a platform that deletes an open file: `pruneblockchain` deletes the
+oldest block and undo files, among them the ones the test holds open,
+they stay gone across a restart, and a restart with `-reindex` leaves
+only the files a reindex from genesis writes.
+`tests/integration/feature_remove_pruned_files_on_startup_test.py`'s own
+docstring has what differs from Core's file. The `btclib-node`
+cell is a counted skip on `Capability.FASTPRUNE`, asked for first:
+`cli.py` registers no `-fastprune` on either build.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

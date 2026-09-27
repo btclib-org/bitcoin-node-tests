@@ -16,6 +16,10 @@ waits for both sides' `version`/`verack`, and `wait_for` is `wait_until`
 narrowed to "the next message of this command", auto-answering a `ping`
 along the way so a caller waiting on anything else is not the one that
 has to remember to.
+
+`Listener` is the other direction, Core's `peer_accept_connection`: a
+socket the node is made to dial, the node's own outbound connection
+arriving there as a `Peer` like any other.
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ import io
 import secrets
 import socket
 import time
+from collections import Counter
 from typing import TYPE_CHECKING, Self
 
 from btclib.exceptions import IncompleteMessageError
@@ -44,6 +49,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 __all__ = [
+    "Listener",
     "Peer",
 ]
 
@@ -66,16 +72,40 @@ class Peer:
         step drives.
     :param timeout: the default wait, on `handshake` and on `wait_for`,
         before `--timeout-factor`'s own scaling (`timeout_factor.scaled`).
+
+    `message_count` is Core's `P2PInterface.message_count`: how many
+    messages of each command `receive` has returned, those `wait_for`
+    and `handshake` read and drop included.
     """
 
     def __init__(
         self, address: tuple[str, int], magic: bytes, *, timeout: float = 30.0
     ) -> None:
         timeout = scaled(timeout)
-        self._socket = socket.create_connection(address, timeout=timeout)
+        connection = socket.create_connection(address, timeout=timeout)
+        self._adopt(connection, magic, timeout, dialled=True)
+
+    @classmethod
+    def _accepted(cls, connection: socket.socket, magic: bytes, timeout: float) -> Self:
+        """Return a `Peer` over a connection the node dialled, for `Listener`.
+
+        :param timeout: already scaled, as `Listener.__init__` scales it.
+        """
+        peer = cls.__new__(cls)
+        peer._adopt(connection, magic, timeout, dialled=False)
+        return peer
+
+    def _adopt(
+        self, connection: socket.socket, magic: bytes, timeout: float, *, dialled: bool
+    ) -> None:
+        """Take `connection` over, whichever side opened it."""
+        connection.settimeout(timeout)
+        self._socket = connection
         self._magic = magic
         self._timeout = timeout
+        self._dialled = dialled
         self._buffer = b""
+        self.message_count: Counter[str] = Counter()
 
     def close(self) -> None:
         """Close the underlying socket."""
@@ -137,6 +167,7 @@ class Peer:
                 self._buffer += chunk
             else:
                 self._buffer = self._buffer[stream.tell() :]
+                self.message_count[message.command] += 1
                 return message
 
     def wait_for(
@@ -244,9 +275,12 @@ class Peer:
     def handshake(self) -> Version:
         """Exchange `version`/`verack`, and return the node's own `version`.
 
-        Core's own handshake, from the requesting side: this peer's
-        `version` first, then, once the node's own `version` is in,
-        BIP339's `wtxidrelay` ahead of this peer's `verack` --
+        Core's own handshake. The side that dialled sends its `version`
+        first: this peer where it dialled the node, the node where it
+        dialled a `Listener`, this peer then answering the node's own
+        `version` with its own, as Core's `P2PInterface.on_version` does.
+        Then, once both `version`s are out, BIP339's `wtxidrelay` goes
+        ahead of this peer's `verack` --
         `btclib-node`'s own handshake refuses a `verack` that arrives
         without it first (measured against `382a29fb`'s
         `p2p.callbacks.verack`, "a `verack` ahead of the
@@ -258,9 +292,69 @@ class Peer:
             a later family well might.
         """
         nonce = secrets.randbelow(2**64)
-        self.send(Version(services=_SERVICES, user_agent=_USER_AGENT, nonce=nonce))
-        version_message = self.wait_for("version")
+        version = Version(services=_SERVICES, user_agent=_USER_AGENT, nonce=nonce)
+        if self._dialled:
+            self.send(version)
+            version_message = self.wait_for("version")
+        else:
+            version_message = self.wait_for("version")
+            self.send(version)
         self.send(WtxidRelay())
         self.send(Verack())
         self.wait_for("verack")
         return Version.parse(version_message.payload)
+
+
+class Listener:
+    """A loopback socket a node is made to dial, each connection a `Peer`.
+
+    Core's `P2PConnection.peer_accept_connection`, what its
+    `TestNode.add_outbound_p2p_connection` listens with, over one blocking
+    socket rather than an event loop. The contract:
+
+    - bound at construction to `127.0.0.1` and a port the OS chooses,
+      and listening from then on, so `address` is dialable before the
+      caller asks the node to dial it;
+    - a backlog of one: the kernel completes the node's own connection
+      and queues it until `accept`, so the call that makes the node dial
+      and the `accept` after it run in sequence on the caller's thread;
+    - `accept` returns the next queued connection as a `Peer` whose
+      `handshake` waits for the node's `version` before sending its own,
+      and whose waits are this listener's `timeout`;
+    - `close` stops listening and leaves every accepted `Peer` open.
+
+    :param magic: the four octets of the message start, as `Peer`'s.
+    :param timeout: how long `accept` waits, and every accepted `Peer`'s
+        default wait, before `--timeout-factor`'s own scaling
+        (`timeout_factor.scaled`).
+    """
+
+    def __init__(self, magic: bytes, *, timeout: float = 30.0) -> None:
+        self._magic = magic
+        self._timeout = scaled(timeout)
+        self._socket = socket.create_server(("127.0.0.1", 0), backlog=1)
+        self._socket.settimeout(self._timeout)
+
+    @property
+    def address(self) -> tuple[str, int]:
+        """Return `(host, port)` this listener is bound to."""
+        host, port = self._socket.getsockname()[:2]
+        return str(host), int(port)
+
+    def accept(self) -> Peer:
+        """Return the next connection a node made to `address`, as a `Peer`.
+
+        :raises TimeoutError: no connection arrived within the wait.
+        """
+        connection, _ = self._socket.accept()
+        return Peer._accepted(connection, self._magic, self._timeout)
+
+    def close(self) -> None:
+        """Stop listening; a `Peer` already accepted stays open."""
+        self._socket.close()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        self.close()

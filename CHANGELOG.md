@@ -576,3 +576,9 @@ raw `getblock` both nodes serve (issue #125).
 Each of its tests calls one body from both nodes' tests, so a btclib-node build
 serving the ban list runs Core's scenario rather than a stub's `pytest.fail`
 (issue #125).
+
+### A node can be made to dial the test, and `p2p_addrfetch` is ported
+
+`peer.Listener` accepts a node's own outbound connection as a `Peer`, and
+`NodeAdapter.add_outbound_connection` asks for one of a chosen type under
+`Capability.TYPED_OUTBOUND`, which btclib-node declares on no build (issue #44).

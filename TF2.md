@@ -855,6 +855,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_eviction.py` | `1b76e0473647` | 2026-07-24 | pass, `-maxconnections` read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (inbound_eviction) on the build; skip (mine) on a build past [ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064) and before [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071); not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_presegwit_node_upgrade.py` | [`fad7bd9ba3ee`](https://github.com/bitcoin/bitcoin/commit/fad7bd9ba3ee) | 2026-01-14 | pass | skip (test_activation_height) |
 | `rpc_validateaddress.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (validate_address) |
+| `p2p_addrfetch.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | skip (typed_outbound) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2204,3 +2205,37 @@ run against a UTXO set the node dumps: not a node, and not a file
 which is `bin/bitcoind` alone. What it asks of the node, `dumptxoutset`
 and `gettxoutsetinfo`'s own MuHash, is the subject of Core's
 `rpc_dumptxoutset.py` and `feature_utxo_set_hash.py`.
+
+## Outbound connections: `Listener` and `addconnection`
+
+[ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44):
+a test listens and the node dials it, as Core's
+`TestNode.add_outbound_p2p_connection` has it do. `peer.Listener` is
+the listening side, bound to loopback before the node is asked to dial;
+its backlog holds the node's connection until `accept` hands it over as
+a `Peer` whose `handshake` answers the node's own `version`, the order
+Core's `P2PInterface.on_version` follows on a connection the test did
+not open. `NodeAdapter.add_outbound_connection` (`node.py`) is Core's
+`addconnection`, `v2transport` off because `Peer` speaks v1 alone, and
+`Capability.TYPED_OUTBOUND` is what a test asks for before calling it.
+`Peer.message_count` is Core's own `message_count`, the tally a port
+reads what the node sent from. `peer_test.py` drives the listener
+against a fake dialling node, `node_test.py` the RPC against a fake
+client.
+
+bitcoind declares `TYPED_OUTBOUND` on regtest alone, `addconnection`
+refusing any other chain (`src/rpc/net.cpp`). `btclib-node` declares
+it on no build: `rpc/callbacks.py`'s dispatch table names no
+`addconnection` on the released build or on `main`, `btclib_node.py`'s
+own docstring naming the commits read. On `main`, `addnode` is the one
+RPC that dials, and `_connection_type` reports what it opens as
+`manual`.
+
+`p2p_addrfetch.py` is the first file ported on it, its row above, every
+assertion of Core's own kept. Its halves are separate bodies in
+`tests/integration/p2p_addrfetch_test.py`, each over a fresh node, so
+the second peer's node id is the first one a node gives rather than the
+next, and each disconnect is awaited over `Peer`'s default wait rather
+than Core's shorter one. `btclib-node`'s cell is a counted skip on
+`TYPED_OUTBOUND`. The rest of the issue's own census is its later
+batches.

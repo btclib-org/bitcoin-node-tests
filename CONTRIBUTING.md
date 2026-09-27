@@ -521,7 +521,8 @@ around it without naming a `trace_rpc` of its own.
 `wait_until_mempools_agree` and `assert_debug_log` in `node.py` and
 `debug_log.py` (`disconnect_nodes` and `sync_all` through the waits they
 call), and `Peer`'s own
-connection and per-call timeouts in `peer.py` -- through
+connection and per-call timeouts and `Listener.accept`'s own wait in
+`peer.py` -- through
 `timeout_factor.py`'s own `scaled`, set once per process by
 `tests/integration/conftest.py`'s own `pytest_configure`, the same
 per-process scope `SkipCounts` already carries for the same `-n auto`

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""`Peer` against a hand-written fake node, over a real loopback socket.
+"""`Peer` and `Listener` against hand-written fake nodes, over loopback.
 
 No real bitcoind or btclib-node here or anywhere else this suite's
 ordinary run reaches (rule 1): `_FakeNode` is this module's own,
@@ -10,7 +10,8 @@ answering just enough of the protocol -- a handshake, a `ping` it can be
 told to send unsolicited, the `pong` to each `ping` it is told to read,
 and a `getdata` served with whatever payload the test hands it -- to
 drive every branch `peer.py` has, over a socket that never leaves this
-machine.
+machine. `_FakeDialler` is the other direction, a node's own outbound
+connection to a `Listener`.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ import io
 import secrets
 import socket
 import threading
+from collections import Counter
 from collections.abc import Iterator
 
 import pytest
@@ -40,37 +42,17 @@ from btclib.p2p.limits import MAX_LOCATOR_SZ
 from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.node import free_port
-from bitcoin_node_tests.peer import Peer
+from bitcoin_node_tests.peer import Listener, Peer
 from bitcoin_node_tests.timeout_factor import set_factor
 
 _MAGIC = magic_from_chain("regtest")
 
 
-class _FakeNode:
-    """A minimal p2p responder: handshake, `ping`/`pong`, `getdata` echoed.
+class _Wire:
+    """One end of a connection: framing for regtest, and reading it back."""
 
-    One connection at a time, which is every test below: `accept` blocks
-    the caller's own thread until `Peer` dials in, so a test drives both
-    sides from one process without either ever guessing at timing.
-    """
-
-    def __init__(self) -> None:
-        self.port = free_port()
-        self._listener = socket.socket()
-        self._listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._listener.bind(("127.0.0.1", self.port))
-        self._listener.listen(1)
-        self._connection: socket.socket | None = None
-        self._buffer = b""
-
-    def accept(self) -> None:
-        """Block until a peer connects."""
-        self._connection, _ = self._listener.accept()
-
-    def close(self) -> None:
-        if self._connection is not None:
-            self._connection.close()
-        self._listener.close()
+    _connection: socket.socket | None
+    _buffer: bytes
 
     def send(self, payload: object, *, check_validity: bool = True) -> None:
         """Frame `payload` for regtest, and send it to the connected peer.
@@ -99,6 +81,60 @@ class _FakeNode:
             else:
                 self._buffer = self._buffer[stream.tell() :]
                 return message
+
+
+class _FakeDialler(_Wire):
+    """A node's own outbound connection: dials a `Listener`, speaks first."""
+
+    def __init__(self, address: tuple[str, int]) -> None:
+        self._connection = socket.create_connection(address, timeout=5.0)
+        self._buffer = b""
+
+    def close(self) -> None:
+        assert self._connection is not None
+        self._connection.close()
+
+    def assert_silent(self) -> None:
+        """Assert the peer sends nothing unprompted within a short wait."""
+        assert self._connection is not None
+        self._connection.settimeout(0.2)
+        with pytest.raises(TimeoutError):
+            self._connection.recv(4096)
+        self._connection.settimeout(5.0)
+
+    def open_handshake(self) -> list[str]:
+        """Send `version` first, answer the peer's, return what it sent."""
+        self.send(Version(nonce=secrets.randbelow(2**64)))
+        commands = [self._receive().command for _ in range(3)]
+        self.send(Verack())
+        return commands
+
+
+class _FakeNode(_Wire):
+    """A minimal p2p responder: handshake, `ping`/`pong`, `getdata` echoed.
+
+    One connection at a time, which is every test below: `accept` blocks
+    the caller's own thread until `Peer` dials in, so a test drives both
+    sides from one process without either ever guessing at timing.
+    """
+
+    def __init__(self) -> None:
+        self.port = free_port()
+        self._listener = socket.socket()
+        self._listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._listener.bind(("127.0.0.1", self.port))
+        self._listener.listen(1)
+        self._connection: socket.socket | None = None
+        self._buffer = b""
+
+    def accept(self) -> None:
+        """Block until a peer connects."""
+        self._connection, _ = self._listener.accept()
+
+    def close(self) -> None:
+        if self._connection is not None:
+            self._connection.close()
+        self._listener.close()
 
     def answer_handshake(self) -> None:
         """Read the peer's `version`, answer it, then wait out its `verack`."""
@@ -505,3 +541,117 @@ def test_sync_with_ping_raises_when_no_pong_arrives(fake_node: _FakeNode) -> Non
             peer.sync_with_ping(timeout=0.2)
     finally:
         peer.close()
+
+
+def test_message_count_counts_what_wait_for_dropped(fake_node: _FakeNode) -> None:
+    """Every message `receive` returns is counted, those read past included."""
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=fake_node.answer_handshake)
+        server_thread.start()
+        peer.handshake()
+        server_thread.join(timeout=5.0)
+        assert peer.message_count == Counter({"version": 1, "verack": 1})
+
+        fake_node.send_ping()
+        fake_node.send(WtxidRelay())
+        peer.wait_for("wtxidrelay")
+        assert peer.message_count["ping"] == 1
+        assert peer.message_count["wtxidrelay"] == 1
+    finally:
+        peer.close()
+
+
+@pytest.fixture
+def listener() -> Iterator[Listener]:
+    """Yield a `Listener` on regtest's magic, closed on teardown."""
+    with Listener(_MAGIC, timeout=5.0) as listening:
+        yield listening
+
+
+def test_listener_address_is_loopback_and_a_port_the_os_chose(
+    listener: Listener,
+) -> None:
+    """Bound at construction, so the address is known before anything dials."""
+    host, port = listener.address
+    assert host == "127.0.0.1"
+    assert port > 0
+
+
+def test_listener_queues_a_connection_made_before_accept(listener: Listener) -> None:
+    """The backlog: a dial completes on the caller's thread, `accept` after."""
+    dialler = _FakeDialler(listener.address)
+    try:
+        peer = listener.accept()
+        peer.close()
+    finally:
+        dialler.close()
+
+
+def test_listener_peer_answers_the_node_s_own_version(listener: Listener) -> None:
+    """The node dialled, so the node speaks first and the peer answers."""
+    dialler = _FakeDialler(listener.address)
+    peer = listener.accept()
+    try:
+        results: dict[str, object] = {}
+        peer_thread = threading.Thread(
+            target=lambda: results.update(version=peer.handshake())
+        )
+        peer_thread.start()
+        dialler.assert_silent()
+        assert dialler.open_handshake() == ["version", "wtxidrelay", "verack"]
+        peer_thread.join(timeout=5.0)
+        assert isinstance(results["version"], Version)
+        assert peer.message_count == Counter({"version": 1, "verack": 1})
+    finally:
+        peer.close()
+        dialler.close()
+
+
+def test_listener_accept_raises_a_timeout_error_when_nothing_dials() -> None:
+    """No connection within the wait is a `TimeoutError`, not a hang."""
+    with Listener(_MAGIC, timeout=0.2) as listening, pytest.raises(TimeoutError):
+        listening.accept()
+
+
+def test_listener_close_leaves_an_accepted_peer_open(listener: Listener) -> None:
+    """`close` stops listening; the connection it handed over stays up."""
+    dialler = _FakeDialler(listener.address)
+    peer = listener.accept()
+    try:
+        listener.close()
+        dialler.send(Ping(7))
+        message = peer.wait_for("ping")
+        assert Ping.parse(message.payload).nonce == 7
+    finally:
+        peer.close()
+        dialler.close()
+
+
+def test_listener_context_manager_stops_listening() -> None:
+    """Leaving the `with` closes the socket, so a later dial is refused."""
+    with Listener(_MAGIC, timeout=5.0) as listening:
+        address = listening.address
+    with pytest.raises(ConnectionRefusedError):
+        socket.create_connection(address, timeout=5.0)
+
+
+def test_listener_timeout_is_scaled_by_the_global_factor() -> None:
+    """`--timeout-factor` reaches `accept` and every peer it returns."""
+    set_factor(100.0)
+    try:
+        scaled_listener = Listener(_MAGIC, timeout=5.0)
+    finally:
+        set_factor(1.0)
+    try:
+        dialler = _FakeDialler(scaled_listener.address)
+        peer = scaled_listener.accept()
+        try:
+            assert scaled_listener._socket.gettimeout() == pytest.approx(500.0)
+            assert peer._timeout == pytest.approx(500.0)
+            assert peer._socket.gettimeout() == pytest.approx(500.0)
+        finally:
+            peer.close()
+            dialler.close()
+    finally:
+        scaled_listener.close()

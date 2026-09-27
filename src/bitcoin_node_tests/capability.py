@@ -289,6 +289,9 @@ class Capability(Enum):
     transaction its standardness rules refuse while its script checks
     still run, the fact Core's own `-acceptnonstdtxn` sets
     (`feature_cltv.py`, whose spends prepend opcodes to a scriptSig).
+    `SUSPEND_NETWORK` -- stop all p2p activity on request, dropping every
+    peer, and resume it on request, the way Core's own `setnetworkactive`
+    does (`p2p_node_network_limited.py`).
     """
 
     MINE = "mine"
@@ -322,6 +325,7 @@ class Capability(Enum):
     BLOCKS_ONLY = "blocks_only"
     BLOCK_FROM_PEER = "block_from_peer"
     ACCEPT_NON_STANDARD = "accept_non_standard"
+    SUSPEND_NETWORK = "suspend_network"
 
 
 class SkipCounts:

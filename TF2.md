@@ -872,6 +872,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_compactblocks_blocksonly.py` | [`bf9884f4e55d`](https://github.com/bitcoin/bitcoin/commit/bf9884f4e55d) | 2026-06-18 | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (blocks_only) |
 | `rpc_getblockfilter.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (block_filter_index) |
 | `rpc_getblockfrompeer.py` | [`779f4446803d`](https://github.com/bitcoin/bitcoin/commit/779f4446803d) | 2026-05-25 | pass | skip (block_from_peer) |
+| `p2p_node_network_limited.py` | [`fa7bac94d87a`](https://github.com/bitcoin/bitcoin/commit/fa7bac94d87a) | 2026-03-12 | pass | skip (mine) on the build; skip (disconnect) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1386,17 +1387,34 @@ or on `main` (`btclib_node.py`'s own docstring has the measurement), so this
 row's `btclib-node` cell is a counted skip.
 
 No test measured for this family asks for an option `btclib-node` does register
-and needs nothing else from step 5, `MINE` or an outbound connection:
-`p2p_add_connections.py` is the one dedicated `-maxconnections` test and needs
-`Capability.CONNECT` throughout, on a build where the option is registered at
-all -- `cli.py`'s own `_build_parser` on the released build has no
-`-maxconnections` flag, only `_OPTIONS` on `main` does; `feature_discover.py`'s
-own `-discover` is neutered by this adapter's own fixed `-bind` -- measured
-against the pinned bitcoind binary, `getnetworkinfo`'s `localaddresses` answers
-empty whether `-discover` is passed bare or given its own disabling value, so
+and needs nothing else from step 5, `MINE` or an outbound connection.
+`p2p_add_connections.py` is the one dedicated `-maxconnections` test. Its
+options are a loopback `-bind` on some of its nodes, and on another a
+`-maxconnections` low enough, with `-listen` off, that its first step fills
+that node's outbound capacity before adding a manual connection beyond it.
+Every outbound connection it opens has a node dial a listening test peer as a
+chosen connection type -- Core's own `add_outbound_p2p_connection`, over
+`addconnection` -- beside inbound test peers of its own, and no step links one
+node to another. That mechanism is `Capability.TYPED_OUTBOUND` and
+`peer.Listener`, save the `manual` type its first step asks for, which
+`addconnection` takes only past the pinned release
+(bitcoin/bitcoin@4c79f3a34d003bd97824b032383ac816a4147d68).
+Its subject is that mechanism (Core's own docstring: "Test
+add_outbound_p2p_connection test framework functionality") rather than an
+option, so it goes with the tests the mechanism blocks
+([ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)), not to
+this family. `cli.py`'s own `_build_parser` on the released build has no
+`-maxconnections` flag either; only `_OPTIONS` on `main` does.
+`feature_discover.py`'s own `-discover` is neutered by this adapter's own fixed
+`-bind` -- measured against the pinned bitcoind binary, `getnetworkinfo`'s
+`localaddresses` answers empty whether `-discover` is passed bare or given its
+own disabling value, so
 the option has nothing to demonstrate under either adapter's own command line.
-So this row exercises the skip arm alone; the pass-through arm has no candidate
-yet, rather than one being skipped over.
+So this row exercises the skip arm alone. The pass-through arm's candidates
+ask for adapter capabilities besides: `rpc_getblockfrompeer.py`'s and
+`p2p_node_network_limited.py`'s rows pass `-prune`, which `cli.py` registers on
+both builds, with no capability of its own, and each row's `btclib-node` cell
+skips on a capability the node does not declare rather than on the option.
 
 Most of the option family's remaining tests ask for another step-5
 mechanism alongside an option -- MiniWallet, `assert_debug_log`,
@@ -1478,9 +1496,6 @@ measured against the pinned release and against `v32.0rc2`.
 `btclib-node`'s cell is a counted skip: `cli.py` registers no
 `-blocksonly`, on the released build or on `main` (`btclib_node.py`'s
 own docstring).
-`p2p_node_network_limited.py`, whose one option is `-prune`, is still
-owed to the option family
-([ISS 185](https://github.com/btclib-org/bitcoin-node-tests/issues/185)).
 
 `rpc_echo_payload.py`'s row is an option-family row
 ([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)).
@@ -1529,6 +1544,85 @@ capability, `cli.py` registering it and `rpc/callbacks.py` answering
 `btclib-node`'s cell is a counted skip on `Capability.BLOCK_FROM_PEER`,
 asked for first: `getblockfrompeer` names no callback in that dispatch
 table on either build.
+
+`p2p_node_network_limited.py`'s row is an option-family row, Core's own
+claim in full
+([ISS 185](https://github.com/btclib-org/bitcoin-node-tests/issues/185)):
+a node under `-prune` signals `NODE_NETWORK_LIMITED` and not
+`NODE_NETWORK`, serves a `getdata` for a block near its tip and
+disconnects a peer asking for an older one, and a full node syncs from it
+only once out of initial block download, asking it for no block outside
+that window. `-prune` asks for no capability, as on
+`rpc_getblockfrompeer.py`'s row, and every other fact the test asks for
+-- `Capability.MINE`, `Capability.CONNECT`, `Capability.DISCONNECT`, a
+`Peer` (`peer.py`), and `setnetworkactive`, which is
+`Capability.SUSPEND_NETWORK` -- is the adapters' own rather than another
+step 5 mechanism. Core expects `NODE_P2P_V2` besides under its own
+`--v2transport`, and the test expects it where the node declares
+`Capability.V2TRANSPORT` (`tests/integration/p2p_node_network_limited_test.py`'s
+own docstring). `btclib-node`'s cell is a counted skip, on
+`Capability.MINE` on the released build and on `Capability.DISCONNECT`
+on `main`. Measured apart from the test, on both builds: a `getdata` for
+the oldest block the window holds is served and one for the block before
+it disconnects, as on bitcoind; `setnetworkactive` and `getchaintips`
+name no callback
+([ISS btclib-node#1392](https://github.com/btclib-org/btclib-node/issues/1392),
+[ISS btclib-node#1393](https://github.com/btclib-org/btclib-node/issues/1393));
+`getnetworkinfo` answers no `localservices`
+([ISS btclib-node#1394](https://github.com/btclib-org/btclib-node/issues/1394));
+and the node's `version` signals `NODE_COMPACT_FILTERS` besides, which
+bitcoind signals only under `-peerblockfilters`
+([ISS btclib-node#1395](https://github.com/btclib-org/btclib-node/issues/1395)).
+
+The option family's census is Core's `test/functional/` at `master`
+`ed7dd7cf4e15`, run from this repository's root beside a Core checkout
+at `../bitcoin`:
+
+```shell
+core=ed7dd7cf4e15
+other='MiniWallet|assert_debug_log|mocktime|datadir_path|blocks_path'
+other+='|chain_path|createwallet|getnewaddress|skip_if_no_wallet'
+git -C ../bitcoin ls-tree --name-only "${core}" test/functional/ |
+    sed -n 's|^test/functional/\([a-z][a-z0-9_]*\.py\)$|\1|p' |
+    grep -v '^wallet_' |
+    while read -r name; do
+        grep -qwF "${name}" TF2.md && continue
+        text=$(git -C ../bitcoin show "${core}:test/functional/${name}")
+        grep -qE "[\"']-[a-z]" <<<"${text}" || continue
+        grep -qE "${other}" <<<"${text}" && continue
+        echo "${name}"
+    done
+```
+
+A file is the option family's
+([ISS 3](https://github.com/btclib-org/bitcoin-node-tests/issues/3))
+where the option is all it asks for beyond what the adapters and `Peer`
+already provide: an option `btclib-node` lacks, or one asking for no
+capability, and no other step 5 mechanism. The command lists every Core
+test file this ledger names nowhere, `wallet_*.py` aside
+([ISS 45](https://github.com/btclib-org/bitcoin-node-tests/issues/45)),
+that passes a string literal opening with `-` and a letter, and that
+reaches neither MiniWallet, `assert_debug_log`, `setmocktime`, the
+node's own files through `datadir_path`, `blocks_path` or `chain_path`,
+nor a wallet. It skips a file this ledger names anywhere, whether or not
+the ledger says where that file goes. Measured of this ledger rather than
+following from the filter: every file the command lists against an empty
+ledger and the table above gives no row has a sentence here saying where
+it goes, which a later mention naming no home would break. Against this
+ledger it lists nothing; against one naming none of the files below, it
+lists those files, each going where its line says:
+
+- `p2p_node_network_limited.py`, the row above, the option family's;
+- `feature_proxy.py`, whose `-proxy` needs the proxy the harness does
+  not build ([ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47));
+- `interface_usdt_net.py`, a USDT tracepoint test
+  ([ISS 48](https://github.com/btclib-org/bitcoin-node-tests/issues/48));
+- `p2p_v2_encrypted.py`, whose `-v2transport` is `Capability.V2TRANSPORT`
+  but whose peers speak BIP324 themselves, a transport `Peer` does not
+  ([ISS 175](https://github.com/btclib-org/bitcoin-node-tests/issues/175));
+- `rpc_getdescriptorinfo.py`, whose subject is the RPC rather than
+  `-disablewallet`
+  ([ISS 174](https://github.com/btclib-org/bitcoin-node-tests/issues/174)).
 
 `feature_presegwit_node_upgrade.py`'s row keeps every assertion Core's
 own file makes: a fresh chain with segwit inactive under

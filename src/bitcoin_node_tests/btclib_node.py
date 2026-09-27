@@ -145,6 +145,12 @@ measured at the released `2026.9.24` and at `main` (`25776772`) alike.
 `Capability.ACCEPT_NON_STANDARD` is never declared either:
 `-acceptnonstdtxn` is not among the flags `-help -noconf` prints, measured
 at the released `2026.9.24` and at `main` (`19c5661e`) alike.
+
+`Capability.SUSPEND_NETWORK` is never declared either: `setnetworkactive`
+names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
+table, measured at the released `2026.9.24` and at `main` (`19c5661e`)
+alike
+([ISS btclib-node#1392](https://github.com/btclib-org/btclib-node/issues/1392)).
 """
 
 from __future__ import annotations

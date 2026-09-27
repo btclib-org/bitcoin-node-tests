@@ -630,3 +630,9 @@ TRUC have `TF2.md` rows of their own (issue #125).
 It returns a solved, unsubmitted block paying a chosen coinbase `scriptPubKey`,
 carrying chosen transactions at a chosen header version; the integration tests
 that kept their own copy of the builder call it instead (closes #178).
+
+### `p2p_node_network_limited` is ported, and the option family's census recorded
+
+`p2p_node_network_limited` runs on bitcoind and skips on btclib-node, and
+`setnetworkactive` is `Capability.SUSPEND_NETWORK`. `TF2.md` records the option
+family's census and where each file it lists goes (closes #3, closes #185).

@@ -684,3 +684,9 @@ which asks the running node rather than its class for capabilities (issue #125).
 BIP68, BIP112 and BIP113 are checked block by block around Core's own
 activation height; one body runs on both nodes, and
 `mini_wallet.build_next_block` takes the time its block carries (closes #167).
+
+### `feature_nulldummy` and mempool option tests run one body on both nodes
+
+`feature_nulldummy`, `feature_presegwit_node_upgrade`, `mempool_datacarrier`,
+`mempool_dust`, `mempool_package_limits`, `mempool_sigoplimit` and
+`mempool_updatefromblock` call one body per test, over either node (issue #125).

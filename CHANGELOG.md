@@ -516,3 +516,9 @@ was (issue btclib-org/.github#1378).
 Each compares its report with the ledger's `btclib-node` column, reading the
 verdict a cell gives its own build: a known failure no longer colours the job,
 and a row that moved, one now passing included, does (closes #88).
+
+### `_negates_rpcauth` reads `rpc_auth_invalid`, not a bare return
+
+Since btclib-node keeps a malformed `-rpcauth` there rather than raising
+(issue btclib-org/btclib-node#1210), a bare return no longer says
+`-norpcauth` discarded it (closes #160).

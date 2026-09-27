@@ -422,6 +422,18 @@ class BitcoindAdapter(NodeAdapter):
         `_check_extra_args` (`node.py`) refuses an `extra_args` entry
         naming `-debug` once this argv sets it.
 
+        `-unsafesqlitesync` is Core's own `write_config` (`util.py`) line,
+        written there "so that the tests don't timeout": it turns a
+        wallet's SQLite `synchronous` pragma off (`src/wallet/sqlite.cpp`),
+        so a block a loaded wallet connects waits on no flush to disk.
+        Without it, one `generatetoaddress` over a loaded wallet spent most
+        of its time in those flushes and outlasted the RPC client's own
+        timeout on a loaded machine (measured against the pinned `31.1`,
+        [ISS 226](https://github.com/btclib-org/bitcoin-node-tests/issues/226)).
+        A build without wallet support starts on it too:
+        `DummyWalletInit::AddWalletOptions` (`src/dummywallet.cpp`) hides it
+        rather than leaving it unknown.
+
         `-rpcallowip=127.0.0.1` is what makes `-rpcbind` bind at all:
         Core's `HTTPBindAddresses` (`src/httpserver.cpp`) ignores
         `-rpcbind` unless `-rpcallowip` is also given, binds `::1` and
@@ -471,6 +483,7 @@ class BitcoindAdapter(NodeAdapter):
             "-listenonion=0",
             "-fallbackfee=0.0002",
             "-printtoconsole=0",
+            "-unsafesqlitesync",
             "-debug=net",
             "-debug=addrman",
             "-debug=txreconciliation",

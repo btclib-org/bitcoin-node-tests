@@ -809,3 +809,9 @@ new `Capability.ORPHANAGE`; its `main` fails `mempool_accept_wtxid` (issue #4).
 
 Both run against bitcoind's own wallet, btclib-node skipping each on
 `NODE_WALLET` (issue #45).
+
+### bitcoind runs without SQLite wallet syncs, as under Core's own harness
+
+bitcoind starts with `-unsafesqlitesync`, as Core's harness starts it, so mining
+over a loaded wallet stays within the RPC client's timeout under load; an
+`extra_args` naming it is refused (closes #226) (closes #201) (closes #225).

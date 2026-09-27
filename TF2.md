@@ -822,6 +822,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_dersig.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
 | `feature_dersig.py` (wire) | same | same | pass | skip |
 | `feature_dersig.py` (log) | same | same | pass | skip |
+| `feature_dersig.py` (signature) | same | same | pass | skip |
 | `feature_cltv.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
 | `feature_cltv.py` (wire) | same | same | pass | skip |
 | `feature_cltv.py` (log) | same | same | pass | skip |
@@ -1613,16 +1614,21 @@ one block before the configured height, and, for `feature_dersig.py`
 and `feature_cltv.py`, the buried-deployment version floor a too-low
 block version trips once the deployment is active -- `bad-version(0x...)`,
 `submitblock`'s own answer and, on a row of its own, the same wording in
-bitcoind's own debug log. Dropped from every one of them: every check
-needing a real signature or a caller-chosen tapscript leaf --
-`feature_dersig.py`'s own non-DER signature, `feature_cltv.py`'s own
-`OP_CHECKLOCKTIMEVERIFY` failure reasons, and the whole of
-`feature_csv_activation.py`'s own body, BIP68's relative locktimes,
-BIP112's `OP_CHECKSEQUENCEVERIFY` and BIP113's median-time-past cutover
-included -- `MiniWallet`'s own `ADDRESS_OP_TRUE` coins spend through one
-fixed tapscript leaf carrying neither opcode, and building one that does
-is a capability neither this trio nor the mechanisms it already
-combines reaches; each of these checks stays open under this issue.
+bitcoind's own debug log. `feature_dersig.py`'s own non-DER signature is
+kept too, on a row of its own
+([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)):
+coinbases pay `mini_wallet.py`'s `RAW_P2PK_SCRIPT_PUB_KEY`, Core's own
+`RAW_P2PK` output, `raw_p2pk_script_sig` signs their spends, and the
+non-DER one is mined before activation and refused after it by
+`testmempoolaccept` and `submitblock` alike. Still dropped, each open
+under ISS 167: `feature_cltv.py`'s own `OP_CHECKLOCKTIMEVERIFY` failure
+reasons, which need no signature -- Core's own file spends `RAW_OP_TRUE`
+coins, prepends the opcode to a scriptSig no standard template admits,
+and so starts its node with `-acceptnonstdtxn`, an option no
+`Capability` names yet; and the whole of `feature_csv_activation.py`'s
+own body, BIP68's relative locktimes, BIP112's `OP_CHECKSEQUENCEVERIFY`
+and BIP113's median-time-past cutover included, which Core's own file
+spends from `RAW_P2PK` coins with the same kind of prepend.
 `feature_csv_activation.py` gains no version-floor row the way its
 siblings do: `src/validation.cpp`'s own `ContextualCheckBlockHeader`
 reads only `DEPLOYMENT_HEIGHTINCB`, `DEPLOYMENT_DERSIG` and

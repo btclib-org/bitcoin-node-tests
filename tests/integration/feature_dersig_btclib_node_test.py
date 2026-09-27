@@ -68,3 +68,15 @@ def test_a_block_below_the_minimum_version_is_logged(
     require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
     require(Capability.DEBUG_LOG, BtclibNodeAdapter.capabilities, skip_counts)
     pytest.fail("not ported for this node")
+
+
+def test_a_non_der_signature_is_refused_once_active(
+    btclib_node_python: str, skip_counts: SkipCounts
+) -> None:
+    """`Capability.TEST_ACTIVATION_HEIGHT` is not declared, so this skips."""
+    del btclib_node_python
+    require(
+        Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
+    )
+    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

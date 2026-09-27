@@ -35,6 +35,13 @@ alone is still the smaller claim than a real signature (`RAW_P2PK`,
 a cache fed from mined blocks -- without also proving btclib's own
 signing surface.
 
+`RAW_P2PK_SCRIPT_PUB_KEY` and `raw_p2pk_script_sig`, alongside the class,
+are that third mode's output and its signature, for a caller whose
+subject needs a coin spent under a real signature
+([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)):
+the class never pays one, and the caller pays it -- a coinbase it builds,
+typically -- and spends it itself.
+
 `Capability.MINE` is what a caller checks before constructing one, the
 same capability the first family already skips on for a node not
 mining: not a new one, since this class produces the fact `MINE` already
@@ -141,7 +148,9 @@ from btclib.block.build import build_block, build_coinbase
 from btclib.block.mining import mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS, subsidy
-from btclib.key import PubKeyData
+from btclib.ecc.dsa import sign_
+from btclib.key import PrvKeyData, PubKeyData
+from btclib.script import sig_hash
 from btclib.script.script import serialize as script_serialize
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.script.taproot import input_script_sig
@@ -156,10 +165,12 @@ if TYPE_CHECKING:
 __all__ = [
     "DEFAULT_FEE_RATE",
     "FEE",
+    "RAW_P2PK_SCRIPT_PUB_KEY",
     "MiniWallet",
     "Utxo",
     "build_fork",
     "nulldata_script_pub_key",
+    "raw_p2pk_script_sig",
 ]
 
 # Core's own ADDRESS_OP_TRUE internal key (`test_framework/address.py`'s
@@ -340,6 +351,32 @@ def nulldata_script_pub_key(data: bytes) -> ScriptPubKey:
         including one `ScriptPubKey.nulldata` would refuse.
     """
     return ScriptPubKey(script_serialize(["OP_RETURN", data]), check_validity=False)
+
+
+# Core's own `RAW_P2PK` key (`wallet.py`'s own `MiniWallet.__init__`): the
+# private key 1, whose public key is secp256k1's own generator
+_RAW_P2PK_KEY = PrvKeyData(1, "regtest")
+
+# the pay-to-public-key output of `_RAW_P2PK_KEY`, Core's own `RAW_P2PK`
+# scriptPubKey (`key_to_p2pk_script`, `test_framework/script_util.py`)
+RAW_P2PK_SCRIPT_PUB_KEY = ScriptPubKey.p2pk(_RAW_P2PK_KEY.pub)
+
+
+def raw_p2pk_script_sig(tx: Tx, vin_i: int) -> bytes:
+    """Return the scriptSig spending a `RAW_P2PK_SCRIPT_PUB_KEY` coin.
+
+    `sign_tx` (`wallet.py`) in its `RAW_P2PK` mode, `sign_input_legacy`
+    (`test_framework/script_util.py`): the one push of a `SIGHASH_ALL`
+    ECDSA signature over `btclib.script.sig_hash.legacy`. That sighash
+    blanks every input's scriptSig, so `tx` may carry any when this is
+    called, and the caller puts the answer in place.
+
+    :param tx: the spending transaction.
+    :param vin_i: the index of the input spending the coin.
+    """
+    digest = sig_hash.legacy(RAW_P2PK_SCRIPT_PUB_KEY.script, tx, vin_i, sig_hash.ALL)
+    signature = sign_(digest, _RAW_P2PK_KEY.q).serialize()
+    return script_serialize([signature + bytes([sig_hash.ALL])])
 
 
 def _pad_to_vsize(tx: Tx, target_vsize: int) -> None:

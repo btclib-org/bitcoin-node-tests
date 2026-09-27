@@ -21,17 +21,24 @@ from unittest.mock import patch
 
 import pytest
 from btclib.block.block import Block
-from btclib.tx import OutPoint
+from btclib.curves.curve import secp256k1
+from btclib.ecc.dsa import verify_
+from btclib.script import sig_hash
+from btclib.script.script import parse
+from btclib.script.script import serialize as script_serialize
+from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability
 from bitcoin_node_tests.mini_wallet import (
     DEFAULT_FEE_RATE,
     FEE,
+    RAW_P2PK_SCRIPT_PUB_KEY,
     MiniWallet,
     Utxo,
     build_fork,
     nulldata_script_pub_key,
+    raw_p2pk_script_sig,
 )
 from bitcoin_node_tests.node import NodeAdapter
 
@@ -552,6 +559,27 @@ def test_nulldata_script_pub_key_accepts_any_length(size: int) -> None:
     script = nulldata_script_pub_key(data)
     assert script.script.startswith(b"\x6a")  # OP_RETURN
     assert data in script.script
+
+
+def test_raw_p2pk_script_pub_key_pays_the_generator() -> None:
+    """Core's own `RAW_P2PK` output: private key 1, so the generator's SEC."""
+    g_x, g_y = secp256k1.G
+    sec = bytes([2 + g_y % 2]) + g_x.to_bytes(32, "big")
+    assert RAW_P2PK_SCRIPT_PUB_KEY.script == script_serialize([sec, "OP_CHECKSIG"])
+
+
+def test_raw_p2pk_script_sig_signs_the_legacy_sighash() -> None:
+    """One push: a signature the generator verifies, `SIGHASH_ALL` appended."""
+    tx_in = TxIn(OutPoint(b"\x01" * 32, 0))
+    tx = Tx(
+        version=2, lock_time=0, vin=[tx_in], vout=[TxOut(1, RAW_P2PK_SCRIPT_PUB_KEY)]
+    )
+    (pushed_hex,) = parse(raw_p2pk_script_sig(tx, 0))
+    assert isinstance(pushed_hex, str)  # `parse` answers a push as hex
+    pushed = bytes.fromhex(pushed_hex)
+    assert pushed[-1] == sig_hash.ALL
+    digest = sig_hash.legacy(RAW_P2PK_SCRIPT_PUB_KEY.script, tx, 0, sig_hash.ALL)
+    assert verify_(digest, secp256k1.G, pushed[:-1])
 
 
 def test_send_to_pays_the_named_script_and_returns_change() -> None:

@@ -832,6 +832,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_cltv.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
 | `feature_cltv.py` (wire) | same | same | pass | skip |
 | `feature_cltv.py` (log) | same | same | pass | skip |
+| `feature_cltv.py` (failures, activation) | same | same | pass | skip |
+| `feature_cltv.py` (failures, mempool) | same | same | pass | skip |
+| `feature_cltv.py` (failures, block) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1390](https://github.com/btclib-org/btclib-node/issues/1390)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_csv_activation.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
 | `feature_nulldummy.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `feature_dirsymlinks.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
@@ -1788,10 +1791,11 @@ MiniWallet families' first tests to need both mechanisms together:
 `capability.py`) holds one buried deployment inactive until a chosen
 height, and `MiniWallet.generate` (`Capability.MINE`) mines to it with
 no node wallet. Each is a smaller claim than Core's own file, declared
-rather than silent, its own `*_bitcoind_test.py` module docstring
-carrying the full argument: kept is `getdeploymentinfo`'s own transition
-one block before the configured height, and, for `feature_dersig.py`
-and `feature_cltv.py`, the buried-deployment version floor a too-low
+rather than silent, `feature_cltv_test.py`'s module docstring and the
+`*_bitcoind_test.py` one of each of its siblings carrying the full
+argument: kept is `getdeploymentinfo`'s own transition one block before
+the configured height, and, for `feature_dersig.py` and
+`feature_cltv.py`, the buried-deployment version floor a too-low
 block version trips once the deployment is active -- `bad-version(0x...)`,
 `submitblock`'s own answer and, on a row of its own, the same wording in
 bitcoind's own debug log. `feature_dersig.py`'s own non-DER signature is
@@ -1800,26 +1804,37 @@ kept too, on a row of its own
 coinbases pay `mini_wallet.py`'s `RAW_P2PK_SCRIPT_PUB_KEY`, Core's own
 `RAW_P2PK` output, `raw_p2pk_script_sig` signs their spends, and the
 non-DER one is mined before activation and refused after it by
-`testmempoolaccept` and `submitblock` alike. Still dropped, each open
-under ISS 167: `feature_cltv.py`'s own `OP_CHECKLOCKTIMEVERIFY` failure
-reasons, which need no signature -- Core's own file spends `RAW_OP_TRUE`
-coins, prepends the opcode to a scriptSig no standard template admits,
-and so starts its node with `-acceptnonstdtxn`, an option no
-`Capability` names yet; and the whole of `feature_csv_activation.py`'s
-own body, BIP68's relative locktimes, BIP112's `OP_CHECKSEQUENCEVERIFY`
-and BIP113's median-time-past cutover included, which Core's own file
-spends from `RAW_P2PK` coins with the same kind of prepend.
+`testmempoolaccept` and `submitblock` alike. `feature_cltv.py`'s own
+`OP_CHECKLOCKTIMEVERIFY` failure reasons are kept too, under the same
+issue, on rows of their own. They need no signature: coinbases pay
+Core's own `RAW_OP_TRUE` output, a bare `OP_TRUE`, and each spend's
+scriptSig starts with what fails the opcode for one reason. The spends
+are mined in the block before the configured height and refused in a
+block at it, which pins where the script rule starts. The mempool and
+block rows run on regtest's own default activation, BIP65 active from
+the first block after genesis: `testmempoolaccept` refuses each, the
+node running with Core's own `-acceptnonstdtxn`
+(`Capability.ACCEPT_NON_STANDARD`) since the spends are non-standard;
+and `submitblock` refuses a block carrying each and accepts the spend
+CLTV admits. Needing no `-testactivationheight`,
+`feature_cltv.py`'s block row asks `btclib-node` for `Capability.MINE`
+alone. Still dropped, open under ISS 167: the whole of
+`feature_csv_activation.py`'s own body, BIP68's relative locktimes,
+BIP112's `OP_CHECKSEQUENCEVERIFY` and BIP113's median-time-past cutover
+included, which Core's own file spends from `RAW_P2PK` coins with the
+same kind of prepend.
 `feature_csv_activation.py` gains no version-floor row the way its
 siblings do: `src/validation.cpp`'s own `ContextualCheckBlockHeader`
 reads only `DEPLOYMENT_HEIGHTINCB`, `DEPLOYMENT_DERSIG` and
 `DEPLOYMENT_CLTV` for its version check, `DEPLOYMENT_CSV` never joining
 it, so there is no such refusal for CSV's own activation to produce.
-Every `btclib-node` cell across the trio is a counted skip on
-`Capability.TEST_ACTIVATION_HEIGHT` alone, ahead of `Capability.MINE` which
-every row also needs: measured against `cli.py`'s registered options,
-`_build_parser` on the released build and `_OPTIONS` on `main`,
-`-testactivationheight` is not one of its registered flags, so `require` never
-reaches the second capability at all.
+Every other `btclib-node` cell across the trio is a counted skip before
+`require` reaches `Capability.MINE`, which every row also needs:
+`feature_cltv.py`'s mempool row on `Capability.ACCEPT_NON_STANDARD`
+(`btclib_node.py`'s own docstring has the measurement), and the rest on
+`Capability.TEST_ACTIVATION_HEIGHT` -- measured against `cli.py`'s
+registered options, `_build_parser` on the released build and `_OPTIONS`
+on `main`, `-testactivationheight` is not one of its registered flags.
 
 `feature_nulldummy.py`'s row is every step of Core's own file, in its
 own order ([ISS 64](https://github.com/btclib-org/bitcoin-node-tests/issues/64)):

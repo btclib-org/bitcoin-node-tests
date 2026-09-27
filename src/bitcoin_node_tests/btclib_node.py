@@ -141,6 +141,10 @@ neither `-rpcthreads` nor `-rpcworkqueue`, measured at the released
 declared either: `cli.py` registers no `-blocksonly`, and
 `getblockfrompeer` names no callback in that same dispatch table,
 measured at the released `2026.9.24` and at `main` (`25776772`) alike.
+
+`Capability.ACCEPT_NON_STANDARD` is never declared either:
+`-acceptnonstdtxn` is not among the flags `-help -noconf` prints, measured
+at the released `2026.9.24` and at `main` (`19c5661e`) alike.
 """
 
 from __future__ import annotations

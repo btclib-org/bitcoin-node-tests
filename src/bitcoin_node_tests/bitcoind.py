@@ -69,6 +69,10 @@ _REGTEST_ONLY = frozenset(
     }
 )
 
+# the capabilities a node on the main chain lacks: `-acceptnonstdtxn` is
+# refused on a chain that is not `IsTestChain` (`src/node/mempool_args.cpp`)
+_TEST_CHAIN_ONLY = frozenset({Capability.ACCEPT_NON_STANDARD})
+
 
 @lru_cache
 def _has_wallet(executable: str) -> bool:
@@ -233,10 +237,12 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.BLOCKS_ONLY` and `Capability.BLOCK_FROM_PEER` are
     unconditional too: `-blocksonly` is this binary's own flag, and
     `getblockfrompeer` its own RPC (`src/rpc/blockchain.cpp`).
+    `Capability.ACCEPT_NON_STANDARD` is `-acceptnonstdtxn`, this binary's
+    own debug-only flag, which it refuses on main alone.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
-    answers.
+    answers, and on main `_TEST_CHAIN_ONLY`'s too.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -271,6 +277,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.RPC_WORK_QUEUE,
             Capability.BLOCKS_ONLY,
             Capability.BLOCK_FROM_PEER,
+            Capability.ACCEPT_NON_STANDARD,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)
@@ -294,8 +301,9 @@ class BitcoindAdapter(NodeAdapter):
         same reason: `_check_extra_args(self._command(), extra_args)`
         needs `self._executable` set before `_command` can be called.
         `_has_wallet` is then this class's own per-build probe, read once
-        per instance rather than once per `mine` call, and
-        `_REGTEST_ONLY` is what any other `chain` drops.
+        per instance rather than once per `mine` call,
+        `_REGTEST_ONLY` is what any other `chain` drops, and
+        `_TEST_CHAIN_ONLY` what main drops besides.
         """
         super().__init__(
             executable,
@@ -311,6 +319,8 @@ class BitcoindAdapter(NodeAdapter):
             self.capabilities = self.capabilities - {Capability.MINE}
         if chain != "regtest":
             self.capabilities = self.capabilities - _REGTEST_ONLY
+        if chain == "main":
+            self.capabilities = self.capabilities - _TEST_CHAIN_ONLY
 
     @override
     def _command(self) -> list[str]:

@@ -612,3 +612,9 @@ every other Core test reading the log goes (issue #5).
 `p2p_compactblocks_blocksonly`, `rpc_getblockfilter` and `rpc_getblockfrompeer`
 skip on btclib-node; `Peer` gains Core's `last_message` and a `handshake`
 offering chosen services (issue #3).
+
+### `feature_cltv`'s failure reasons are ported, with `Capability.ACCEPT_NON_STANDARD`
+
+BIP65's failure reasons are mined before activation, then refused by
+`testmempoolaccept` under Core's `-acceptnonstdtxn` and by `submitblock`; one
+body runs on both nodes (issue #167).

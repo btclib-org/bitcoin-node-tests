@@ -1,0 +1,101 @@
+# Copyright (c) The btclib developers
+# Distributed under the MIT software license, see the accompanying
+# LICENSE file or https://opensource.org/license/mit for the full text.
+
+"""Core's `rpc_echo_payload`, one body over either node.
+
+Read from Core's `test/functional/rpc_echo_payload.py` (`fa7bc26d1276`,
+2026-08-06), an option-family row
+([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)):
+a node restarted with `-rpcworkqueue=2` and `-rpcthreads=2`
+(`Capability.RPC_WORK_QUEUE`) takes payloads of random length, large
+ones included, from more concurrent callers than its threads and its
+queue hold, each payload sent through `echo` or `sendrawtransaction`
+chosen at random, and answers or refuses every request rather than
+leaving one to time out: a timeout is `bitcoin_core_rpc`'s own
+`FetchError`, which neither `except` clause of `_call_repeatedly`
+catches.
+
+A smaller claim than Core's own test, declared rather than silent: Core
+matches a refusal on its message, "Work queue depth exceeded" after the
+HTTP 503 status, where `bitcoin_core_rpc`'s own `HttpError` carries the
+status alone, the body of a non-JSON reply not being kept, so a refusal
+here is the 503 status. Each caller's client opens a connection per call
+rather than holding one open, `urlopen_transport` being the transport
+`BitcoindAdapter` builds; up to `_CALLERS` requests are still in
+flight at once, as in Core's own.
+
+`rpc_echo_payload_bitcoind_test.py` and
+`rpc_echo_payload_btclib_node_test.py` run it,
+`tests/integration/conftest.py`'s own module docstring having how.
+"""
+
+from __future__ import annotations
+
+import random
+from concurrent.futures import ThreadPoolExecutor
+from typing import TYPE_CHECKING
+
+from bitcoin_core_rpc import HttpError, RpcError
+
+from bitcoin_node_tests.capability import Capability, require
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
+    from bitcoin_node_tests.bitcoind import BitcoindAdapter
+    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+    from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
+
+__all__ = ["a_payload_is_answered_or_refused_never_left_to_time_out"]
+
+# Core's own `set_test_params`: enough callers to fill both worker threads
+# and the queue behind them
+_CALLERS = 6
+_CALLS_PER_CALLER = 200
+
+# `sendrawtransaction`'s own answer to a payload that is no transaction
+_DECODE_FAILED = "TX decode failed. Make sure the tx has at least one input."
+
+# the status `src/httpserver.cpp` refuses a request with once the queue is full
+_SERVICE_UNAVAILABLE = 503
+
+
+def _call_repeatedly(node: NodeAdapter, data: str) -> None:
+    """Send random prefixes of `data`, accepting an answer or a refusal only."""
+    for _ in range(_CALLS_PER_CALLER):
+        payload = data[: random.randrange(len(data))]
+        try:
+            if random.getrandbits(1):
+                assert node.rpc.call("echo", [payload]) == [payload]
+            else:
+                node.rpc.call("sendrawtransaction", [payload])
+        except RpcError as e:
+            if _DECODE_FAILED not in str(e):
+                raise
+        except HttpError as e:
+            if e.status != _SERVICE_UNAVAILABLE:
+                raise
+
+
+def a_payload_is_answered_or_refused_never_left_to_time_out(
+    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """Core's own subject: every request is answered or refused in time.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    (node,) = cluster(1)
+    require(Capability.RPC_WORK_QUEUE, node.capabilities, skip_counts)
+    node.restart(["-rpcworkqueue=2", "-rpcthreads=2"])
+    # json-serializable, but not hex
+    data = "z" + random.randbytes(1_999_000).hex()
+    with ThreadPoolExecutor(max_workers=_CALLERS) as callers:
+        futures = [
+            callers.submit(_call_repeatedly, node, data) for _ in range(_CALLERS)
+        ]
+    for future in futures:
+        future.result()

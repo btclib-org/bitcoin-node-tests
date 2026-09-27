@@ -4,14 +4,14 @@
 
 r"""Core's `feature_dersig`, rewritten on this harness: btclib-node.
 
-The same requests `feature_dersig_bitcoind_test.py` makes, against the
-target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
-`Capability.TEST_ACTIVATION_HEIGHT` is not declared: measured against
-`cli.py`'s registered options, `_build_parser` on the released build and
-`_OPTIONS` on `main` (`btclib_node.py`'s own docstring has the same measurement
-for `-uacomment`), `-testactivationheight` is not one of its registered flags
--- a counted skip on that capability alone, before any node is ever spawned,
-the way `feature_uacomment_btclib_node_test.py`'s own skip already is.
+`feature_dersig_test.py` beside this module holds each body, run here
+against the target rather than the oracle (rule 3 of issue
+btclib-org/btclib#2220). `Capability.TEST_ACTIVATION_HEIGHT` is not
+declared: measured against `cli.py`'s registered options, `_build_parser`
+on the released build and `_OPTIONS` on `main` (`btclib_node.py`'s own
+docstring has the same measurement for `-uacomment`),
+`-testactivationheight` is not one of its registered flags -- a counted
+skip on that capability alone, before the node is restarted with it.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \\
@@ -24,59 +24,51 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-from bitcoin_node_tests.capability import Capability, require
+from tests.integration.feature_dersig_test import (
+    a_block_below_the_minimum_version_is_logged,
+    a_block_below_the_minimum_version_is_refused,
+    a_non_der_signature_is_refused_once_active,
+    dersig_activates_one_block_before_the_configured_height,
+)
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
 
 
 def test_dersig_activates_one_block_before_the_configured_height(
-    btclib_node_python: str, skip_counts: SkipCounts
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
 ) -> None:
-    """`Capability.TEST_ACTIVATION_HEIGHT` is not declared, so this skips."""
-    del btclib_node_python
-    require(
-        Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
+    """The target: the body this module's docstring names, over btclib-node."""
+    dersig_activates_one_block_before_the_configured_height(
+        btclib_node_cluster, skip_counts
     )
-    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
-    pytest.fail("not ported for this node")
 
 
 def test_a_block_below_the_minimum_version_is_refused(
-    btclib_node_python: str, skip_counts: SkipCounts
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
 ) -> None:
-    """`Capability.TEST_ACTIVATION_HEIGHT` is not declared, so this skips."""
-    del btclib_node_python
-    require(
-        Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
-    )
-    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
-    pytest.fail("not ported for this node")
+    """The target: the body this module's docstring names, over btclib-node."""
+    a_block_below_the_minimum_version_is_refused(btclib_node_cluster, skip_counts)
 
 
 def test_a_block_below_the_minimum_version_is_logged(
-    btclib_node_python: str, skip_counts: SkipCounts
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
 ) -> None:
-    """`Capability.TEST_ACTIVATION_HEIGHT` is not declared, so this skips."""
-    del btclib_node_python
-    require(
-        Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
-    )
-    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
-    require(Capability.DEBUG_LOG, BtclibNodeAdapter.capabilities, skip_counts)
-    pytest.fail("not ported for this node")
+    """The target: the body this module's docstring names, over btclib-node."""
+    a_block_below_the_minimum_version_is_logged(btclib_node_cluster, skip_counts)
 
 
 def test_a_non_der_signature_is_refused_once_active(
-    btclib_node_python: str, skip_counts: SkipCounts
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
 ) -> None:
-    """`Capability.TEST_ACTIVATION_HEIGHT` is not declared, so this skips."""
-    del btclib_node_python
-    require(
-        Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
-    )
-    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
-    pytest.fail("not ported for this node")
+    """The target: the body this module's docstring names, over btclib-node."""
+    a_non_der_signature_is_refused_once_active(btclib_node_cluster, skip_counts)

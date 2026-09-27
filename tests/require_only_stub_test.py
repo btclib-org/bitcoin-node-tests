@@ -125,10 +125,7 @@ def _mismatches(root: Path) -> list[str]:
 
     Compared only where a same-named function exists on both sides: a
     stub file with no `*_bitcoind_test.py` twin at all, or one whose twin
-    names no function of that name --
-    `v2transport_option_btclib_node_test.py`'s own case, a fact asserted
-    directly rather than ported test by test -- names nothing to compare
-    against.
+    names no function of that name, names nothing to compare against.
     """
     mismatches = []
     for path in sorted(root.glob("*_btclib_node_test.py")):

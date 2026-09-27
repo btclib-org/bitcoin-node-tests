@@ -833,3 +833,9 @@ refusing each malformed one in Core's own words; btclib-node skips on the new
 Both adapters' RPC clients bound a call by the new
 `timeout_factor.rpc_client_timeout`, Core's own `int(60 * factor) // 2`: 30 s at
 the default factor, as before, and 90 s at `--timeout-factor 3` (closes #230).
+
+### `feature_includeconf`'s double-negative row passes on btclib-node's `main`
+
+btclib-node's `main` passes it, being past btclib-org/btclib-node#1402; a build
+past btclib-org/btclib-node#1409 and before it still fails, warning about the
+double negative on stderr ahead of the refusal (closes #231).

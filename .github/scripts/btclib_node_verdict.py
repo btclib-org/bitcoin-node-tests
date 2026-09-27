@@ -427,6 +427,16 @@ _ROWS: dict[str, str] = {
     "p2p_sendtxrcncl::test_sendtxrcncl_kept_peers_are_logged": (
         "`p2p_sendtxrcncl.py` (kept, log)"
     ),
+    "feature_reindex::test_a_reindex_restores_the_height": (
+        "`feature_reindex.py` (reindex)"
+    ),
+    "feature_reindex::test_blocks_out_of_order_are_reindexed": (
+        "`feature_reindex.py` (out of order)"
+    ),
+    "feature_reindex::test_an_interrupted_reindex_keeps_its_index": (
+        "`feature_reindex.py` (interrupted)"
+    ),
+    "feature_reindex_readonly": "`feature_reindex_readonly.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

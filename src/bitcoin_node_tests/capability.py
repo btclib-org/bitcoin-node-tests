@@ -363,6 +363,12 @@ class Capability(Enum):
     `PEER_BLOOM_FILTERS` -- recognise `-peerbloomfilters`, Core's own
     switch to serving BIP37 bloom filters, which offers `NODE_BLOOM` in
     the node's own `version` (`p2p_sendtxrcncl.py`).
+    `REINDEX` -- rebuild its block index and its chainstate from the
+    block files it already stored, on a start given Core's own
+    `-reindex`, and its chainstate alone on one given
+    `-reindex-chainstate` (`feature_reindex.py`,
+    `feature_reindex_readonly.py`). One member for the pair, as
+    `DATACARRIER` is: `feature_reindex.py` alternates them on one node.
     """
 
     MINE = "mine"
@@ -409,6 +415,7 @@ class Capability(Enum):
     NODE_WALLET = "node_wallet"
     TX_RECONCILIATION = "tx_reconciliation"
     PEER_BLOOM_FILTERS = "peer_bloom_filters"
+    REINDEX = "reindex"
 
 
 class SkipCounts:

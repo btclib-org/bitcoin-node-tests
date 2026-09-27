@@ -66,6 +66,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.NODE_WALLET,
             Capability.TX_RECONCILIATION,
             Capability.PEER_BLOOM_FILTERS,
+            Capability.REINDEX,
         }
     )
 
@@ -140,6 +141,7 @@ def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:
     assert "-debug=net" in command
     assert "-debug=addrman" in command
     assert "-debug=txreconciliation" in command
+    assert "-debug=reindex" in command
 
 
 def test_chains_are_every_one_the_release_runs() -> None:

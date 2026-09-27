@@ -750,3 +750,9 @@ one body per test; the released btclib-node fails the refusal (issue #125).
 `feature_framework_miniwallet`'s `confirmed_only` and a
 `mempool_updatefromblock` test skip where a node lacks it: btclib-node's
 `main` skips `confirmed_only` rather than failing it (closes #207).
+
+### `feature_reindex` and `feature_reindex_readonly` are ported
+
+bitcoind reindexes back to its height, over blocks out of order, after a
+stopped reindex and from a read-only block file, and logs Core's `reindex`
+category; btclib-node skips on the new `Capability.REINDEX` (issue #14).

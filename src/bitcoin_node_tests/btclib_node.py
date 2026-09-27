@@ -205,6 +205,11 @@ never declared either: `cli.py` registers neither `-txreconciliation` nor
 `-peerbloomfilters`, measured at the released `2026.9.24` (`422d2640`)
 and at `main` (`dca9c2be`) alike, `txreconciliation` being a `-debug`
 category at `main`.
+
+`Capability.REINDEX` is never declared either: each build refuses
+`-reindex` and `-reindex-chainstate` as unknown arguments, measured at the
+released `2026.9.24` and at `main` (`338f64c5`) alike
+([ISS btclib-node#1415](https://github.com/btclib-org/btclib-node/issues/1415)).
 """
 
 from __future__ import annotations

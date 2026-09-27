@@ -230,6 +230,9 @@ class BitcoindAdapter(NodeAdapter):
     `-rpcworkqueue` are this binary's own flags, and the refusal of a
     request past the queue's bound is its own HTTP server's
     (`src/httpserver.cpp`).
+    `Capability.BLOCKS_ONLY` and `Capability.BLOCK_FROM_PEER` are
+    unconditional too: `-blocksonly` is this binary's own flag, and
+    `getblockfrompeer` its own RPC (`src/rpc/blockchain.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -266,6 +269,8 @@ class BitcoindAdapter(NodeAdapter):
             Capability.VALIDATE_ADDRESS,
             Capability.TYPED_OUTBOUND,
             Capability.RPC_WORK_QUEUE,
+            Capability.BLOCKS_ONLY,
+            Capability.BLOCK_FROM_PEER,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

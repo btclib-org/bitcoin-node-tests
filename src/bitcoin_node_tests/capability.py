@@ -258,7 +258,8 @@ class Capability(Enum):
     peer instead of evicting an old one.
     `BLOCK_FILTER_INDEX` -- keep BIP158's basic block filter for every
     block once `-blockfilterindex` asks for it, and answer `scanblocks`
-    from that index (`rpc_scanblocks.py`).
+    (`rpc_scanblocks.py`) and `getblockfilter` (`rpc_getblockfilter.py`)
+    from that index.
     `VALIDATE_ADDRESS` -- answer `validateaddress`, Core's own RPC
     decoding an address for the chain the node runs: the `scriptPubKey`
     a valid one decodes to, and the error and `error_locations` an
@@ -277,6 +278,13 @@ class Capability(Enum):
     refusing the rest, the facts Core's own `-rpcthreads` and
     `-rpcworkqueue` set (`rpc_echo_payload.py`). One member for the pair,
     as `DATACARRIER` is: the one ported test asking for either sets both.
+    `BLOCKS_ONLY` -- recognise `-blocksonly`, Core's own switch to a node
+    relaying no transactions, which also selects no BIP152 high-bandwidth
+    peer and asks for a full block rather than a compact one
+    (`p2p_compactblocks_blocksonly.py`).
+    `BLOCK_FROM_PEER` -- answer `getblockfrompeer`, Core's own RPC asking a
+    named peer for a block whose header the node already has
+    (`rpc_getblockfrompeer.py`). Named for the RPC, as `BLOCK_STATS` is.
     """
 
     MINE = "mine"
@@ -307,6 +315,8 @@ class Capability(Enum):
     VALIDATE_ADDRESS = "validate_address"
     TYPED_OUTBOUND = "typed_outbound"
     RPC_WORK_QUEUE = "rpc_work_queue"
+    BLOCKS_ONLY = "blocks_only"
+    BLOCK_FROM_PEER = "block_from_peer"
 
 
 class SkipCounts:

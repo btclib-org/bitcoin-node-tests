@@ -50,6 +50,8 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.VALIDATE_ADDRESS,
             Capability.TYPED_OUTBOUND,
             Capability.RPC_WORK_QUEUE,
+            Capability.BLOCKS_ONLY,
+            Capability.BLOCK_FROM_PEER,
         }
     )
 

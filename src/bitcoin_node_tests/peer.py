@@ -75,7 +75,9 @@ class Peer:
 
     `message_count` is Core's `P2PInterface.message_count`: how many
     messages of each command `receive` has returned, those `wait_for`
-    and `handshake` read and drop included.
+    and `handshake` read and drop included. `last_message` is Core's
+    `P2PInterface.last_message`: the latest message of each command
+    `receive` has returned, kept whole for the caller to parse.
     """
 
     def __init__(
@@ -106,6 +108,7 @@ class Peer:
         self._dialled = dialled
         self._buffer = b""
         self.message_count: Counter[str] = Counter()
+        self.last_message: dict[str, Message] = {}
 
     def close(self) -> None:
         """Close the underlying socket."""
@@ -168,6 +171,7 @@ class Peer:
             else:
                 self._buffer = self._buffer[stream.tell() :]
                 self.message_count[message.command] += 1
+                self.last_message[message.command] = message
                 return message
 
     def wait_for(
@@ -272,7 +276,7 @@ class Peer:
             timeout=timeout,
         )
 
-    def handshake(self) -> Version:
+    def handshake(self, *, services: ServiceFlags = _SERVICES) -> Version:
         """Exchange `version`/`verack`, and return the node's own `version`.
 
         Core's own handshake. The side that dialled sends its `version`
@@ -287,12 +291,17 @@ class Peer:
         `version`/`wtxidrelay` it depends on"), and bitcoind accepts one
         either way, so sending it is what one peer can offer both nodes.
 
+        :param services: the services this peer's own `version` offers,
+            `NODE_NETWORK | NODE_WITNESS` where not given. Core's
+            `add_p2p_connection` takes the same `services`, and
+            `rpc_getblockfrompeer` drops `NODE_WITNESS` from it to be a
+            pre-segwit peer.
         :returns: the node's own `Version`, `nServices` and all --
             `p2p_getdata`'s own `P2PStoreBlock` reads nothing off it, but
             a later family well might.
         """
         nonce = secrets.randbelow(2**64)
-        version = Version(services=_SERVICES, user_agent=_USER_AGENT, nonce=nonce)
+        version = Version(services=services, user_agent=_USER_AGENT, nonce=nonce)
         if self._dialled:
             self.send(version)
             version_message = self.wait_for("version")

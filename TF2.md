@@ -863,6 +863,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_validateaddress.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (validate_address) |
 | `p2p_addrfetch.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | skip (typed_outbound) |
 | `rpc_echo_payload.py` | [`fa7bc26d1276`](https://github.com/bitcoin/bitcoin/commit/fa7bc26d1276) | 2026-08-06 | pass | skip (rpc_work_queue) |
+| `p2p_compactblocks_blocksonly.py` | [`bf9884f4e55d`](https://github.com/bitcoin/bitcoin/commit/bf9884f4e55d) | 2026-06-18 | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (blocks_only) |
+| `rpc_getblockfilter.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (block_filter_index) |
+| `rpc_getblockfrompeer.py` | [`779f4446803d`](https://github.com/bitcoin/bitcoin/commit/779f4446803d) | 2026-05-25 | pass | skip (block_from_peer) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1445,25 +1448,33 @@ example, is a wallet feature by name and stays out on that ground alone;
 framework-file ledger already marks `tf2's (harness)`, not built yet
 either.
 
-Re-run against Core's own current tip rather than the census's own
-`cff00c5`, the family's own census gains one candidate neither of the
-paragraphs above names: `p2p_compactblocks_blocksonly.py`. `-blocksonly`
-is on neither adapter's own registered surface (`btclib-node`'s `cli.py`,
-checked against both the pinned PyPI build and its own `main`), and
-every other fact the test asks for -- `Capability.MINE`,
-`Capability.CONNECT`, and a raw peer connection -- is already the
-adapters' own rather than a step 5 mechanism, so this is the option
-family's own second candidate rather than ISS 14's. It is not the same
-shape `p2p_compactblocks_hb.py` already ported, though: Core delivers
-each block itself, over a synthetic connection it controls, so the peer
+`p2p_compactblocks_blocksonly.py`'s row is an option-family row, found
+by re-running the family's census against Core's own tip rather than
+`cff00c5`: `-blocksonly` is `Capability.BLOCKS_ONLY` (`capability.py`),
+and every other fact the test asks for -- `Capability.MINE`,
+`Capability.CONNECT`, `Capability.DISCONNECT` and a `Peer` (`peer.py`)
+-- is the adapters' own rather than another step 5 mechanism. Core
+delivers each block itself, over a connection it controls, so the peer
 whose `sendcmpct` renegotiation is under test is fixed rather than
-raced for one of several slots -- measured live against a pair of
-`BitcoindAdapter`s joined by `connect_nodes` instead, `bip152_hb_to` and
-`bip152_hb_from` stayed `False` on both sides through several relayed
-blocks, so the `getpeerinfo` shortcut `p2p_compactblocks_hb.py` used
-does not carry this row. It wants `peer.py`'s own wire instead --
-BIP152's `sendcmpct` and `cmpctblock`, which `btclib.p2p.compact_blocks`
-already carries -- and stays open under this issue.
+raced for one of several slots, and the test reads the wire rather than
+`getpeerinfo`: BIP152's `sendcmpct` and `cmpctblock` are
+`btclib.p2p.compact_blocks`' own, and `Peer.last_message` is what the
+test reads the node's latest `sendcmpct` and `getdata` off. Core's own
+claim in full, reached another way at the start: Core's nodes begin on
+its cached chain, out of initial block download, and here one block
+mined and submitted to every node takes each out of it. That a
+`-blocksonly` node ignores a `cmpctblock` is Core's since
+bitcoin/bitcoin@bf9884f4e55df502b67b2636969cacce62edaee9, which the
+release candidates of the next major release carry and the pinned
+release does not: that one reconstructs the block instead, so the test
+reads `getnetworkinfo`'s `version` and asserts whichever the build does ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+measured against the pinned release and against `v32.0rc2`.
+`btclib-node`'s cell is a counted skip: `cli.py` registers no
+`-blocksonly`, on the released build or on `main` (`btclib_node.py`'s
+own docstring).
+`p2p_node_network_limited.py`, whose one option is `-prune`, is still
+owed to the option family
+([ISS 185](https://github.com/btclib-org/bitcoin-node-tests/issues/185)).
 
 `rpc_echo_payload.py`'s row is an option-family row
 ([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)).
@@ -1484,6 +1495,34 @@ sends each payload through `echo` or through `sendrawtransaction`,
 chosen at random, and `btclib-node`'s `rpc/callbacks.py` has the second
 and not the first, so a port for that node also needs `echo`, and
 accepts a refusal in that node's own terms.
+
+`rpc_getblockfilter.py`'s row is an option-family row, Core's own
+claim in full: `getblockfilter` answers a filter for every block of an
+active chain and of a stale one on a node under `-blockfilterindex`
+(`Capability.BLOCK_FILTER_INDEX`), refuses an unknown block and an
+unknown filter type, and refuses every filter type once restarted
+without the index. Core's harness connects its nodes at setup and its
+test disconnects them first; this harness's nodes start unconnected.
+`btclib-node`'s cell is a counted skip: `cli.py` registers no
+`-blockfilterindex`, and `getblockfilter` names no callback in
+`rpc/callbacks.py`'s own dispatch table, on the released build or on
+`main`.
+
+`rpc_getblockfrompeer.py`'s row is an option-family row, a smaller claim
+than Core's own file in its literals alone:
+`tests/integration/rpc_getblockfrompeer_test.py`'s own docstring has
+them. Core's cached chain is mined here and submitted to every node, so
+the fetched block's hash is the chain's own rather than Core's literal;
+and Core's `pruneblockchain` heights are literals that differ between
+the pinned release and the pin, so the test asserts what both sets
+share instead. `getblockfrompeer` is `Capability.BLOCK_FROM_PEER`,
+`-fastprune` `Capability.FASTPRUNE`, and the pre-segwit peer a `Peer`
+whose `handshake` offers no `NODE_WITNESS`. `-prune` asks for no
+capability, `cli.py` registering it and `rpc/callbacks.py` answering
+`pruneblockchain` on the released build and on `main` alike.
+`btclib-node`'s cell is a counted skip on `Capability.BLOCK_FROM_PEER`,
+asked for first: `getblockfrompeer` names no callback in that dispatch
+table on either build.
 
 `feature_presegwit_node_upgrade.py`'s row keeps every assertion Core's
 own file makes: a fresh chain with segwit inactive under

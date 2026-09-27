@@ -25,12 +25,14 @@ Core's own, not the same one.
 
 bitcoind is the oracle (rule 3), so this is the half that has to pass,
 and it stands in a module of its own rather than beside btclib-node's:
-`.github/workflows/node-integration.yml`'s bitcoind job runs this
+`.github/workflows/node-integration.yml`'s jobs select a node's tests by
+module, its `btclib-node` jobs running `*_btclib_node_test.py` and its
+`core-master` job `*_bitcoind_test.py`. Its bitcoind job runs this
 directory through `btclib-org/.github`'s
 `reusable-integration-bitcoind.yml`, whose own "did the node tests run"
-check reads a testcase's classname, and a module is what that name is
-built from -- the split is what lets that job's `exclude-classname` name
-btclib-node's module and leave this one held to running, never skipping.
+check exempts only a skip whose reason starts with that job's
+`skip-reason-prefix`, `btclib_node_python`'s own, and holds this one to
+running, never skipping.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """

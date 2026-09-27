@@ -20,7 +20,8 @@ against copies of itself, so no Core test poses this question the way
 result in its own prose instead, under its own heading, rather than as
 a per-test row. The module is named `*_btclib_node_test.py` because it
 needs a btclib-node: `node-integration.yml`'s btclib-node jobs run those
-modules, and its required bitcoind job, which has none, exempts them.
+modules. Its required bitcoind job, which has no btclib-node, exempts
+this module's skip by its reason, `btclib_node_python`'s own message.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \\

@@ -851,6 +851,14 @@ def test_set_mock_time_calls_setmocktime(tmp_path: Path) -> None:
     assert rpc.calls == [("setmocktime", [1_700_000_000])]
 
 
+def test_add_outbound_connection_calls_addconnection_over_v1(tmp_path: Path) -> None:
+    """`add_outbound_connection` is `addconnection`, `v2transport` off."""
+    rpc = _FakeRpc()
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=rpc)
+    adapter.add_outbound_connection(("127.0.0.1", 4444), "addr-fetch")
+    assert rpc.calls == [("addconnection", ["127.0.0.1:4444", "addr-fetch", False])]
+
+
 def test_p2p_address_names_127_0_0_1_and_the_configured_port(tmp_path: Path) -> None:
     """`p2p_address` is `("127.0.0.1", p2p_port)`, the port this adapter got."""
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 4444, rpc=_FakeRpc())

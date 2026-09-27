@@ -57,10 +57,16 @@ _CHAIN_DIRS = {
 # gives up after `maxtries` nonces (`src/rpc/mining.cpp`), a bound regtest's
 # own target is met within and another chain's is not in practice;
 # `setmocktime` refuses a chain that is not `IsMockableChain`
-# (`src/rpc/node.cpp`); and `-testactivationheight` is read by
-# `ReadRegTestArgs` (`src/chainparams.cpp`) alone
+# (`src/rpc/node.cpp`), and so does `addconnection` (`src/rpc/net.cpp`);
+# and `-testactivationheight` is read by `ReadRegTestArgs`
+# (`src/chainparams.cpp`) alone
 _REGTEST_ONLY = frozenset(
-    {Capability.MINE, Capability.CLOCK, Capability.TEST_ACTIVATION_HEIGHT}
+    {
+        Capability.MINE,
+        Capability.CLOCK,
+        Capability.TEST_ACTIVATION_HEIGHT,
+        Capability.TYPED_OUTBOUND,
+    }
 )
 
 
@@ -215,6 +221,11 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.VALIDATE_ADDRESS` is unconditional too: `validateaddress`
     is this binary's own RPC (`src/rpc/output_script.cpp`), with no
     wallet behind it.
+    `Capability.TYPED_OUTBOUND` is `addconnection`, wrapped by
+    `NodeAdapter.add_outbound_connection` (`node.py`): a regtest-only RPC
+    in the same standing as `setmocktime` above (measured against the
+    pinned `31.1`: absent from `help`'s own listing, answering
+    `help addconnection` directly).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -249,6 +260,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.INBOUND_EVICTION,
             Capability.BLOCK_FILTER_INDEX,
             Capability.VALIDATE_ADDRESS,
+            Capability.TYPED_OUTBOUND,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

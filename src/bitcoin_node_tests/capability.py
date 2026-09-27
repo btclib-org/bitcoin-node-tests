@@ -264,6 +264,14 @@ class Capability(Enum):
     a valid one decodes to, and the error and `error_locations` an
     invalid one earns (`rpc_validateaddress.py`). Named for the RPC, as
     `BLOCK_STATS` is.
+    `TYPED_OUTBOUND` -- dial an address the caller names as the outbound
+    connection type the caller chooses, `outbound-full-relay`,
+    `block-relay-only`, `addr-fetch` or `feeler`, the way Core's
+    `TestNode.add_outbound_p2p_connection` asks `addconnection` to
+    ([ISS bitcoin-node-tests#44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)).
+    Not `CONNECT`: `addnode` dials a manual connection, one type only.
+    `NodeAdapter.add_outbound_connection` (`node.py`) is the call, and
+    `peer.Listener` what a test has the node dial.
     """
 
     MINE = "mine"
@@ -292,6 +300,7 @@ class Capability(Enum):
     INBOUND_EVICTION = "inbound_eviction"
     BLOCK_FILTER_INDEX = "block_filter_index"
     VALIDATE_ADDRESS = "validate_address"
+    TYPED_OUTBOUND = "typed_outbound"
 
 
 class SkipCounts:

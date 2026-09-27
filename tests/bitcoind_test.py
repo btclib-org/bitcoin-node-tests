@@ -48,6 +48,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.INBOUND_EVICTION,
             Capability.BLOCK_FILTER_INDEX,
             Capability.VALIDATE_ADDRESS,
+            Capability.TYPED_OUTBOUND,
         }
     )
 
@@ -161,13 +162,14 @@ def test_cookie_and_debug_log_are_the_chain_s_own(
 def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
     tmp_path: Path,
 ) -> None:
-    """`MINE`, `CLOCK` and `TEST_ACTIVATION_HEIGHT` answer on regtest alone."""
+    """Every member of `_REGTEST_ONLY` answers on regtest alone."""
     with patch.object(bitcoind_module, "_has_wallet", return_value=True):
         adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444, chain="main")
     assert adapter.capabilities == BitcoindAdapter.capabilities - {
         Capability.MINE,
         Capability.CLOCK,
         Capability.TEST_ACTIVATION_HEIGHT,
+        Capability.TYPED_OUTBOUND,
     }
 
 

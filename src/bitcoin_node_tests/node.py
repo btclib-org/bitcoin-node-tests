@@ -682,6 +682,28 @@ class NodeAdapter(ABC):
         """
         self.rpc.call("setmocktime", [timestamp])
 
+    def add_outbound_connection(
+        self, address: tuple[str, int], connection_type: str
+    ) -> None:
+        """Have this node dial `address` as an outbound `connection_type`.
+
+        Over `addconnection`, the RPC Core's own
+        `TestNode.add_outbound_p2p_connection`
+        (`test/functional/test_framework/test_node.py`) makes the node
+        dial a listening `P2PInterface` with; `peer.Listener` is what
+        this suite listens with. `Capability.TYPED_OUTBOUND`
+        (`capability.py`) is what a caller checks before calling this.
+
+        `v2transport` is passed `False`: `Peer` speaks the v1 wire alone,
+        the reason `connect_nodes` above gives for its own default.
+
+        :param address: `(host, port)` to dial, a `Listener.address`.
+        :param connection_type: `outbound-full-relay`, `block-relay-only`,
+            `addr-fetch` or `feeler`.
+        """
+        host, port = address
+        self.rpc.call("addconnection", [f"{host}:{port}", connection_type, False])
+
 
 def _peer_ids(peers: object) -> set[object]:
     """Return every `id` a `getpeerinfo` answer carries, or an empty set.

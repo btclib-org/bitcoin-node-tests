@@ -922,6 +922,10 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_sendtxrcncl.py` (violations, log) | same | same | pass | skip |
 | `p2p_sendtxrcncl.py` (kept, wire) | same | same | pass | skip |
 | `p2p_sendtxrcncl.py` (kept, log) | same | same | pass | skip |
+| `feature_reindex.py` (reindex) | [`9e6546c517cd`](https://github.com/bitcoin/bitcoin/commit/9e6546c517cd) | 2026-06-21 | pass | skip (reindex) |
+| `feature_reindex.py` (out of order) | same | same | pass | skip (reindex) |
+| `feature_reindex.py` (interrupted) | same | same | pass | skip (reindex) |
+| `feature_reindex_readonly.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (reindex) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1381,7 +1385,8 @@ deprecation warning, is a step of Core's `master` alone, run after its
 node restarts with `-txindex` and the other indexes; the file's other
 `logging` checks read the RPC's own answer and no log.
 `feature_assumeutxo.py` stays behind the disqualifier the node-linking
-section below names.
+section below names. `feature_reindex.py` and `feature_reindex_readonly.py`
+are ported, their rows in the table above.
 
 [ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
 first, each dialling out of the node under test (Core's
@@ -2239,6 +2244,30 @@ build declares. `feature_reindex_init.py` is Core's own claim in full, its
 `btclib-node` cell a counted skip on `Capability.REINDEX_AFTER_FAILURE`,
 asked for first: `cli.py` registers no `-test` on either build
 (`btclib_node.py`'s own docstring).
+
+`feature_reindex.py` and `feature_reindex_readonly.py` are ISS 14's too,
+the option, the disk and the log together, each test building its node
+over a data directory of its own through `make_adapter` as those above
+do. `feature_reindex.py` gives each step of Core's `run_test` a row: the
+restarts alternating `-reindex` and `-reindex-chainstate`, each back at
+the height mined; a block file holding a block ahead of its parent,
+reindexed with the out-of-order block and its child logged; and a
+reindex stopped once it has started, whose next start without
+`-reindex` opens its block filter index rather than wiping it. Each
+asserts more than Core's file, so that a node ignoring the option or the
+interruption cannot pass: a log line each restart writes only when the
+option took effect, the interruption's own line, and the resumed
+reindex finishing.
+`feature_reindex_readonly.py` is Core's own claim, a reindex of a block
+file the node cannot write to, taken with the file's mode alone: Core
+also tries the immutable flag, which only a run as root needs, and this
+asserts instead that the file is unwritable before the restart.
+Each module docstring has what else differs from Core's file. The
+out-of-order step's log lines are in Core's `reindex` category, which
+`BitcoindAdapter` enables (`bitcoind.py`'s own `_command`). Every
+`btclib-node` cell is a counted skip on the new `Capability.REINDEX`,
+asked for first: neither build takes `-reindex` or `-reindex-chainstate`
+([ISS btclib-node#1415](https://github.com/btclib-org/btclib-node/issues/1415)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

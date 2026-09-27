@@ -564,3 +564,9 @@ btclib-node's test skips on `Capability.VALIDATE_ADDRESS` (closes #153).
 `mini_wallet.py` gains Core's own `RAW_P2PK` output and its signature, and
 `feature_dersig`'s spend of it is mined before BIP66 and refused after, by the
 mempool and a block alike (issue #167).
+
+### Two MiniWallet mempool tests and `feature_utxo_set_hash` run one body
+
+`mempool_resurrect`, `mempool_spend_coinbase` and `feature_utxo_set_hash` call
+one body from both nodes' tests, each reading a block's transactions off the
+raw `getblock` both nodes serve (issue #125).

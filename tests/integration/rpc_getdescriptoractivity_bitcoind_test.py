@@ -28,7 +28,7 @@ than `_AMOUNT`
 Not the clock family, unlike Core's own file: Core's own `setmocktime`
 call there freezes the clock its own node-driven mining
 (`generatetodescriptor`) reads block times from, ahead of `self.generate
-(wallet, 200)` -- `feature_utxo_set_hash_bitcoind_test.py`'s own
+(wallet, 200)` -- `feature_utxo_set_hash_test.py`'s own
 docstring is where the same measurement is made in full, against the
 same MiniWallet-mined chain: freezing this harness's own node's clock
 ahead of a `MiniWallet.generate` call, which always builds a block's own

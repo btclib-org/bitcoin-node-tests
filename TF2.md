@@ -817,8 +817,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_torcontrol.py` | `4556ef626754` | 2026-09-15 | pass, the `PoWDefensesEnabled` flag asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | bitcoind only |
 | `p2p_bip434_feature.py` | `da74ff9ca49e` | 2026-06-04 | pass, `FEATURE`'s own disconnects asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | bitcoind only |
 | `feature_framework_miniwallet.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
-| `mempool_resurrect.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
-| `mempool_spend_coinbase.py` | `6eca11175be6` | 2026-07-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `mempool_resurrect.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; fail ([ISS btclib-node#1388](https://github.com/btclib-org/btclib-node/issues/1388)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `mempool_spend_coinbase.py` | `6eca11175be6` | 2026-07-16 | pass | skip (mine) on the build; fail ([ISS btclib-node#1328](https://github.com/btclib-org/btclib-node/issues/1328)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_dersig.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
 | `feature_dersig.py` (wire) | same | same | pass | skip |
 | `feature_dersig.py` (log) | same | same | pass | skip |
@@ -845,7 +845,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_leak_tx.py` (in block) | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `p2p_leak_tx.py` (replaced) | same | same | pass | skip |
 | `p2p_leak_tx.py` (unannounced) | same | same | pass | skip |
-| `feature_utxo_set_hash.py` | `58eeab790d98` | 2026-05-13 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `feature_utxo_set_hash.py` | `58eeab790d98` | 2026-05-13 | pass | skip (mine) on the build; fail ([ISS btclib-node#1387](https://github.com/btclib-org/btclib-node/issues/1387)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `rpc_getdescriptoractivity.py` | `3fd68a95e68b` | 2026-04-07 | pass | skip |
 | `rpc_getdescriptoractivity.py` (mempool) | same | same | pass | skip |
 | `rpc_getblockstats.py` | `b7cbd804284b` | 2026-05-25 | pass | skip (stats) |
@@ -1526,6 +1526,19 @@ starts every test deep into; this node carries no such fixture, so this
 port never calls `invalidateblock` at all, a narrower claim than Core's
 own file in the RPCs it exercises, not in the boundary it checks.
 
+Both rows are one body run against both nodes
+(`tests/integration/conftest.py`'s own module docstring), each reading a
+block's own transactions off `getblock`'s raw form, the only one
+btclib-node serves. A `main` declaring `Capability.MINE` runs each and
+fails it. In `mempool_spend_coinbase.py` the immature spend is refused,
+but as "Invalid signatures or script" rather than Core's own
+`bad-txns-premature-spend-of-coinbase`
+([ISS btclib-node#1328](https://github.com/btclib-org/btclib-node/issues/1328)).
+In `mempool_resurrect.py` the orphaned spends do return to the mempool,
+and the body then stops at `MiniWallet.resync`, which asks `gettxout`,
+an RPC that build does not serve
+([ISS btclib-node#1388](https://github.com/btclib-org/btclib-node/issues/1388)).
+
 `rpc_generate.py`, `rpc_scantxoutset.py`, `rpc_signrawtransactionwithkey.py`
 and `mining_template_verification.py` stay open under this issue, as the
 census above has them. Each drives
@@ -2053,7 +2066,11 @@ SHA256d Core's `kernel/coinstats.cpp` takes over the same `TxOutSer`
 bytes, in its coins-view cursor's own order. Kept is that both agree
 with `gettxoutsetinfo` over a chain carrying a coinbase-only run and one
 spend; dropped is Core's own hard-coded `hash_serialized_3`/`muhash`
-literals, deterministic only on Core's own exact chain.
+literals, deterministic only on Core's own exact chain. The row is one body
+run against both nodes, and a `main` declaring `Capability.MINE` fails
+it: its MuHash agrees, and `gettxoutsetinfo` then refuses
+`hash_serialized_3`, Core's own default `hash_type`
+([ISS btclib-node#1387](https://github.com/btclib-org/btclib-node/issues/1387)).
 
 Neither `feature_utxo_set_hash.py` nor `rpc_getdescriptoractivity.py`
 nor `rpc_getblockstats.py` is the clock family, despite Core's own file

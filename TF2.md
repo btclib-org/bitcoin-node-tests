@@ -826,6 +826,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_cltv.py` (wire) | same | same | pass | skip |
 | `feature_cltv.py` (log) | same | same | pass | skip |
 | `feature_csv_activation.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
+| `feature_nulldummy.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `feature_dirsymlinks.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `feature_posix_fs_permissions.py` | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)) on the build; pass on a build past [ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198) |
 | `rpc_createmultisig.py` | `771200ca4362` | 2026-06-30 | pass | bitcoind only |
@@ -1432,19 +1433,6 @@ expected answers carried here, and a capability for `validateaddress`
 itself, which `btclib_node.rpc.callbacks` names no callback for --
 [ISS 153](https://github.com/btclib-org/bitcoin-node-tests/issues/153).
 
-`feature_nulldummy.py` (`-testactivationheight=segwit@N`,
-`-addresstype=legacy`) is NULLDUMMY compliance itself: a bare-multisig
-scriptSig's own dummy element, built with `createmultisig`/
-`createrawtransaction`/`signrawtransactionwithkey` and hand-tampered
-before and after activation. `MiniWallet` spends only its own fixed
-`ADDRESS_OP_TRUE` leaf by design (`mini_wallet.py`'s own docstring, and
-rule 7 of [ISS btclib-org/btclib#2220](https://github.com/btclib-org/btclib/issues/2220)
-already leaving btclib's own signing surface to btclib's own suite), so
-nothing here builds a transaction carrying a caller-chosen script --
-narrowing this file the way `feature_cltv_bitcoind_test.py` narrows its
-own closing checks would leave nothing NULLDUMMY-specific behind --
-[ISS 64](https://github.com/btclib-org/bitcoin-node-tests/issues/64).
-
 `feature_versionbits_warning.py` (`-alertnotify=<cmd>`) and
 `rpc_signer.py` (`-signer=<cmd>`) each start a node that execs an
 external command -- a shell one-liner writing to a file, a bundled mock
@@ -1630,6 +1618,25 @@ every row also needs: measured against `cli.py`'s registered options,
 `_build_parser` on the released build and `_OPTIONS` on `main`,
 `-testactivationheight` is not one of its registered flags, so `require` never
 reaches the second capability at all.
+
+`feature_nulldummy.py`'s row is every step of Core's own file, in its
+own order ([ISS 64](https://github.com/btclib-org/bitcoin-node-tests/issues/64)):
+`-testactivationheight=segwit@N` holds NULLDUMMY inactive with segwit
+until the configured height, and each step puts a multisig spend whose
+dummy element is empty or `OP_TRUE`, in a P2SH scriptSig or a
+P2SH-P2WSH witness, to `sendrawtransaction`, to `submitblock` or to
+both. No spend carries a signature: the multisig requires none where
+Core's own requires one, `EvalScript` (`src/script/interpreter.cpp`)
+checking the dummy after its signature loop whatever the required
+count. The test builds each spend directly as a `btclib.tx.Tx`, the
+way `mempool_sigoplimit.py`'s own port spends its witness script, and
+the coins spent first are coinbases paying the multisig: every
+`MiniWallet` coin is spent through a witness, and bitcoind refuses a
+block carrying one before segwit activates.
+`tests/integration/feature_nulldummy_bitcoind_test.py`'s own docstring
+has what else differs from Core's own file.
+The `btclib-node` cell is a counted skip on
+`Capability.TEST_ACTIVATION_HEIGHT`, as the trio's are.
 
 `feature_dirsymlinks.py`'s row is Core's own claim in full
 ([ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7),

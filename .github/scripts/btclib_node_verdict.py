@@ -222,6 +222,7 @@ _ROWS: dict[str, str] = {
         "`feature_cltv.py` (log)"
     ),
     "feature_csv_activation": "`feature_csv_activation.py`",
+    "feature_nulldummy": "`feature_nulldummy.py`",
     "feature_dirsymlinks": "`feature_dirsymlinks.py`",
     "feature_posix_fs_permissions": "`feature_posix_fs_permissions.py`",
     "rpc_setban::test_a_ban_drops_the_connection_it_matches": "`rpc_setban.py` (ban)",

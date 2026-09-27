@@ -18,8 +18,10 @@ fresh node:
   sends the block with that transaction's version changed. The node drops
   the second peer, keeps the block in flight from the first, and takes
   the block once the first sends the `blocktxn`. The log half asserts
-  bitcoind's own `Received mutated block from peer=1` and
-  `Misbehaving: peer=1: mutated block`.
+  the line Core's own asserts,
+  `Block mutated: bad-txnmrklroot, hashMerkleRoot mismatch`, and besides
+  it bitcoind's own `Received mutated block from peer=1`
+  and `Misbehaving: peer=1: mutated block`, which name the peer dropped.
 - a peer sending that block with its parent's hash replaced by one the
   node does not know is dropped, and the log half asserts bitcoind's own
   `AcceptBlock FAILED (prev-blk-not-found)`.
@@ -43,16 +45,12 @@ Core starts its node with `-testactivationheight=segwit@1`, so that a
 block whose parent the node does not know is one segwit is not deployed
 for, and the missing-parent block, which carries a witness, would read
 as mutated (`unexpected-witness`) to a node checking it before looking
-its parent up. Only the
-missing-parent log half asks for it (`Capability.TEST_ACTIVATION_HEIGHT`):
-that check's peer is dropped either way, and the mutated block extends a
-tip segwit is active on with or without it. Core's own log line for the
-mutated block, `Block mutated: bad-txnmrklroot, hashMerkleRoot mismatch`,
-is in its `validation` category, which `BitcoindAdapter` does not enable,
-so the log half reads the `net` category's lines for the same drop
-instead: they say the block was mutated, and not why. Each
-disconnect is awaited over `Peer`'s own default wait rather than Core's
-five seconds, and the node's `getdata` and `getblocktxn` over Core's own.
+its parent up. Only the missing-parent log half asks for it
+(`Capability.TEST_ACTIVATION_HEIGHT`): that check's peer is dropped
+either way, and the mutated block extends a tip segwit is active on with
+or without it. Each disconnect is awaited over `Peer`'s own default wait
+rather than Core's five seconds, and the node's `getdata` and
+`getblocktxn` over Core's own.
 
 `p2p_mutated_blocks_bitcoind_test.py` and
 `p2p_mutated_blocks_btclib_node_test.py` run each body,
@@ -119,8 +117,13 @@ _GETBLOCKTXN_WAIT = 5.0
 # the parent Core's own `block_missing_prev` names, `hashPrevBlock = 123`
 _UNKNOWN_PARENT = (123).to_bytes(32, byteorder="big")
 
-# the attacker is the node's second peer, the honest one its first
-_MUTATED = ("Received mutated block from peer=1", "Misbehaving: peer=1: mutated block")
+# Core's own line says why the block is mutated, the `net` lines which peer
+# sent it: the attacker is the node's second peer, the honest one its first
+_MUTATED = (
+    "Block mutated: bad-txnmrklroot, hashMerkleRoot mismatch",
+    "Received mutated block from peer=1",
+    "Misbehaving: peer=1: mutated block",
+)
 _MISSING_PARENT = "AcceptBlock FAILED (prev-blk-not-found)"
 
 

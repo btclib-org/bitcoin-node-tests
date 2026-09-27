@@ -845,3 +845,8 @@ double negative on stderr ahead of the refusal (closes #231).
 bitcoind deletes pruned block files a reader still holds open, and a
 `-reindex` under `-prune` wipes the rest; btclib-node skips on
 `Capability.FASTPRUNE` (issue #14).
+
+### bitcoind logs Core's `validation` category
+
+bitcoind starts with `-debug=validation`, so `p2p_mutated_blocks` asserts the
+`Block mutated` line Core's own test asserts (issue #44).

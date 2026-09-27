@@ -265,6 +265,8 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.REINDEX_AFTER_FAILURE` is `-test`'s own
     `reindex_after_failure_noninteractive_yes`, a debug-only flag of this
     binary's own (`src/init.cpp`), which it refuses off regtest.
+    `Capability.PROXY` is unconditional too: `-proxy`, `-onion` and
+    `-proxyrandomize` are this binary's own flags (`src/init.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -313,6 +315,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.REINDEX_AFTER_FAILURE,
             Capability.GENERATE,
             Capability.SCAN_UTXO_SET,
+            Capability.PROXY,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)
@@ -397,11 +400,14 @@ class BitcoindAdapter(NodeAdapter):
         takes them. `-bind` needs no such partner: `CConnman::InitBinds`
         (`src/net.cpp`) fails init on any `-bind` address it cannot bind.
 
-        `-chain` names the chain. On any chain but regtest, which has no
-        seed to reach, `-connect=0`, `-dnsseed=0` and `-fixedseeds=0` keep
-        the node off the real network: no outbound connection is drawn,
-        and no DNS or fixed seed is asked for one. Core's own
-        `write_config` (`util.py`) writes all three on every chain,
+        `-chain` names the chain. On any chain but regtest, `-connect=0`,
+        `-dnsseed=0` and `-fixedseeds=0` keep the node off the real
+        network: no outbound connection is drawn, and no DNS or fixed seed
+        is asked for one. Regtest's seed, `dummySeed.invalid.`, resolves
+        nowhere, so a regtest node reaches it only through a proxy, and a
+        test giving the node one passes `-dnsseed=0` itself
+        [ISS 205](https://github.com/btclib-org/bitcoin-node-tests/issues/205).
+        Core's own `write_config` (`util.py`) writes all three on every chain,
         `connect=0` unless a test passes `disable_autoconnect=False`.
         `-connect=0` would turn listening off by default, but
         `InitParameterInteraction` (`src/init.cpp`) reads `-bind` first

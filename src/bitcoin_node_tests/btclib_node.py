@@ -186,6 +186,11 @@ the released `2026.9.24` (`422d2640`) and at `main` (`d2b4efa5`) alike
 registers no `-test`, measured at the released `2026.9.24` and at `main`
 (`4e155386`) alike, each refusing
 `-test=reindex_after_failure_noninteractive_yes` as an unknown argument.
+
+`Capability.PROXY` is never declared either: `cli.py` registers none of
+`-proxy`, `-onion` and `-proxyrandomize`, measured against its
+`_build_parser` at the released `2026.9.24` (`422d2640`) and its
+`_OPTIONS` at `main` (`d2b4efa5`) alike.
 """
 
 from __future__ import annotations

@@ -601,7 +601,8 @@ behind  0 revisions; that commit is the tip of the path
 ```
 
 Verdict: **tf2's (harness)**. A SOCKS5 server for the Tor tests.
-`btclib` names SOCKS nowhere.
+`btclib` names SOCKS nowhere; `socks5.py`'s `Socks5Proxy` is this
+repository's.
 
 ### `test/functional/test_framework/test_framework.py`
 
@@ -901,6 +902,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_generate.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (generate) |
 | `rpc_signrawtransactionwithkey.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (sign_raw_transaction) |
 | `rpc_scantxoutset.py` | [`b388674acf06`](https://github.com/bitcoin/bitcoin/commit/b388674acf06) | 2026-08-06 | pass, `start`'s refusal of a null scan-object list asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (scan_utxo_set) |
+| `feature_proxy.py` | [`f82043af507a`](https://github.com/bitcoin/bitcoin/commit/f82043af507a) | 2026-06-30 | pass | skip (proxy) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1451,9 +1453,9 @@ Most of the option family's remaining tests ask for another step-5
 mechanism alongside an option -- MiniWallet, `assert_debug_log`,
 `setmocktime` or the disk -- and are ISS 14's to port once every family
 lands, not this issue's. Of the rest, most name a wallet feature or an
-option only bitcoind has a reason to carry (`-torcontrol`, `-proxy`'s
-own Tor/I2P half), which the charter's own rule keeps out of this
-mechanism entirely. `btclib-node`'s own registered surface carries no
+option only bitcoind has a reason to carry (`-torcontrol`), which the
+charter's own rule keeps out of this mechanism entirely.
+`btclib-node`'s own registered surface carries no
 dedicated Core test that both asks for nothing else and does not already
 write `bitcoin.conf` directly -- `rpc_whitelist.py` and `rpc_users.py`
 set `-rpcauth` and `-rpcwhitelist` through the config file rather than
@@ -1498,10 +1500,9 @@ up. No other option of
 the first family's or the option family's own census names a fact only
 bitcoind's binary can answer without also asking for a mechanism this
 repository does not build -- `-disablewallet`, the charter's own other
-example, is a wallet feature by name and stays out on that ground alone;
-`-proxy`'s own Tor/I2P half needs the SOCKS5 harness `TF2.md`'s own
-framework-file ledger already marks `tf2's (harness)`, not built yet
-either.
+example, is a wallet feature by name and stays out on that ground alone,
+and `-proxy` is not bitcoind's alone, `Capability.PROXY` naming it
+(*Proxies: `Socks5Proxy`* below).
 
 `p2p_compactblocks_blocksonly.py`'s row is an option-family row, found
 by re-running the family's census against Core's own tip rather than
@@ -1644,8 +1645,9 @@ ledger it lists nothing; against one naming none of the files below, it
 lists those files, each going where its line says:
 
 - `p2p_node_network_limited.py`, the row above, the option family's;
-- `feature_proxy.py`, whose `-proxy` needs the proxy the harness does
-  not build ([ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47));
+- `feature_proxy.py`, the row above, ported in part on the proxy
+  [ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)
+  builds;
 - `interface_usdt_net.py`, a USDT tracepoint test
   ([ISS 48](https://github.com/btclib-org/bitcoin-node-tests/issues/48));
 - `p2p_v2_encrypted.py`, whose `-v2transport` is `Capability.V2TRANSPORT`
@@ -2723,3 +2725,36 @@ validation queue after each block as Core's own `generate` does.
 `p2p_handshake.py` but the redundant-`verack` ones is a counted skip on
 `TYPED_OUTBOUND`. The rest of the issue's own
 census is its later batches.
+
+## Proxies: `Socks5Proxy`
+
+[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47): a
+test listens as a SOCKS5 proxy, points the node at it, and reads what
+the node asked for. `socks5.Socks5Proxy` is that proxy, bound to loopback
+and accepting on a thread of its own. It answers each `CONNECT` with
+success and queues a `Socks5Request` -- the address type, the host, the
+port and any RFC 1929 credentials -- for `next_request`, then holds the
+connection open until `close`, as Core's own `Socks5Server` does only
+under its `keep_alive` setting. The node keeps the peer, and
+`getpeerinfo` lists it, until `close` or until the node's own
+`-peertimeout` drops a peer that never answered.
+`socks5_test.py` drives it against a client written octet by octet.
+`Capability.PROXY` is what a test asks for: `-proxy`, `-onion` and
+`-proxyrandomize`, bitcoind's own flags. `btclib-node`
+declares it on no build, `cli.py` registering none of them
+(`btclib_node.py`'s own docstring names the commits read).
+
+`feature_proxy.py` is the first file ported on it, its row above, in
+part: Core's nodes given `-proxy` alone, `-onion` beside it, and
+`-proxyrandomize` against a proxy offering username/password. Its
+IPv6-loopback and unix-socket proxies, `-cjdnsreachable`, `-i2psam`,
+`-onlynet`, `-proxy`'s `=<network>` suffix and every start it expects
+refused are still owed to the issue.
+`tests/integration/feature_proxy_test.py`'s module docstring has what
+else differs from Core's file. `btclib-node`'s cell is a counted skip on
+`PROXY`.
+
+The rest of the issue is its later batches: `p2p_dns_seeds.py`,
+`p2p_i2p_ports.py`, `p2p_i2p_sessions.py`, `p2p_private_broadcast.py`,
+`p2p_private_broadcast_cap.py`, `p2p_private_broadcast_retry_v1.py` and
+`p2p_seednode.py`.

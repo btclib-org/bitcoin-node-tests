@@ -62,6 +62,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.REINDEX_AFTER_FAILURE,
             Capability.GENERATE,
             Capability.SCAN_UTXO_SET,
+            Capability.PROXY,
         }
     )
 

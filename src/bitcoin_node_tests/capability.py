@@ -369,6 +369,14 @@ class Capability(Enum):
     `-reindex-chainstate` (`feature_reindex.py`,
     `feature_reindex_readonly.py`). One member for the pair, as
     `DATACARRIER` is: `feature_reindex.py` alternates them on one node.
+    `CAPTURE_MESSAGES` -- write every p2p message it sends a peer and every
+    one it processes from that peer to files of that peer's own, under
+    the chain directory's `message_capture/`, once Core's own debug-only
+    `-capturemessages` asks for it (`p2p_message_capture.py`).
+    `BLOCKS_XOR` -- recognise `-blocksxor`, Core's own switch for whether
+    the block and undo files are obfuscated with the key `blocks/xor.dat`
+    holds, and refuse a start disabling it where the stored key is not
+    all zeros (`feature_blocksxor.py`).
     """
 
     MINE = "mine"
@@ -416,6 +424,8 @@ class Capability(Enum):
     TX_RECONCILIATION = "tx_reconciliation"
     PEER_BLOOM_FILTERS = "peer_bloom_filters"
     REINDEX = "reindex"
+    CAPTURE_MESSAGES = "capture_messages"
+    BLOCKS_XOR = "blocks_xor"
 
 
 class SkipCounts:

@@ -288,6 +288,9 @@ class BitcoindAdapter(NodeAdapter):
     this binary's own flags (`src/init.cpp`).
     `Capability.REINDEX` is unconditional: `-reindex` and
     `-reindex-chainstate` are this binary's own flags (`src/init.cpp`).
+    `Capability.CAPTURE_MESSAGES` and `Capability.BLOCKS_XOR` are
+    unconditional: `-capturemessages` and `-blocksxor` are this binary's
+    own flags (`src/init.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -341,6 +344,8 @@ class BitcoindAdapter(NodeAdapter):
             Capability.TX_RECONCILIATION,
             Capability.PEER_BLOOM_FILTERS,
             Capability.REINDEX,
+            Capability.CAPTURE_MESSAGES,
+            Capability.BLOCKS_XOR,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

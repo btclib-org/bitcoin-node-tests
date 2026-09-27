@@ -172,6 +172,11 @@ the released `2026.9.24` (`422d2640`) and at `main` (`4e155386`) alike
 names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
 table, measured at the released `2026.9.24` and at `main` (`4e155386`)
 alike.
+
+`Capability.REINDEX_AFTER_FAILURE` is never declared either: `cli.py`
+registers no `-test`, measured at the released `2026.9.24` and at `main`
+(`4e155386`) alike, each refusing
+`-test=reindex_after_failure_noninteractive_yes` as an unknown argument.
 """
 
 from __future__ import annotations

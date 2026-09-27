@@ -696,3 +696,9 @@ activation height; one body runs on both nodes, and
 bitcoind dials typed outbound peers and drops a feeler, a peer short of the
 services its type expects and a dial to itself; `manual` is asserted per build.
 btclib-node skips on `Capability.TYPED_OUTBOUND` (issue #44).
+
+### `feature_includeconf` and `feature_reindex_init` are ported
+
+btclib-node runs `feature_includeconf`'s refusals and warning, skipping the
+include order on `Capability.UA_COMMENT`, and skips `feature_reindex_init` on
+the new `Capability.REINDEX_AFTER_FAILURE` (issue #14).

@@ -892,6 +892,12 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_expiry.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mempool_expiry) |
 | `p2p_add_connections.py` | [`4c79f3a34d00`](https://github.com/bitcoin/bitcoin/commit/4c79f3a34d00) | 2026-09-14 | pass | skip (typed_outbound) |
 | `p2p_add_connections.py` (`manual`) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
+| `feature_includeconf.py` (order) | [`fa71c15f8610`](https://github.com/bitcoin/bitcoin/commit/fa71c15f8610) | 2025-11-26 | pass | skip (ua_comment) |
+| `feature_includeconf.py` (double negative) | same | same | pass | fail ([ISS btclib-node#1116](https://github.com/btclib-org/btclib-node/issues/1116)) on the build; fail ([ISS btclib-node#1402](https://github.com/btclib-org/btclib-node/issues/1402)) on a build past [ISS btclib-node#1409](https://github.com/btclib-org/btclib-node/issues/1409) |
+| `feature_includeconf.py` (`-includeconf`) | same | same | pass | fail ([ISS btclib-node#1116](https://github.com/btclib-org/btclib-node/issues/1116)) on the build; pass on a build past [ISS btclib-node#1409](https://github.com/btclib-org/btclib-node/issues/1409) |
+| `feature_includeconf.py` (nested) | same | same | pass | fail ([ISS btclib-node#1403](https://github.com/btclib-org/btclib-node/issues/1403)) on the build; pass on a build past [ISS btclib-node#1403](https://github.com/btclib-org/btclib-node/issues/1403) |
+| `feature_includeconf.py` (missing) | same | same | pass | fail ([ISS btclib-node#1187](https://github.com/btclib-org/btclib-node/issues/1187)) on the build; pass on a build past [ISS btclib-node#1187](https://github.com/btclib-org/btclib-node/issues/1187) |
+| `feature_reindex_init.py` | [`0d1301b47a35`](https://github.com/bitcoin/bitcoin/commit/0d1301b47a35) | 2026-03-24 | pass | skip (reindex_after_failure) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1457,7 +1463,7 @@ is what puts it in this family's own census, but the test also removes
 `TestNode`'s own property name, a string the disk family's own
 `datadir_path`/`blocks/` pattern does not match either -- so it needs
 the disk family regardless of what `-test` itself turns out to name,
-and belongs with ISS 14 rather than this one.
+and is ISS 14's rather than this one's, its row in the table above.
 
 `rpc_uptime.py`'s row is Core's own claim in full: a single node,
 `Capability.CLOCK` (Core's own `setmocktime`) the only fact it asks for,
@@ -2145,6 +2151,41 @@ Every `btclib-node` cell is a counted skip on the option's capability,
 asked for first: `cli.py` registers neither option, on the released
 build or on `main` (`btclib_node.py`'s own docstring), and neither build
 names `setmocktime` in its RPC dispatch table.
+
+`feature_includeconf.py` and `feature_reindex_init.py` are
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
+each an option and the disk together, each test building its node over a
+data directory of its own through `make_adapter`
+(`tests/integration/conftest.py`). `feature_includeconf.py` gives each of
+Core's refusals, and the warning an `includeconf` inside an included file
+draws, a row of its own, and the order the files are read in another.
+That row observes the order through `-uacomment`, as Core does; the
+others write no `uacomment` line, matching the whole of the node's stderr
+against Core's own words. `tests/integration/feature_includeconf_test.py`'s
+own docstring has what else differs from Core's file. Only the order row
+asks for a capability, so `btclib-node` runs the rest on both builds. The
+released build refuses `-includeconf` on the command line in argparse's
+own words
+([ISS btclib-node#1116](https://github.com/btclib-org/btclib-node/issues/1116)),
+and a build past that fix still refuses it as an unknown option, Core's
+wording arriving later
+([ISS btclib-node#1409](https://github.com/btclib-org/btclib-node/issues/1409)).
+The released build drops a nested `includeconf` in silence
+([ISS btclib-node#1403](https://github.com/btclib-org/btclib-node/issues/1403)),
+and refuses a missing included file in words of its own. The missing-file
+row is bounded at
+[ISS btclib-node#1187](https://github.com/btclib-org/btclib-node/issues/1187),
+which is about reading `-datadir` and `-conf` lexically normal, because
+the pull request fixing it, btclib-org/btclib-node#1300, also brought
+Core's "Failed to include configuration file" wording. `main` agrees
+with bitcoind on each of them but the double negative `-noincludeconf`
+given a false value, where it also writes a warning about it to stderr
+([ISS btclib-node#1402](https://github.com/btclib-org/btclib-node/issues/1402)).
+The order row is a counted skip on `Capability.UA_COMMENT`, which neither
+build declares. `feature_reindex_init.py` is Core's own claim in full, its
+`btclib-node` cell a counted skip on `Capability.REINDEX_AFTER_FAILURE`,
+asked for first: `cli.py` registers no `-test` on either build
+(`btclib_node.py`'s own docstring).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

@@ -360,6 +360,22 @@ _ROWS: dict[str, str] = {
     "p2p_add_connections::test_manual_connection_past_the_outbound_capacity": (
         "`p2p_add_connections.py` (`manual`)"
     ),
+    "feature_includeconf::test_includeconf_files_are_read_in_order": (
+        "`feature_includeconf.py` (order)"
+    ),
+    "feature_includeconf::test_noincludeconf_0_on_the_command_line_is_refused": (
+        "`feature_includeconf.py` (double negative)"
+    ),
+    "feature_includeconf::test_includeconf_on_the_command_line_is_refused": (
+        "`feature_includeconf.py` (`-includeconf`)"
+    ),
+    "feature_includeconf::test_a_nested_includeconf_is_ignored_with_a_warning": (
+        "`feature_includeconf.py` (nested)"
+    ),
+    "feature_includeconf::test_a_missing_included_file_is_refused": (
+        "`feature_includeconf.py` (missing)"
+    ),
+    "feature_reindex_init": "`feature_reindex_init.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

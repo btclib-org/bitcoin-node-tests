@@ -129,6 +129,10 @@ nitpick_ignore: list[tuple[str, str]] = [
     # removing `node`'s own annotation alone, nothing else changed,
     # resolves this and `ScriptPubKey` above together
     ("py:class", "Block"),
+    # `build_next_block`'s own `transactions: Sequence[Tx]`, beside the
+    # same `node: NodeAdapter`: the third shape's cascade again, removing
+    # `node`'s own annotation alone resolving it
+    ("py:class", "Tx"),
 ]
 
 source_suffix = [".rst", ".md"]

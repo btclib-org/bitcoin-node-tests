@@ -63,16 +63,10 @@ is, where Core's own call repeats them in their original order.
 from __future__ import annotations
 
 import secrets
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import pytest
 from bitcoin_core_rpc import RpcError
-from btclib.block.block import Block
-from btclib.block.build import build_block, build_coinbase
-from btclib.block.mining import mine
-from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
-from btclib.consensus import CONSENSUS_PARAMS
 from btclib.curves.curve import mult
 from btclib.curves.sec_point import bytes_from_point
 from btclib.descriptors.descriptors import add_checksum
@@ -86,11 +80,14 @@ from bitcoin_node_tests.mini_wallet import (
     FEE,
     RAW_P2PK_SCRIPT_PUB_KEY,
     MiniWallet,
+    build_next_block,
     raw_p2pk_script_sig,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from btclib.block.block import Block
 
     from bitcoin_node_tests.bitcoind import BitcoindAdapter
     from bitcoin_node_tests.capability import SkipCounts
@@ -122,24 +119,9 @@ def _mine(
     Its coinbase pays `script_pub_key`, a fresh key-path p2tr output where
     `None` -- this module's own docstring has why not `MiniWallet`'s.
     """
-    tip = node.rpc.call("getbestblockhash")
-    height = node.rpc.call("getblockcount") + 1
-    median_time = node.rpc.call("getblockchaininfo")["mediantime"]
-    coinbase = build_coinbase(
-        height,
-        script_pub_key or _random_p2tr("regtest"),
-        halving_interval=CONSENSUS_PARAMS["regtest"].subsidy_halving_interval,
+    block = build_next_block(
+        node, script_pub_key or _random_p2tr("regtest"), transactions
     )
-    block_time = max(int(datetime.now(UTC).timestamp()), median_time + 1)
-    candidate = build_block(
-        bytes.fromhex(tip),
-        [coinbase, *transactions],
-        datetime.fromtimestamp(block_time, UTC),
-        REGTEST_POW_LIMIT_BITS,
-    )
-    solved = mine(candidate.header)
-    assert solved is not None
-    block = Block(solved, candidate.transactions, check_validity=False)
     answer = node.rpc.call("submitblock", [block.serialize(check_validity=False).hex()])
     assert answer is None
     return block

@@ -54,16 +54,10 @@ uses none.
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import pytest
 from bitcoin_core_rpc import RpcError
-from btclib.block.block import Block
-from btclib.block.build import build_block, build_coinbase
-from btclib.block.mining import mine
-from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
-from btclib.consensus import CONSENSUS_PARAMS
 from btclib.ecc.dsa import sign_
 from btclib.key import PrvKeyData
 from btclib.script import sig_hash
@@ -75,11 +69,13 @@ from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
 from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from btclib.block.block import Block
 
     from bitcoin_node_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
@@ -140,26 +136,7 @@ def _submit_block(
 
     :returns: `submitblock`'s own answer, and the block.
     """
-    tip = adapter.rpc.call("getbestblockhash")
-    height = adapter.rpc.call("getblockcount") + 1
-    median_time = adapter.rpc.call("getblockchaininfo")["mediantime"]
-    coinbase = build_coinbase(
-        height,
-        script_pub_key,
-        halving_interval=CONSENSUS_PARAMS["regtest"].subsidy_halving_interval,
-    )
-    block_time = max(int(datetime.now(UTC).timestamp()), median_time + 1)
-    candidate = build_block(
-        bytes.fromhex(tip),
-        [coinbase, *transactions],
-        datetime.fromtimestamp(block_time, UTC),
-        REGTEST_POW_LIMIT_BITS,
-    )
-    solved = mine(candidate.header)
-    if solved is None:
-        err_msg = f"no nonce solved height {height} within the search bound"
-        raise RuntimeError(err_msg)
-    block = Block(solved, candidate.transactions, check_validity=False)
+    block = build_next_block(adapter, script_pub_key, transactions)
     answer = adapter.rpc.call(
         "submitblock", [block.serialize(check_validity=False).hex()]
     )

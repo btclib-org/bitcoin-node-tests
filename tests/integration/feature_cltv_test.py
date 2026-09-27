@@ -57,14 +57,8 @@ how.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from btclib.block.block import Block
-from btclib.block.build import build_block, build_coinbase
-from btclib.block.mining import mine
-from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
-from btclib.consensus import CONSENSUS_PARAMS
 from btclib.script.script import serialize
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
@@ -73,10 +67,17 @@ from btclib.tx.limits import COINBASE_MATURITY
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import FEE, MiniWallet, build_fork
+from bitcoin_node_tests.mini_wallet import (
+    FEE,
+    MiniWallet,
+    build_fork,
+    build_next_block,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+
+    from btclib.block.block import Block
 
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
@@ -139,37 +140,14 @@ def _block(
     version: int = 4,
     transactions: Sequence[Tx] = (),
 ) -> Block:
-    """Return a solved, unsubmitted block extending `node`'s own tip.
-
-    Built directly rather than through `MiniWallet.generate`, which
-    carries no `version` parameter. The coinbase pays `_RAW_OP_TRUE`.
+    """Return `build_next_block`'s own block, paying `_RAW_OP_TRUE`.
 
     :param node: the node whose own tip this block extends.
     :param version: the block header's own version; `4`, Core's own
         `create_block` default, where not given.
     :param transactions: what the block carries beside its coinbase.
     """
-    tip = node.rpc.call("getbestblockhash")
-    height = node.rpc.call("getblockcount") + 1
-    median_time = node.rpc.call("getblockchaininfo")["mediantime"]
-    coinbase = build_coinbase(
-        height,
-        _RAW_OP_TRUE,
-        halving_interval=CONSENSUS_PARAMS["regtest"].subsidy_halving_interval,
-    )
-    block_time = max(int(datetime.now(UTC).timestamp()), median_time + 1)
-    candidate = build_block(
-        bytes.fromhex(tip),
-        [coinbase, *transactions],
-        datetime.fromtimestamp(block_time, UTC),
-        REGTEST_POW_LIMIT_BITS,
-        version=version,
-    )
-    solved = mine(candidate.header)
-    if solved is None:
-        err_msg = f"no nonce solved height {height} within the search bound"
-        raise RuntimeError(err_msg)
-    return Block(solved, candidate.transactions, check_validity=False)
+    return build_next_block(node, _RAW_OP_TRUE, transactions, version=version)
 
 
 def _submit(node: NodeAdapter, block: Block) -> object:

@@ -926,6 +926,11 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_reindex.py` (out of order) | same | same | pass | skip (reindex) |
 | `feature_reindex.py` (interrupted) | same | same | pass | skip (reindex) |
 | `feature_reindex_readonly.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (reindex) |
+| `p2p_feefilter.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | pass |
+| `p2p_feefilter.py` (forcerelay) | same | same | pass | fail ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)) |
+| `p2p_feefilter.py` (filter) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_feefilter.py` (block-relay-only) | same | same | pass | skip |
+| `p2p_feefilter.py` (blocksonly) | same | same | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2812,8 +2817,25 @@ peers' lines are written under.
 disagreement on each build, and
 `tests/integration/p2p_initial_headers_sync_btclib_node_test.py`'s own
 docstring has both. On `p2p_sendtxrcncl.py` (off) it passes, and every
-other row these files add is a counted skip. The rest of the issue's
-own census is its later batches.
+other row these files add is a counted skip.
+
+`p2p_feefilter.py` is ported on it too, each of Core's checks a body over
+fresh nodes in `tests/integration/p2p_feefilter_test.py`, whose module
+docstring has what differs from Core's file. Its block-relay-only check
+asks for `TYPED_OUTBOUND` and its `-blocksonly` check for `BLOCKS_ONLY`.
+Its filtering check funds its transactions from a `MiniWallet` on a
+second node, relayed to the node under test, so it asks for `MINE` of
+both nodes and `CONNECT` of the second. The `forcerelay` check's
+`-whitelist` asks for no capability, as the `noban` checks' do not, so
+`btclib-node` meets
+[ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)
+there on each build. `btclib-node`'s other cells are a pass on `p2p_feefilter.py`'s
+own row on each build; on the filtering row, a counted skip on a build
+before
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
+and a pass on one past it; and a counted skip on the block-relay-only
+and `-blocksonly` rows. The rest of the issue's own census is its later
+batches.
 
 ## Proxies: `Socks5Proxy`
 

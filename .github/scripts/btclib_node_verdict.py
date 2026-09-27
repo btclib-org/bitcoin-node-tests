@@ -437,6 +437,19 @@ _ROWS: dict[str, str] = {
         "`feature_reindex.py` (interrupted)"
     ),
     "feature_reindex_readonly": "`feature_reindex_readonly.py`",
+    "p2p_feefilter": "`p2p_feefilter.py`",
+    "p2p_feefilter::test_feefilter_is_not_sent_to_a_forcerelay_peer": (
+        "`p2p_feefilter.py` (forcerelay)"
+    ),
+    "p2p_feefilter::test_feefilter_filters_announcements": (
+        "`p2p_feefilter.py` (filter)"
+    ),
+    "p2p_feefilter::test_feefilter_is_not_sent_to_a_block_relay_only_peer": (
+        "`p2p_feefilter.py` (block-relay-only)"
+    ),
+    "p2p_feefilter::test_feefilter_is_not_sent_in_blocks_only_mode": (
+        "`p2p_feefilter.py` (blocksonly)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

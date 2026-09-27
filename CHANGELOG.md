@@ -768,3 +768,9 @@ category; btclib-node skips on the new `Capability.REINDEX` (issue #14).
 btclib-node's lock refusal and malformed `-rpcauth` refusal are each matched in
 Core's wording, as `feature_blocksdir`'s is: the released btclib-node fails
 `feature_filelock` (closes #211).
+
+### `p2p_feefilter` is ported
+
+BIP133's `feefilter` is checked sent to an inbound peer and withheld from a
+`forcerelay`, a block-relay-only and a `-blocksonly` one, and a peer's own
+filter is checked to withhold announcements below it until lifted (issue #44).

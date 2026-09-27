@@ -1,0 +1,300 @@
+# Copyright (c) The btclib developers
+# Distributed under the MIT software license, see the accompanying
+# LICENSE file or https://opensource.org/license/mit for the full text.
+
+"""Core's `rpc_getblockstats`, one body over either node.
+
+Read from Core's `test/functional/rpc_getblockstats.py` (`b7cbd804284b`,
+2026-05-25) and narrowed to what the MiniWallet and disk families reach
+together
+([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+`MiniWallet.create_self_transfer`/`generate` (`Capability.MINE`) build a
+chain carrying an `OP_RETURN` output, each coin's serialized `TxOut` plus
+`getblockstats`'s own per-coin overhead computes what its `utxo_size_inc*`
+fields answer independently rather than trusting a hard-coded literal,
+and a direct read of `blk00000.dat` (`Capability.BLK_FILES`) under the node's
+own datadir is disk's own contribution: renaming it away is what makes
+`getblockstats` answer "Block not found on disk". `Capability.BLOCK_STATS`
+gates every subject here, asked before any other.
+
+Not the clock family, unlike Core's own file: an ordinary run of Core's
+calls `setmocktime` only in `load_test_data`, so that a node replaying
+its fixture's old blocks leaves Initial Block Download; this port mines
+fresh blocks with `MiniWallet` rather than replaying that fixture, so
+nothing here waits on the freeze.
+
+That overhead is `PER_UTXO_OVERHEAD` in Core's `src/rpc/blockchain.cpp`:
+the outpoint, then `Coin`'s height and coinbase flag, which `Coin` packs
+into one `uint32_t`. Builds older than `v32.0.0`, the first release
+carrying [bitcoin/bitcoin#31449](https://github.com/bitcoin/bitcoin/pull/31449)
+(`5f36e0ff1e76`), charge one byte more, a `bool` for the flag. Which
+build is running is read off `getnetworkinfo`'s own `version`
+([ISS bitcoin-node-tests#35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+as `feature_torcontrol_bitcoind_test.py` does; a `master` build reporting
+`31.99`, between that merge and the bump to `32.99`, carries the change
+under the older version and fails here.
+
+A smaller claim than Core's own file: kept is the genesis block's own
+statistics (independently computed rather than copied from Core's own
+literals, the genesis block being a network constant this harness's own
+chain shares with Core's) and the same answer when the block is selected
+by hash; that an `OP_RETURN` output is counted in
+`utxo_increase`/`utxo_size_inc` but excluded from
+`utxo_increase_actual`/`utxo_size_inc_actual`; that `stats=[...]`
+narrows the answer to exactly the names given; the height-out-of-range
+and negative-height error messages; the invalid-statistic-name error
+message, for the invalid name alone, beside a valid one on either side
+of it or between two, and prefixed; mainnet's genesis hash answering
+`Block not found`; the required-argument usage string; and the disk
+read. Dropped is Core's own vendored `data/rpc_getblockstats.json`
+fixture and every comparison it feeds -- the full key set, the heights
+and each statistic of the blocks it replays, by height and by hash (a
+generated file this harness would have to regenerate against its own
+chain to mean anything) -- its per-stat query loop over those same
+blocks, and its `submitheader`-only-known-block case (this harness's own
+adapter has no `submitheader` wrapper).
+
+Every test but the disk read asks the session's shared adapter. The disk
+read builds its node over a data directory of its own, through
+`make_adapter` (`tests/integration/conftest.py`), since it renames a
+file there. `rpc_getblockstats_bitcoind_test.py` and
+`rpc_getblockstats_btclib_node_test.py` run it,
+`tests/integration/conftest.py`'s own module docstring having how.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import pytest
+from bitcoin_core_rpc import RpcError
+from btclib.block import genesis_block
+from btclib.block.block import Block
+from btclib.tx import TxOut
+from btclib.tx.limits import COINBASE_MATURITY
+
+from bitcoin_node_tests.capability import Capability, require
+from bitcoin_node_tests.mini_wallet import MiniWallet, nulldata_script_pub_key
+from bitcoin_node_tests.node import free_ports
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from bitcoin_node_tests.bitcoind import BitcoindAdapter
+    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+    from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
+    from tests.conftest import AdapterFactory
+
+__all__ = [
+    "block_not_found_on_disk",
+    "genesis_block_statistics",
+    "height_out_of_range",
+    "invalid_statistic_name",
+    "op_return_is_counted_but_not_actual",
+    "required_args",
+    "selected_stats_narrow_the_answer",
+    "unknown_block_hash",
+]
+
+_GENESIS_COINBASE_OUT = genesis_block("regtest").transactions[0].vout[0]
+# the outpoint's txid and index, then `Coin`'s packed height|coinbase
+_PER_UTXO_OVERHEAD = 32 + 4 + 4
+# Core's own `CLIENT_VERSION`, at or past which the overhead above holds;
+# below it, one more byte (the module docstring has the Core pull request)
+_PACKED_COINBASE_FLAG_VERSION = 320000
+
+
+def _coin_size(out: TxOut, overhead: int) -> int:
+    """Size a coin as `getblockstats` does: serialized `TxOut` plus overhead."""
+    return len(out.serialize(check_validity=False)) + overhead
+
+
+def _per_utxo_overhead(adapter: NodeAdapter) -> int:
+    """Return `PER_UTXO_OVERHEAD` as the running build defines it."""
+    if adapter.rpc.call("getnetworkinfo")["version"] >= _PACKED_COINBASE_FLAG_VERSION:
+        return _PER_UTXO_OVERHEAD
+    return _PER_UTXO_OVERHEAD + 1
+
+
+def genesis_block_statistics(
+    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """Check genesis's own stats, a network constant needing no chain of ours.
+
+    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param skip_counts: the session's own tally.
+    """
+    require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
+    stats = adapter.rpc.call("getblockstats", [0])
+    assert stats["blockhash"] == genesis_block("regtest").header.hash.hex()
+    assert adapter.rpc.call("getblockstats", [stats["blockhash"]]) == stats
+    assert stats["utxo_increase"] == 1
+    overhead = _per_utxo_overhead(adapter)
+    assert stats["utxo_size_inc"] == _coin_size(_GENESIS_COINBASE_OUT, overhead)
+    # spendable-looking and unspendable (btclib.coinstats's own module
+    # docstring): the real UTXO set never gains genesis's own coinbase
+    assert stats["utxo_increase_actual"] == 0
+    assert stats["utxo_size_inc_actual"] == 0
+
+
+def op_return_is_counted_but_not_actual(
+    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """Check an OP_RETURN output inflates utxo_increase but not its actual twin.
+
+    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param skip_counts: the session's own tally.
+    """
+    require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
+    require(Capability.MINE, adapter.capabilities, skip_counts)
+    wallet = MiniWallet(adapter)
+    wallet.generate(COINBASE_MATURITY + 1)
+    tx = wallet.create_self_transfer()
+    tx.vout.append(TxOut(0, nulldata_script_pub_key(b"\x21")))
+    adapter.rpc.call(
+        "sendrawtransaction", [tx.serialize(True, check_validity=False).hex()]
+    )
+    (block_hash,) = wallet.generate(1, confirm=[tx])
+    tip = adapter.rpc.call("getblockcount")
+    block_hex = adapter.rpc.call("getblock", [block_hash.hex(), 0])
+    block = Block.parse(bytes.fromhex(block_hex), check_validity=False)
+
+    stats = adapter.rpc.call("getblockstats", [tip])
+    assert stats["blockhash"] == block_hash.hex()
+    # coinbase reward, its own witness commitment, the change output and
+    # the nulldata output, minus the one coin the transaction spends: 4
+    # outs, 1 in, not discounting either unspendable output
+    assert stats["utxo_increase"] == 3
+    # the witness commitment and the nulldata output are both unspendable,
+    # so only the reward and the change count -- 2 outs, 1 in
+    assert stats["utxo_increase_actual"] == 1
+    overhead = _per_utxo_overhead(adapter)
+    # an amount serializes fixed-width, so a zero one sizes the spent coin
+    p2tr_size = _coin_size(TxOut(0, wallet.script_pub_key), overhead)
+    # every output the block adds, spendable or not, minus the coin spent
+    added = sum(
+        _coin_size(out, overhead)
+        for block_tx in block.transactions
+        for out in block_tx.vout
+    )
+    assert stats["utxo_size_inc"] == added - p2tr_size
+    # reward and change are both p2tr, the same shape as the coin spent:
+    # two added and one removed nets exactly one p2tr coin's own size
+    assert stats["utxo_size_inc_actual"] == p2tr_size
+
+
+def selected_stats_narrow_the_answer(
+    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """Check stats=[...] returns exactly the names asked for, nothing else.
+
+    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param skip_counts: the session's own tally.
+    """
+    require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
+    result = adapter.rpc.call("getblockstats", [0, ["minfee", "maxfee"]])
+    assert set(result.keys()) == {"minfee", "maxfee"}
+
+
+def height_out_of_range(
+    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """Check a height past the tip, and a negative one, are both refused.
+
+    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param skip_counts: the session's own tally.
+    """
+    require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
+    tip = adapter.rpc.call("getblockcount")
+    with pytest.raises(
+        RpcError, match=f"Target block height {tip + 1} after current tip {tip}"
+    ):
+        adapter.rpc.call("getblockstats", [tip + 1])
+    with pytest.raises(RpcError, match="Target block height -1 is negative"):
+        adapter.rpc.call("getblockstats", [-1])
+
+
+def invalid_statistic_name(
+    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """Check an unknown statistic name is refused by name, wherever it sits.
+
+    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param skip_counts: the session's own tally.
+    """
+    require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
+    invalid = "asdfghjkl"
+    for selected in (
+        [invalid],
+        ["minfee", invalid],
+        [invalid, "minfee"],
+        ["minfee", invalid, "maxfee"],
+    ):
+        with pytest.raises(RpcError, match=f"Invalid selected statistic '{invalid}'"):
+            adapter.rpc.call("getblockstats", [0, selected])
+    # the name refused is the one given, not a fixed culprit
+    with pytest.raises(RpcError, match=f"Invalid selected statistic 'aaa{invalid}'"):
+        adapter.rpc.call("getblockstats", [0, ["minfee", f"aaa{invalid}"]])
+
+
+def unknown_block_hash(
+    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """Check mainnet's genesis block is not a block this regtest chain holds.
+
+    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param skip_counts: the session's own tally.
+    """
+    require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
+    mainnet_genesis = genesis_block("mainnet").header.hash.hex()
+    with pytest.raises(RpcError, match="Block not found"):
+        adapter.rpc.call("getblockstats", [mainnet_genesis])
+
+
+def required_args(
+    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """Check the wrong argument count is refused with the usage string.
+
+    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param skip_counts: the session's own tally.
+    """
+    require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
+    with pytest.raises(RpcError, match="getblockstats"):
+        adapter.rpc.call("getblockstats")
+    with pytest.raises(RpcError, match="getblockstats"):
+        adapter.rpc.call("getblockstats", ["00", 1, 2])
+
+
+def block_not_found_on_disk(
+    make_adapter: AdapterFactory,
+    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    executable: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
+) -> None:
+    """Check a `blk00000.dat` moved from under the node is a disk-level miss.
+
+    :param make_adapter: the session's own adapter factory.
+    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param executable: the node's binary, or the interpreter running it.
+    :param tmp_path: the node's own data directory.
+    :param skip_counts: the session's own tally.
+    """
+    rpc_port, p2p_port = free_ports(2)
+    adapter = make_adapter(cls, executable, tmp_path, rpc_port, p2p_port)
+    require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
+    require(Capability.BLK_FILES, adapter.capabilities, skip_counts)
+    adapter.start()
+    try:
+        blk_file = tmp_path / "regtest" / "blocks" / "blk00000.dat"
+        backup = blk_file.with_suffix(".dat.backup")
+        blk_file.rename(backup)
+        try:
+            with pytest.raises(RpcError, match="Block not found on disk"):
+                adapter.rpc.call("getblockstats", [0])
+        finally:
+            backup.rename(blk_file)
+    finally:
+        adapter.stop()

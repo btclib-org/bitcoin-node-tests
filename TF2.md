@@ -773,7 +773,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 
 | Core test | pin | read at | bitcoind | btclib-node |
 | --- | --- | --- | --- | --- |
-| `feature_blocksdir.py` | `0d1301b47a35` | 2026-03-24 | pass | skip (blk) |
+| `feature_blocksdir.py` | `0d1301b47a35` | 2026-03-24 | pass | fail ([ISS btclib-node#1416](https://github.com/btclib-org/btclib-node/issues/1416)) on the build; skip (blk) on a build past [ISS btclib-node#1416](https://github.com/btclib-org/btclib-node/issues/1416) |
 | `feature_filelock.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `rpc_whitelist.py` | `fa24693819e0` | 2026-05-26 | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `rpc_users.py` | `faf993ee4421` | 2026-05-26 | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
@@ -928,23 +928,22 @@ Core also mines blocks through the framework's own deterministic wallet
 key before its disk read, which this drops -- a fresh node writes its
 genesis block to `blk00000.dat` before anything is mined, so the
 `-blocksdir` redirect this test is about needs nothing more than that
-to show. btclib-node's cell names the capability rather than the
-node's whole behaviour: a nonexistent `-blocksdir` is fatal there too,
-passing the same way it does on bitcoind, and it is reading the chain
-back in Core's own `blk*.dat` layout that is
+to show. On a btclib-node build past
+[ISS btclib-node#1416](https://github.com/btclib-org/btclib-node/issues/1416)
+the cell names the capability rather than the node's whole behaviour: a
+nonexistent `-blocksdir` is fatal there too, in bitcoind's own words,
+and it is reading the chain back in Core's own `blk*.dat` layout that is
 `Capability.BLK_FILES` (`capability.py`) -- a capability btclib-node
 never declares, not a gap its adapter is waiting on but the decision
 [ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)
 already closed on.
 
 The refusal itself is matched as the node's whole stderr, the path
-given included, the way Core's own file compares it: bitcoind's own
-`Error: Specified blocks directory "..." does not exist.`, which
-btclib-node's `main` writes too. The released btclib-node writes its own
-`btclib-node: specified blocks directory ... does not exist`, lower-cased
-and without the quotes or the trailing period, and btclib-node's test
-accepts either wording
-([ISS 141](https://github.com/btclib-org/bitcoin-node-tests/issues/141)).
+given included, the way Core's own file compares it, and in Core's own
+wording alone: `Error: Specified blocks directory "..." does not
+exist.`. The released btclib-node writes its own `btclib-node: specified
+blocks directory ... does not exist`, lower-cased and without the quotes
+or the trailing period, and fails the row on that wording.
 `NodeAdapter.start` (`node.py`) reads a process's own stderr into the
 `RuntimeError` it raises on an early exit, which is what the tests above
 each check against
@@ -1079,8 +1078,7 @@ listener, as Core's own `InitRPCAuthentication` refuses it once bound.
 A build before that issue writes "Error: Invalid -rpcauth argument."
 instead, `rpc/auth.py`'s own `RpcAuthEntry.parse` raising out of
 `config.py`'s own `Config`, so btclib-node's test accepts either wording
-whole ([ISS 159](https://github.com/btclib-org/bitcoin-node-tests/issues/159)),
-the way `feature_blocksdir.py`'s does.
+whole ([ISS 159](https://github.com/btclib-org/bitcoin-node-tests/issues/159)).
 
 `p2p_getdata.py`'s row is a smaller claim than Core's own test: Core
 asks its "later valid `getdata`" question of a mined tip, and this asks
@@ -1689,7 +1687,7 @@ other than the ones the node last held, which `NodeAdapter.restart`
 (`node.py`) takes for one start
 ([ISS 51](https://github.com/btclib-org/bitcoin-node-tests/issues/51)),
 and the refused one is read the way `rpc_users_bitcoind_test.py` and
-`feature_blocksdir_bitcoind_test.py` read theirs, a `RuntimeError`
+`feature_blocksdir_test.py` read theirs, a `RuntimeError`
 carrying the node's stderr. Dropped is the empty stderr Core's own
 `TestNode.stop_node` expects of every stop: a check its harness makes
 around each stop rather than one this file makes, and `NodeAdapter.stop`
@@ -1721,7 +1719,7 @@ its row names and neither the error nor its locations. `NodeAdapter`'s
 own `chain="main"` (`node.py`) is what starts the node there
 ([ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63)).
 Both tables are Core's own, copied into
-`rpc_validateaddress_bitcoind_test.py` from the file at this row's pin,
+`rpc_validateaddress_test.py` from the file at this row's pin,
 so re-checking the pin is also what says whether the copy has gone
 stale. `btclib-node`'s cell is a counted skip on
 `Capability.VALIDATE_ADDRESS` (`capability.py`): `validateaddress` names
@@ -1746,7 +1744,7 @@ making the row bitcoind only, and asks the session's shared
 expected checksum is btclib's `descriptors.add_checksum`, which this
 ledger's `descriptors.py` entry pairs with Core's `descsum_create`. The
 descriptors and messages are Core's own, copied into
-`rpc_getdescriptorinfo_bitcoind_test.py` from the file at this row's
+`rpc_getdescriptorinfo_test.py` from the file at this row's
 pin, so re-checking the pin is also what says whether the copy has gone
 stale. `btclib-node`'s cell is a counted skip on
 `Capability.DESCRIPTOR_INFO` (`capability.py`): `getdescriptorinfo`

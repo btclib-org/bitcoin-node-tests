@@ -414,7 +414,7 @@ before committing -- the `uv run pre-commit run --all-files` above.
 
 One of those hooks needs maintenance, and only one. `.secrets.baseline`
 carries no reviewed finding yet -- the addresses
-`rpc_validateaddress_bitcoind_test.py` copies from Core raise none, and
+`rpc_validateaddress_test.py` copies from Core raise none, and
 this tree vendors no golden file -- but its two entropy plugins are off
 from the first scan, the same way every other repository of the
 organization keeps them off: a 40-character commit SHA is what most of `.pre-commit-config.yaml`'s

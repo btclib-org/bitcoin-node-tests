@@ -18,8 +18,8 @@ against it partway.
 Two wordings of a malformed `-rpcauth` value's refusal are live across
 the builds past that issue, and `_MALFORMED_ERROR` below accepts either,
 each whole, rather than picking one: the smaller design against a
-version switch, as in `feature_blocksdir_btclib_node_test.py`. A build
-before [ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210)
+version switch. A build before
+[ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210)
 writes `Error: Invalid -rpcauth argument.`, `rpc/auth.py`'s own
 `RpcAuthEntry.parse` raising out of `config.py`'s own `Config` before
 the node runs; `main`, past that issue, logs the same message and

@@ -41,7 +41,7 @@ not a `Capability` value, so which capability refused is not compared.
 row failed where any of them failed, skipped where none failed and any
 skipped, and passed where every one passed. A **skip** row can hold a
 passing test beside the skipping one -- `feature_blocksdir.py`'s own
-refusal passes on both nodes -- and a **fail** row needs one failing
+refusal passes on btclib-node's `main` -- and a **fail** row needs one failing
 test, not every one. A **fail** and a **not ported** row both expect
 the row to fail.
 

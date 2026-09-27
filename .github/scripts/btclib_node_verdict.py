@@ -215,6 +215,15 @@ _ROWS: dict[str, str] = {
     "feature_uacomment": "`feature_uacomment.py`",
     "rpc_uptime": "`rpc_uptime.py`",
     "feature_framework_miniwallet": "`feature_framework_miniwallet.py`",
+    "feature_framework_miniwallet::test_mini_wallet_confirmed_only_tells_mined_coins_from_mempool_ones": (
+        "`feature_framework_miniwallet.py` (`confirmed_only`)"
+    ),
+    "feature_framework_miniwallet::test_mini_wallet_fee_rate_is_the_fee_the_node_reports": (
+        "`feature_framework_miniwallet.py` (`fee_rate`)"
+    ),
+    "feature_framework_miniwallet::test_mini_wallet_version_3_is_held_to_truc_policy": (
+        "`feature_framework_miniwallet.py` (TRUC)"
+    ),
     "mempool_resurrect": "`mempool_resurrect.py`",
     "mempool_spend_coinbase": "`mempool_spend_coinbase.py`",
     "feature_dersig::test_dersig_activates_one_block_before_the_configured_height": (

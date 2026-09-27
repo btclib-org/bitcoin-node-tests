@@ -618,3 +618,9 @@ offering chosen services (issue #3).
 BIP65's failure reasons are mined before activation, then refused by
 `testmempoolaccept` under Core's `-acceptnonstdtxn` and by `submitblock`; one
 body runs on both nodes (issue #167).
+
+### `feature_framework_miniwallet` runs one body per test on both nodes
+
+Each test calls one body over either node, so a btclib-node build that mines
+runs it rather than a stub's `pytest.fail`; `confirmed_only`, `fee_rate` and
+TRUC have `TF2.md` rows of their own (issue #125).

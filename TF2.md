@@ -822,7 +822,10 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_uptime.py` | `406c2348ddbf` | 2026-06-13 | pass | skip (clock) |
 | `feature_torcontrol.py` | `4556ef626754` | 2026-09-15 | pass, the `PoWDefensesEnabled` flag asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | bitcoind only |
 | `p2p_bip434_feature.py` | `da74ff9ca49e` | 2026-06-04 | pass, `FEATURE`'s own disconnects asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | bitcoind only |
-| `feature_framework_miniwallet.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `feature_framework_miniwallet.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `feature_framework_miniwallet.py` (`confirmed_only`) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1396](https://github.com/btclib-org/btclib-node/issues/1396)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `feature_framework_miniwallet.py` (`fee_rate`) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `feature_framework_miniwallet.py` (TRUC) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1398](https://github.com/btclib-org/btclib-node/issues/1398)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `mempool_resurrect.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; fail ([ISS btclib-node#1388](https://github.com/btclib-org/btclib-node/issues/1388)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `mempool_spend_coinbase.py` | `6eca11175be6` | 2026-07-16 | pass | skip (mine) on the build; fail ([ISS btclib-node#1328](https://github.com/btclib-org/btclib-node/issues/1328)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_dersig.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
@@ -1638,7 +1641,13 @@ along with Core's other modes are `target_vsize` padding
 (`test_tx_padding`) and a second, tagged wallet instance
 (`test_wallet_tagging`), neither bearing on how the cache is fed.
 
-`Capability.MINE` is what this row's `btclib-node` cell skips on, the
+The qualified rows ask what Core's own file does not and other Core
+files rest on: `confirmed_only` for
+[ISS 69](https://github.com/btclib-org/bitcoin-node-tests/issues/69),
+`fee_rate` and TRUC for
+[ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103).
+
+`Capability.MINE` is what these rows' `btclib-node` cells skip on, the
 same shape the first family already takes rather than a new question:
 `mini_wallet.py`'s own mechanism produces exactly the fact `MINE` already
 names -- "a block the node accepts as its own new tip, however it gets
@@ -1648,9 +1657,21 @@ that connects a submitted block with no peer -- `main` from the commit
 closing
 [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
 on -- and its own `mine` is `MiniWallet.generate`. The released build
-does not, so its cell is the skip; a `main` declaring it reaches the
-`pytest.fail` the `btclib-node` stub ends in, the row not being ported
-for that node yet.
+does not, so each cell is the skip. On a `main` declaring it, each row
+is a body run against both nodes (`tests/integration/conftest.py`'s own
+module docstring): the unqualified row passes, and each qualified row
+fails on an RPC that `main` does not serve -- `generateblock`
+([ISS btclib-node#1396](https://github.com/btclib-org/btclib-node/issues/1396)),
+`getmempoolentry`
+([ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397))
+and `decoderawtransaction`
+([ISS btclib-node#1398](https://github.com/btclib-org/btclib-node/issues/1398)).
+With that call removed, `confirmed_only` fails next on `MiniWallet.resync`'s
+`gettxout`
+([ISS btclib-node#1388](https://github.com/btclib-org/btclib-node/issues/1388)),
+and TRUC on a TRUC transaction over `TRUC_MAX_VSIZE` that `main`
+accepts
+([ISS btclib-node#1399](https://github.com/btclib-org/btclib-node/issues/1399)).
 
 The census [ISS btclib-org/btclib#2135](https://github.com/btclib-org/btclib/issues/2135)
 counted is re-measured here, against Core's `test/functional/*.py` at

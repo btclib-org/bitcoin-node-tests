@@ -528,3 +528,9 @@ Since btclib-node keeps a malformed `-rpcauth` there rather than raising
 A fail cell claimed every build though btclib-node's `main` already passes
 it; it now carries the skip cells' own build-qualified form, and the prose
 explaining it, ledger and tests alike, names the released build (closes #157).
+
+### `feature_nulldummy` is ported, its multisig spends built by the test
+
+Every step of Core's own file runs, each spending a multisig that requires no
+signature, NULLDUMMY reading the dummy whatever the required count; the test
+builds each scriptSig and witness, and `MiniWallet` gains nothing (closes #64).

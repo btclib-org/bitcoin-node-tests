@@ -1662,7 +1662,7 @@ segwit's rules apply, and that refusal is what stops the reindexed chain
 short. A `MiniWallet` block carries neither, and a chain of them
 reindexes to its full height instead, measured against the pinned
 bitcoind; so this port builds Core's coinbase itself and submits it over
-`submitblock`. `tests/integration/feature_presegwit_node_upgrade_bitcoind_test.py`'s
+`submitblock`. `tests/integration/feature_presegwit_node_upgrade_test.py`'s
 own docstring has the argument, and the wait for `getmempoolinfo`'s
 `loaded` that Core's own start makes and `NodeAdapter.start` does not.
 `btclib-node`'s cell is a counted skip on
@@ -2011,7 +2011,7 @@ way `mempool_sigoplimit.py`'s own port spends its witness script, and
 the coins spent first are coinbases paying the multisig: every
 `MiniWallet` coin is spent through a witness, and bitcoind refuses a
 block carrying one before segwit activates.
-`tests/integration/feature_nulldummy_bitcoind_test.py`'s own docstring
+`tests/integration/feature_nulldummy_test.py`'s own docstring
 has what else differs from Core's own file.
 The `btclib-node` cell is a counted skip on
 `Capability.TEST_ACTIVATION_HEIGHT`, as the trio's are.

@@ -49,6 +49,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.BLOCK_FILTER_INDEX,
             Capability.VALIDATE_ADDRESS,
             Capability.TYPED_OUTBOUND,
+            Capability.RPC_WORK_QUEUE,
         }
     )
 

@@ -272,6 +272,11 @@ class Capability(Enum):
     Not `CONNECT`: `addnode` dials a manual connection, one type only.
     `NodeAdapter.add_outbound_connection` (`node.py`) is the call, and
     `peer.Listener` what a test has the node dial.
+    `RPC_WORK_QUEUE` -- serve RPC on as few worker threads as a caller
+    names, queueing at most as many requests as it names for them and
+    refusing the rest, the facts Core's own `-rpcthreads` and
+    `-rpcworkqueue` set (`rpc_echo_payload.py`). One member for the pair,
+    as `DATACARRIER` is: the one ported test asking for either sets both.
     """
 
     MINE = "mine"
@@ -301,6 +306,7 @@ class Capability(Enum):
     BLOCK_FILTER_INDEX = "block_filter_index"
     VALIDATE_ADDRESS = "validate_address"
     TYPED_OUTBOUND = "typed_outbound"
+    RPC_WORK_QUEUE = "rpc_work_queue"
 
 
 class SkipCounts:

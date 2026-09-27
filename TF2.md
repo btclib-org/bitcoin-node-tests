@@ -856,6 +856,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_presegwit_node_upgrade.py` | [`fad7bd9ba3ee`](https://github.com/bitcoin/bitcoin/commit/fad7bd9ba3ee) | 2026-01-14 | pass | skip (test_activation_height) |
 | `rpc_validateaddress.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (validate_address) |
 | `p2p_addrfetch.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | skip (typed_outbound) |
+| `rpc_echo_payload.py` | [`fa7bc26d1276`](https://github.com/bitcoin/bitcoin/commit/fa7bc26d1276) | 2026-08-06 | pass | skip (rpc_work_queue) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1349,18 +1350,25 @@ does not carry this row. It wants `peer.py`'s own wire instead --
 BIP152's `sendcmpct` and `cmpctblock`, which `btclib.p2p.compact_blocks`
 already carries -- and stays open under this issue.
 
-`rpc_echo_payload.py` is another of the family's open candidates. Its
-subject is an RPC server's own, not bitcoind's alone: a payload of any
-size is either answered or refused, never left to time out, with
+`rpc_echo_payload.py`'s row is an option-family row
+([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)).
+Its subject is an RPC server's own, not bitcoind's alone: a payload of
+any size is either answered or refused, never left to time out, with
 `-rpcworkqueue` and `-rpcthreads` set low only so that concurrent
 callers fill the queue. Another node's RPC server could make the same
-promise, so the options are a capability `btclib-node` does not declare
-yet (neither is in its `cli.py`), not a bitcoind-only row, and the test
-stays open under this issue. Core's test sends each payload through
-`echo` or through `sendrawtransaction`, chosen at random;
-`btclib-node`'s `rpc/callbacks.py` has the second and not the first, so
-a port also needs `echo`, and accepts a refusal in the node's own
-wording rather than Core's `Work queue depth exceeded`.
+promise, so the pair is `Capability.RPC_WORK_QUEUE` (`capability.py`)
+rather than a bitcoind-only row. A smaller claim than Core's own file:
+bitcoind's refusal is matched on its HTTP status alone,
+`bitcoin_core_rpc`'s own `HttpError` keeping the status and not the
+`Work queue depth exceeded` sent with it
+(`tests/integration/rpc_echo_payload_bitcoind_test.py`'s own docstring).
+`btclib-node`'s cell is a counted skip on that capability: `cli.py`
+registers neither option, on the released build or on `main`
+(`btclib_node.py`'s own docstring has the measurement). Core's test
+sends each payload through `echo` or through `sendrawtransaction`,
+chosen at random, and `btclib-node`'s `rpc/callbacks.py` has the second
+and not the first, so a port for that node also needs `echo`, and
+accepts a refusal in that node's own terms.
 
 `feature_presegwit_node_upgrade.py`'s row keeps every assertion Core's
 own file makes: a fresh chain with segwit inactive under

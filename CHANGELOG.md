@@ -588,3 +588,9 @@ serving the ban list runs Core's scenario rather than a stub's `pytest.fail`
 Several addresses at once, a confirmed payment beside an unconfirmed one, a
 receive and its spend over two blocks, and a `RAW_P2PK` script with no address,
 the last spent under `mini_wallet.py`'s signing helper (issue #167).
+
+### `rpc_echo_payload` is ported, with `Capability.RPC_WORK_QUEUE`
+
+Under Core's `-rpcworkqueue=2` and `-rpcthreads=2`, bitcoind answers every
+concurrent `echo` and `sendrawtransaction`, or refuses it with HTTP 503, never
+timing out; btclib-node skips on `Capability.RPC_WORK_QUEUE` (issue #3).

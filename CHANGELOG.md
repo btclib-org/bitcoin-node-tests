@@ -594,3 +594,9 @@ the last spent under `mini_wallet.py`'s signing helper (issue #167).
 Under Core's `-rpcworkqueue=2` and `-rpcthreads=2`, bitcoind answers every
 concurrent `echo` and `sendrawtransaction`, or refuses it with HTTP 503, never
 timing out; btclib-node skips on `Capability.RPC_WORK_QUEUE` (issue #3).
+
+### `p2p_eviction` runs one body on both nodes
+
+Both nodes' tests call one body, which asks the node's `-help` whether it splits
+its inbound slots by relay, so a btclib-node build that evicts and mines runs
+Core's scenario rather than a stub's `pytest.fail` (issue #125).

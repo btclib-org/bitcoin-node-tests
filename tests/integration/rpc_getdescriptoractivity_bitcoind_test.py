@@ -12,8 +12,7 @@ reaches
 builds -- `getnewdestination` (`wallet.py`) has no counterpart here, so a
 key-path p2tr output over a random key this module generates itself,
 the output `getnewdestination` builds by default, is what stands in for
-it, this suite's own signing surface being left to btclib's own test
-suite the way `mini_wallet.py`'s own docstring already draws that line.
+it.
 `Capability.DESCRIPTOR_ACTIVITY` gates every subject here, ahead of
 `Capability.MINE` where a subject asks for both.
 

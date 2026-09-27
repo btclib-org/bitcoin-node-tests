@@ -33,9 +33,7 @@ policy flag to admit a scriptPubKey no standard template matches. `OP_TRUE`
 alone is still the smaller claim than a real signature (`RAW_P2PK`,
 `wallet.py`'s third mode): it proves the mechanism this issue is about --
 a cache fed from mined blocks -- without also proving btclib's own
-signing surface, which every other module of this suite already leaves to
-btclib's own test suite (rule 7,
-[ISS btclib-org/btclib#2220](https://github.com/btclib-org/btclib/issues/2220)).
+signing surface.
 
 `Capability.MINE` is what a caller checks before constructing one, the
 same capability the first family already skips on for a node not

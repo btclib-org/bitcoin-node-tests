@@ -15,10 +15,7 @@ holds BIP66 inactive until a chosen height, and `MiniWallet.generate`
 A smaller claim than Core's own file, declared rather than silent:
 Core's own closing checks build a non-DER-compliant signature and show
 that a block carrying it is refused once BIP66 activates -- a real
-ECDSA spend `MiniWallet`'s own `ADDRESS_OP_TRUE` coins do not carry
-(`mini_wallet.py`'s own docstring is why: btclib's own signing surface
-is left to btclib's own suite, rule 7 of
-[ISS btclib-org/btclib#2220](https://github.com/btclib-org/btclib/issues/2220)).
+ECDSA spend `MiniWallet`'s own `ADDRESS_OP_TRUE` coins do not carry.
 Kept, and read at the pinned bitcoind `31.1` rather than assumed:
 `getdeploymentinfo`'s own `bip66` entry, which transitions from inactive
 to active one block before the configured height -- the same "not

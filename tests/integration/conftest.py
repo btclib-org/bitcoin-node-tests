@@ -38,11 +38,17 @@ with the prefix, handing it their own node's fixture --
 `bitcoind_cluster` or `btclib_node_cluster` for several. The body asks
 `require` of the instances it was handed, never of an adapter class:
 `BtclibNodeAdapter.__init__` widens an instance's `capabilities` by
-probing the build it runs. The two test modules stay two, rather than
-one parametrized over both nodes, because the CI jobs select a node's
-tests by module: `node-integration.yml`'s `btclib-node` jobs run
-`*_btclib_node_test.py`, and its `core-master` job
-`*_bitcoind_test.py`.
+probing the build it runs. A body that writes into its node's data
+directory before the node starts takes `make_adapter`, the adapter
+class, the node's executable fixture (`bitcoind_path` or
+`btclib_node_python`) and `tmp_path` instead, and `skip_counts` where it
+asks for a capability: it builds the node itself over a data directory
+under `tmp_path`, asks `require` of that instance, and stops the node
+before it returns (`feature_includeconf_test.py`). The two test modules
+stay two, rather than one parametrized over both nodes, because the CI
+jobs select a node's tests by module: `node-integration.yml`'s
+`btclib-node` jobs run `*_btclib_node_test.py`, and its `core-master`
+job `*_bitcoind_test.py`.
 """
 
 from __future__ import annotations

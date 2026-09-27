@@ -59,6 +59,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.MEMPOOL_EXPIRY,
             Capability.SIGN_RAW_TRANSACTION,
             Capability.INVALIDATE_BLOCK,
+            Capability.REINDEX_AFTER_FAILURE,
         }
     )
 
@@ -180,6 +181,7 @@ def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
         Capability.CLOCK,
         Capability.TEST_ACTIVATION_HEIGHT,
         Capability.TYPED_OUTBOUND,
+        Capability.REINDEX_AFTER_FAILURE,
     }
 
 
@@ -194,6 +196,7 @@ def test_capabilities_drop_the_test_chain_only_ones_on_main(
         Capability.CLOCK,
         Capability.TEST_ACTIVATION_HEIGHT,
         Capability.TYPED_OUTBOUND,
+        Capability.REINDEX_AFTER_FAILURE,
         Capability.ACCEPT_NON_STANDARD,
     }
 

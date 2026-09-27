@@ -58,14 +58,16 @@ _CHAIN_DIRS = {
 # own target is met within and another chain's is not in practice;
 # `setmocktime` refuses a chain that is not `IsMockableChain`
 # (`src/rpc/node.cpp`), and so does `addconnection` (`src/rpc/net.cpp`);
-# and `-testactivationheight` is read by `ReadRegTestArgs`
-# (`src/chainparams.cpp`) alone
+# `-testactivationheight` is read by `ReadRegTestArgs`
+# (`src/chainparams.cpp`) alone; and `AppInitParameterInteraction`
+# (`src/init.cpp`) refuses `-test` on any other chain
 _REGTEST_ONLY = frozenset(
     {
         Capability.MINE,
         Capability.CLOCK,
         Capability.TEST_ACTIVATION_HEIGHT,
         Capability.TYPED_OUTBOUND,
+        Capability.REINDEX_AFTER_FAILURE,
     }
 )
 
@@ -253,6 +255,9 @@ class BitcoindAdapter(NodeAdapter):
     behind them.
     `Capability.INVALIDATE_BLOCK` is unconditional too: `invalidateblock` is
     this binary's own RPC (`src/rpc/blockchain.cpp`).
+    `Capability.REINDEX_AFTER_FAILURE` is `-test`'s own
+    `reindex_after_failure_noninteractive_yes`, a debug-only flag of this
+    binary's own (`src/init.cpp`), which it refuses off regtest.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -298,6 +303,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.MEMPOOL_EXPIRY,
             Capability.SIGN_RAW_TRANSACTION,
             Capability.INVALIDATE_BLOCK,
+            Capability.REINDEX_AFTER_FAILURE,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

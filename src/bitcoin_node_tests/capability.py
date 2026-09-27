@@ -316,6 +316,11 @@ class Capability(Enum):
     the best chain not holding it, Core's own `invalidateblock`
     (`feature_csv_activation.py`, which takes each accepted block back
     off). Named for the RPC, as `BLOCK_STATS` is.
+    `REINDEX_AFTER_FAILURE` -- refuse to start over a block index missing
+    from `blocks/index`, advising a reindex, and reindex from its block
+    files instead on a start given Core's own debug-only
+    `-test=reindex_after_failure_noninteractive_yes`
+    (`feature_reindex_init.py`).
     """
 
     MINE = "mine"
@@ -355,6 +360,7 @@ class Capability(Enum):
     MEMPOOL_EXPIRY = "mempool_expiry"
     SIGN_RAW_TRANSACTION = "sign_raw_transaction"
     INVALIDATE_BLOCK = "invalidate_block"
+    REINDEX_AFTER_FAILURE = "reindex_after_failure"
 
 
 class SkipCounts:

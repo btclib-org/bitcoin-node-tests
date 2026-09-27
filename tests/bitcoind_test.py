@@ -63,6 +63,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.GENERATE,
             Capability.SCAN_UTXO_SET,
             Capability.PROXY,
+            Capability.NODE_WALLET,
         }
     )
 
@@ -76,11 +77,16 @@ def test_capabilities_stay_the_full_class_set_where_the_build_has_a_wallet(
     assert adapter.capabilities is BitcoindAdapter.capabilities
 
 
-def test_capabilities_drop_mine_where_the_build_has_no_wallet(tmp_path: Path) -> None:
-    """An instance built against a walletless binary loses `MINE` alone."""
+def test_capabilities_drop_the_wallet_ones_where_the_build_has_no_wallet(
+    tmp_path: Path,
+) -> None:
+    """A walletless binary's instance loses `MINE` and `NODE_WALLET` alone."""
     with patch.object(bitcoind_module, "_has_wallet", return_value=False):
         adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
-    assert adapter.capabilities == BitcoindAdapter.capabilities - {Capability.MINE}
+    assert adapter.capabilities == BitcoindAdapter.capabilities - {
+        Capability.MINE,
+        Capability.NODE_WALLET,
+    }
 
 
 def test_has_wallet_reads_the_probe_s_own_stdout() -> None:

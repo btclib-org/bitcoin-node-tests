@@ -191,6 +191,14 @@ registers no `-test`, measured at the released `2026.9.24` and at `main`
 `-proxy`, `-onion` and `-proxyrandomize`, measured against its
 `_build_parser` at the released `2026.9.24` (`422d2640`) and its
 `_OPTIONS` at `main` (`d2b4efa5`) alike.
+
+`Capability.NODE_WALLET` is never declared either: `btclib-node` keeps
+no wallet, `src/btclib_node/rpc/callbacks.py`'s own dispatch table naming
+no wallet RPC -- no `createwallet`, `getnewaddress` or `signmessage` --
+measured at the released `2026.9.24` and at `main` (`d2b4efa5`) alike. A
+wallet kept beside the node is
+[ISS 199](https://github.com/btclib-org/bitcoin-node-tests/issues/199)'s
+to reach.
 """
 
 from __future__ import annotations

@@ -380,6 +380,9 @@ _ROWS: dict[str, str] = {
     "rpc_signrawtransactionwithkey": "`rpc_signrawtransactionwithkey.py`",
     "rpc_scantxoutset": "`rpc_scantxoutset.py`",
     "feature_proxy": "`feature_proxy.py`",
+    "wallet_signmessagewithaddress": "`wallet_signmessagewithaddress.py`",
+    "wallet_blank": "`wallet_blank.py`",
+    "wallet_coinbase_category": "`wallet_coinbase_category.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

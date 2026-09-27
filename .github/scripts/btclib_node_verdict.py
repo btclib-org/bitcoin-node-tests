@@ -452,6 +452,9 @@ _ROWS: dict[str, str] = {
     ),
     "p2p_message_capture": "`p2p_message_capture.py`",
     "feature_blocksxor": "`feature_blocksxor.py`",
+    "wallet_createwalletdescriptor": "`wallet_createwalletdescriptor.py`",
+    "wallet_sendmany": "`wallet_sendmany.py`",
+    "wallet_timelock": "`wallet_timelock.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

@@ -931,6 +931,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_feefilter.py` (filter) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_feefilter.py` (block-relay-only) | same | same | pass | skip |
 | `p2p_feefilter.py` (blocksonly) | same | same | pass | skip |
+| `p2p_message_capture.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (capture_messages) |
+| `feature_blocksxor.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (blocks_xor) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2265,6 +2267,34 @@ out-of-order step's log lines are in Core's `reindex` category, which
 `btclib-node` cell is a counted skip on the new `Capability.REINDEX`,
 asked for first: neither build takes `-reindex` or `-reindex-chainstate`
 ([ISS btclib-node#1415](https://github.com/btclib-org/btclib-node/issues/1415)).
+
+`p2p_message_capture.py` and `feature_blocksxor.py` are ISS 14's too,
+the option and the disk together, `feature_blocksxor.py` with MiniWallet
+besides, as
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags them; each test builds its nodes through `make_adapter`, each
+node's option given from its first start. `p2p_message_capture.py` is
+Core's own claim, a peer's messages written to disk under
+`-capturemessages` in the record format Core's `mini_parser` reads,
+each record's type checked against the ones a `btclib.p2p` payload
+class names rather than against Core's `MESSAGEMAP`. It also asserts
+the capture directory is named for the peer's own address and holds the
+types the peer sent and the node answered with, so that a node writing
+some other file there cannot pass.
+`feature_blocksxor.py` is Core's own claim, the block and undo files a
+node wrote under `-blocksxor` XORed back to plain, a restart turning the
+option off refused while the key is stored, and one allowed once the key
+file is gone verifying the chain and writing an all-zero key. That last
+step, and the option turned on, pass on a node ignoring it: the first is
+what Core's `InitBlocksdirXorKey` does anyway for a block directory
+holding files and no key file, and the second is Core's default. So the
+test also asserts the first block file obfuscated under the key, and an
+all-zero key written by a fresh node started with the option off.
+Each module docstring has what else differs from Core's file. Every
+`btclib-node` cell is a counted skip on the option's new capability,
+`Capability.CAPTURE_MESSAGES` or `Capability.BLOCKS_XOR`, asked for
+first: `cli.py` registers neither option on either build
+(`btclib_node.py`'s own docstring).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

@@ -210,6 +210,11 @@ category at `main`.
 `-reindex` and `-reindex-chainstate` as unknown arguments, measured at the
 released `2026.9.24` and at `main` (`338f64c5`) alike
 ([ISS btclib-node#1415](https://github.com/btclib-org/btclib-node/issues/1415)).
+
+`Capability.CAPTURE_MESSAGES` and `Capability.BLOCKS_XOR` are never
+declared either: `cli.py` registers neither `-capturemessages` nor
+`-blocksxor`, measured against its `_build_parser` at the released
+`2026.9.24` (`422d2640`) and its `_OPTIONS` at `main` (`98448c4d`) alike.
 """
 
 from __future__ import annotations

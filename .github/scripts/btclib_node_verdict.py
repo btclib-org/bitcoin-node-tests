@@ -450,6 +450,8 @@ _ROWS: dict[str, str] = {
     "p2p_feefilter::test_feefilter_is_not_sent_in_blocks_only_mode": (
         "`p2p_feefilter.py` (blocksonly)"
     ),
+    "p2p_message_capture": "`p2p_message_capture.py`",
+    "feature_blocksxor": "`feature_blocksxor.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

@@ -780,3 +780,9 @@ filter is checked to withhold announcements below it until lifted (issue #44).
 Its docstring promises the barrier only on a node processing each peer's
 messages in order, as Core's does, and not on one answering a `ping` ahead
 of them (btclib-org/btclib-node#1410) (issue #212).
+
+### `p2p_message_capture` and `feature_blocksxor` are ported
+
+bitcoind captures a peer's messages under `-capturemessages` and refuses
+`-blocksxor=0` over a stored key; btclib-node skips on the new
+`Capability.CAPTURE_MESSAGES` and `Capability.BLOCKS_XOR` (issue #14).

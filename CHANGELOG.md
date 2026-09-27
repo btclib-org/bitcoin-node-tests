@@ -804,3 +804,8 @@ checked through either, and under `-cjdnsreachable`, `-i2psam` or a per-network
 bitcoind tells two children sharing a txid apart by wtxid, and keeps a child
 sent ahead of its parent as an orphan. btclib-node skips `rpc_orphans` on the
 new `Capability.ORPHANAGE`; its `main` fails `mempool_accept_wtxid` (issue #4).
+
+### `wallet_simulaterawtx` and `wallet_rescan_unconfirmed` are ported
+
+Both run against bitcoind's own wallet, btclib-node skipping each on
+`NODE_WALLET` (issue #45).

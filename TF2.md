@@ -811,6 +811,12 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_invalid_messages.py` (addrv2 net id, log) | same | same | pass | skip |
 | `p2p_leak.py` (wire) | `01b8a117d2c5` | 2026-06-04 | pass | pass |
 | `p2p_leak.py` (log) | `01b8a117d2c5` | 2026-06-04 | pass | skip |
+| `p2p_handshake.py` (wire) | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)) on the build; pass on a build past [ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133) |
+| `p2p_handshake.py` (log) | same | same | pass | skip |
+| `p2p_addr_relay.py` (wire) | `b7211ba80cde` | 2026-09-22 | pass | pass |
+| `p2p_addr_relay.py` (log) | same | same | pass | skip |
+| `p2p_addrv2_relay.py` (wire) | `fa5f29774872` | 2025-12-16 | pass | pass |
+| `p2p_addrv2_relay.py` (log) | same | same | pass | skip |
 | `p2p_net_deadlock.py` | `a0473442d1c2` | 2024-07-16 | pass | skip (raw_msg) |
 | `feature_uacomment.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `rpc_uptime.py` | `406c2348ddbf` | 2026-06-13 | pass | skip (clock) |
@@ -1181,8 +1187,11 @@ other, so btclib-node raises nothing either.
 `p2p_bip434_feature.py`'s row is ported, narrowed to what a build lacking
 BIP434 support disconnects for anyway rather than to `FEATURE`'s own
 accepted shapes -- the length-boundary and acceptance checks Core's own
-file also carries are `assert_debug_log` subjects the log family
-(issue #5) already covers, not this row's -- and gated on a fact read
+file also carries read the log of a node that file starts with
+`-peertimeout` above its default, so they are
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+rather than this row's, and this row passes no `-peertimeout` -- and
+gated on a fact read
 from the running build rather than assumed for the whole class
 ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35),
 `capability.py`'s own module docstring): `node/protocol_version.h`'s own
@@ -1229,17 +1238,123 @@ this row need not wait either, since the informational `core-master` job
 [ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8))
 already runs it against a build that does.
 
-The log family's own census is wider than `p2p_invalid_messages.py` and
-`p2p_leak.py`: re-run against Core's own current tip, `assert_debug_log`
-also appears in several `p2p_*`, `feature_*`, `interface_*` and `rpc_*`
-files that ask this step's charter for nothing else -- no option, no
-`MiniWallet`, no `setmocktime`, no disk read -- the same sweep method
-[ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)'s
-own re-derivation used against the option, MiniWallet, clock and disk
-census lists above. None of them is examined here: this round's own scope
-was `p2p_invalid_messages.py`'s remaining assertions and
-`p2p_bip434_feature.py` alone, named as such rather than as the whole of
-what the family still owes, and issue #5 stays open on that ground.
+`p2p_handshake.py`, `p2p_addr_relay.py` and `p2p_addrv2_relay.py` give
+the log family more checks of the same wire-and-log shape (issue #5),
+each the first check of its own file's `run_test`: a second `verack` once
+the handshake is complete, ignored; an `addr` over `MAX_ADDR_TO_SEND`, a
+`Misbehaving` line and a disconnect; and a `sendaddrv2` after `verack`, a
+disconnect. Each is one body over both nodes
+(`tests/integration/conftest.py`'s own module docstring), whose own
+module docstring has what of Core's file it drops. The redundant-`verack`
+row's wire half disagrees on btclib-node's released build for the reason
+the duplicate-`version` row's does
+([ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)).
+
+The log family's census is Core's `test/functional/` at `master`
+`ed7dd7cf4e`, every file this command lists:
+
+```shell
+git -C ../bitcoin grep -l -E \
+    'assert_debug_log|debug_log|debug\.log|reject_reason=|clear_addrman=True' \
+    ed7dd7cf4e -- 'test/functional/*.py' ':!test/functional/test_framework/*'
+```
+
+`reject_reason=` and `clear_addrman=True` in the pattern are the
+framework's own calls to `assert_debug_log`, which a grep for the name
+alone does not find:
+`P2PDataStore`'s `send_blocks_and_test` and `send_txs_and_test`
+(`test_framework/p2p.py`) make one for a caller passing `reject_reason`,
+and `restart_node` (`test_framework/test_framework.py`) one for a caller
+passing `clear_addrman=True`. Each file is read at the grain Core's own file
+gives it, a `test_*` method or a `self.log.info` step of `run_test`, and a
+step asks for the log alone only where it reaches no option, no
+`MiniWallet` coin, no `setmocktime`, no read of the node's own files and
+no second node linked to its own, counting whatever an earlier step or the
+file's own setup already gave the same node. Core's `setup_network` links
+every node of a file starting more than one, unless the file overrides
+it, and its `generate` then syncs them. Not counted: a permission the
+step's own check never reads, the narrowing the `p2p_invalid_messages.py`
+rows above already make, and an option set to its own default.
+
+Open under
+[ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5), each a
+step of that shape and none ported yet:
+
+- `p2p_invalid_messages.py`'s `test_noncontinuous_headers_msg`, which
+  also needs `Capability.MINE`, an adapter's own fact rather than a step-5
+  mechanism;
+- `feature_assumevalid.py`'s first node, started without `-assumevalid`
+  and fed a chain whose invalid signature it refuses, every other node of
+  the file being given the option;
+- `p2p_nobloomfilter_messages.py`'s filtered-block request, the
+  `-peerbloomfilters` value its node is given restating Core's own
+  default, and
+  `interface_http.py`'s `check_excessive_request_size`: steps Core's
+  `master` carries and the pinned release does not.
+
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
+every log step of each reaching another of the mechanisms above:
+`feature_abortnode.py`, `feature_addrman.py`, `feature_asmap.py`, the rest
+of `feature_assumevalid.py`, `feature_block.py`, `feature_config_args.py`,
+`feature_fee_estimation.py`, `feature_index_prune.py`, `feature_init.py`,
+`feature_logging.py`, `feature_maxuploadtarget.py`, `feature_port.py`,
+`feature_pruning.py`, `feature_reindex.py`, `feature_reindex_readonly.py`,
+`feature_settings.py`, `feature_signet.py`,
+`feature_utxo_abort_on_error.py`, the rest of `interface_http.py`,
+`mempool_limit.py`, `mempool_unbroadcast.py`,
+`mining_getblocktemplate_longpoll.py`, the rest of `p2p_addr_relay.py` and
+of `p2p_addrv2_relay.py`, the rest of `p2p_bip434_feature.py`,
+`p2p_blockfilters.py`, `p2p_blocksonly.py`, `p2p_compactblocks.py`,
+`p2p_connection_limits.py`,
+`p2p_disconnect_ban.py`'s `setban` half, `p2p_filter.py`,
+`p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
+`p2p_initial_headers_sync.py`, `p2p_invalid_block.py`, `p2p_invalid_tx.py`,
+`p2p_orphan_handling.py`, `p2p_permissions.py`, `p2p_ping.py`,
+`p2p_segwit.py`, `p2p_timeouts.py`, `p2p_tx_download.py`,
+`p2p_unrequested_blocks.py`, `p2p_v2_misbehaving.py`,
+`p2p_v2_transport.py`, `rpc_misc.py` and `rpc_net.py`. Of these,
+`p2p_addr_relay.py`, `p2p_blocksonly.py`, `p2p_compactblocks.py`,
+`p2p_initial_headers_sync.py`, `p2p_orphan_handling.py` and
+`p2p_tx_download.py` also dial out of the node under test in some step,
+[ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
+subject. `rpc_misc.py`'s log check, the `libevent` category's
+deprecation warning, is a step of Core's `master` alone, run after its
+node restarts with `-txindex` and the other indexes; the file's other
+`logging` checks read the RPC's own answer and no log.
+`feature_assumeutxo.py` stays behind the disqualifier the node-linking
+section below names.
+
+[ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
+first, each dialling out of the node under test (Core's
+`add_outbound_p2p_connection` or `addconnection`) in or ahead of its log
+steps: `feature_anchors.py`, `p2p_addr_selfannouncement.py`, the rest of
+`p2p_handshake.py`, `p2p_ibd_stalling.py`, `p2p_mutated_blocks.py` and
+`p2p_sendtxrcncl.py`. The rest go where the node wallet, another Core
+binary, an older release, a proxy or an external interface is the
+subject:
+[ISS 45](https://github.com/btclib-org/bitcoin-node-tests/issues/45)
+every `wallet_*.py` file the command lists,
+[ISS 46](https://github.com/btclib-org/bitcoin-node-tests/issues/46)
+`feature_coinstatsindex_compatibility.py` and
+`feature_txindex_compatibility.py`,
+[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)
+`p2p_dns_seeds.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`,
+`p2p_private_broadcast.py` and `p2p_seednode.py`,
+[ISS 48](https://github.com/btclib-org/bitcoin-node-tests/issues/48)
+`interface_ipc.py`, and
+[ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)
+`interface_bitcoin_cli.py`.
+
+Ledgered already, a row above or a paragraph naming the file:
+`p2p_invalid_messages.py` but for the step still open, `p2p_leak.py`,
+`rpc_setban.py`, `rpc_users.py`, `feature_posix_fs_permissions.py`,
+`feature_cltv.py`, `feature_dersig.py`, `feature_csv_activation.py`,
+`p2p_disconnect_ban.py`'s `disconnectnode` half and
+`p2p_bip434_feature.py`'s wire-only disconnects. Listed and not the family's: `combine_logs.py`,
+a tool merging a run's logs that Core's own `test_runner.py` names among
+its `NON_SCRIPTS`; and
+`interface_rpc.py`, which compares `getrpcinfo`'s `logpath` with a path
+and reads no log line.
 
 `feature_uacomment.py` is the option family's own first row
 ([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)),
@@ -1601,12 +1716,16 @@ rule 3's own exclusion), the log, the disk or the clock alongside
 MiniWallet, or an option -- ISS 14's once every step-5 mechanism lands,
 the wallet files excepted.
 
-`mempool_package_rbf.py` and `mempool_truc.py`, this issue's other own
-mempool-policy files, are read this round too and stay open.
-`mempool_package_rbf.py` drives a second node in Core's own file, never
-read from -- its own `sync_all` calls confirm nothing either test
-asserts on -- dropped as a smaller claim, so what actually blocked it was
-the same `fill_mempool` `rpc_packages.py` needed above, now built
+`mempool_package_rbf.py` and `mempool_truc.py`, the family's other own
+mempool-policy files, are read this round too and stay open, as
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s:
+each also sets an option, `-maxmempool` at every start of Core's own
+`mempool_package_rbf.py`, which its `fill_mempool` needs, and a restart's
+own in `mempool_truc.py`. `mempool_package_rbf.py` drives a second node
+in Core's own file, never read from -- its own `sync_all` calls confirm
+nothing either test asserts on -- dropped as a smaller claim, so what
+actually blocked it was the same `fill_mempool` `rpc_packages.py` needed
+above, now built
 ([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)),
 and the caller-chosen fee, sequence and TRUC's own non-default
 transaction version its own self-transfers pass, which
@@ -1765,8 +1884,14 @@ submitted, `p2p_invalid_block.py` a legacy `OP_TRUE` bare coinbase and
 scriptSig distinct from `MiniWallet`'s own P2TR shape, plus merkle-root
 malleability and a `getdata`-driven send/reject cycle matched against
 `Capability.DEBUG_LOG`'s own wording. Neither mechanism is this batch's
-to build; both stay open under [ISS 6](https://github.com/btclib-org/bitcoin-node-tests/issues/6)
-for a later one, as its own comment already said they would.
+to build. `p2p_fingerprint.py` asks step 5 for the clock alone, and ISS 6's
+own comment has it ported citing that issue, which stays closed on its
+mechanism. `p2p_invalid_block.py` asks for more: the log for every refusal
+it checks, through `send_blocks_and_test`'s own `reject_reason`, and the
+`noban` permission Core's own `noban_tx_relay` grants, which keeps its
+peer connected through the refusals -- so it is
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
+the log family's census above.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

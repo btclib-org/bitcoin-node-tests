@@ -197,6 +197,20 @@ _ROWS: dict[str, str] = {
     ),
     "p2p_leak::test_obsolete_version_disconnects_the_peer": "`p2p_leak.py` (wire)",
     "p2p_leak::test_obsolete_version_is_logged": "`p2p_leak.py` (log)",
+    "p2p_handshake::test_redundant_verack_keeps_the_connection": (
+        "`p2p_handshake.py` (wire)"
+    ),
+    "p2p_handshake::test_redundant_verack_is_logged": ("`p2p_handshake.py` (log)"),
+    "p2p_addr_relay::test_oversized_addr_disconnects_the_peer": (
+        "`p2p_addr_relay.py` (wire)"
+    ),
+    "p2p_addr_relay::test_oversized_addr_is_logged": ("`p2p_addr_relay.py` (log)"),
+    "p2p_addrv2_relay::test_sendaddrv2_after_verack_disconnects_the_peer": (
+        "`p2p_addrv2_relay.py` (wire)"
+    ),
+    "p2p_addrv2_relay::test_sendaddrv2_after_verack_is_logged": (
+        "`p2p_addrv2_relay.py` (log)"
+    ),
     "p2p_net_deadlock": "`p2p_net_deadlock.py`",
     "feature_uacomment": "`feature_uacomment.py`",
     "rpc_uptime": "`rpc_uptime.py`",

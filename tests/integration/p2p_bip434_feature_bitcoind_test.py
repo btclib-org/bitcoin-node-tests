@@ -16,9 +16,10 @@ below that version does not merely negotiate `FEATURE` differently, it
 has no branch for the `"feature"` command at all, and the
 length-boundary and acceptance checks Core's own file also carries
 (`test_feature_id_length_boundaries`, `test_many_features_in_handshake`,
-and the rest) are `assert_debug_log` subjects this repository's
-`Capability.DEBUG_LOG` already names -- step 5's log family (issue #5),
-not this row's. What is kept is the two disconnects observable on the
+and the rest) read the log of a node Core's file starts with
+`-peertimeout` above its default, so they need more than one of step
+5's mechanisms (issue #14) and are not this row's; this module passes
+no `-peertimeout`. What is kept is the two disconnects observable on the
 wire alone, with no log needed to confirm either: a `FEATURE` sent after
 this peer's own `verack` completes, and one sent by a peer that never
 got as far as offering the version `FEATURE` needs at all.

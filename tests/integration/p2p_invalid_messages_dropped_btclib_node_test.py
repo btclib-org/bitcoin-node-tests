@@ -4,10 +4,10 @@
 
 """Core's `p2p_invalid_messages`, the same three checks: btclib-node.
 
-`p2p_invalid_messages_dropped_bitcoind_test.py`'s own docstring is where
-the wire fact each of these three asks for -- the connection survives a
-malformed message rather than being dropped -- is argued. This node does
-not keep it: every one of the three reaches btclib-node's own
+`p2p_invalid_messages_dropped_bitcoind_test.py`'s own docstring is where the
+wire fact each of these three asks for -- the connection survives a
+malformed message rather than being dropped -- is argued. The released build
+does not keep it: every one of the three reaches btclib-node's own
 `P2pManager.maybe_discourage_and_disconnect`, one layer or another, where
 Core only logs and continues.
 
@@ -34,13 +34,13 @@ theirs.
 [ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)
 names it.
 
-Each `*_keeps_the_connection` test below is written exactly as its
-bitcoind counterpart, and is expected to fail rather than to pass or to
-skip -- neither an `xfail` nor a `pytest.skip.Exception` -- so this keeps
-reproducing the two issues above rather than hiding them, the same
-convention `p2p_invalid_messages_misbehaving_btclib_node_test.py` already
-holds for
-[ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145).
+Each `*_keeps_the_connection` test below is written exactly as its bitcoind
+counterpart, and is expected to fail on the released build rather than to
+pass or to skip -- neither an `xfail` nor a `pytest.skip.Exception` -- so
+this keeps reproducing the two issues above rather than hiding them, the
+same convention `p2p_invalid_messages_misbehaving_btclib_node_test.py`
+already holds for [ISS
+btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145).
 `TF2.md`'s per-test table carries the verdict these three failures are.
 
 The log half is not reached by any of this: this node's own `Logger`
@@ -97,7 +97,7 @@ def _sync(peer: Peer) -> None:
 def test_duplicate_version_keeps_the_connection(
     btclib_node_adapter: BtclibNodeAdapter,
 ) -> None:
-    """The wire half: fails, reproducing ISS btclib-node#1133."""
+    """The wire half: fails on the released build (ISS btclib-node#1133)."""
     with Peer(btclib_node_adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
         peer.send(Version())
@@ -116,7 +116,7 @@ def test_duplicate_version_is_logged(
 def test_wrong_checksum_keeps_the_connection(
     btclib_node_adapter: BtclibNodeAdapter,
 ) -> None:
-    """The wire half: fails, reproducing ISS btclib-node#1130."""
+    """The wire half: fails on the released build (ISS btclib-node#1130)."""
     with Peer(btclib_node_adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
         peer.send_raw(_wrong_checksum_message())
@@ -135,7 +135,7 @@ def test_wrong_checksum_is_logged(
 def test_invalid_msgtype_keeps_the_connection(
     btclib_node_adapter: BtclibNodeAdapter,
 ) -> None:
-    """The wire half: fails, the same mechanism as ISS btclib-node#1130."""
+    """The wire half: fails on the released build, as ISS btclib-node#1130."""
     with Peer(btclib_node_adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
         peer.send_raw(_invalid_msgtype_message())

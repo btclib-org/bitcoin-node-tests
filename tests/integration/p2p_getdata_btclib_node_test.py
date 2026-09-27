@@ -15,13 +15,14 @@ this module's own classname from its "did the node tests run" check by
 name rather than by test name, a JUnit `classname` being a module's and
 not a function's.
 
-Expected to fail rather than to pass or to skip -- neither an `xfail`
-nor a `pytest.skip.Exception` -- so this keeps reproducing
-[ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)
-rather than hiding it: `block_db` never stores genesis, so neither this
-nor `getblock` can serve the one block a fresh regtest node, mined or
-not, starts at. `TF2.md`'s per-test table carries the verdict this
-failure is, not a decoration on this module.
+Expected to fail on the released build rather than to pass or to skip --
+neither an `xfail` nor a `pytest.skip.Exception` -- so this keeps
+reproducing [ISS
+btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)
+rather than hiding it: `block_db` never stores genesis, so neither this nor
+`getblock` can serve the one block a fresh regtest node, mined or not,
+starts at. `TF2.md`'s per-test table carries the verdict this failure is,
+not a decoration on this module.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_getdata_btclib_node_test.py

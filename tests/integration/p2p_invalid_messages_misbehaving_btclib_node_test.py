@@ -25,18 +25,17 @@ The log half is not: this node's own `Logger` (`log.py`) writes English,
 not Core's, so `Capability.DEBUG_LOG` is not declared
 (`btclib_node.py`'s own `capabilities`), and all four log checks skip.
 
-`test_oversized_inv_disconnects_the_peer` is expected to fail rather
-than to pass or to skip -- neither an `xfail` nor a
-`pytest.skip.Exception` -- so this keeps reproducing
-[ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145)
+`test_oversized_inv_disconnects_the_peer` is expected to fail on the
+released build rather than to pass or to skip -- neither an `xfail` nor a
+`pytest.skip.Exception` -- so this keeps reproducing [ISS
+btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145)
 rather than hiding it: `p2p.callbacks.inv` returns before calling
-`Inv.parse` at all while `node.status < NodeStatus.BlockSynced`, a
-status this adapter's own lone, peerless node never advances past, so
-an oversized `inv` is dropped unread rather than refused. The other
-three wire checks reach `GetData.parse`, `Headers.parse` and
-`assert_valid_pow` with no such guard in front of them, and pass.
-`TF2.md`'s per-test table carries the verdict this failure is, not a
-decoration on this module.
+`Inv.parse` at all while `node.status < NodeStatus.BlockSynced`, a status
+this adapter's own lone, peerless node never advances past, so an oversized
+`inv` is dropped unread rather than refused. The other three wire checks
+reach `GetData.parse`, `Headers.parse` and `assert_valid_pow` with no such
+guard in front of them, and pass. `TF2.md`'s per-test table carries the
+verdict this failure is, not a decoration on this module.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration

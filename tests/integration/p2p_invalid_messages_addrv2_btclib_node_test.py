@@ -4,32 +4,32 @@
 
 """Core's `p2p_invalid_messages`, the same four `addrv2` checks: btclib-node.
 
-`p2p_invalid_messages_addrv2_bitcoind_test.py`'s own docstring is where
-the wire fact each of these four asks for -- the connection survives a
-malformed `addrv2` -- is argued. `btclib_node.p2p.callbacks.addrv2` calls
+`p2p_invalid_messages_addrv2_bitcoind_test.py`'s own docstring is where the
+wire fact each of these four asks for -- the connection survives a malformed
+`addrv2` -- is argued. `btclib_node.p2p.callbacks.addrv2` calls
 `btclib.p2p.addrv2.AddrV2.parse` with no `try`/`except` of its own, so a
 payload that fails to deserialize raises out of the callback, and
 `handle_p2p`'s own `_drop` (`p2p/main.py`) discourages and stops the
-connection for any `BTClibException` a callback raises -- exactly
-[ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170),
-which names this dispatch-level path in general, rather than
-[ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130)'s
+connection for any `BTClibException` a callback raises -- exactly [ISS
+btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170),
+which names this dispatch-level path in general, rather than [ISS
+btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130)'s
 own frame-level one: that raise is `frame_message`'s, ahead of every
 callback, where this one is the callback's own. `test_addrv2_empty` and
-`test_addrv2_too_long_address` both fail this way, reproducing #1170
-rather than a defect of their own. `test_addrv2_no_addresses` raises
-nothing -- a zero-entry `addrv2` is a valid, empty list -- so its own
-wire half passes here exactly as it does on bitcoind.
-`test_addrv2_unrecognized_network` raises nothing either: `AddrV2.parse`
-reads an entry of a network id BIP155 does not name the way it reads any
-other. That test's node is started for it with `-connect=0`, so
+`test_addrv2_too_long_address` both fail this way on the released build,
+reproducing #1170 rather than a defect of their own.
+`test_addrv2_no_addresses` raises nothing -- a zero-entry `addrv2` is a
+valid, empty list -- so its own wire half passes here exactly as it does on
+bitcoind. `test_addrv2_unrecognized_network` raises nothing either:
+`AddrV2.parse` reads an entry of a network id BIP155 does not name the way
+it reads any other. That test's node is started for it with `-connect=0`, so
 `P2pManager._maybe_dial_more_peers` (`p2p/manager.py`) returns before
 drawing from the address table the message has just filled with
-`9.9.9.9:8333`, where `btclib_node_adapter`, which a session shares,
-would draw it and dial it once holding fewer connections than it wants
--- read from that code rather than observed, a dial logging nothing
-until it connects. `-listen=1` beside it keeps the listener `Peer`
-reaches, which `-connect` otherwise turns off, as it does in Core.
+`9.9.9.9:8333`, where `btclib_node_adapter`, which a session shares, would
+draw it and dial it once holding fewer connections than it wants -- read
+from that code rather than observed, a dial logging nothing until it
+connects. `-listen=1` beside it keeps the listener `Peer` reaches, which
+`-connect` otherwise turns off, as it does in Core.
 
 Measured live, the failure is racy without `_sync`'s own delay: this
 node dispatches a queued p2p message asynchronously
@@ -43,13 +43,13 @@ overtake the `addrv2` sent before it. The delay gives the dispatch loop
 a turn first; it does not change what is under test, since `_sync`'s own
 `ping`/`pong` exchange is identical to the bitcoind module's otherwise.
 
-Each `*_keeps_the_connection` test below is written exactly as its
-bitcoind counterpart, and is expected to fail rather than to pass or to
-skip -- neither an `xfail` nor a `pytest.skip.Exception` -- so this keeps
-reproducing #1170 rather than hiding it, the convention
+Each `*_keeps_the_connection` test below is written exactly as its bitcoind
+counterpart, and is expected to fail on the released build rather than to
+pass or to skip -- neither an `xfail` nor a `pytest.skip.Exception` -- so
+this keeps reproducing #1170 rather than hiding it, the convention
 `p2p_invalid_messages_misbehaving_btclib_node_test.py` and
-`p2p_invalid_messages_dropped_btclib_node_test.py` already hold.
-`TF2.md`'s per-test table carries the verdict these failures are.
+`p2p_invalid_messages_dropped_btclib_node_test.py` already hold. `TF2.md`'s
+per-test table carries the verdict these failures are.
 
 The log half is not reached by any of this: this node's own `Logger`
 (`log.py`) writes English, not Core's, so `Capability.DEBUG_LOG` is not
@@ -117,7 +117,7 @@ def _sync(peer: Peer) -> None:
 def test_addrv2_empty_keeps_the_connection(
     btclib_node_adapter: BtclibNodeAdapter,
 ) -> None:
-    """The wire half: fails, reproducing ISS btclib-node#1170."""
+    """The wire half: fails on the released build (ISS btclib-node#1170)."""
     with Peer(btclib_node_adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
         peer.send_raw(_addrv2_message(b""))
@@ -158,7 +158,7 @@ _TOO_LONG_ADDRESS = bytes.fromhex("0161bc66490001fd0102" + "ab" * 513 + "208d")
 def test_addrv2_too_long_address_keeps_the_connection(
     btclib_node_adapter: BtclibNodeAdapter,
 ) -> None:
-    """The wire half: fails, reproducing ISS btclib-node#1170."""
+    """The wire half: fails on the released build (ISS btclib-node#1170)."""
     with Peer(btclib_node_adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
         peer.send_raw(_addrv2_message(_TOO_LONG_ADDRESS))

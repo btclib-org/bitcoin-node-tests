@@ -79,8 +79,10 @@ jobs:
     # under a codeload outage that killed a cell before it reached the
     # needs context at all (btclib-benchmarks' test.yml carries the same
     # shape and the incident it answers). needs: below orders this job
-    # last and nothing else: the step reads whatever the run reports,
-    # a set that already includes both jobs above
+    # last, and hands the step below each of those jobs' own result for
+    # the one case the step reads it -- a row the listing still shows
+    # unfinished. What the step judges is whatever the run reports, a set
+    # that already includes both jobs above
     needs: [changes, coverage]
     # the closed condition, added at the trigger above, skips this job
     # uniformly on a closed pull request rather than tripping it over a
@@ -113,6 +115,8 @@ jobs:
       - name: Fail unless every other job of this run succeeded
         env:
           GH_TOKEN: ${{ github.token }}
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
         run: |
           set -euo pipefail
           # `.status` beside the conclusion so that an unfinished job says
@@ -128,8 +132,44 @@ jobs:
           # separator is POSIX
           bad=$(printf '%s\n' "${jobs}" |
             awk -F'\t' '$1 != "success" && $1 != "skipped" && $1 != "unfinished"')
-          unfinished=$(printf '%s\n' "${jobs}" |
-            awk -F'\t' '$1 == "unfinished"' | wc -l | tr -d ' ')
+          # a row of this job's own needs that the listing still shows
+          # unfinished is the listing lagging and not the run: needs does
+          # not let this job start before those jobs conclude. It is
+          # accepted where that job's own result is success or skipped
+          # (btclib-org/.github#1395), matched as section 10 of the
+          # organization standard says: `changes` calls a reusable
+          # workflow, so its rows list under its own `name:` followed by a
+          # space, a slash and a space, and `coverage` lists under its own
+          # `name:` exactly. Each is a second copy of the job's own name,
+          # which a rename leaves matching nothing -- refusing a lagging
+          # row again rather than accepting any other. With another result
+          # the copy stays empty and nothing is accepted for that job
+          changes_prefix=""
+          case "${CHANGES_RESULT}" in
+            success | skipped)
+              changes_prefix="Decide whether the jobs below have anything to check / " ;;
+          esac
+          coverage_name=""
+          case "${COVERAGE_RESULT}" in
+            success | skipped) coverage_name="Measure coverage, gated at 100%" ;;
+          esac
+          # the unfinished rows that are (1) or are not (0) one of those
+          unfinished_rows() {
+            printf '%s\n' "${jobs}" | awk -F'\t' -v want="$1" \
+              -v p="${changes_prefix}" -v n="${coverage_name}" '
+              $1 == "unfinished" {
+                own = (p != "" && index($3, p) == 1) || (n != "" && $3 == n)
+                if (own == want) print
+              }'
+          }
+          lagging=$(unfinished_rows 1)
+          if [ -n "${lagging}" ]; then
+            echo "listed unfinished, accepted as a needs job's own" \
+              "(changes: ${CHANGES_RESULT}, coverage: ${COVERAGE_RESULT}):"
+            printf '%s\n' "${lagging}"
+          fi
+          counted=$(unfinished_rows 0)
+          unfinished=$(printf '%s' "${counted}" | awk 'END { print NR }')
           # both are reported before exiting rather than the first one
           # reached: a gate that says what it saw says all of it, and
           # each annotation names the rows it is about, because an
@@ -153,7 +193,7 @@ jobs:
             # a colon would promise a list
             annotate \
               "this check should be the run's one unfinished job; ${unfinished} are" \
-              "$(printf '%s\n' "${jobs}" | awk -F'\t' '$1 == "unfinished"')"
+              "${counted}"
             verdict=1
           fi
           exit "${verdict}"

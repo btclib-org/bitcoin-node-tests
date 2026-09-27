@@ -39,8 +39,13 @@ name: node-integration
 # bitcoin-node-tests#61): without one,
 # `mixed_cluster_block_sync_btclib_node_test.py` -- the "most valuable
 # case" of ISS 43, needing both nodes at once -- skips on every job that
-# runs `*_btclib_node_test.py`, `bitcoind`'s own `exclude-classname`
-# exempting it there.
+# runs `*_btclib_node_test.py`, `bitcoind`'s own `skip-reason-prefix`
+# exempting it there. Both install it with btclib-org/.github's own
+# `.github/scripts/install_bitcoind.py`, the script
+# `reusable-integration-bitcoind.yml` runs for `bitcoind`, served the way
+# that workflow serves it: a sparse checkout of that repository at `main`
+# beside this tree, `main` being the trust `bitcoind` already extends by
+# calling that workflow `@main`.
 #
 # `core-master` and `btclib-node-main` are ISS 8's decision of
 # 2026-09-25: the pinned release stays the only required check -- a
@@ -105,12 +110,13 @@ jobs:
       integration-env-var: TF2_INTEGRATION
       bitcoind-path-env-var: TF2_BITCOIND
       # this job's own environment has no btclib-node interpreter to
-      # point TF2_BTCLIB_NODE_PYTHON at, so every `*_btclib_node_test.py`
+      # point TF2_BTCLIB_NODE_PYTHON at, so every test asking for one
       # skips here rather than running -- a legitimate skip the reusable
       # job's own "did the node tests run" check would otherwise flag.
-      # A JUnit classname is a module's, which is why each of those tests
-      # stands in a module of its own rather than beside bitcoind's
-      exclude-classname: btclib_node
+      # The prefix is the message tests/integration/conftest.py's
+      # `btclib_node_python` skips with, so it exempts that skip whatever
+      # module it happens in, and every other skip still fails the job
+      skip-reason-prefix: "no btclib_node importable by "
 
   btclib-node:
     name: Regtest against btclib-node
@@ -141,18 +147,29 @@ jobs:
           BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
         run: |
           "$BTCLIB_NODE_PYTHON" -m pip install --disable-pip-version-check btclib-node
+      # beside this tree's own checkout rather than over it: `path:` is
+      # what keeps the two apart, and the header above has why `main`
+      - name: Check out btclib-org/.github's scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: btclib-org/.github
+          ref: main
+          path: standard
+          persist-credentials: false
+          sparse-checkout: .github/scripts
       # the workflow's own pin, so the mixed cluster is tested against
-      # the same oracle everything else in this file is. Referenced by
-      # path, as the action's own file explains, and zizmor's suggested
-      # `$/` form is not a syntax GitHub Actions has -- actionlint
-      # refuses it here as it does in reusable-integration-bitcoind.yml's
-      # own identical call
+      # the same oracle everything else in this file is. The script takes
+      # the standard library alone, so `--no-project` runs it on the
+      # interpreter uv fetches rather than on this tree's own
+      # environment, and it prints the daemon's path and nothing else
       - name: Install bitcoind
         id: bitcoind
-        uses: ./.github/actions/install-bitcoind # zizmor: ignore[self-repository]
-        with:
-          version: ${{ env.BITCOIND_VERSION }}
-          sha256: ${{ env.BITCOIND_SHA256 }}
+        run: |
+          daemon=$(uv run --no-project --python 3.15 \
+            standard/.github/scripts/install_bitcoind.py \
+            "$BITCOIND_VERSION" "$BITCOIND_SHA256")
+          echo "path=$daemon" >> "$GITHUB_OUTPUT"
+          "$daemon" -version | head -n 1
       # continue-on-error: a TF2.md row that fails on btclib-node fails
       # pytest on every run, so pytest's own status would colour this job
       # the same whether anything changed or not. The two steps after it
@@ -390,18 +407,23 @@ jobs:
           ')
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "### btclib-node built from \`$sha\`" >> "$GITHUB_STEP_SUMMARY"
-      # the workflow's own pin, so the mixed cluster is tested against
-      # the same oracle everything else in this file is. Referenced by
-      # path, as the action's own file explains, and zizmor's suggested
-      # `$/` form is not a syntax GitHub Actions has -- actionlint
-      # refuses it here as it does in reusable-integration-bitcoind.yml's
-      # own identical call
+      # `btclib-node`'s own two steps above
+      - name: Check out btclib-org/.github's scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: btclib-org/.github
+          ref: main
+          path: standard
+          persist-credentials: false
+          sparse-checkout: .github/scripts
       - name: Install bitcoind
         id: bitcoind
-        uses: ./.github/actions/install-bitcoind # zizmor: ignore[self-repository]
-        with:
-          version: ${{ env.BITCOIND_VERSION }}
-          sha256: ${{ env.BITCOIND_SHA256 }}
+        run: |
+          daemon=$(uv run --no-project --python 3.15 \
+            standard/.github/scripts/install_bitcoind.py \
+            "$BITCOIND_VERSION" "$BITCOIND_SHA256")
+          echo "path=$daemon" >> "$GITHUB_OUTPUT"
+          "$daemon" -version | head -n 1
       # continue-on-error: `btclib-node`'s own step above has why
       - name: Run the integration tests against btclib-node's main
         continue-on-error: true

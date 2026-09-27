@@ -24,10 +24,10 @@ builds — *Read the Docs* below records it.
 
 Each section carries the command that sets its setting and the command
 that reads it back, and the `#` lines under a read-back are what it
-printed on 2026-09-25 — section 16's last step. Section 11 makes such an
-answer documentation, with a reader as its check: nothing re-runs these
-commands, so an answer that differs today is a change made since that
-date.
+printed on 2026-09-25 — section 16's last step — unless a later date
+stands beside it. Section 11 makes such an answer documentation, with a
+reader as its check: nothing re-runs these commands, so an answer that
+differs today is a change made since that date.
 
 ## Creating the repository
 
@@ -249,6 +249,18 @@ JSON
 `3296421` is `fametrano`'s account id,
 `gh api users/fametrano --jq .id`.
 
+Classic protection's own copy of the signature rule is off, and
+`main-integrity` above is what requires a signature: [the standard states
+that value for every
+repository](https://github.com/btclib-org/.github/blob/main/README.md#branch-protection-and-rulesets).
+Read on 2026-09-27:
+
+```shell
+gh api repos/btclib-org/bitcoin-node-tests/branches/main/protection \
+  --jq '.required_signatures.enabled'
+# false
+```
+
 ## Tag protection
 
 `tag-integrity`, `target: tag`, `refs/tags/v*`: required signatures, and
@@ -344,6 +356,22 @@ gh api repos/btclib-org/bitcoin-node-tests/actions/permissions/workflow \
 The expected answer is `read` and `false`. Where it is not, the
 organization default has moved, and section 11's command is the one that
 moves it back for the organization rather than here.
+
+## Allowed actions and SHA pinning
+
+Read on 2026-09-27:
+
+```shell
+gh api repos/btclib-org/bitcoin-node-tests/actions/permissions
+# {"enabled":true,"allowed_actions":"all","sha_pinning_required":true}
+gh api orgs/btclib-org/actions/permissions \
+  --jq '{allowed_actions, sha_pinning_required}'
+# {"allowed_actions":"all","sha_pinning_required":true}
+```
+
+The organization gives the same two answers, `sha_pinning_required`
+being set at that level: [section 11 has the reasons for both
+fields](https://github.com/btclib-org/.github/blob/main/README.md#tokens-publishing-scanning).
 
 ## Publishing
 

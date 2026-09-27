@@ -9,11 +9,8 @@ target rather than the oracle (rule 3 of issue btclib-org/btclib#2220):
 an invalid `getdata` does not stop a later valid one from being served,
 asked for genesis rather than Core's own mined tip -- that module's own
 docstring has why. Held in its own module so that a job running one and
-not the other -- `.github/workflows/node-integration.yml`'s bitcoind
-job, which has no btclib-node interpreter to reach for -- can exclude
-this module's own classname from its "did the node tests run" check by
-name rather than by test name, a JUnit `classname` being a module's and
-not a function's.
+not the other -- `.github/workflows/node-integration.yml`'s `btclib-node`
+jobs, which run `*_btclib_node_test.py` -- can select it by module name.
 
 Expected to fail on the released build rather than to pass or to skip --
 neither an `xfail` nor a `pytest.skip.Exception` -- so this keeps

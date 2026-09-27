@@ -648,3 +648,21 @@ btclib-node skips on `Capability.DESCRIPTOR_INFO` (closes #174).
 Each runs one body on both nodes under Core's own `-peertimeout` or
 `-mempoolexpiry`, the node's clock moved by `setmocktime`; btclib-node skips on
 the new `Capability.PEER_TIMEOUT` and `Capability.MEMPOOL_EXPIRY` (issue #14).
+
+### `node-integration.yml` installs bitcoind with `btclib-org/.github`'s script
+
+The `btclib-node` jobs use it, and the `install-bitcoind` action goes (issue
+btclib-org/.github#1373); the `bitcoind` job exempts btclib-node's absence by
+its skip reason, not its module name (issue btclib-org/.github#1377).
+
+### `test: every job passed` accepts its own `needs` job listed unfinished
+
+A `needs` job the jobs listing still shows unfinished is accepted where its own
+result is `success` or `skipped`; any other unfinished job is still refused
+(issue btclib-org/.github#1395).
+
+### `REPOSITORY.md` reads back classic signatures off and SHA pinning on
+
+Classic `required_signatures` reads `false`, and `allowed_actions` and
+`sha_pinning_required` are read back, section 11 having the reasons (issue
+btclib-org/.github#1409).

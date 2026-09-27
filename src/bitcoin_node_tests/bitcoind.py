@@ -10,9 +10,9 @@ its published sha256, the same one
 pins -- a build of `master` is a later issue of its own
 ([ISS 2220](https://github.com/btclib-org/btclib/issues/2220)'s step 5).
 This module holds none of that fetch: it is handed the daemon's own path,
-already installed, the same split
-`.github/actions/install-bitcoind/action.yml` and
-`tests/integration/conftest.py` keep in every tree that needs one.
+already installed -- `btclib-org/.github`'s `install_bitcoind.py` is what
+installs it in CI, and `tests/integration/conftest.py` is what hands it
+over.
 """
 
 from __future__ import annotations

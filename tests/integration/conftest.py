@@ -41,8 +41,8 @@ with the prefix, handing it their own node's fixture --
 probing the build it runs. The two test modules stay two, rather than
 one parametrized over both nodes, because the CI jobs select a node's
 tests by module: `node-integration.yml`'s `btclib-node` jobs run
-`*_btclib_node_test.py`, and its `bitcoind` job fails on a skip in any
-module whose name does not carry `btclib_node`.
+`*_btclib_node_test.py`, and its `core-master` job
+`*_bitcoind_test.py`.
 """
 
 from __future__ import annotations

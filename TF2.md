@@ -1240,8 +1240,9 @@ past the bump would disconnect instead --
 `tests/integration/p2p_bip434_feature_bitcoind_test.py`'s own module
 docstring has the rest of the narrowing, and why a skip was tried first
 and reverted: `btclib-org/.github`'s own `reusable-integration-bitcoind.yml`
-fails the required job on any skip its `exclude-classname` does not
-name, one substring already spent on `btclib_node`. `doc/bips.md` at
+fails the required job on any skip whose reason does not start with
+its `skip-reason-prefix`, which `node-integration.yml`'s `bitcoind` job
+sets to the start of `btclib_node_python`'s own skip message. `doc/bips.md` at
 Core's `master` names BIP434 as landing only in the next major release
 after the one this repository pins, and the functional test itself
 postdates the pinned tag (`da74ff9ca4`, 2026-06-04, not an ancestor of
@@ -2563,7 +2564,7 @@ sees the `getdata` it waits for
 subject is `contrib/utxo-tools/utxo_to_sqlite.py`, a script of Core's
 own source tree the test finds through the build's own `config.ini`,
 run against a UTXO set the node dumps: not a node, and not a file
-`.github/actions/install-bitcoind/action.yml` extracts from the release,
+`btclib-org/.github`'s `install_bitcoind.py` extracts from the release,
 which is `bin/bitcoind` alone. What it asks of the node, `dumptxoutset`
 and `gettxoutsetinfo`'s own MuHash, is the subject of Core's
 `rpc_dumptxoutset.py` and `feature_utxo_set_hash.py`.

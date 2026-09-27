@@ -16,8 +16,9 @@ runs `make -C depends` with no `NO_WALLET`, so `depends/Makefile`'s own
 (read at Core's `v31.1`). Either way the test asserts whichever shape the
 running build carries rather than skipping:
 `btclib-org/.github`'s `reusable-integration-bitcoind.yml` fails the
-required job on any skip its `exclude-classname` does not name, and that
-job runs a release, installed as `bin/bitcoind` alone.
+required job on any skip whose reason does not start with its
+`skip-reason-prefix`, and that job runs a release, installed as
+`bin/bitcoind` alone.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """

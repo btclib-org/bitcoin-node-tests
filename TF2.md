@@ -813,6 +813,14 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_leak.py` (log) | `01b8a117d2c5` | 2026-06-04 | pass | skip |
 | `p2p_handshake.py` (wire) | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)) on the build; pass on a build past [ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133) |
 | `p2p_handshake.py` (log) | same | same | pass | skip |
+| `p2p_handshake.py` (services, wire) | same | same | pass | skip |
+| `p2p_handshake.py` (services, log) | same | same | pass | skip |
+| `p2p_handshake.py` (limited, wire) | same | same | pass | skip |
+| `p2p_handshake.py` (limited, log) | same | same | pass | skip |
+| `p2p_handshake.py` (feeler, wire) | same | same | pass | skip |
+| `p2p_handshake.py` (feeler, log) | same | same | pass | skip |
+| `p2p_handshake.py` (self, wire) | same | same | pass | skip |
+| `p2p_handshake.py` (self, log) | same | same | pass | skip |
 | `p2p_addr_relay.py` (wire) | `b7211ba80cde` | 2026-09-22 | pass | pass |
 | `p2p_addr_relay.py` (log) | same | same | pass | skip |
 | `p2p_addrv2_relay.py` (wire) | `fa5f29774872` | 2025-12-16 | pass | pass |
@@ -882,6 +890,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_ping.py` (wire) | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (peer_timeout) |
 | `p2p_ping.py` (log) | same | same | pass | skip (peer_timeout) |
 | `mempool_expiry.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mempool_expiry) |
+| `p2p_add_connections.py` | [`4c79f3a34d00`](https://github.com/bitcoin/bitcoin/commit/4c79f3a34d00) | 2026-09-14 | pass | skip (typed_outbound) |
+| `p2p_add_connections.py` (`manual`) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1347,11 +1357,10 @@ section below names.
 [ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
 first, each dialling out of the node under test (Core's
 `add_outbound_p2p_connection` or `addconnection`) in or ahead of its log
-steps: `feature_anchors.py`, `p2p_addr_selfannouncement.py`, the rest of
-`p2p_handshake.py`, `p2p_ibd_stalling.py`, `p2p_mutated_blocks.py` and
-`p2p_sendtxrcncl.py`. The rest go where the node wallet, another Core
-binary, an older release, a proxy or an external interface is the
-subject:
+steps: `feature_anchors.py`, `p2p_addr_selfannouncement.py`,
+`p2p_ibd_stalling.py`, `p2p_mutated_blocks.py` and `p2p_sendtxrcncl.py`.
+The rest go where the node wallet, another Core binary, an older release,
+a proxy or an external interface is the subject:
 [ISS 45](https://github.com/btclib-org/bitcoin-node-tests/issues/45)
 every `wallet_*.py` file the command lists,
 [ISS 46](https://github.com/btclib-org/bitcoin-node-tests/issues/46)
@@ -1370,8 +1379,9 @@ Ledgered already, a row above or a paragraph naming the file:
 `rpc_setban.py`, `rpc_users.py`, `feature_posix_fs_permissions.py`,
 `feature_cltv.py`, `feature_dersig.py`, `feature_csv_activation.py`,
 `p2p_ping.py`, `p2p_timeouts.py`,
-`p2p_disconnect_ban.py`'s `disconnectnode` half and
-`p2p_bip434_feature.py`'s wire-only disconnects. Listed and not the family's: `combine_logs.py`,
+`p2p_disconnect_ban.py`'s `disconnectnode` half,
+`p2p_bip434_feature.py`'s wire-only disconnects and `p2p_handshake.py`.
+Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
 `interface_rpc.py`, which compares `getrpcinfo`'s `logpath` with a path
@@ -1412,8 +1422,8 @@ node to another. That mechanism is `Capability.TYPED_OUTBOUND` and
 (bitcoin/bitcoin@4c79f3a34d003bd97824b032383ac816a4147d68).
 Its subject is that mechanism (Core's own docstring: "Test
 add_outbound_p2p_connection test framework functionality") rather than an
-option, so it goes with the tests the mechanism blocks
-([ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)), not to
+option, so its rows are with the tests the mechanism blocks
+([ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)), not with
 this family. `cli.py`'s own `_build_parser` on the released build has no
 `-maxconnections` flag either; only `_OPTIONS` on `main` does.
 `feature_discover.py`'s own `-discover` is neutered by this adapter's own fixed
@@ -2619,5 +2629,31 @@ assertion of Core's own kept. Its halves are separate bodies in
 the second peer's node id is the first one a node gives rather than the
 next, and each disconnect is awaited over `Peer`'s default wait rather
 than Core's shorter one. `btclib-node`'s cell is a counted skip on
-`TYPED_OUTBOUND`. The rest of the issue's own census is its later
-batches.
+`TYPED_OUTBOUND`.
+
+`p2p_add_connections.py` is ported on it too, every assertion of Core's
+own kept, in `tests/integration/p2p_add_connections_test.py`.
+Its first step, a `manual` connection once a full-relay one has filled a
+node's outbound capacity (`-maxconnections` at one), is its own row, read
+per-build
+([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)):
+`addconnection` takes `manual` only past the pinned release
+(bitcoin/bitcoin@4c79f3a34d003bd97824b032383ac816a4147d68), so the body
+reads the build's own `help addconnection`, and where that names no
+`manual` it asserts the refusal Core's `RPC_INVALID_PARAMETER` answers
+instead. Its module docstring has what else differs from Core's file.
+
+The rest of `p2p_handshake.py` is ported beside its redundant-`verack`
+rows, each check a wire half and a log half over a fresh node, the log
+family's own split: a peer short of the services an outbound type expects
+is dropped and one offering them kept; a `NODE_NETWORK_LIMITED` peer is
+dropped while the tip is more than a day old and kept once it is not; a
+feeler is dropped once the node reads its `version`; and a node made to
+dial its own address drops the connection. The limited rows mine at a
+mock time, so they ask `MINE` and `CLOCK` besides, and flush bitcoind's
+validation queue after each block as Core's own `generate` does.
+
+`btclib-node`'s cell on every row of `p2p_add_connections.py` and
+`p2p_handshake.py` but the redundant-`verack` ones is a counted skip on
+`TYPED_OUTBOUND`. The rest of the issue's own
+census is its later batches.

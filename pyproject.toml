@@ -367,6 +367,9 @@ ignore = [
 # the node-ran check: its `::error::` lines are workflow commands the
 # runner reads from stdout, so printing them is the interface
 ".github/scripts/check_node_ran.py" = ["T201"]
+# the btclib-node verdict: the master-only verdict's own shape, its report
+# copied into $GITHUB_STEP_SUMMARY by the workflow step
+".github/scripts/btclib_node_verdict.py" = ["T201"]
 "tests/**" = [
     "S101",   # assert
     "S311",   # non-cryptographic random: fine in tests

@@ -7,10 +7,14 @@ name: node-integration
 # is the oracle (rule 3) and `bitcoind`, below, is the ordinary gate: the
 # reusable job btclib already calls, `reusable-integration-bitcoind.yml`,
 # installs the pinned release and fails the run if its own tests did not
-# run. `btclib-node` asks the same question of the target, and is
-# expected to lose it today -- ISS btclib-node#1072 -- so it reports
-# rather than gates: `continue-on-error: true`, and no branch rule reads
-# its check.
+# run. `btclib-node` asks the same question of the target, its failing
+# tests weighed against `TF2.md`'s own `btclib-node` column rather than
+# counted, and it reports rather than gates: `continue-on-error: true`,
+# and no branch rule reads its check. It installs btclib-node's latest
+# release unpinned, so a new release moving one of that column's cells
+# turns it red with no pull request here having changed anything, and
+# ISS 8's decision below keeps bitcoind's pinned release the only
+# required check.
 #
 # No `schedule:`: section 10 of the organization standard's own record,
 # *Which trees carry which sentinel*, does not name this repository
@@ -113,10 +117,10 @@ jobs:
     if: ${{ !github.event.pull_request.draft && github.event.action != 'closed' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # a finding here is ISS btclib-node#1072, not a defect of this
-    # repository's own gates, so this job reports without blocking a
-    # merge -- rule 3's "a disagreement is a result, not a failure of
-    # the suite"
+    # a moved `TF2.md` cell here is a finding for the ledger or for
+    # btclib-node's own tracker, not a defect of this repository's own
+    # gates, so this job reports without blocking a merge -- rule 3's "a
+    # disagreement is a result, not a failure of the suite"
     continue-on-error: true
     steps:
       - name: Checkout code
@@ -149,7 +153,12 @@ jobs:
         with:
           version: ${{ env.BITCOIND_VERSION }}
           sha256: ${{ env.BITCOIND_SHA256 }}
+      # continue-on-error: a TF2.md row that fails on btclib-node fails
+      # pytest on every run, so pytest's own status would colour this job
+      # the same whether anything changed or not. The two steps after it
+      # are what colour the job instead
       - name: Run the integration tests against btclib-node
+        continue-on-error: true
         env:
           BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
           BITCOIND_PATH: ${{ steps.bitcoind.outputs.path }}
@@ -162,9 +171,7 @@ jobs:
             --junitxml=integration.xml
       # the `bitcoind` job's own "did the node tests run" question, asked
       # here with capability skips exempted -- the script's docstring has
-      # why. !cancelled(): the step above fails on btclib-node's own
-      # disagreements, and whether the tests reached the node is a
-      # separate answer. It colours this job and not the run: the job's
+      # why. It colours this job and not the run: the job's
       # `continue-on-error` covers every step of it, and whether these
       # jobs gate anything is ISS 8's decision
       - name: Fail if the node tests did not run
@@ -172,6 +179,19 @@ jobs:
         run: |
           uv run --locked --no-default-groups --group test \
             python .github/scripts/check_node_ran.py integration.xml
+      # each TF2.md row's btclib-node verdict for the released build
+      # against this report; it fails where any row moved, the script's
+      # docstring having why. !cancelled(): a failing check above does not
+      # skip it. `tee` writes the report to the log as well as the summary,
+      # the log being what `gh run view --log` reads, and `pipefail` keeps
+      # the script's own status as the step's rather than `tee`'s
+      - name: Compare the report with TF2.md
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          uv run --locked --no-default-groups --group test \
+            python .github/scripts/btclib_node_verdict.py \
+            TF2.md integration.xml release | tee -a "$GITHUB_STEP_SUMMARY"
 
   core-master:
     name: Regtest against Core built from master
@@ -382,7 +402,9 @@ jobs:
         with:
           version: ${{ env.BITCOIND_VERSION }}
           sha256: ${{ env.BITCOIND_SHA256 }}
+      # continue-on-error: `btclib-node`'s own step above has why
       - name: Run the integration tests against btclib-node's main
+        continue-on-error: true
         env:
           BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
           BITCOIND_PATH: ${{ steps.bitcoind.outputs.path }}
@@ -399,3 +421,12 @@ jobs:
         run: |
           uv run --locked --no-default-groups --group test \
             python .github/scripts/check_node_ran.py integration.xml
+      # `btclib-node`'s own step above, against each cell's verdict for a
+      # build past every issue it names
+      - name: Compare the report with TF2.md
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          uv run --locked --no-default-groups --group test \
+            python .github/scripts/btclib_node_verdict.py \
+            TF2.md integration.xml main | tee -a "$GITHUB_STEP_SUMMARY"

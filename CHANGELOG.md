@@ -510,3 +510,9 @@ argument." (closes #159).
 An issue filed from a review may say the fix where one is known: *What is
 filed, and what is not* dropped its "no fix", the filing bar standing as it
 was (issue btclib-org/.github#1378).
+
+### The `btclib-node` jobs report what moved against `TF2.md`
+
+Each compares its report with the ledger's `btclib-node` column, reading the
+verdict a cell gives its own build: a known failure no longer colours the job,
+and a row that moved, one now passing included, does (closes #88).

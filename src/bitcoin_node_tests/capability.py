@@ -259,6 +259,11 @@ class Capability(Enum):
     `BLOCK_FILTER_INDEX` -- keep BIP158's basic block filter for every
     block once `-blockfilterindex` asks for it, and answer `scanblocks`
     from that index (`rpc_scanblocks.py`).
+    `VALIDATE_ADDRESS` -- answer `validateaddress`, Core's own RPC
+    decoding an address for the chain the node runs: the `scriptPubKey`
+    a valid one decodes to, and the error and `error_locations` an
+    invalid one earns (`rpc_validateaddress.py`). Named for the RPC, as
+    `BLOCK_STATS` is.
     """
 
     MINE = "mine"
@@ -286,6 +291,7 @@ class Capability(Enum):
     FASTPRUNE = "fastprune"
     INBOUND_EVICTION = "inbound_eviction"
     BLOCK_FILTER_INDEX = "block_filter_index"
+    VALIDATE_ADDRESS = "validate_address"
 
 
 class SkipCounts:

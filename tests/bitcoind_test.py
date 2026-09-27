@@ -47,6 +47,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.FASTPRUNE,
             Capability.INBOUND_EVICTION,
             Capability.BLOCK_FILTER_INDEX,
+            Capability.VALIDATE_ADDRESS,
         }
     )
 

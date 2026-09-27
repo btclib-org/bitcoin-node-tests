@@ -263,6 +263,7 @@ _ROWS: dict[str, str] = {
     ),
     "p2p_eviction": "`p2p_eviction.py`",
     "feature_presegwit_node_upgrade": "`feature_presegwit_node_upgrade.py`",
+    "rpc_validateaddress": "`rpc_validateaddress.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

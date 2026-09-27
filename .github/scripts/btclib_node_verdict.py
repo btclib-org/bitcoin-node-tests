@@ -383,6 +383,50 @@ _ROWS: dict[str, str] = {
     "wallet_signmessagewithaddress": "`wallet_signmessagewithaddress.py`",
     "wallet_blank": "`wallet_blank.py`",
     "wallet_coinbase_category": "`wallet_coinbase_category.py`",
+    "p2p_initial_headers_sync": "`p2p_initial_headers_sync.py`",
+    "p2p_initial_headers_sync::test_headers_timeout_drops_the_peer": (
+        "`p2p_initial_headers_sync.py` (stall, wire)"
+    ),
+    "p2p_initial_headers_sync::test_headers_timeout_is_logged": (
+        "`p2p_initial_headers_sync.py` (stall, log)"
+    ),
+    "p2p_initial_headers_sync::test_headers_timeout_keeps_a_noban_peer": (
+        "`p2p_initial_headers_sync.py` (noban, wire)"
+    ),
+    "p2p_initial_headers_sync::test_headers_timeout_of_a_noban_peer_is_logged": (
+        "`p2p_initial_headers_sync.py` (noban, log)"
+    ),
+    "p2p_sendtxrcncl": "`p2p_sendtxrcncl.py`",
+    "p2p_sendtxrcncl::test_sendtxrcncl_is_not_sent_with_bloom_filters_and_no_relay": (
+        "`p2p_sendtxrcncl.py` (bloom)"
+    ),
+    "p2p_sendtxrcncl::test_sendtxrcncl_is_sent_to_full_relay_outbound_peers": (
+        "`p2p_sendtxrcncl.py` (outbound)"
+    ),
+    "p2p_sendtxrcncl::test_sendtxrcncl_on_block_relay_only_is_logged": (
+        "`p2p_sendtxrcncl.py` (outbound, log)"
+    ),
+    "p2p_sendtxrcncl::test_sendtxrcncl_is_not_sent_in_blocks_only_mode": (
+        "`p2p_sendtxrcncl.py` (blocksonly)"
+    ),
+    "p2p_sendtxrcncl::test_sendtxrcncl_is_ignored_without_the_option": (
+        "`p2p_sendtxrcncl.py` (off)"
+    ),
+    "p2p_sendtxrcncl::test_sendtxrcncl_is_ignored_without_the_option_in_the_log": (
+        "`p2p_sendtxrcncl.py` (off, log)"
+    ),
+    "p2p_sendtxrcncl::test_sendtxrcncl_violations_drop_the_peer": (
+        "`p2p_sendtxrcncl.py` (violations, wire)"
+    ),
+    "p2p_sendtxrcncl::test_sendtxrcncl_violations_are_logged": (
+        "`p2p_sendtxrcncl.py` (violations, log)"
+    ),
+    "p2p_sendtxrcncl::test_sendtxrcncl_kept_peers_stay_connected": (
+        "`p2p_sendtxrcncl.py` (kept, wire)"
+    ),
+    "p2p_sendtxrcncl::test_sendtxrcncl_kept_peers_are_logged": (
+        "`p2p_sendtxrcncl.py` (kept, log)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

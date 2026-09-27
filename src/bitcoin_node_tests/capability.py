@@ -356,6 +356,13 @@ class Capability(Enum):
     names the wallet itself. A wallet a separate program keeps for a node
     is not this member either
     ([ISS bitcoin-node-tests#199](https://github.com/btclib-org/bitcoin-node-tests/issues/199)).
+    `TX_RECONCILIATION` -- offer and accept BIP330's transaction
+    reconciliation once `-txreconciliation` asks for it, Core's own
+    switch: `sendtxrcncl` sent to a peer that relays transactions, and a
+    peer's own `sendtxrcncl` registered (`p2p_sendtxrcncl.py`).
+    `PEER_BLOOM_FILTERS` -- recognise `-peerbloomfilters`, Core's own
+    switch to serving BIP37 bloom filters, which offers `NODE_BLOOM` in
+    the node's own `version` (`p2p_sendtxrcncl.py`).
     """
 
     MINE = "mine"
@@ -400,6 +407,8 @@ class Capability(Enum):
     SCAN_UTXO_SET = "scan_utxo_set"
     PROXY = "proxy"
     NODE_WALLET = "node_wallet"
+    TX_RECONCILIATION = "tx_reconciliation"
+    PEER_BLOOM_FILTERS = "peer_bloom_filters"
 
 
 class SkipCounts:

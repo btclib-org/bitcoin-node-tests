@@ -906,6 +906,22 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `wallet_signmessagewithaddress.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_blank.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_coinbase_category.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
+| `p2p_initial_headers_sync.py` | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | fail ([ISS btclib-node#1073](https://github.com/btclib-org/btclib-node/issues/1073)) on the build; fail ([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410)) on a build past [ISS btclib-node#1073](https://github.com/btclib-org/btclib-node/issues/1073) |
+| `p2p_initial_headers_sync.py` (stall, wire) | same | same | pass | skip |
+| `p2p_initial_headers_sync.py` (stall, log) | same | same | pass | skip |
+| `p2p_initial_headers_sync.py` (noban, wire) | same | same | pass | skip |
+| `p2p_initial_headers_sync.py` (noban, log) | same | same | pass | skip |
+| `p2p_sendtxrcncl.py` | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | skip (tx_reconciliation) |
+| `p2p_sendtxrcncl.py` (bloom) | same | same | pass | skip (tx_reconciliation) |
+| `p2p_sendtxrcncl.py` (outbound) | same | same | pass | skip |
+| `p2p_sendtxrcncl.py` (outbound, log) | same | same | pass | skip |
+| `p2p_sendtxrcncl.py` (blocksonly) | same | same | pass | skip |
+| `p2p_sendtxrcncl.py` (off) | same | same | pass | pass |
+| `p2p_sendtxrcncl.py` (off, log) | same | same | pass | skip (debug_log) |
+| `p2p_sendtxrcncl.py` (violations, wire) | same | same | pass | skip |
+| `p2p_sendtxrcncl.py` (violations, log) | same | same | pass | skip |
+| `p2p_sendtxrcncl.py` (kept, wire) | same | same | pass | skip |
+| `p2p_sendtxrcncl.py` (kept, log) | same | same | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1353,14 +1369,14 @@ of `p2p_addrv2_relay.py`, the rest of `p2p_bip434_feature.py`,
 `p2p_connection_limits.py`,
 `p2p_disconnect_ban.py`'s `setban` half, `p2p_filter.py`,
 `p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
-`p2p_initial_headers_sync.py`, `p2p_invalid_block.py`, `p2p_invalid_tx.py`,
+`p2p_invalid_block.py`, `p2p_invalid_tx.py`,
 `p2p_orphan_handling.py`, `p2p_permissions.py`,
 `p2p_segwit.py`, `p2p_tx_download.py`,
 `p2p_unrequested_blocks.py`, `p2p_v2_misbehaving.py`,
 `p2p_v2_transport.py`, `rpc_misc.py` and `rpc_net.py`. Of these,
 `p2p_addr_relay.py`, `p2p_blocksonly.py`, `p2p_compactblocks.py`,
-`p2p_initial_headers_sync.py`, `p2p_orphan_handling.py` and
-`p2p_tx_download.py` also dial out of the node under test in some step,
+`p2p_orphan_handling.py` and `p2p_tx_download.py` also dial out of the
+node under test in some step,
 [ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
 subject. `rpc_misc.py`'s log check, the `libevent` category's
 deprecation warning, is a step of Core's `master` alone, run after its
@@ -1373,7 +1389,7 @@ section below names.
 first, each dialling out of the node under test (Core's
 `add_outbound_p2p_connection` or `addconnection`) in or ahead of its log
 steps: `feature_anchors.py`, `p2p_addr_selfannouncement.py`,
-`p2p_ibd_stalling.py`, `p2p_mutated_blocks.py` and `p2p_sendtxrcncl.py`.
+`p2p_ibd_stalling.py` and `p2p_mutated_blocks.py`.
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
 [ISS 45](https://github.com/btclib-org/bitcoin-node-tests/issues/45)
@@ -1395,7 +1411,8 @@ Ledgered already, a row above or a paragraph naming the file:
 `feature_cltv.py`, `feature_dersig.py`, `feature_csv_activation.py`,
 `p2p_ping.py`, `p2p_timeouts.py`,
 `p2p_disconnect_ban.py`'s `disconnectnode` half,
-`p2p_bip434_feature.py`'s wire-only disconnects and `p2p_handshake.py`.
+`p2p_bip434_feature.py`'s wire-only disconnects, `p2p_handshake.py`,
+`p2p_initial_headers_sync.py` and `p2p_sendtxrcncl.py`.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -2726,8 +2743,41 @@ validation queue after each block as Core's own `generate` does.
 
 `btclib-node`'s cell on every row of `p2p_add_connections.py` and
 `p2p_handshake.py` but the redundant-`verack` ones is a counted skip on
-`TYPED_OUTBOUND`. The rest of the issue's own
-census is its later batches.
+`TYPED_OUTBOUND`.
+
+`p2p_initial_headers_sync.py` is ported on it, each check a body over a
+fresh node in `tests/integration/p2p_initial_headers_sync_test.py`. Its
+first check, one peer asked for headers and one more per block announced,
+dials the node alone and asks for no capability. Its timeout checks have
+the node dial an outbound peer and move the clock past the headers
+timeout, each a wire half and a log half, so they ask for `TYPED_OUTBOUND`,
+`CLOCK` and `PEER_TIMEOUT`: the node restarts with settings Core's own
+harness gives every node, a `-peertimeout` under which the moved clock
+drops no peer as inactive, and automatic connections off. The `noban` check's
+`-whitelist` asks for no capability, as `rpc_setban.py`'s own `noban` row
+does not, so a `btclib-node` build declaring the rest would meet
+[ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)
+there.
+
+`p2p_sendtxrcncl.py` is ported on it too, in
+`tests/integration/p2p_sendtxrcncl_test.py`, Core's steps grouped into
+bodies by the options Core restarts its node with, and a peer kept or
+dropped given a wire half and a log half. `-txreconciliation` is
+`Capability.TX_RECONCILIATION` and `-peerbloomfilters`
+`Capability.PEER_BLOOM_FILTERS`. Where `-txreconciliation` is set, the node
+restarts with the `-peertimeout` Core's harness gives every node too, under
+`Capability.PEER_TIMEOUT`, so that a peer never sending `verack` is dropped
+for its `sendtxrcncl` rather than by the handshake timeout. The steps
+without `-txreconciliation` ask for none of these. bitcoind starts with
+`-debug=txreconciliation` besides, the category the registered and forgotten
+peers' lines are written under.
+
+`btclib-node`'s cell on the first `p2p_initial_headers_sync.py` row is a
+disagreement on each build, and
+`tests/integration/p2p_initial_headers_sync_btclib_node_test.py`'s own
+docstring has both. On `p2p_sendtxrcncl.py` (off) it passes, and every
+other row these files add is a counted skip. The rest of the issue's
+own census is its later batches.
 
 ## Proxies: `Socks5Proxy`
 

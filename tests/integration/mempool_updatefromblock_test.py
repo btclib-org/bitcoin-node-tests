@@ -77,14 +77,19 @@ _DEFAULT_CLUSTER_LIMIT = 64
 def _start(
     cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
     skip_counts: SkipCounts,
+    *needs: Capability,
 ) -> BitcoindAdapter | BtclibNodeAdapter:
     """Return one node, restarted with `-limitclustersize=1000`.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
+    :param needs: what the body asks for beyond the option and
+        `Capability.MINE`, each asked for ahead of `Capability.MINE`.
     """
     (node,) = cluster(1)
     require(Capability.LIMIT_CLUSTER_SIZE, node.capabilities, skip_counts)
+    for capability in needs:
+        require(capability, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)
     node.restart(["-limitclustersize=1000"])
     return node
@@ -169,7 +174,7 @@ def a_chain_over_the_default_cluster_limit_needs_a_reorg_to_fit(
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
     """
-    node = _start(cluster, skip_counts)
+    node = _start(cluster, skip_counts, Capability.GENERATE)
     wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + 1)
     fork_blocks = build_fork(node, wallet.script_pub_key, 10)

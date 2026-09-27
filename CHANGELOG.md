@@ -744,3 +744,9 @@ The headers timeout drops a stalling sync peer and spares a `noban` one; BIP330'
 `feature_blocksdir`, `rpc_validateaddress`, `rpc_scanblocks`,
 `rpc_getblockstats`, `rpc_getdescriptorinfo` and `rpc_getdescriptoractivity` run
 one body per test; the released btclib-node fails the refusal (issue #125).
+
+### The bodies calling `generateblock` ask for `Capability.GENERATE`
+
+`feature_framework_miniwallet`'s `confirmed_only` and a
+`mempool_updatefromblock` test skip where a node lacks it: btclib-node's
+`main` skips `confirmed_only` rather than failing it (closes #207).

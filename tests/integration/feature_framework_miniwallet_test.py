@@ -125,6 +125,7 @@ def mini_wallet_confirmed_only_tells_mined_coins_from_mempool_ones(
     :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
     :param skip_counts: the session's own tally.
     """
+    require(Capability.GENERATE, adapter.capabilities, skip_counts)
     require(Capability.MINE, adapter.capabilities, skip_counts)
     rpc = adapter.rpc
     wallet = MiniWallet(adapter)

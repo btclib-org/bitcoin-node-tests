@@ -9,7 +9,9 @@ body, run here against the target rather than the oracle (rule 3 of
 issue btclib-org/btclib#2220). `Capability.MINE` is declared only by a
 build that connects a submitted block with no peer (`btclib_node.py`'s
 own docstring): a build without it is a counted skip before any block is
-mined, and a build declaring it runs each scenario.
+mined, and a build declaring it runs each scenario but `confirmed_only`,
+which asks for `Capability.GENERATE` first and skips on it on every
+build (`btclib_node.py`'s own docstring has why).
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \\

@@ -281,8 +281,10 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.REINDEX_AFTER_FAILURE` is `-test`'s own
     `reindex_after_failure_noninteractive_yes`, a debug-only flag of this
     binary's own (`src/init.cpp`), which it refuses off regtest.
-    `Capability.PROXY` is unconditional too: `-proxy`, `-onion` and
-    `-proxyrandomize` are this binary's own flags (`src/init.cpp`).
+    `Capability.PROXY`, `Capability.CJDNS`, `Capability.I2P_SAM` and
+    `Capability.ONLYNET` are unconditional too: `-proxy`, `-onion`,
+    `-proxyrandomize`, `-cjdnsreachable`, `-i2psam`, `-i2pacceptincoming`
+    and `-onlynet` are this binary's own flags (`src/init.cpp`).
     `Capability.TX_RECONCILIATION` and `Capability.PEER_BLOOM_FILTERS` are
     unconditional: `-txreconciliation` and `-peerbloomfilters` are
     this binary's own flags (`src/init.cpp`).
@@ -340,6 +342,9 @@ class BitcoindAdapter(NodeAdapter):
             Capability.GENERATE,
             Capability.SCAN_UTXO_SET,
             Capability.PROXY,
+            Capability.CJDNS,
+            Capability.I2P_SAM,
+            Capability.ONLYNET,
             Capability.NODE_WALLET,
             Capability.TX_RECONCILIATION,
             Capability.PEER_BLOOM_FILTERS,

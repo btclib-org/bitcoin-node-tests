@@ -380,6 +380,16 @@ _ROWS: dict[str, str] = {
     "rpc_signrawtransactionwithkey": "`rpc_signrawtransactionwithkey.py`",
     "rpc_scantxoutset": "`rpc_scantxoutset.py`",
     "feature_proxy": "`feature_proxy.py`",
+    "feature_proxy::test_cjdnsreachable_reaches_cjdns_through_the_proxy": (
+        "`feature_proxy.py` (`-cjdnsreachable`)"
+    ),
+    "feature_proxy::test_i2psam_is_the_proxy_of_i2p_alone": (
+        "`feature_proxy.py` (`-i2psam`)"
+    ),
+    "feature_proxy::test_malformed_i2psam_is_refused": "`feature_proxy.py` (`-i2psam`)",
+    "feature_proxy::test_onlynet_refuses_a_network_it_cannot_reach": (
+        "`feature_proxy.py` (`-onlynet`)"
+    ),
     "wallet_signmessagewithaddress": "`wallet_signmessagewithaddress.py`",
     "wallet_blank": "`wallet_blank.py`",
     "wallet_coinbase_category": "`wallet_coinbase_category.py`",

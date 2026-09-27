@@ -792,3 +792,9 @@ bitcoind captures a peer's messages under `-capturemessages` and refuses
 `wallet_createwalletdescriptor`, `wallet_sendmany` and `wallet_timelock` run
 against bitcoind's own wallet, btclib-node skipping each on `NODE_WALLET`;
 `wallet_disable` runs against bitcoind alone (issue #45).
+
+### `feature_proxy`'s remaining nodes and refused starts are ported
+
+`socks5.Socks5Proxy` also listens on IPv6 loopback or a unix socket. bitcoind is
+checked through either, and under `-cjdnsreachable`, `-i2psam` or a per-network
+`-proxy`, and on every start Core refuses; btclib-node skips (issue #47).

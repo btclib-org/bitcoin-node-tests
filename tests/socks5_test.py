@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import socket
 import time
+from pathlib import Path
 
 import pytest
 
@@ -19,7 +20,12 @@ _SUCCESS = bytes([5, 0, 0, 1, 0, 0, 0, 0, 0, 0])
 
 def _client(proxy: Socks5Proxy) -> socket.socket:
     """Return a connection to `proxy`, with a wait of its own."""
-    client = socket.create_connection(proxy.address)
+    address = proxy.address
+    if isinstance(address, str):
+        client = socket.socket(socket.AF_UNIX)
+        client.connect(address)
+    else:
+        client = socket.create_connection(address)
     client.settimeout(5)
     return client
 
@@ -45,6 +51,50 @@ def test_a_connect_with_no_authentication_is_recorded() -> None:
         assert proxy.next_request() == Socks5Request(
             AddressType.DOMAINNAME, b"node.noumenon", 8333, None, None
         )
+
+
+@pytest.mark.parametrize(
+    "family", [socket.AF_INET, socket.AF_INET6, socket.AF_UNIX], ids=str
+)
+def test_every_family_records_a_connect(family: int) -> None:
+    """A proxy on IPv4 or IPv6 loopback, or on a unix socket, records alike."""
+    with Socks5Proxy(family=family) as proxy, _client(proxy) as client:
+        client.sendall(bytes([5, 1, 0]) + _connect(b"node.noumenon"))
+        assert _receive(client, 2 + len(_SUCCESS)) == bytes([5, 0]) + _SUCCESS
+        assert proxy.next_request().host == b"node.noumenon"
+
+
+def test_endpoint_is_spelled_the_way_proxy_takes_it() -> None:
+    """`host:port`, an IPv6 host in brackets, or a path behind `unix:`."""
+    with Socks5Proxy() as proxy:
+        address = proxy.address
+        assert address == ("127.0.0.1", address[1])
+        assert proxy.endpoint == f"127.0.0.1:{address[1]}"
+    with Socks5Proxy(family=socket.AF_INET6) as proxy:
+        address = proxy.address
+        assert address == ("::1", address[1])
+        assert proxy.endpoint == f"[::1]:{address[1]}"
+    with Socks5Proxy(family=socket.AF_UNIX) as proxy:
+        address = proxy.address
+        assert isinstance(address, str)
+        assert proxy.endpoint == f"unix:{address}"
+
+
+def test_close_removes_a_unix_socket_and_its_directory() -> None:
+    """A unix socket's file and the directory made for it go with `close`."""
+    proxy = Socks5Proxy(family=socket.AF_UNIX)
+    address = proxy.address
+    assert isinstance(address, str)
+    path = Path(address)
+    assert path.is_socket()
+    proxy.close()
+    assert not path.parent.exists()
+
+
+def test_a_family_with_no_loopback_is_refused() -> None:
+    """A family other than the three is refused at construction."""
+    with pytest.raises(ValueError, match="no SOCKS5 proxy on"):
+        Socks5Proxy(family=socket.AF_UNSPEC)
 
 
 def test_username_password_is_chosen_where_both_sides_offer_it() -> None:
@@ -161,7 +211,7 @@ def test_close_stops_accepting_and_a_second_close_does_nothing() -> None:
     """`close` stops the listener, and closing twice is harmless."""
     proxy = Socks5Proxy()
     address = proxy.address
-    assert address[0] == "127.0.0.1"
+    assert isinstance(address, tuple)
     proxy.close()
     proxy.close()
     with pytest.raises(ConnectionRefusedError):

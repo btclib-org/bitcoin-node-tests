@@ -839,3 +839,9 @@ the default factor, as before, and 90 s at `--timeout-factor 3` (closes #230).
 btclib-node's `main` passes it, being past btclib-org/btclib-node#1402; a build
 past btclib-org/btclib-node#1409 and before it still fails, warning about the
 double negative on stderr ahead of the refusal (closes #231).
+
+### `feature_remove_pruned_files_on_startup` is ported
+
+bitcoind deletes pruned block files a reader still holds open, and a
+`-reindex` under `-prune` wipes the rest; btclib-node skips on
+`Capability.FASTPRUNE` (issue #14).

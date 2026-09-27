@@ -482,6 +482,9 @@ _ROWS: dict[str, str] = {
     "wallet_simulaterawtx": "`wallet_simulaterawtx.py`",
     "wallet_rescan_unconfirmed": "`wallet_rescan_unconfirmed.py`",
     "mining_template_verification": "`mining_template_verification.py`",
+    "feature_remove_pruned_files_on_startup": (
+        "`feature_remove_pruned_files_on_startup.py`"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

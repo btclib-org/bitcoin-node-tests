@@ -106,6 +106,15 @@ construction, spent by nobody -- so it reads the node fresh rather than a
 `MiniWallet` instance's own cache, and pays whichever `script_pub_key` its
 caller names, that caller's own wallet's `script_pub_key` ordinarily.
 
+`build_next_block` is one block rather than a fork: solved, unsubmitted,
+on the node's own current tip, carrying the transactions its caller
+names beside a coinbase paying the `script_pub_key` it names, at a
+header version it may choose -- Core's own `create_block`
+(`blocktools.py`), whose coinbase is `create_coinbase`'s. Submitting it
+is left to the caller, which reads `submitblock`'s own answer, a refusal
+as much as an acceptance, or submits it inside `assert_debug_log` to read
+bitcoind's own log line instead.
+
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
 own `mempool_package_limits.py` and `mempool_updatefromblock.py` need a
 coin cache several transactions deep rather than one spend at a time:
@@ -145,7 +154,7 @@ from btclib import var_int
 from btclib.alias import TaprootScriptTree
 from btclib.block.block import Block
 from btclib.block.build import build_block, build_coinbase
-from btclib.block.mining import mine
+from btclib.block.mining import VERSION, mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS, subsidy
 from btclib.ecc.dsa import sign_
@@ -169,6 +178,7 @@ __all__ = [
     "MiniWallet",
     "Utxo",
     "build_fork",
+    "build_next_block",
     "nulldata_script_pub_key",
     "raw_p2pk_script_sig",
 ]
@@ -226,7 +236,8 @@ class Utxo:
 def _read_tip(node: NodeAdapter) -> tuple[bytes, int, int]:
     """Return `(tip, height, median_time)`, read fresh off `node`'s own RPC.
 
-    Shared by the constructor, `MiniWallet.resync` and `build_fork`: each
+    Shared by the constructor, `MiniWallet.resync`, `build_fork` and
+    `build_next_block`: each
     needs to know where the chain actually is right now rather than
     trusting a cached view that an out-of-band `invalidateblock` or a
     `build_fork` submission may have moved since it was last read.
@@ -257,15 +268,19 @@ def _mine_one(
     min_time: int,
     script_pub_key: ScriptPubKey,
     extra_transactions: Sequence[Tx] = (),
+    *,
+    version: int = VERSION,
+    extra_output_script: ScriptPubKey | None = None,
 ) -> tuple[Block, int]:
     """Build, solve and return one block extending `tip`, and its own time.
 
-    Shared by `MiniWallet.generate` and `build_fork`: both mine a block
-    through the same client-side path -- `build_coinbase` and
-    `build_block` (`btclib.block.build`), then `mine`
+    Shared by `MiniWallet.generate`, `build_fork` and `build_next_block`:
+    each mines a block through the same client-side path --
+    `build_coinbase` and `build_block` (`btclib.block.build`), then `mine`
     (`btclib.block.mining`) -- differing in what becomes of the result
-    afterwards, submitted and cached by one and held for later submission
-    by the other, and in whether anything beyond the coinbase rides along.
+    afterwards, submitted and cached by the first and held for its caller
+    to submit by the other two, and in what rides along beside the
+    coinbase.
 
     :param tip: the previous block's own header hash.
     :param height: this block's own height.
@@ -278,6 +293,9 @@ def _mine_one(
         that a spend of one of them sits after it, since this class reads
         no mempool back to order them itself. `MiniWallet.generate`'s own
         `confirm` is the caller-facing name for this.
+    :param version: the block header's own version.
+    :param extra_output_script: where given, the coinbase carries a
+        second, zero-valued output paying it.
     :returns: the solved block, and the time it carries.
     :raises RuntimeError: `mine` exhausted its own search bound without
         solving one -- regtest's own target is wide enough that this is
@@ -286,12 +304,15 @@ def _mine_one(
     coinbase = build_coinbase(
         height, script_pub_key, halving_interval=_REGTEST_SUBSIDY_HALVING_INTERVAL
     )
+    if extra_output_script is not None:
+        coinbase.vout.append(TxOut(0, extra_output_script))
     block_time = max(int(datetime.now(UTC).timestamp()), min_time + 1)
     candidate = build_block(
         tip,
         [coinbase, *extra_transactions],
         datetime.fromtimestamp(block_time, UTC),
         REGTEST_POW_LIMIT_BITS,
+        version=version,
     )
     solved = mine(candidate.header)
     if solved is None:
@@ -332,6 +353,53 @@ def build_fork(
         blocks.append(block)
         tip = block.header.hash
     return blocks
+
+
+def build_next_block(
+    node: NodeAdapter,
+    script_pub_key: ScriptPubKey,
+    transactions: Sequence[Tx] = (),
+    *,
+    version: int = VERSION,
+    extra_output_script: ScriptPubKey | None = None,
+) -> Block:
+    """Return one solved, unsubmitted block extending `node`'s own current tip.
+
+    `create_block` over `create_coinbase`
+    (`test/functional/test_framework/blocktools.py`), mined client-side
+    by `_mine_one`, as `MiniWallet.generate` mines one. The tip, the
+    height and the median-time-past are read off `node` on every call,
+    and the block's own time is the wall clock or one second past that
+    median-time-past, whichever is later. Submitting it is the caller's,
+    and so is reading `submitblock`'s own answer.
+
+    :param node: the node whose own current tip this block extends.
+    :param script_pub_key: what the coinbase pays.
+    :param transactions: what the block carries after its coinbase, in
+        the order given.
+    :param version: the block header's own version;
+        `btclib.block.mining.VERSION` where not given, where Core's own
+        `create_block` defaults to `4`.
+    :param extra_output_script: where given, the coinbase carries a
+        second, zero-valued output paying it, Core's own
+        `create_coinbase` parameter of the same name.
+    :raises RuntimeError: `mine` exhausted its own search bound without
+        solving it -- regtest's own target is wide enough that this is
+        not expected to happen.
+    :raises TypeError: `node`'s own RPC answered something `_read_tip`
+        cannot use.
+    """
+    tip, height, median_time = _read_tip(node)
+    block, _ = _mine_one(
+        tip,
+        height + 1,
+        median_time,
+        script_pub_key,
+        transactions,
+        version=version,
+        extra_output_script=extra_output_script,
+    )
+    return block
 
 
 def nulldata_script_pub_key(data: bytes) -> ScriptPubKey:

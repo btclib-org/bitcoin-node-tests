@@ -52,24 +52,21 @@ from __future__ import annotations
 import os
 import re
 import time
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import pytest
-from btclib.block.block import Block, witness_commitment_output
-from btclib.block.build import build_block, build_coinbase
-from btclib.block.mining import mine
-from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
-from btclib.tx import Tx
+from btclib.block.block import witness_commitment_output
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
 from bitcoin_node_tests.node import free_ports
 from bitcoin_node_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from btclib.block.block import Block
 
     from bitcoin_node_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
@@ -104,6 +101,13 @@ _IMPORT_TIMEOUT = 60.0
 # it, the commitment's second preimage half
 _ZERO_WITNESS_NONCE = b"\x00" * 32
 
+# the commitment of a block carrying its coinbase alone:
+# `coinbase_witness_commitment` puts BIP141's all-zero placeholder where the
+# coinbase's own wtxid would sit, so that commitment reads no transaction
+_COINBASE_ONLY_COMMITMENT = witness_commitment_output(
+    (), _ZERO_WITNESS_NONCE
+).script_pub_key
+
 
 def _uncommitted_block(adapter: BitcoindAdapter, wallet: MiniWallet) -> Block:
     """Return a solved block on `adapter`'s own tip, shaped as Core mines it.
@@ -115,31 +119,9 @@ def _uncommitted_block(adapter: BitcoindAdapter, wallet: MiniWallet) -> Block:
     :param adapter: the node whose own tip this block extends.
     :param wallet: whose own `script_pub_key` the coinbase pays.
     """
-    tip = adapter.rpc.call("getbestblockhash")
-    height = adapter.rpc.call("getblockcount") + 1
-    median_time = adapter.rpc.call("getblockchaininfo")["mediantime"]
-    coinbase = build_coinbase(height, wallet.script_pub_key)
-    committed = Tx(
-        version=coinbase.version,
-        lock_time=coinbase.lock_time,
-        vin=coinbase.vin,
-        vout=[
-            *coinbase.vout,
-            witness_commitment_output([coinbase], _ZERO_WITNESS_NONCE),
-        ],
+    return build_next_block(
+        adapter, wallet.script_pub_key, extra_output_script=_COINBASE_ONLY_COMMITMENT
     )
-    block_time = max(int(datetime.now(UTC).timestamp()), median_time + 1)
-    candidate = build_block(
-        bytes.fromhex(tip),
-        [committed],
-        datetime.fromtimestamp(block_time, UTC),
-        REGTEST_POW_LIMIT_BITS,
-    )
-    solved = mine(candidate.header)
-    if solved is None:
-        err_msg = f"no nonce solved height {height} within the search bound"
-        raise RuntimeError(err_msg)
-    return Block(solved, candidate.transactions, check_validity=False)
 
 
 def _wait_for_import(adapter: BitcoindAdapter) -> None:

@@ -624,3 +624,9 @@ body runs on both nodes (issue #167).
 Each test calls one body over either node, so a btclib-node build that mines
 runs it rather than a stub's `pytest.fail`; `confirmed_only`, `fee_rate` and
 TRUC have `TF2.md` rows of their own (issue #125).
+
+### `mini_wallet.build_next_block` builds one block on the node's tip
+
+It returns a solved, unsubmitted block paying a chosen coinbase `scriptPubKey`,
+carrying chosen transactions at a chosen header version; the integration tests
+that kept their own copy of the builder call it instead (closes #178).

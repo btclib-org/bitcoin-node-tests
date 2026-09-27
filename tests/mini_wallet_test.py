@@ -20,7 +20,8 @@ from typing import TYPE_CHECKING, override
 from unittest.mock import patch
 
 import pytest
-from btclib.block.block import Block
+from btclib.block.block import Block, bip34_commitment
+from btclib.block.mining import VERSION
 from btclib.curves.curve import secp256k1
 from btclib.ecc.dsa import verify_
 from btclib.script import sig_hash
@@ -37,6 +38,7 @@ from bitcoin_node_tests.mini_wallet import (
     MiniWallet,
     Utxo,
     build_fork,
+    build_next_block,
     nulldata_script_pub_key,
     raw_p2pk_script_sig,
 )
@@ -550,6 +552,64 @@ def test_build_fork_pays_the_given_script_pub_key() -> None:
     fork = build_fork(node, wallet.script_pub_key, 1)
 
     assert fork[0].transactions[0].vout[0].script_pub_key == wallet.script_pub_key
+
+
+def test_build_next_block_extends_the_nodes_own_current_tip() -> None:
+    """The block's parent is the node's tip, its coinbase the next height's."""
+    rpc = _FakeRpc(best_hash="44" * 32, height=6, median_time=500)
+
+    block = build_next_block(_FakeNode(rpc), RAW_P2PK_SCRIPT_PUB_KEY)
+
+    assert block.header.previous_block_hash == bytes.fromhex("44" * 32)
+    coinbase = block.transactions[0]
+    assert coinbase.vin[0].script_sig.startswith(bip34_commitment(7))
+    assert [tx_out.script_pub_key for tx_out in coinbase.vout] == [
+        RAW_P2PK_SCRIPT_PUB_KEY
+    ]
+    assert block.header.version == VERSION
+    assert not rpc.submitted  # nothing is submitted on the caller's behalf
+
+
+def test_build_next_block_carries_the_transactions_in_order() -> None:
+    """What the caller names follows the coinbase, in the order given."""
+    rpc = _FakeRpc()
+    spends = [
+        Tx(
+            version=2,
+            lock_time=0,
+            vin=[TxIn(OutPoint(bytes([index]) * 32, 0), script_sig=b"\x51")],
+            vout=[TxOut(1_000, RAW_P2PK_SCRIPT_PUB_KEY)],
+        )
+        for index in (2, 1)
+    ]
+
+    block = build_next_block(_FakeNode(rpc), RAW_P2PK_SCRIPT_PUB_KEY, spends)
+
+    assert block.transactions[1:] == spends
+
+
+def test_build_next_block_takes_the_version_and_an_extra_output() -> None:
+    """The header's own version, and a second, zero-valued coinbase output."""
+    rpc = _FakeRpc()
+    extra = nulldata_script_pub_key(b"\x01")
+
+    block = build_next_block(
+        _FakeNode(rpc), RAW_P2PK_SCRIPT_PUB_KEY, version=3, extra_output_script=extra
+    )
+
+    assert block.header.version == 3
+    second = block.transactions[0].vout[1]
+    assert (second.value, second.script_pub_key) == (0, extra)
+
+
+def test_build_next_block_is_timed_past_the_chains_mediantime() -> None:
+    """A median-time-past ahead of the wall clock is exceeded by one second."""
+    far_future_median_time = int(datetime.now(UTC).timestamp()) + 10_000
+    rpc = _FakeRpc(median_time=far_future_median_time)
+
+    block = build_next_block(_FakeNode(rpc), RAW_P2PK_SCRIPT_PUB_KEY)
+
+    assert int(block.header.time.timestamp()) == far_future_median_time + 1
 
 
 @pytest.mark.parametrize("size", [0, 1, 80, 81, 256])

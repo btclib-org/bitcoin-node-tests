@@ -223,6 +223,9 @@ tx_out_ser = "tx_out_ser"
 # a btclib-node commit's own short sha: its middle characters spell `ded`,
 # which typos reads as a misspelt "dead" and rewrites in place
 "8ded5494" = "8ded5494"
+# a Core commit's own short sha, `p2p_addr_relay.py`'s pin: its middle
+# characters spell `ba`, which typos reads as a misspelt "by"
+"b7211ba80cde" = "b7211ba80cde"
 
 [tool.typos.type.verbatim]
 extend-glob = ["CHANGELOG.md", ".pre-commit-config.yaml", "TF2.md"]

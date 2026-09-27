@@ -600,3 +600,9 @@ timing out; btclib-node skips on `Capability.RPC_WORK_QUEUE` (issue #3).
 Both nodes' tests call one body, which asks the node's `-help` whether it splits
 its inbound slots by relay, so a btclib-node build that evicts and mines runs
 Core's scenario rather than a stub's `pytest.fail` (issue #125).
+
+### The log family's census is recorded, and more of its checks ported
+
+`p2p_handshake`'s redundant `verack`, `p2p_addr_relay`'s oversized `addr` and
+`p2p_addrv2_relay`'s late `sendaddrv2` run on both nodes; `TF2.md` names where
+every other Core test reading the log goes (issue #5).

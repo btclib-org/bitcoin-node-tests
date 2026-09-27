@@ -16,6 +16,7 @@ import pytest
 from bitcoin_node_tests import bitcoind as bitcoind_module
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability
+from bitcoin_node_tests.timeout_factor import set_factor
 
 
 def test_capabilities_are_every_one_this_repository_names() -> None:
@@ -262,6 +263,21 @@ def test_rpc_client_authenticates_with_rpc_auth_where_given(tmp_path: Path) -> N
     assert client.cookie_path is None
     assert client.user == "bob"
     assert client.url == "http://127.0.0.1:18443"
+
+
+@pytest.mark.parametrize("rpc_auth", [None, ("bob", "bobpw")])
+def test_rpc_client_timeout_is_scaled_by_the_global_factor(
+    tmp_path: Path, rpc_auth: tuple[str, str] | None
+) -> None:
+    """Cookie or credential, the client bounds a call by the scaled timeout."""
+    with patch.object(bitcoind_module, "_has_wallet", return_value=True):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444, rpc_auth=rpc_auth)
+    assert adapter._rpc_client().timeout == 30
+    set_factor(3.0)
+    try:
+        assert adapter._rpc_client().timeout == 90
+    finally:
+        set_factor(1.0)
 
 
 def test_debug_log_path_is_the_datadir_s_own_regtest_debug_log(

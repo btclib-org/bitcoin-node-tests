@@ -16,6 +16,7 @@ import pytest
 from bitcoin_node_tests import btclib_node as btclib_node_module
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import Capability
+from bitcoin_node_tests.timeout_factor import set_factor
 
 
 def test_capabilities_are_connect_alone() -> None:
@@ -241,6 +242,28 @@ def test_rpc_client_authenticates_by_the_datadir_s_cookie_post_1070(
         client = adapter._rpc_client()
     assert client.cookie_path == tmp_path / "regtest" / ".cookie"
     assert client.url == "http://127.0.0.1:18443"
+
+
+@pytest.mark.parametrize(
+    "rpc_auth, writes_cookie",
+    [(("bob", "bobpw"), True), (None, True), (None, False)],
+)
+def test_rpc_client_timeout_is_scaled_by_the_global_factor(
+    tmp_path: Path, rpc_auth: tuple[str, str] | None, writes_cookie: bool
+) -> None:
+    """Every credential path bounds a call by the scaled timeout."""
+    adapter = BtclibNodeAdapter(
+        sys.executable, tmp_path, 18443, 18444, rpc_auth=rpc_auth
+    )
+    with patch.object(
+        btclib_node_module, "_writes_auth_cookie", return_value=writes_cookie
+    ):
+        assert adapter._rpc_client().timeout == 30
+        set_factor(3.0)
+        try:
+            assert adapter._rpc_client().timeout == 90
+        finally:
+            set_factor(1.0)
 
 
 def test_log_path_is_the_datadir_s_own_regtest_history_log(tmp_path: Path) -> None:

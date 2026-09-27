@@ -827,3 +827,9 @@ peer's request for the block, as is one sending a block of unknown parent
 bitcoind checks a block proposed over `getblocktemplate` without storing it,
 refusing each malformed one in Core's own words; btclib-node skips on the new
 `Capability.BLOCK_PROPOSAL` (closes #4).
+
+### `--timeout-factor` scales the adapters' RPC client timeout, as Core's does
+
+Both adapters' RPC clients bound a call by the new
+`timeout_factor.rpc_client_timeout`, Core's own `int(60 * factor) // 2`: 30 s at
+the default factor, as before, and 90 s at `--timeout-factor 3` (closes #230).

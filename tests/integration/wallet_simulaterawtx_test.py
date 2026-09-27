@@ -65,7 +65,7 @@ _MISSING = "One or more transaction inputs are missing or have been spent alread
 
 # how many blocks one `generatetoaddress` call asks for: it answers only
 # once every block is mined, and has to inside the RPC client's own
-# timeout (`bitcoin_core_rpc`'s `DEFAULT_TIMEOUT`)
+# timeout (`timeout_factor.rpc_client_timeout`)
 _MINE_CHUNK = 50
 
 

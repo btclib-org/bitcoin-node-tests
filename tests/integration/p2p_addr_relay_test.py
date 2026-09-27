@@ -16,8 +16,8 @@ Core's own node is started with `-whitelist=addr@127.0.0.1`. That
 permission is `NetPermissionFlags::Addr` alone, not `NoBan`, so it does
 not exempt this connection from the disconnect `Misbehaving` schedules,
 and dropping it is the narrowing
-`p2p_invalid_messages_misbehaving_bitcoind_test.py`'s own docstring argues
-for the same permission. Core's entries are distinct addresses; the size
+`p2p_invalid_messages_misbehaving_test.py`'s own docstring argues for the
+same permission. Core's entries are distinct addresses; the size
 check runs before any entry is stored, so these are one default entry
 repeated, one over the bound where Core's own count is ten over it.
 

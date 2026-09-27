@@ -1086,8 +1086,8 @@ or `Capability.RAW_MESSAGE` (`p2p_net_deadlock.py`, Core's own
 `sendmsgtopeer`), so every `btclib-node` cell is a counted skip rather
 than a run on the released build, which declares none of them -- naming the
 capability rather than the RPC, since a node offering the same fact
-under another name would still answer `pass`. Every row of these but
-`p2p_net_deadlock.py` is one body run against both nodes
+under another name would still answer `pass`. Every row of these is one
+body run against both nodes
 (`tests/integration/conftest.py`'s own module docstring), so a `main`
 declaring `Capability.MINE` (`btclib_node.py`'s own docstring) runs
 Core's own scenario: `p2p_block_sync.py` passes; `p2p_compactblocks_hb.py`
@@ -1095,7 +1095,8 @@ skips on `Capability.DISCONNECT` instead, each relay dropping its link to
 the block producer over `disconnectnode`; and `p2p_invalid_locator.py`
 fails its `getblocks` half, a message that build leaves unanswered
 ([ISS btclib-node#1385](https://github.com/btclib-org/btclib-node/issues/1385)).
-`p2p_net_deadlock.py` still skips on `Capability.RAW_MESSAGE`.
+`p2p_net_deadlock.py` skips on `Capability.RAW_MESSAGE`, which it asks for
+ahead of `Capability.MINE`.
 `p2p_compactblocks_hb.py` identifies each of the node under test's own
 peers by connection order rather than by the `-uacomment` Core's own
 `TestNode` sets, this adapter carrying no per-node command-line option;
@@ -1127,7 +1128,7 @@ dropped for the same reason `test_magic_bytes`'s row already drops it:
 a permission name, and the one Core's own file passes there grants
 `NetPermissionFlags::Addr` rather than `NoBan`, so it does not exempt
 the connection from the discourage-and-disconnect these checks are
-about. `tests/integration/p2p_invalid_messages_misbehaving_bitcoind_test.py`'s
+about. `tests/integration/p2p_invalid_messages_misbehaving_test.py`'s
 own docstring has the full argument, including why the PoW check needs
 none of Core's own preliminary "send a valid header first" step. Of
 these, only the oversized-`inv` row disagrees on btclib-node's own
@@ -1147,7 +1148,7 @@ the peer exactly as a wrong network magic does --
 declared length is over `MAX_PROTOCOL_MESSAGE_LENGTH` and returns before
 a message ever reaches `GetReceivedMessage`, the same early exit
 `test_magic_bytes`'s own row already reads --
-`tests/integration/p2p_invalid_messages_bitcoind_test.py`'s own docstring
+`tests/integration/p2p_invalid_messages_test.py`'s own docstring
 carries both rows now. Both the wire and the log tests build the same
 several-megabyte payload and tolerate a `ConnectionError` on the send
 itself, measured live: the node closes the socket before this side has
@@ -1166,7 +1167,7 @@ Drop the message but don't disconnect the peer." So each row's wire half
 asks the opposite question from `test_magic_bytes`'s: that the connection
 *survives*, read off a `ping`/`pong` round trip rather than
 `wait_for_disconnect`.
-`tests/integration/p2p_invalid_messages_dropped_bitcoind_test.py`'s own
+`tests/integration/p2p_invalid_messages_dropped_test.py`'s own
 docstring has the full argument, including why Core's own
 `bytesrecv_per_msg` check on the checksum and msgtype rows is dropped.
 Every one of them disagrees on btclib-node's own released build, and by

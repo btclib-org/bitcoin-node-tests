@@ -20,12 +20,14 @@ already sent it by the time `handshake` returns, and no explicit wait is
 needed to reach the same guarantee `SenderOfAddrV2` asks for by name.
 
 None of Core's own four checks disconnects the peer -- an addrv2 that
-fails to deserialize is one more entry `ProcessMessages`'s own outer
-`catch` logs and moves past, `src/net_processing.cpp`'s comment on it
-argued in `p2p_invalid_messages_dropped_bitcoind_test.py` -- so each is a
-wire-and-log pair of the same shape that module already uses: a `ping`
-round-trip confirms the connection is still there, and
-`Capability.DEBUG_LOG` gates the log half.
+fails to deserialize throws out of `ProcessMessage`, and
+`PeerManagerImpl::ProcessMessages`'s own `catch` (`src/net_processing.cpp`)
+logs the exception and moves on, the same drop-but-keep outcome
+`p2p_invalid_messages_dropped_test.py`'s own docstring argues from
+`CNode::ReceiveMsgBytes`'s comment (`src/net.cpp`) for a message the
+transport rejects -- so each is a wire-and-log pair of the same shape that
+module already uses: a `ping` round-trip confirms the connection is still
+there, and `Capability.DEBUG_LOG` gates the log half.
 
 `test_addrv2_unrecognized_network`'s two log lines past the first,
 `9.9.9.9:8333` and `Added 1 addresses`, are `LogDebug(BCLog::ADDRMAN,

@@ -33,7 +33,7 @@ own style (`tests/integration/feature_torcontrol_bitcoind_test.py`)
 rather than a skip -- a build lacking `FEATURE` support does not merely
 answer the wire differently, it silently ignores the message and the
 connection survives, which `_survives` below confirms the same way
-`p2p_invalid_messages_dropped_bitcoind_test.py`'s own `_sync` does, over
+`p2p_invalid_messages_dropped_test.py`'s own `_sync` does, over
 a `ping`/`pong` round trip rather than over a timeout with nothing to
 observe. A `pytest.skip` was tried first and reverted: bitcoind is rule
 3's own oracle, and
@@ -90,7 +90,7 @@ def _protocol_version(bitcoind_adapter: BitcoindAdapter) -> int:
 def _survives(peer: Peer) -> None:
     """Round-trip a `ping`, confirming `peer`'s own connection is still up.
 
-    `p2p_invalid_messages_dropped_bitcoind_test.py`'s own `_sync`, the
+    `p2p_invalid_messages_dropped_test.py`'s own `_sync`, the
     established idiom here for "this connection is still usable" -- a
     build with no `"feature"` branch at all treats the message the same
     way it treats any other one it does not recognise, silently.

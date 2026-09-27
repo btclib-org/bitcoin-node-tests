@@ -714,3 +714,9 @@ and searches its UTXO set by descriptor; `Capability.GENERATE` and
 A `needs` row still listed unfinished is read again, up to three times ten
 seconds apart, before being accepted (issue btclib-org/.github#1416); a `needs`
 result neither `success` nor `skipped` fails (issue btclib-org/.github#1424).
+
+### More p2p tests run one body on both nodes
+
+`p2p_disconnect_ban`, `p2p_invalid_messages` but its `addrv2` checks,
+`p2p_leak`, `p2p_leak_tx` and `p2p_net_deadlock` call one body per test, over
+either node (issue #125).

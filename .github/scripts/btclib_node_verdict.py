@@ -460,6 +460,18 @@ _ROWS: dict[str, str] = {
     "p2p_feefilter::test_feefilter_is_not_sent_in_blocks_only_mode": (
         "`p2p_feefilter.py` (blocksonly)"
     ),
+    "p2p_mutated_blocks::test_mutated_block_keeps_the_honest_request": (
+        "`p2p_mutated_blocks.py` (wire)"
+    ),
+    "p2p_mutated_blocks::test_mutated_block_is_logged": (
+        "`p2p_mutated_blocks.py` (log)"
+    ),
+    "p2p_mutated_blocks::test_block_missing_its_parent_drops_the_peer": (
+        "`p2p_mutated_blocks.py` (missing parent, wire)"
+    ),
+    "p2p_mutated_blocks::test_block_missing_its_parent_is_logged": (
+        "`p2p_mutated_blocks.py` (missing parent, log)"
+    ),
     "p2p_message_capture": "`p2p_message_capture.py`",
     "feature_blocksxor": "`feature_blocksxor.py`",
     "wallet_createwalletdescriptor": "`wallet_createwalletdescriptor.py`",

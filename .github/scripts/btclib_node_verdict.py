@@ -212,6 +212,9 @@ _ROWS: dict[str, str] = {
     "feature_dersig::test_a_block_below_the_minimum_version_is_logged": (
         "`feature_dersig.py` (log)"
     ),
+    "feature_dersig::test_a_non_der_signature_is_refused_once_active": (
+        "`feature_dersig.py` (signature)"
+    ),
     "feature_cltv::test_cltv_activates_one_block_before_the_configured_height": (
         "`feature_cltv.py`"
     ),

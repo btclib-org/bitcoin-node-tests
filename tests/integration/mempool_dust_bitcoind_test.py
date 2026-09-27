@@ -36,8 +36,7 @@ dust output its package spends, and the subject of Core's own
 The public key every script below pays is secp256k1's own generator
 point: none of these outputs is ever spent, only measured for its own
 dust threshold, so no signature is needed and no key is generated for
-it (rule 7 of
-[ISS btclib-org/btclib#2220](https://github.com/btclib-org/btclib/issues/2220)).
+it.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """

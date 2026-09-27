@@ -558,3 +558,9 @@ NULLDUMMY is still the only refusal (closes #165).
 On bitcoind started on the main chain, each of Core's invalid addresses answers
 its own error and `error_locations`, and each valid one its own `scriptPubKey`;
 btclib-node's test skips on `Capability.VALIDATE_ADDRESS` (closes #153).
+
+### `feature_dersig`'s non-DER signature is ported, signed with btclib
+
+`mini_wallet.py` gains Core's own `RAW_P2PK` output and its signature, and
+`feature_dersig`'s spend of it is mined before BIP66 and refused after, by the
+mempool and a block alike (issue #167).

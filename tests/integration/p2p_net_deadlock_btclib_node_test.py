@@ -4,12 +4,13 @@
 
 """Core's `p2p_net_deadlock`, rewritten on tf2's own harness: btclib-node.
 
-The same request `p2p_net_deadlock_bitcoind_test.py` makes, against the
-target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
-`Capability.RAW_MESSAGE` is not declared by `BtclibNodeAdapter`: it has
-no `sendmsgtopeer` equivalent in its RPC dispatch table at all, measured
-against `382a29fb`'s `src/btclib_node/rpc/callbacks.py`, so this skips
-before either capability is asked to do anything.
+`p2p_net_deadlock_test.py` beside this module is the body, run here
+against the target rather than the oracle (rule 3 of issue
+btclib-org/btclib#2220). `Capability.RAW_MESSAGE` is not declared by
+`BtclibNodeAdapter`: `sendmsgtopeer` names no callback in
+`src/btclib_node/rpc/callbacks.py`'s own dispatch table, on the released
+build or on `main`, so this skips once its two nodes are started, before
+either is asked to send anything.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_net_deadlock_btclib_node_test.py
@@ -21,9 +22,13 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.capability import Capability, require
+from tests.integration.p2p_net_deadlock_test import (
+    simultaneous_large_messages_do_not_deadlock,
+)
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
 
@@ -31,10 +36,8 @@ pytestmark = pytest.mark.integration
 
 
 def test_simultaneous_large_messages_do_not_deadlock(
-    btclib_node_adapter: BtclibNodeAdapter, skip_counts: SkipCounts
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
 ) -> None:
-    """The target: the same request the bitcoind module makes."""
-    require(Capability.CONNECT, btclib_node_adapter.capabilities, skip_counts)
-    require(Capability.RAW_MESSAGE, btclib_node_adapter.capabilities, skip_counts)
-    require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
-    pytest.fail("not ported for this node")
+    """The target: the body this module's docstring names, over btclib-node."""
+    simultaneous_large_messages_do_not_deadlock(btclib_node_cluster, skip_counts)

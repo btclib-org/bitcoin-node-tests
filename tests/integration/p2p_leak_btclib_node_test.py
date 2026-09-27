@@ -4,13 +4,13 @@
 
 """Core's `p2p_leak`, rewritten on tf2's own harness: btclib-node.
 
-`p2p_leak_bitcoind_test.py`'s own docstring is where the split this
-takes `P2PLeakTest`'s closing check into is argued. `btclib-node`'s own
-`p2p.callbacks.version` (`382a29fb`) refuses a peer the same way, on a
-narrower and unconditional threshold -- `version_msg.version <
-PROTOCOL_VERSION` (`70016`) rather than bitcoind's own `MIN_PEER_PROTO_VERSION`
-(`31800`) -- so Core's own 31799 is obsolete to this node too, and the
-wire half asks for nothing and passes here as well.
+`p2p_leak_test.py` beside this module is the body, run here against the
+target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
+`btclib-node`'s own `p2p.callbacks.version` refuses a peer below a floor
+of its own: PyPI's `2026.9.24` on `version_msg.version < PROTOCOL_VERSION`
+(`70016`), `main` on Core's own `MIN_PEER_PROTO_VERSION` (`31800`,
+`p2p/protocol_version.py`). Core's own 31799 is under either, so the wire
+half passes on both builds.
 
 The log half does not: `Capability.DEBUG_LOG` is not declared
 (`btclib_node.py`'s own `capabilities`), this node's own log carrying no
@@ -25,11 +25,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from btclib.p2p import ServiceFlags, Version
-from btclib.p2p.magic import magic_from_chain
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.peer import Peer
+from tests.integration.p2p_leak_test import (
+    obsolete_version_disconnects_the_peer,
+    obsolete_version_is_logged,
+)
 
 if TYPE_CHECKING:
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
@@ -37,33 +37,16 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.integration
 
-_MAGIC = magic_from_chain("regtest")
-_OBSOLETE_VERSION = 31799
-
-
-def _send_obsolete_version(peer: Peer) -> None:
-    peer.send(
-        Version(
-            version=_OBSOLETE_VERSION,
-            services=ServiceFlags.NODE_NETWORK | ServiceFlags.NODE_WITNESS,
-            nonce=1,
-        )
-    )
-
 
 def test_obsolete_version_disconnects_the_peer(
     btclib_node_adapter: BtclibNodeAdapter,
 ) -> None:
-    """The wire half: the same request the bitcoind module makes."""
-    with Peer(btclib_node_adapter.p2p_address, _MAGIC) as peer:
-        _send_obsolete_version(peer)
-        peer.wait_for_disconnect()
+    """The target: the wire half the body module names, over btclib-node."""
+    obsolete_version_disconnects_the_peer(btclib_node_adapter)
 
 
 def test_obsolete_version_is_logged(
-    btclib_node_adapter: BtclibNodeAdapter,
-    skip_counts: SkipCounts,
+    btclib_node_adapter: BtclibNodeAdapter, skip_counts: SkipCounts
 ) -> None:
-    """The log half: skipped, this node's own log carrying no such wording."""
-    require(Capability.DEBUG_LOG, btclib_node_adapter.capabilities, skip_counts)
-    pytest.fail("not ported for this node")
+    """The target: skipped, this node's own log carrying no such wording."""
+    obsolete_version_is_logged(btclib_node_adapter, skip_counts)

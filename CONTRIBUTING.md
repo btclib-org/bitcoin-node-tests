@@ -537,11 +537,11 @@ The same `pytest_configure` scales `pyproject.toml`'s own per-test
 
 `--v2transport` and `--v1transport`: through the adapter rather than a
 pytest option, since this suite has no central test-framework object
-for a flag like Core's own to set a default on. `BitcoindAdapter`'s own
-`extra_args=("-v2transport=1",)` or `("-v2transport=0",)` is Core's
-own flag, node by node;
-`tests/integration/v2transport_option_bitcoind_test.py` measures both
-directions against `getpeerinfo`'s own `transport_protocol_type`.
+for a flag like Core's own to set a default on. An adapter's own
+`extra_args`, `("-v2transport=1",)` or `("-v2transport=0",)`, is Core's
+own flag, node by node; `tests/integration/v2transport_option_test.py`
+passes it to `NodeAdapter.restart` and measures both directions against
+`getpeerinfo`'s own `transport_protocol_type`.
 `Capability.V2TRANSPORT` is declared by `BitcoindAdapter` alone: `Peer`
 (`peer.py`) speaks only the plaintext v1 wire format, so the capability
 covers node-to-node connections and not a `Peer`'s own, and

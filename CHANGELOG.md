@@ -672,3 +672,9 @@ btclib-org/.github#1409).
 bitcoind signs each multisig spend in two parts, merges them and mines it, and
 `createmultisig`'s key-count limits and legacy fallback are checked;
 btclib-node skips on `Capability.SIGN_RAW_TRANSACTION` (issue #167).
+
+### `feature_dersig`, `rpc_uptime` and option tests run one body on both nodes
+
+`feature_uacomment`, `rpc_uptime`, `v2transport_option`, `rpc_echo_payload`,
+`feature_fastprune`, `mempool_fill` and `feature_dersig` call one body per test,
+which asks the running node rather than its class for capabilities (issue #125).

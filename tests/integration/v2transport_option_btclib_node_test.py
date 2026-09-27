@@ -4,12 +4,13 @@
 
 """Core's `--v2transport`, restated through the adapter: btclib-node.
 
-The same subject `v2transport_option_bitcoind_test.py` measures, against
-the target rather than the oracle (rule 3 of issue btclib-org/btclib#2220):
-`Capability.V2TRANSPORT` is never declared here -- `btclib_node.py`'s own
-module docstring has the measurement, `addnode`'s own `v2transport`
-parameter read and discarded with no BIP324 codec behind it -- so this
-counts a skip rather than a silent pass.
+`v2transport_option_test.py` beside this module holds each body, run
+here against the target rather than the oracle (rule 3 of issue
+btclib-org/btclib#2220): `Capability.V2TRANSPORT` is never declared
+here -- `btclib_node.py`'s own module docstring has the measurement,
+`addnode`'s own `v2transport` parameter read and discarded with no
+BIP324 codec behind it -- so each counts a skip rather than a silent
+pass.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/v2transport_option_btclib_node_test.py
@@ -21,27 +22,31 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-from bitcoin_node_tests.capability import Capability, require
+from tests.integration.v2transport_option_test import (
+    v2transport_0_connects_nodes_over_v1,
+    v2transport_1_connects_nodes_over_bip324,
+)
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
 
 
-def test_v2transport_is_not_declared(
-    btclib_node_python: str, skip_counts: SkipCounts
+def test_v2transport_1_connects_nodes_over_bip324(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
 ) -> None:
-    """`Capability.V2TRANSPORT` is not declared, so this counts a skip.
+    """The target: the body this module's docstring names, over btclib-node."""
+    v2transport_1_connects_nodes_over_bip324(btclib_node_cluster, skip_counts)
 
-    Checked before a node is ever spawned, the same way
-    `feature_uacomment_btclib_node_test.py`'s own case is: the capability
-    is the class's own, unconditional on the instance. `btclib_node_python`
-    is asked for anyway -- unused otherwise -- so that this still skips
-    itself without `TF2_INTEGRATION`, the way every other test under
-    `tests/integration/` does.
-    """
-    del btclib_node_python
-    require(Capability.V2TRANSPORT, BtclibNodeAdapter.capabilities, skip_counts)
-    pytest.fail("not ported for this node")
+
+def test_v2transport_0_connects_nodes_over_v1(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btclib-node."""
+    v2transport_0_connects_nodes_over_v1(btclib_node_cluster, skip_counts)

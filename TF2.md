@@ -1518,7 +1518,7 @@ rather than a bitcoind-only row. A smaller claim than Core's own file:
 bitcoind's refusal is matched on its HTTP status alone,
 `bitcoin_core_rpc`'s own `HttpError` keeping the status and not the
 `Work queue depth exceeded` sent with it
-(`tests/integration/rpc_echo_payload_bitcoind_test.py`'s own docstring).
+(`tests/integration/rpc_echo_payload_test.py`'s own docstring).
 `btclib-node`'s cell is a counted skip on that capability: `cli.py`
 registers neither option, on the released build or on `main`
 (`btclib_node.py`'s own docstring has the measurement). Core's test
@@ -1941,10 +1941,10 @@ MiniWallet families' first tests to need both mechanisms together:
 `capability.py`) holds one buried deployment inactive until a chosen
 height, and `MiniWallet.generate` (`Capability.MINE`) mines to it with
 no node wallet. Each is a smaller claim than Core's own file, declared
-rather than silent, `feature_cltv_test.py`'s module docstring and the
-`*_bitcoind_test.py` one of each of its siblings carrying the full
-argument: kept is `getdeploymentinfo`'s own transition one block before
-the configured height, and, for `feature_dersig.py` and
+rather than silent, the module docstrings of `feature_cltv_test.py`,
+`feature_dersig_test.py` and `feature_csv_activation_bitcoind_test.py`
+carrying the full argument: kept is `getdeploymentinfo`'s own transition
+one block before the configured height, and, for `feature_dersig.py` and
 `feature_cltv.py`, the buried-deployment version floor a too-low
 block version trips once the deployment is active -- `bad-version(0x...)`,
 `submitblock`'s own answer and, on a row of its own, the same wording in
@@ -2175,7 +2175,7 @@ every adapter this repository builds speaks -- `btclib-node`'s own
 `add_node` reads and type-checks the argument without ever acting on it,
 [ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)
 being why. A test whose subject is BIP324 itself,
-`v2transport_option_bitcoind_test.py`, passes `True`. Measured against
+`v2transport_option_test.py`, passes `True`. Measured against
 the fix: the mixed-cluster test below, which timed out before it and
 passes after, on every `btclib-node` build measured.
 

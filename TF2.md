@@ -898,6 +898,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_includeconf.py` (nested) | same | same | pass | fail ([ISS btclib-node#1403](https://github.com/btclib-org/btclib-node/issues/1403)) on the build; pass on a build past [ISS btclib-node#1403](https://github.com/btclib-org/btclib-node/issues/1403) |
 | `feature_includeconf.py` (missing) | same | same | pass | fail ([ISS btclib-node#1187](https://github.com/btclib-org/btclib-node/issues/1187)) on the build; pass on a build past [ISS btclib-node#1187](https://github.com/btclib-org/btclib-node/issues/1187) |
 | `feature_reindex_init.py` | [`0d1301b47a35`](https://github.com/bitcoin/bitcoin/commit/0d1301b47a35) | 2026-03-24 | pass | skip (reindex_after_failure) |
+| `rpc_generate.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (generate) |
+| `rpc_signrawtransactionwithkey.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (sign_raw_transaction) |
+| `rpc_scantxoutset.py` | [`b388674acf06`](https://github.com/bitcoin/bitcoin/commit/b388674acf06) | 2026-08-06 | pass, `start`'s refusal of a null scan-object list asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (scan_utxo_set) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1872,17 +1875,38 @@ and the body then stops at `MiniWallet.resync`, which asks `gettxout`,
 an RPC that build does not serve
 ([ISS btclib-node#1388](https://github.com/btclib-org/btclib-node/issues/1388)).
 
-`rpc_generate.py`, `rpc_scantxoutset.py`, `rpc_signrawtransactionwithkey.py`
-and `mining_template_verification.py` stay open under this issue, as the
-census above has them. Each drives
-`generatetoaddress`/`generateblock`/`generate`, `scantxoutset`,
-`signrawtransactionwithkey`, or `getblocktemplate` in proposal mode as
-its own subject, `MiniWallet` only funding a transaction
-the RPC under test then answers for. None of those RPCs is in
-`btclib_node`'s own dispatch table (`src/btclib_node/rpc/callbacks.py`).
-A port's `btclib-node` cell is the family's own skip on `Capability.MINE`
-all the same, so the missing RPC is a finding on btclib-node's tracker
-only once that node declares `MINE`.
+`rpc_generate.py`, `rpc_signrawtransactionwithkey.py` and
+`rpc_scantxoutset.py` are ported, their own rows above, each one body run
+against both nodes (`tests/integration/conftest.py`'s own module
+docstring). Each drives the RPC it is named for as its own subject --
+`generatetoaddress` and `generateblock`, `signrawtransactionwithkey`,
+`scantxoutset` -- with `MiniWallet` mining the coins and funding the
+outputs that RPC then answers for, and each asks for that RPC's own
+capability first, ahead of `Capability.MINE` wherever it needs a coin:
+`Capability.GENERATE`, `Capability.SIGN_RAW_TRANSACTION` and
+`Capability.SCAN_UTXO_SET` (`capability.py`). `btclib_node`'s own dispatch table
+(`src/btclib_node/rpc/callbacks.py`) names none of those RPCs, at the
+released build or at `main`, so each `btclib-node` cell is that skip on
+both, `main`'s own `MINE` never reached
+([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404),
+[ISS btclib-node#1396](https://github.com/btclib-org/btclib-node/issues/1396),
+[ISS btclib-node#1400](https://github.com/btclib-org/btclib-node/issues/1400),
+[ISS btclib-node#1406](https://github.com/btclib-org/btclib-node/issues/1406)).
+What each port builds with btclib where Core asks the node, and what it
+drops, is in its own `tests/integration/<file>_test.py` docstring.
+`rpc_scantxoutset.py`'s `bitcoind` cell is build-dependent: the pinned
+file expects `start` with a null scan-object list refused as a missing
+argument, which bitcoind does from `v32.0rc1` on, the first tag carrying
+bitcoin/bitcoin@aeca0610865ede44004b42a16ef6318245fe0644, while the
+pinned release refuses the null as a value of the wrong type; the
+bitcoind module reads `getnetworkinfo`'s own `version` and expects
+whichever the running build answers.
+
+`mining_template_verification.py` stays open under this issue, as the
+census above has it: it drives `getblocktemplate` in proposal mode as
+its own subject, `MiniWallet` only funding a transaction the RPC then
+answers for, and `getblocktemplate` is not in `btclib_node`'s own
+dispatch table either.
 
 `mempool_accept_wtxid.py` needs `MiniWallet.create_self_transfer` plus a
 script-malleation helper this repository does not yet build -- Core's own
@@ -1891,14 +1915,14 @@ children of one parent sharing a txid and differing only in the witness
 that satisfies it -- and a peer connection watching which one the node
 rebroadcasts by wtxid. `rpc_orphans.py` needs
 `create_self_transfer(utxo_to_spend=...)` chained into orphan pairs,
-`getorphantxs` (absent from `btclib_node`'s own dispatch, so `bitcoind
-only` the way `feature_torcontrol.py`'s row already is), and separate
+`getorphantxs` (absent from `btclib_node`'s own dispatch, so a
+capability of its own, the way `rpc_signrawtransactionwithkey.py`'s row
+asks for `Capability.SIGN_RAW_TRANSACTION`), and separate
 `peer.py` connections, each sending an unconfirmed child ahead of its own
 parent. Both ask for MiniWallet alone in step 5's own sense -- no node
 wallet, no log, no mocktime, no disk, one node, no option beyond the
 adapters' -- so
-neither is ISS 14's; both stay open under this issue, unported this
-round.
+neither is ISS 14's; both stay open under this issue, unported.
 
 `mempool_cluster.py` and `rpc_packages.py` also drive MiniWallet alone at
 first read, but each also restarts its node with an option --

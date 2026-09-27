@@ -376,6 +376,9 @@ _ROWS: dict[str, str] = {
         "`feature_includeconf.py` (missing)"
     ),
     "feature_reindex_init": "`feature_reindex_init.py`",
+    "rpc_generate": "`rpc_generate.py`",
+    "rpc_signrawtransactionwithkey": "`rpc_signrawtransactionwithkey.py`",
+    "rpc_scantxoutset": "`rpc_scantxoutset.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

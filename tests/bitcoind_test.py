@@ -60,6 +60,8 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.SIGN_RAW_TRANSACTION,
             Capability.INVALIDATE_BLOCK,
             Capability.REINDEX_AFTER_FAILURE,
+            Capability.GENERATE,
+            Capability.SCAN_UTXO_SET,
         }
     )
 
@@ -182,6 +184,7 @@ def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
         Capability.TEST_ACTIVATION_HEIGHT,
         Capability.TYPED_OUTBOUND,
         Capability.REINDEX_AFTER_FAILURE,
+        Capability.GENERATE,
     }
 
 
@@ -197,6 +200,7 @@ def test_capabilities_drop_the_test_chain_only_ones_on_main(
         Capability.TEST_ACTIVATION_HEIGHT,
         Capability.TYPED_OUTBOUND,
         Capability.REINDEX_AFTER_FAILURE,
+        Capability.GENERATE,
         Capability.ACCEPT_NON_STANDARD,
     }
 

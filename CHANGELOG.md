@@ -756,3 +756,9 @@ one body per test; the released btclib-node fails the refusal (issue #125).
 bitcoind reindexes back to its height, over blocks out of order, after a
 stopped reindex and from a read-only block file, and logs Core's `reindex`
 category; btclib-node skips on the new `Capability.REINDEX` (issue #14).
+
+### `TF2.md`'s `rpc_setban` and `p2p_eviction` cells name btclib-node's fixes
+
+`rpc_setban.py`'s non-IP row passes past btclib-org/btclib-node#1218;
+`p2p_eviction.py`'s fails on some runs past btclib-org/btclib-node#1179, a
+`ping` overtaking the `tx` before it (btclib-org/btclib-node#1410) (issue #212).

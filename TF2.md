@@ -2936,8 +2936,9 @@ wire half and a log half over a fresh node in
 has what differs from Core's file. The mutated-block check has the node
 dial an outbound full-relay peer, so it asks for `TYPED_OUTBOUND`, and
 `MINE` for the block it announces, which spends a `MiniWallet` coin; the
-missing-parent check's wire half asks for `MINE` alone, and its log half
-for `TEST_ACTIVATION_HEIGHT` besides. Its pin is past the pinned release:
+missing-parent check's wire half asks for `MINE` alone. Each log half asks
+for `DEBUG_LOG` besides, and the missing-parent one for
+`TEST_ACTIVATION_HEIGHT` too. Its pin is past the pinned release:
 Core's file there sends a `sendcmpct` and the block's header ahead of the
 `cmpctblock`, where the release's own sends neither, and each `bitcoind`
 cell is one verdict for both builds. `btclib-node`'s cell on the

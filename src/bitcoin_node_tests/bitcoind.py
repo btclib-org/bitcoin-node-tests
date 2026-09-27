@@ -190,9 +190,8 @@ class BitcoindAdapter(NodeAdapter):
     too: this is Core's own binary, so `blk*.dat` under `blocks/` is the
     format it already writes, not one this adapter has to add anything
     for. `Capability.DEBUG_LOG` is `debug_log_path` below, over the
-    node's own `-debug=net`, `-debug=addrman`, `-debug=txreconciliation`
-    and `-debug=reindex`: bitcoind's own binary is what writes Core's own
-    wording, which is the fact this capability names.
+    `-debug` categories `_command` enables: bitcoind's own binary is what
+    writes Core's own wording, which is the fact this capability names.
     `Capability.UA_COMMENT` is unconditional too: `-uacomment` is Core's
     own flag, so this is the one node under test that always has it,
     whatever a later option capability turns out to name.
@@ -416,14 +415,13 @@ class BitcoindAdapter(NodeAdapter):
         throwaway node run from a test suite wants none of the
         three. `-fallbackfee` is set because a chain with no fee history
         refuses to fund a transaction without it, which `Capability.MINE`
-        meets the moment a caller spends what it mines. `-debug=net`,
-        `-debug=addrman`, `-debug=txreconciliation` and `-debug=reindex`
-        are `Capability.DEBUG_LOG`'s own condition: the log lines the log
-        family's tests read are `LogDebug`'s (`src/util/log.h`), in Core's
-        own `net`, `addrman`, `txreconciliation` and `reindex` categories,
-        and print at all only where their own category is enabled.
-        `-debug` accumulates, each occurrence enabling one more category,
-        so each is an entry of its own rather than one replacing another --
+        meets the moment a caller spends what it mines. The `-debug`
+        entries are `Capability.DEBUG_LOG`'s own condition: the log lines
+        the log family's tests read are `LogDebug`'s (`src/util/log.h`),
+        each in a category of Core's own, and print at all only where that
+        category is enabled. `-debug` accumulates, each occurrence enabling
+        one more category, so each is an entry of its own rather than one
+        replacing another --
         unconditional here rather than left to a per-test option, since
         `_check_extra_args` (`node.py`) refuses an `extra_args` entry
         naming `-debug` once this argv sets it.
@@ -494,6 +492,7 @@ class BitcoindAdapter(NodeAdapter):
             "-debug=addrman",
             "-debug=txreconciliation",
             "-debug=reindex",
+            "-debug=validation",
             *isolation,
         ]
 

@@ -151,6 +151,7 @@ def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:
     assert "-debug=addrman" in command
     assert "-debug=txreconciliation" in command
     assert "-debug=reindex" in command
+    assert "-debug=validation" in command
 
 
 def test_chains_are_every_one_the_release_runs() -> None:

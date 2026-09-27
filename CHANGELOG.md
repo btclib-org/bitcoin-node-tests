@@ -821,3 +821,9 @@ over a loaded wallet stays within the RPC client's timeout under load; an
 A peer sending a mutated block is checked dropped without clearing an honest
 peer's request for the block, as is one sending a block of unknown parent
 (issue #44).
+
+### `mining_template_verification` is ported
+
+bitcoind checks a block proposed over `getblocktemplate` without storing it,
+refusing each malformed one in Core's own words; btclib-node skips on the new
+`Capability.BLOCK_PROPOSAL` (closes #4).

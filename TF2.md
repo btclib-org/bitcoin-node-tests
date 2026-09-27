@@ -949,6 +949,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `wallet_disable.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | bitcoind only |
 | `mempool_accept_wtxid.py` | [`3f5211cba8e7`](https://github.com/bitcoin/bitcoin/commit/3f5211cba8e7) | 2026-01-21 | pass | skip (mine) on the build; fail ([ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `rpc_orphans.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (orphanage) |
+| `mining_template_verification.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (block_proposal) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1952,11 +1953,24 @@ pinned release refuses the null as a value of the wrong type; the
 bitcoind module reads `getnetworkinfo`'s own `version` and expects
 whichever the running build answers.
 
-`mining_template_verification.py` stays open under this issue, as the
-census above has it: it drives `getblocktemplate` in proposal mode as
-its own subject, `MiniWallet` only funding a transaction the RPC then
-answers for, and `getblocktemplate` is not in `btclib_node`'s own
-dispatch table either.
+`mining_template_verification.py` is ported, its own row above, one body
+run against both nodes (`tests/integration/conftest.py`'s own module
+docstring). Its subject is `getblocktemplate` in BIP23's `proposal`
+mode, checking a block without storing it, so it asks for
+`Capability.BLOCK_PROPOSAL` (`capability.py`) ahead of
+`Capability.MINE`, `MiniWallet` mining the chain the proposals build on
+and the transaction they carry. `getblocktemplate` is not in
+`btclib_node`'s own dispatch table, at the released build or at `main`,
+so the `btclib-node` cell is that skip on both, `main`'s own `MINE`
+never reached
+([ISS btclib-node#1427](https://github.com/btclib-org/btclib-node/issues/1427)).
+With that ask removed, `main` fails the body next on `getblock` at its
+default verbosity, which it refuses
+([ISS btclib-node#1428](https://github.com/btclib-org/btclib-node/issues/1428)).
+The blocks it proposes are built with btclib in the shape of Core's own
+`create_block` and `create_coinbase` (`blocktools.py`), and what the
+port changes from Core's file is in its own
+`tests/integration/mining_template_verification_test.py` docstring.
 
 `mempool_accept_wtxid.py` and `rpc_orphans.py` are ported, their own
 rows above, each one body run against both nodes, `MiniWallet` building

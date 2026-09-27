@@ -534,3 +534,9 @@ explaining it, ledger and tests alike, names the released build (closes #157).
 Every step of Core's own file runs, each spending a multisig that requires no
 signature, NULLDUMMY reading the dummy whatever the required count; the test
 builds each scriptSig and witness, and `MiniWallet` gains nothing (closes #64).
+
+### `p2p_disconnect_ban`'s `disconnectnode` half is ported
+
+It passes on bitcoind and skips on btclib-node, which has no `disconnectnode`
+RPC. `TF2.md` hands every other node-linking file to ISS 14, this file's
+`setban` half among them, unless the census disqualifies it (closes #43).

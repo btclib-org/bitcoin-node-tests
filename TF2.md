@@ -835,6 +835,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_setban.py` (noban) | same | same | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
 | `rpc_setban.py` (non-IP) | same | same | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
 | `rpc_setban.py` (bantime) | same | same | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
+| `p2p_disconnect_ban.py` (disconnectnode) | [`dcd90fbe54cf`](https://github.com/bitcoin/bitcoin/commit/dcd90fbe54cf) | 2026-04-07 | pass | skip (disconnect) |
 | `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
@@ -1812,6 +1813,20 @@ an onion address
 and `-bantime`
 ([ISS btclib-node#1219](https://github.com/btclib-org/btclib-node/issues/1219)).
 
+`p2p_disconnect_ban.py`'s "Test disconnectnode RPCs" section is ported,
+its own row above: a pair of nodes connected both ways, `disconnectnode`
+refusing an address and a node id given together and an address no
+peer has, then dropping a peer by address, the pair reconnecting, and
+dropping a peer by node id. `Capability.DISCONNECT` is `btclib-node`'s
+counted skip on every build,
+[ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193)
+being why. The file's `setban` half is not ported: it reads
+`ban_duration` and `time_remaining` under `setmocktime`, waits for
+"Recreating the banlist database" in `debug.log`, and deletes
+`banlist.json` from the data directory -- the clock, log and disk
+families beside node-linking, which makes it
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s.
+
 A cluster mixing bitcoind and btclib-node -- the issue's own "most
 valuable case" -- is `tests/integration/conftest.py`'s new
 `mixed_cluster` fixture: one fresh node of each kind, started
@@ -1841,33 +1856,44 @@ and addrv2-long rows, and
 this run came from, and it gates nothing (`CONTRIBUTING.md`'s *What
 gates a merge, and what only reports*).
 
-Of the issue's own census list, the mechanism no longer blocks
-`interface_rest.py` (option, MiniWallet, disk, plus `sync_all` across a
-pair of nodes) or `mining_getblocktemplate_longpoll.py` (the log family,
-MiniWallet, plus a node observing another's mined block over real
-propagation) on that ground alone -- each still needs its own read
-against the option, MiniWallet and log families' own open issues
-([ISS 3](https://github.com/btclib-org/bitcoin-node-tests/issues/3),
-[ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4) and
-[ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5))
-before it can be scheduled, not having had one this round.
-`rpc_txoutproof.py` needs `sync_txindex`, Core's own wait for a
-`-txindex` to catch up, which is a different primitive from
-`wait_until_tips_agree`/`wait_until_mempools_agree` and is not built by
-this issue. `p2p_disconnect_ban.py`'s own remaining "Test disconnectnode
-RPCs" section -- everything but the `setban`/banlist half this round
-left aside -- needs nothing this issue does not already provide, and is
-this repository's own next-smallest candidate. `feature_assumeutxo.py`
-stays disqualified on the sixth thing the census already named: a
-background IBD racing a live feed, which no mechanism here builds.
-`feature_fee_estimation.py`, `mempool_reorg.py`, `mining_basic.py`,
-`p2p_segwit.py`, `feature_bip68_sequence.py` and `rpc_rawtransaction.py`
-were not re-read this round and stay open exactly as the census left
-them. `p2p_v2_transport.py` stays blocked on BIP324 itself, which
-neither adapter speaks
-([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190));
-`p2p_blockfilters.py` on `-blockfilterindex` and BIP157, neither
-adapter's own surface.
+Read at Core's `master` `ed7dd7cf4e`, every file
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags with multi-node p2p linkage, and every file this issue's own body
+names, also carries `MiniWallet`, `setmocktime`, `assert_debug_log` or a
+read of the node's own files -- one of step 5's other families beside
+this one -- so none of them needs node-linking alone. Each is [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+where the census names no disqualifier of its own, and stays behind that
+disqualifier where it does. What this issue ports is `rpc_setban.py`
+and `p2p_disconnect_ban.py`'s `disconnectnode` half, the latter a
+section needing node-linking alone. The files this issue's body names
+go as follows.
+
+- `interface_rest.py` (option, MiniWallet, disk) and
+  `mining_getblocktemplate_longpoll.py` (log, MiniWallet): ISS 14's.
+- `feature_fee_estimation.py` (MiniWallet, log, `-blockmaxweight`),
+  `mempool_reorg.py` (MiniWallet, `setmocktime`, `-whitelist`),
+  `mining_basic.py` (MiniWallet, `setmocktime`, `-blockmaxweight`,
+  `-prune`), `p2p_segwit.py` (MiniWallet, log, `-testactivationheight`),
+  `feature_bip68_sequence.py` (MiniWallet, `setmocktime`,
+  `-testactivationheight`) and `rpc_rawtransaction.py` (MiniWallet,
+  `-txindex`, `-prune`): ISS 14's.
+- `rpc_txoutproof.py` (MiniWallet, `-txindex`): ISS 14's, and it also
+  needs `sync_txindex`, Core's own wait for a `-txindex` to catch up,
+  which is a different primitive from
+  `wait_until_tips_agree`/`wait_until_mempools_agree` and is not built
+  by this issue.
+- `p2p_v2_transport.py` (`-v2transport`, log, a raw socket): ISS 14's,
+  on bitcoind alone, `Capability.V2TRANSPORT` being `BitcoindAdapter`'s
+  and not `btclib-node`'s
+  ([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)).
+- `p2p_blockfilters.py` (`-blockfilterindex`, `-peerblockfilters`, log,
+  and BIP157's own `getcfilters`/`getcfheaders`/`getcfcheckpt` from a
+  raw peer): ISS 14's.
+- `p2p_disconnect_ban.py`'s `setban` half: ISS 14's, the paragraph
+  above.
+- `feature_assumeutxo.py` stays disqualified on the sixth thing the
+  census already named: a background IBD racing a live feed, which no
+  mechanism here builds.
 
 `mempool_datacarrier.py`, `mempool_dust.py` and `mempool_sigoplimit.py`
 are ISS 14's own mempool-policy-option trio, each combining a

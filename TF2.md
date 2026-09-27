@@ -843,6 +843,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_dirsymlinks.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `feature_posix_fs_permissions.py` | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)) on the build; pass on a build past [ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198) |
 | `rpc_createmultisig.py` | `771200ca4362` | 2026-06-30 | pass | bitcoind only |
+| `rpc_createmultisig.py` (spend) | same | same | pass, `combinerawtransaction`'s mergeability refusals asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (sign_raw_transaction) |
 | `rpc_setban.py` (ban) | `fa21edddb272` | 2026-03-27 | pass | skip (ban) on the build; pass on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
 | `rpc_setban.py` (restart) | same | same | pass | skip (ban) on the build; skip (debug_log) on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
 | `rpc_setban.py` (noban) | same | same | pass | skip (ban) on the build; fail ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)) on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
@@ -2041,42 +2042,53 @@ executable too -- rather than an owner-only mode either the directory
 creation or the store construction sets. Filed as
 [ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198).
 
-`rpc_createmultisig.py`'s row is a smaller claim than Core's own file
+`rpc_createmultisig.py`'s rows are a smaller claim than Core's own file
 ([ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4),
 found by [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
-census): Core's own file asks both that `createmultisig` construct the
-right address, redeemScript and descriptor, and that the address it
-constructs is actually spendable, through
-`signrawtransactionwithkey` and `combinerawtransaction` assembling real
-ECDSA signatures over a `MiniWallet`-funded coin. Only the first is
-kept: `MiniWallet`'s own coins carry no signature at all
-(`mini_wallet.py`'s own docstring), so a spend of a multisig output
-built for real keys is not a claim `MiniWallet` can make. Dropped for
-that reason:
-`do_multisig`'s own spend/sign/combine/broadcast body,
-`test_combinerawtransaction_preconditions`, and
-`test_mixing_uncompressed_and_compressed_keys` (a claim about a spend's
-own address fallback, the same reason). Dropped for a second reason,
-independent of the first: `ScriptPubKey.p2ms` (`btclib.script.script_pub_key`)
-refuses a bare multisig script naming more keys than `OP_CHECKMULTISIG`'s
-own key count can hold pushed as a small integer, `OP_16` being the
-largest one a script has, by construction -- so `test_multisig_script_limit`'s
-own past-that-limit cases, and the "correct encoding" check past the
-same bound, have no btclib construction to compare bitcoind's own answer
-against; the "correct encoding" check is kept up to `OP_16`'s own bound
-instead. Dropped for a third reason:
-`test_sortedmulti_descriptors_bip67` reads its vectors from Core's own
-`data/rpc_bip67.json`, a vendored fixture this repository does not
-carry. What is kept -- `createmultisig`'s own construction, across
-every `(nsigs, nkeys, output_type)` Core's own `m_of_n` list names, the
-encoding check up to `OP_16`'s own bound, and the `bech32m` refusal --
-needs no coin, no mining and no node wallet, so the row carries no
-`Capability` at all.
-`createmultisig` is not in `btclib_node`'s own dispatch table
-(`src/btclib_node/rpc/callbacks.py`, measured at `main` `b853eb46`), the
-same "bitcoind only" shape `feature_torcontrol.py`'s own row already
-takes for a fact no other node under this repository's reach offers, so
-this module has no `_btclib_node_test.py` counterpart.
+census) only by `test_sortedmulti_descriptors_bip67`, which reads its
+vectors from Core's own `data/rpc_bip67.json`, a vendored fixture this
+repository does not carry.
+
+The first row is construction: `createmultisig` answering the address,
+redeemScript and descriptor btclib builds, across every
+`(nsigs, nkeys, output_type)` Core's own `m_of_n` list names; falling
+back to a legacy address with a warning where a key is uncompressed; and
+`test_multisig_script_limit`'s own checks -- the "correct encoding" of
+every key count up to `MAX_PUBKEYS_PER_MULTISIG`, the address of a
+multisig past `OP_16`'s own count, and the refusals of too large a
+legacy redeemScript and of too many keys. Past `OP_16`'s count
+`ScriptPubKey.p2ms` and btclib's descriptor parser both refuse the
+script
+([ISS btclib-org/btclib#2348](https://github.com/btclib-org/btclib/issues/2348)),
+so the port builds it from its own items instead, with
+`btclib.script.script.serialize`. It needs no coin, no mining and no node
+wallet, so it carries no `Capability`. Its `btclib-node` cell is
+**bitcoind only** for a reason other than an option's: `createmultisig`
+is not in `btclib_node`'s own dispatch table
+(`src/btclib_node/rpc/callbacks.py`, measured on the released build,
+`422d2640`, and at `main` `4e155386` alike), so the RPC is absent there.
+
+The (spend) row is `do_multisig`'s spend half, every call Core's own
+file makes of it, with `test_combinerawtransaction_preconditions`
+([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)):
+`MiniWallet` funds each multisig output, and the node signs a spend of it
+with disjoint sets of its keys and merges the partial signatures, over
+`signrawtransactionwithkey` and `combinerawtransaction`
+(`Capability.SIGN_RAW_TRANSACTION`). What Core asks the node to build
+without signing -- the output, the unsigned spend -- btclib builds.
+`combinerawtransaction` refuses a single transaction, or one differing
+from the first, only from `6d86184a8bcc` on, a commit the pinned release
+does not carry: it accepts both. So the row reads `getnetworkinfo`'s
+`version` against the first release tagged with that commit, and on an
+earlier build asserts what the pinned release answers instead: an
+undecodable transaction and an empty list refused, the latter in its own
+shorter wording, and a single transaction returned as it came. A `master`
+build from that commit's merge until its version reached that release's
+own reports an earlier version and refuses all the same, so the row fails
+against such a build. btclib-node serves neither RPC on either
+build
+([ISS btclib-node#1400](https://github.com/btclib-org/btclib-node/issues/1400)),
+so it skips on the capability.
 
 [ISS 6](https://github.com/btclib-org/bitcoin-node-tests/issues/6)'s own
 remaining files, `p2p_fingerprint.py` and `p2p_invalid_block.py`, are

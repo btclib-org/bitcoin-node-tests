@@ -260,6 +260,7 @@ _ROWS: dict[str, str] = {
     "feature_nulldummy": "`feature_nulldummy.py`",
     "feature_dirsymlinks": "`feature_dirsymlinks.py`",
     "feature_posix_fs_permissions": "`feature_posix_fs_permissions.py`",
+    "rpc_createmultisig": "`rpc_createmultisig.py` (spend)",
     "rpc_setban::test_a_ban_drops_the_connection_it_matches": "`rpc_setban.py` (ban)",
     "rpc_setban::test_a_ban_survives_a_restart_until_it_is_removed": (
         "`rpc_setban.py` (restart)"

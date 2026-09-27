@@ -666,3 +666,9 @@ result is `success` or `skipped`; any other unfinished job is still refused
 Classic `required_signatures` reads `false`, and `allowed_actions` and
 `sha_pinning_required` are read back, section 11 having the reasons (issue
 btclib-org/.github#1409).
+
+### `rpc_createmultisig`'s spend half is ported
+
+bitcoind signs each multisig spend in two parts, merges them and mines it, and
+`createmultisig`'s key-count limits and legacy fallback are checked;
+btclib-node skips on `Capability.SIGN_RAW_TRANSACTION` (issue #167).

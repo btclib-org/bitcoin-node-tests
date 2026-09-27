@@ -161,6 +161,12 @@ table, measured at the released `2026.9.24` (`422d2640`) and at `main`
 declared either: `cli.py` registers neither `-peertimeout` nor
 `-mempoolexpiry`, measured at the released `2026.9.24` (`422d2640`) and
 at `main` (`4e155386`) alike.
+
+`Capability.SIGN_RAW_TRANSACTION` is never declared either: neither
+`signrawtransactionwithkey` nor `combinerawtransaction` names a callback
+in `src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at
+the released `2026.9.24` (`422d2640`) and at `main` (`4e155386`) alike
+([ISS btclib-node#1400](https://github.com/btclib-org/btclib-node/issues/1400)).
 """
 
 from __future__ import annotations

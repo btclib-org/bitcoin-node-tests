@@ -293,6 +293,9 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.CAPTURE_MESSAGES` and `Capability.BLOCKS_XOR` are
     unconditional: `-capturemessages` and `-blocksxor` are this binary's
     own flags (`src/init.cpp`).
+    `Capability.ORPHANAGE` is unconditional too: `getorphantxs` is this
+    binary's own RPC (`src/rpc/mempool.cpp`), hidden from `help`'s own
+    listing and answered on every chain.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -351,6 +354,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.REINDEX,
             Capability.CAPTURE_MESSAGES,
             Capability.BLOCKS_XOR,
+            Capability.ORPHANAGE,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

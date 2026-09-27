@@ -219,6 +219,12 @@ released `2026.9.24` and at `main` (`338f64c5`) alike
 declared either: `cli.py` registers neither `-capturemessages` nor
 `-blocksxor`, measured against its `_build_parser` at the released
 `2026.9.24` (`422d2640`) and its `_OPTIONS` at `main` (`98448c4d`) alike.
+
+`Capability.ORPHANAGE` is never declared either: `getorphantxs` names no
+callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch table, and
+no source file names an orphan, measured at the released `2026.9.24`
+(`422d2640`) and at `main` (`1aeebc67`) alike
+([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
 """
 
 from __future__ import annotations

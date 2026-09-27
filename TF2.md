@@ -457,8 +457,9 @@ Verdict: **tf2's (harness)**. `fill_mempool` is ported, in
 `src/bitcoin_node_tests/mempool_util.py`, over a throwaway `MiniWallet`
 from `mini_wallet.py`
 ([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
-`assert_mempool_contents`, `tx_in_orphanage` and `create_large_orphan`
-are not.
+`tx_in_orphanage` is `tests/integration/rpc_orphans_test.py`'s own
+`_in_orphanage`; `assert_mempool_contents` and `create_large_orphan` are
+not ported.
 
 ### `test/functional/test_framework/messages.py`
 
@@ -940,6 +941,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `wallet_sendmany.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_timelock.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_disable.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | bitcoind only |
+| `mempool_accept_wtxid.py` | [`3f5211cba8e7`](https://github.com/bitcoin/bitcoin/commit/3f5211cba8e7) | 2026-01-21 | pass | skip (mine) on the build; fail ([ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `rpc_orphans.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (orphanage) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1948,21 +1951,35 @@ its own subject, `MiniWallet` only funding a transaction the RPC then
 answers for, and `getblocktemplate` is not in `btclib_node`'s own
 dispatch table either.
 
-`mempool_accept_wtxid.py` needs `MiniWallet.create_self_transfer` plus a
-script-malleation helper this repository does not yet build -- Core's own
-`build_malleated_tx_package` (`test_framework/script_util.py`), a pair of
-children of one parent sharing a txid and differing only in the witness
-that satisfies it -- and a peer connection watching which one the node
-rebroadcasts by wtxid. `rpc_orphans.py` needs
-`create_self_transfer(utxo_to_spend=...)` chained into orphan pairs,
-`getorphantxs` (absent from `btclib_node`'s own dispatch, so a
-capability of its own, the way `rpc_signrawtransactionwithkey.py`'s row
-asks for `Capability.SIGN_RAW_TRANSACTION`), and separate
-`peer.py` connections, each sending an unconfirmed child ahead of its own
-parent. Both ask for MiniWallet alone in step 5's own sense -- no node
-wallet, no log, no mocktime, no disk, one node, no option beyond the
-adapters' -- so
-neither is ISS 14's; both stay open under this issue, unported.
+`mempool_accept_wtxid.py` and `rpc_orphans.py` are ported, their own
+rows above, each one body run against both nodes, `MiniWallet` building
+the transactions and a `Peer` (`peer.py`) standing in for Core's own
+`P2PInterface`: in `mempool_accept_wtxid.py` it records which wtxid the
+node announces and requests each, in `rpc_orphans.py` it sends a child
+ahead of its own parent. What each port builds with btclib where Core's
+framework builds it -- `build_malleated_tx_package`, `tx_in_orphanage`,
+`P2PTxInvStore` -- is in its own `tests/integration/<file>_test.py`
+docstring.
+
+`rpc_orphans.py` asks for `Capability.ORPHANAGE` (`capability.py`) ahead
+of `Capability.MINE` wherever it builds a transaction, and its
+`btclib-node` cell is that skip on both builds: `getorphantxs` is not
+in `btclib_node`'s own dispatch table, and no source file there names an
+orphan
+([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
+`mempool_accept_wtxid.py` asks for `Capability.MINE` alone, its subject
+being `sendrawtransaction`, `testmempoolaccept` and the announcement
+that follows, and btclib-node serves both RPCs on either build. A
+`main` declaring `MINE` runs it and fails on `getmempoolentry`, which it
+does not serve
+([ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397)).
+With that call removed, it fails next on `getmempoolinfo`'s missing
+`unbroadcastcount`
+([ISS btclib-node#1421](https://github.com/btclib-org/btclib-node/issues/1421)),
+and with those reads removed too, `testmempoolaccept` allows both the
+child the mempool holds and the one sharing its txid, where bitcoind
+refuses each
+([ISS btclib-node#1422](https://github.com/btclib-org/btclib-node/issues/1422)).
 
 `mempool_cluster.py` and `rpc_packages.py` also drive MiniWallet alone at
 first read, but each also restarts its node with an option --

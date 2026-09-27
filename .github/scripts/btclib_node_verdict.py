@@ -465,6 +465,8 @@ _ROWS: dict[str, str] = {
     "wallet_createwalletdescriptor": "`wallet_createwalletdescriptor.py`",
     "wallet_sendmany": "`wallet_sendmany.py`",
     "wallet_timelock": "`wallet_timelock.py`",
+    "mempool_accept_wtxid": "`mempool_accept_wtxid.py`",
+    "rpc_orphans": "`rpc_orphans.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

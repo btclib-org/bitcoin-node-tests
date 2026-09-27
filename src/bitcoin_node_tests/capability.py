@@ -393,6 +393,11 @@ class Capability(Enum):
     the block and undo files are obfuscated with the key `blocks/xor.dat`
     holds, and refuse a start disabling it where the stored key is not
     all zeros (`feature_blocksxor.py`).
+    `ORPHANAGE` -- keep a transaction a peer sent whose inputs it cannot
+    find yet, admit it to the mempool once its parent arrives, and report
+    what it keeps, with the peers that announced each, over Core's own
+    `getorphantxs` (`rpc_orphans.py`). Named for what it keeps rather
+    than for the RPC's own spelling, as `SCAN_UTXO_SET` is.
     """
 
     MINE = "mine"
@@ -445,6 +450,7 @@ class Capability(Enum):
     REINDEX = "reindex"
     CAPTURE_MESSAGES = "capture_messages"
     BLOCKS_XOR = "blocks_xor"
+    ORPHANAGE = "orphanage"
 
 
 class SkipCounts:

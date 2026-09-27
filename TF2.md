@@ -935,6 +935,10 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_feefilter.py` (filter) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_feefilter.py` (block-relay-only) | same | same | pass | skip |
 | `p2p_feefilter.py` (blocksonly) | same | same | pass | skip |
+| `p2p_mutated_blocks.py` (wire) | [`9c5dd2926aa9`](https://github.com/bitcoin/bitcoin/commit/9c5dd2926aa9) | 2026-06-18 | pass | skip |
+| `p2p_mutated_blocks.py` (log) | same | same | pass | skip |
+| `p2p_mutated_blocks.py` (missing parent, wire) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_mutated_blocks.py` (missing parent, log) | same | same | pass | skip |
 | `p2p_message_capture.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (capture_messages) |
 | `feature_blocksxor.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (blocks_xor) |
 | `wallet_createwalletdescriptor.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
@@ -1402,8 +1406,8 @@ are ported, their rows in the table above.
 [ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
 first, each dialling out of the node under test (Core's
 `add_outbound_p2p_connection` or `addconnection`) in or ahead of its log
-steps: `feature_anchors.py`, `p2p_addr_selfannouncement.py`,
-`p2p_ibd_stalling.py` and `p2p_mutated_blocks.py`.
+steps: `feature_anchors.py`, `p2p_addr_selfannouncement.py` and
+`p2p_ibd_stalling.py`.
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
 [ISS 45](https://github.com/btclib-org/bitcoin-node-tests/issues/45)
@@ -1426,7 +1430,8 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_ping.py`, `p2p_timeouts.py`,
 `p2p_disconnect_ban.py`'s `disconnectnode` half,
 `p2p_bip434_feature.py`'s wire-only disconnects, `p2p_handshake.py`,
-`p2p_initial_headers_sync.py` and `p2p_sendtxrcncl.py`.
+`p2p_initial_headers_sync.py`, `p2p_sendtxrcncl.py` and
+`p2p_mutated_blocks.py`.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -2891,8 +2896,23 @@ own row on each build; on the filtering row, a counted skip on a build
 before
 [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
 and a pass on one past it; and a counted skip on the block-relay-only
-and `-blocksonly` rows. The rest of the issue's own census is its later
-batches.
+and `-blocksonly` rows.
+
+`p2p_mutated_blocks.py` is ported on it too, each of Core's checks a
+wire half and a log half over a fresh node in
+`tests/integration/p2p_mutated_blocks_test.py`, whose module docstring
+has what differs from Core's file. The mutated-block check has the node
+dial an outbound full-relay peer, so it asks for `TYPED_OUTBOUND`, and
+`MINE` for the block it announces, which spends a `MiniWallet` coin; the
+missing-parent check's wire half asks for `MINE` alone, and its log half
+for `TEST_ACTIVATION_HEIGHT` besides. Its pin is past the pinned release:
+Core's file there sends a `sendcmpct` and the block's header ahead of the
+`cmpctblock`, where the release's own sends neither, and each `bitcoind`
+cell is one verdict for both builds. `btclib-node`'s cell on the
+missing-parent wire row is a counted skip on a build before
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
+and a pass on one past it, and every other row this file adds is a
+counted skip. The rest of the issue's own census is its later batches.
 
 ## Proxies: `Socks5Proxy`
 

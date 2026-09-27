@@ -522,3 +522,9 @@ and a row that moved, one now passing included, does (closes #88).
 Since btclib-node keeps a malformed `-rpcauth` there rather than raising
 (issue btclib-org/btclib-node#1210), a bare return no longer says
 `-norpcauth` discarded it (closes #160).
+
+### `TF2.md`'s btclib-node fail cells carry a build qualifier
+
+A fail cell claimed every build though btclib-node's `main` already passes
+it; it now carries the skip cells' own build-qualified form, and the prose
+explaining it, ledger and tests alike, names the released build (closes #157).

@@ -25,11 +25,11 @@ the capability. Neither build names `generatetoaddress`, `generateblock`
 or `getblocktemplate` in `src/btclib_node/rpc/callbacks.py`'s own
 dispatch table, which is why `mine` builds the block itself.
 
-Independently,
-[ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)
-is what makes `p2p_getdata` itself fail here: `block_db` never holds the
-genesis block, so neither `getblock` nor a p2p `getdata` can serve the
-one block a fresh regtest node -- mined or not -- starts at.
+Independently, [ISS
+btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072) is
+what makes `p2p_getdata` itself fail on the released build: `block_db` never
+holds the genesis block, so neither `getblock` nor a p2p `getdata` can serve
+the one block a fresh regtest node -- mined or not -- starts at.
 
 `Capability.BLK_FILES` is not declared either, and is not a gap this
 adapter is waiting on: `block_db.BlockDB` is its own on-disk format, not

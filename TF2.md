@@ -738,6 +738,11 @@ names is declared by a probe of the build rather than by the adapter's
 class: the row's own paragraph below names the probe and the issue it
 tracks.
 
+A `btclib-node` cell reading **fail** carries the same build-qualified
+form once the issue it names closes: `fail (...) on the build; pass on
+a build past [ISS ...]`, both halves naming the one issue, where a skip
+cell's first half names a capability instead.
+
 A `bitcoind` cell can be build-dependent the same way, for a fact of
 the pinned release's own binary that another build of bitcoind answers
 differently -- `capability.py`'s own module docstring is the one rule
@@ -776,11 +781,11 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_users.py` (`-norpccookiefile`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
-| `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) |
+| `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) on the build; pass on a build past [ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072) |
 | `p2p_invalid_locator.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_invalid_messages.py` (wire) | `3fd68a95e68b` | 2026-04-07 | pass | pass |
 | `p2p_invalid_messages.py` (log) | `3fd68a95e68b` | 2026-04-07 | pass | skip |
-| `p2p_invalid_messages.py` (inv, wire) | same | same | pass | fail ([ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145)) |
+| `p2p_invalid_messages.py` (inv, wire) | same | same | pass | fail ([ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145)) on the build; pass on a build past [ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145) |
 | `p2p_invalid_messages.py` (inv, log) | same | same | pass | skip |
 | `p2p_invalid_messages.py` (getdata, wire) | same | same | pass | pass |
 | `p2p_invalid_messages.py` (getdata, log) | same | same | pass | skip |
@@ -790,17 +795,17 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_invalid_messages.py` (invalid pow, log) | same | same | pass | skip |
 | `p2p_invalid_messages.py` (size, wire) | same | same | pass | pass |
 | `p2p_invalid_messages.py` (size, log) | same | same | pass | skip |
-| `p2p_invalid_messages.py` (dup version, wire) | same | same | pass | fail ([ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)) |
+| `p2p_invalid_messages.py` (dup version, wire) | same | same | pass | fail ([ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)) on the build; pass on a build past [ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133) |
 | `p2p_invalid_messages.py` (dup version, log) | same | same | pass | skip |
-| `p2p_invalid_messages.py` (checksum, wire) | same | same | pass | fail ([ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130)) |
+| `p2p_invalid_messages.py` (checksum, wire) | same | same | pass | fail ([ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130)) on the build; pass on a build past [ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130) |
 | `p2p_invalid_messages.py` (checksum, log) | same | same | pass | skip |
-| `p2p_invalid_messages.py` (msgtype, wire) | same | same | pass | fail ([ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130)) |
+| `p2p_invalid_messages.py` (msgtype, wire) | same | same | pass | fail ([ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130)) on the build; pass on a build past [ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130) |
 | `p2p_invalid_messages.py` (msgtype, log) | same | same | pass | skip |
-| `p2p_invalid_messages.py` (addrv2 empty, wire) | same | same | pass | fail ([ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170)) |
+| `p2p_invalid_messages.py` (addrv2 empty, wire) | same | same | pass | fail ([ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170)) on the build; pass on a build past [ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170) |
 | `p2p_invalid_messages.py` (addrv2 empty, log) | same | same | pass | skip |
 | `p2p_invalid_messages.py` (addrv2 no addr, wire) | same | same | pass | pass |
 | `p2p_invalid_messages.py` (addrv2 no addr, log) | same | same | pass | skip |
-| `p2p_invalid_messages.py` (addrv2 long, wire) | same | same | pass | fail ([ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170)) |
+| `p2p_invalid_messages.py` (addrv2 long, wire) | same | same | pass | fail ([ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170)) on the build; pass on a build past [ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170) |
 | `p2p_invalid_messages.py` (addrv2 long, log) | same | same | pass | skip |
 | `p2p_invalid_messages.py` (addrv2 net id, wire) | same | same | pass | pass |
 | `p2p_invalid_messages.py` (addrv2 net id, log) | same | same | pass | skip |
@@ -822,7 +827,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_cltv.py` (log) | same | same | pass | skip |
 | `feature_csv_activation.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
 | `feature_dirsymlinks.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
-| `feature_posix_fs_permissions.py` | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)) |
+| `feature_posix_fs_permissions.py` | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)) on the build; pass on a build past [ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198) |
 | `rpc_createmultisig.py` | `771200ca4362` | 2026-06-30 | pass | bitcoind only |
 | `rpc_setban.py` (ban) | `fa21edddb272` | 2026-03-27 | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
 | `rpc_setban.py` (restart) | same | same | pass | skip (ban) on the build; skip (debug_log) on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
@@ -1069,11 +1074,11 @@ the connection from the discourage-and-disconnect these checks are
 about. `tests/integration/p2p_invalid_messages_misbehaving_bitcoind_test.py`'s
 own docstring has the full argument, including why the PoW check needs
 none of Core's own preliminary "send a valid header first" step. Of
-these, only the oversized-`inv` row disagrees on btclib-node: its own
-`p2p.callbacks.inv` returns before `Inv.parse` ever runs while the node
-has not reached `NodeStatus.BlockSynced`, a status this adapter's own
-peerless node never advances past, so an oversized announcement is
-dropped unread rather than refused
+these, only the oversized-`inv` row disagrees on btclib-node's own
+released build: its own `p2p.callbacks.inv` returns before `Inv.parse`
+ever runs while the node has not reached `NodeStatus.BlockSynced`, a
+status this adapter's own peerless node never advances past, so an
+oversized announcement is dropped unread rather than refused
 ([ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145)).
 The oversized-`getdata` and oversized-`headers` rows, and the
 invalid-PoW row, reach `GetData.parse`, `Headers.parse` and
@@ -1108,16 +1113,18 @@ asks the opposite question from `test_magic_bytes`'s: that the connection
 `tests/integration/p2p_invalid_messages_dropped_bitcoind_test.py`'s own
 docstring has the full argument, including why Core's own
 `bytesrecv_per_msg` check on the checksum and msgtype rows is dropped.
-Every one of them disagrees on btclib-node, and by a single shared
-mechanism rather than a distinct one each: `Connection.run`'s own handler
-around `frame_message` (`connection.py`) discourages and stops on *any*
-`BTClibException`, where Core only logs and drops the one message --
+Every one of them disagrees on btclib-node's own released build, and by
+a single shared mechanism rather than a distinct one each:
+`Connection.run`'s own handler around `frame_message` (`connection.py`)
+discourages and stops on *any* `BTClibException`, where Core only logs
+and drops the one message --
 `btclib.p2p.message._command_from_bytes` raises the identical exception
 class for an invalid command that `Message.parse`'s own checksum check
 does, so the checksum and msgtype rows are the same defect measured
 again. [ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130)
-names it. The duplicate-version row fails for a different, adjacent
-reason: `handle_p2p_handshake`'s own dispatch (`p2p/main.py`) discourages
+names it. The duplicate-version row fails on that build for a
+different, adjacent reason: `handle_p2p_handshake`'s own dispatch
+(`p2p/main.py`) discourages
 and stops a `version`/`verack`/`wtxidrelay`/`sendaddrv2` arriving once the
 connection is already `Connected`, ahead of the `version` callback's own
 guard against a *pre-verack* repeat.
@@ -1135,7 +1142,7 @@ explicit wait for the node's `sendaddrv2` needs no equivalent here: this
 suite's `Peer.handshake` already negotiates `WTXID_RELAY_VERSION`, the
 same floor BIP155's own `sendaddrv2` announcement is gated on.
 `test_addrv2_empty` and `test_addrv2_too_long_address` disagree on
-btclib-node, by a distinct but adjacent mechanism:
+btclib-node's own released build, by a distinct but adjacent mechanism:
 `btclib_node.p2p.callbacks.addrv2` calls `AddrV2.parse` with no
 `try`/`except` of its own, and `handle_p2p`'s own `_drop` (`p2p/main.py`)
 discourages and stops the connection for any `BTClibException` a
@@ -1646,9 +1653,10 @@ node's own chain directory and its own log file refuse every permission
 bit but the owner's own read, write and, for the directory, execute. No
 `Capability` is asked for either -- the fact is not that `btclib-node`
 lacks a mechanism, but that it sets one it already has (a directory's
-own mode) differently from bitcoind, which is a disagreement rather than
-a missing capability. Measured live against `btclib-node` `main`
-`b853eb46`: the chain directory and every store directory under it, and
+own mode) differently from bitcoind on the released build, which is a
+disagreement rather than a missing capability. Measured live against
+`btclib-node` `main` `b853eb46`, before the fix: the chain directory and
+every store directory under it, and
 `history.log` (`btclib_node.py`'s own `log_path`, the fact
 `debug_log_path` names for bitcoind), all come up at the operating
 system's own umask default -- group and other readable, the directories
@@ -1814,22 +1822,16 @@ which only some `btclib-node` builds declare (`btclib_node.py`'s own
 docstring): nothing here asks the connecting side to mine anything of
 its own.
 
-Re-run against btclib-node's own `main` (`d98bd7d6`) rather than only the
-released build: `p2p_invalid_messages_dropped_btclib_node_test.py`'s
-msgtype, checksum and duplicate-version rows,
-`p2p_getdata_btclib_node_test.py`'s row, and
+Re-run against btclib-node's own `main` at `26bac0f5b78c`, a build past
+every issue the table's fail cells name:
+`p2p_invalid_messages_dropped_btclib_node_test.py`'s msgtype, checksum
+and duplicate-version rows, `p2p_getdata_btclib_node_test.py`'s row,
 `p2p_invalid_messages_misbehaving_btclib_node_test.py`'s oversized-`inv`
-row now pass -- [ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130),
-[ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133),
-[ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)
-and [ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145)
-each fixed there since. `p2p_invalid_messages_addrv2_btclib_node_test.py`'s
-addrv2-empty and addrv2-long rows still fail on `main`,
-[ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170)
-still open. This table keeps the released build's own verdicts, per its
-own reading rules above; the `main` job
-(`node-integration.yml`'s own `btclib-node-main`) is what this
-observation came from, and it gates nothing (`CONTRIBUTING.md`'s *What
+row, `p2p_invalid_messages_addrv2_btclib_node_test.py`'s addrv2-empty
+and addrv2-long rows, and
+`feature_posix_fs_permissions_btclib_node_test.py`'s row all pass. The
+`main` job (`node-integration.yml`'s own `btclib-node-main`) is what
+this run came from, and it gates nothing (`CONTRIBUTING.md`'s *What
 gates a merge, and what only reports*).
 
 Of the issue's own census list, the mechanism no longer blocks

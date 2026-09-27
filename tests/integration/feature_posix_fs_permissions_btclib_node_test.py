@@ -9,15 +9,16 @@ against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220): the node's own chain directory and its own log
 file are owner-only.
 
-Expected to fail rather than to pass or to skip -- neither an `xfail`
-nor a `pytest.skip.Exception` -- so this keeps reproducing
-[ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)
+Expected to fail on the released build rather than to pass or to skip --
+neither an `xfail` nor a `pytest.skip.Exception` -- so this keeps
+reproducing [ISS
+btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)
 rather than hiding it: measured live against `btclib-node` `main`
-`b853eb46`, the chain directory and every store directory under it come
-up `0755` and `history.log` comes up `0644`, the operating system's own
-umask-derived default rather than the owner-only mode neither
-`os.makedirs` nor the store construction sets. `TF2.md`'s per-test table
-carries the verdict this failure is, not a decoration on this module.
+`b853eb46`, the chain directory and every store directory under it come up
+`0755` and `history.log` comes up `0644`, the operating system's own
+umask-derived default rather than the owner-only mode neither `os.makedirs`
+nor the store construction sets. `TF2.md`'s per-test table carries the
+verdict this failure is, not a decoration on this module.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \\

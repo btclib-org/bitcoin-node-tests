@@ -873,6 +873,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_getblockfilter.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (block_filter_index) |
 | `rpc_getblockfrompeer.py` | [`779f4446803d`](https://github.com/bitcoin/bitcoin/commit/779f4446803d) | 2026-05-25 | pass | skip (block_from_peer) |
 | `p2p_node_network_limited.py` | [`fa7bac94d87a`](https://github.com/bitcoin/bitcoin/commit/fa7bac94d87a) | 2026-03-12 | pass | skip (mine) on the build; skip (disconnect) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `rpc_getdescriptorinfo.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (descriptor_info) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1620,8 +1621,8 @@ lists those files, each going where its line says:
 - `p2p_v2_encrypted.py`, whose `-v2transport` is `Capability.V2TRANSPORT`
   but whose peers speak BIP324 themselves, a transport `Peer` does not
   ([ISS 175](https://github.com/btclib-org/bitcoin-node-tests/issues/175));
-- `rpc_getdescriptorinfo.py`, whose subject is the RPC rather than
-  `-disablewallet`
+- `rpc_getdescriptorinfo.py`, the row above, whose subject is the RPC
+  rather than `-disablewallet`
   ([ISS 174](https://github.com/btclib-org/bitcoin-node-tests/issues/174)).
 
 `feature_presegwit_node_upgrade.py`'s row keeps every assertion Core's
@@ -1675,6 +1676,31 @@ stale. `btclib-node`'s cell is a counted skip on
 no callback in `btclib_node.rpc.callbacks`'s own dispatch table, on the
 released build or on `main` (`btclib_node.py`'s own docstring has the
 measurement).
+
+`rpc_getdescriptorinfo.py`'s row is Core's own claim with its one option
+left out ([ISS 174](https://github.com/btclib-org/bitcoin-node-tests/issues/174)):
+every descriptor of the file's own table answers the same asked with its
+checksum as without, answers its own checksummed form -- for a multipath
+one, the first of the expansions its row names, with all of them as
+`multipath_expansion` -- and the `isrange`, `issolvable` and
+`hasprivatekeys` its row names; a missing argument, a wrong type, an
+empty descriptor and a key padded with whitespace are each refused with
+Core's own code and message. The option is `-disablewallet`, one
+`capability.py`'s module docstring names as only bitcoind's to carry;
+it is not this file's subject, so the port leaves it out rather than
+making the row bitcoind only, and asks the session's shared
+`bitcoind_adapter`, `getdescriptorinfo` being registered in
+`src/rpc/output_script.cpp` rather than among the wallet's RPCs. Each
+expected checksum is btclib's `descriptors.add_checksum`, which this
+ledger's `descriptors.py` entry pairs with Core's `descsum_create`. The
+descriptors and messages are Core's own, copied into
+`rpc_getdescriptorinfo_bitcoind_test.py` from the file at this row's
+pin, so re-checking the pin is also what says whether the copy has gone
+stale. `btclib-node`'s cell is a counted skip on
+`Capability.DESCRIPTOR_INFO` (`capability.py`): `getdescriptorinfo`
+names no callback in `btclib_node.rpc.callbacks`'s own dispatch table,
+on the released build or on `main` (`btclib_node.py`'s own docstring has
+the measurement).
 
 Of the rest of the family's own census, string-literal matches and
 nothing more: `feature_bind_extra.py` and `rpc_bind.py` read the

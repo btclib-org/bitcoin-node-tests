@@ -292,6 +292,12 @@ class Capability(Enum):
     `SUSPEND_NETWORK` -- stop all p2p activity on request, dropping every
     peer, and resume it on request, the way Core's own `setnetworkactive`
     does (`p2p_node_network_limited.py`).
+    `DESCRIPTOR_INFO` -- answer `getdescriptorinfo`, Core's own RPC
+    analysing an output descriptor: its checksummed form, the
+    single-path descriptors a multipath one expands to, whether it is
+    ranged, solvable and carries a private key, and the error a
+    malformed one earns (`rpc_getdescriptorinfo.py`). Named for the RPC,
+    as `BLOCK_STATS` is.
     """
 
     MINE = "mine"
@@ -326,6 +332,7 @@ class Capability(Enum):
     BLOCK_FROM_PEER = "block_from_peer"
     ACCEPT_NON_STANDARD = "accept_non_standard"
     SUSPEND_NETWORK = "suspend_network"
+    DESCRIPTOR_INFO = "descriptor_info"
 
 
 class SkipCounts:

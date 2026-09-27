@@ -317,6 +317,7 @@ _ROWS: dict[str, str] = {
     "rpc_getblockfilter": "`rpc_getblockfilter.py`",
     "rpc_getblockfrompeer": "`rpc_getblockfrompeer.py`",
     "p2p_node_network_limited": "`p2p_node_network_limited.py`",
+    "rpc_getdescriptorinfo": "`rpc_getdescriptorinfo.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

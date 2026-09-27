@@ -241,6 +241,9 @@ class BitcoindAdapter(NodeAdapter):
     own debug-only flag, which it refuses on main alone.
     `Capability.SUSPEND_NETWORK` is unconditional: `setnetworkactive`
     is this binary's own RPC (`src/rpc/net.cpp`).
+    `Capability.DESCRIPTOR_INFO` is unconditional too: `getdescriptorinfo`
+    is this binary's own RPC (`src/rpc/output_script.cpp`), with no
+    wallet behind it.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -281,6 +284,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.BLOCK_FROM_PEER,
             Capability.ACCEPT_NON_STANDARD,
             Capability.SUSPEND_NETWORK,
+            Capability.DESCRIPTOR_INFO,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

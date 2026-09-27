@@ -151,6 +151,11 @@ names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
 table, measured at the released `2026.9.24` and at `main` (`19c5661e`)
 alike
 ([ISS btclib-node#1392](https://github.com/btclib-org/btclib-node/issues/1392)).
+
+`Capability.DESCRIPTOR_INFO` is never declared either: `getdescriptorinfo`
+names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
+table, measured at the released `2026.9.24` (`422d2640`) and at `main`
+(`4e155386`) alike.
 """
 
 from __future__ import annotations

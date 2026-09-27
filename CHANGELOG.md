@@ -636,3 +636,9 @@ that kept their own copy of the builder call it instead (closes #178).
 `p2p_node_network_limited` runs on bitcoind and skips on btclib-node, and
 `setnetworkactive` is `Capability.SUSPEND_NETWORK`. `TF2.md` records the option
 family's census and where each file it lists goes (closes #3, closes #185).
+
+### `rpc_getdescriptorinfo` is ported, with Core's descriptor table
+
+bitcoind answers Core's descriptors with their checksums, flags and multipath
+expansions, and refuses each malformed request with Core's own error;
+btclib-node skips on `Capability.DESCRIPTOR_INFO` (closes #174).

@@ -251,6 +251,8 @@ class BitcoindAdapter(NodeAdapter):
     `signrawtransactionwithkey` and `combinerawtransaction` are this
     binary's own RPCs (`src/rpc/rawtransaction.cpp`), with no wallet
     behind them.
+    `Capability.INVALIDATE_BLOCK` is unconditional too: `invalidateblock` is
+    this binary's own RPC (`src/rpc/blockchain.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -295,6 +297,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.PEER_TIMEOUT,
             Capability.MEMPOOL_EXPIRY,
             Capability.SIGN_RAW_TRANSACTION,
+            Capability.INVALIDATE_BLOCK,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

@@ -612,6 +612,18 @@ def test_build_next_block_is_timed_past_the_chains_mediantime() -> None:
     assert int(block.header.time.timestamp()) == far_future_median_time + 1
 
 
+def test_build_next_block_takes_the_time_as_given() -> None:
+    """A caller's own time is the header's, even behind the median-time-past."""
+    median_time = int(datetime.now(UTC).timestamp())
+    rpc = _FakeRpc(median_time=median_time)
+
+    block = build_next_block(
+        _FakeNode(rpc), RAW_P2PK_SCRIPT_PUB_KEY, time=median_time - 600
+    )
+
+    assert int(block.header.time.timestamp()) == median_time - 600
+
+
 @pytest.mark.parametrize("size", [0, 1, 80, 81, 256])
 def test_nulldata_script_pub_key_accepts_any_length(size: int) -> None:
     """Unlike `ScriptPubKey.nulldata`, no length here is refused."""

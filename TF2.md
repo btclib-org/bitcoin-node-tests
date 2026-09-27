@@ -839,6 +839,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_cltv.py` (failures, mempool) | same | same | pass | skip |
 | `feature_cltv.py` (failures, block) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1390](https://github.com/btclib-org/btclib-node/issues/1390)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_csv_activation.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
+| `feature_csv_activation.py` (lock times) | same | same | pass | skip |
 | `feature_nulldummy.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `feature_dirsymlinks.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `feature_posix_fs_permissions.py` | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)) on the build; pass on a build past [ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198) |
@@ -1942,7 +1943,7 @@ MiniWallet families' first tests to need both mechanisms together:
 height, and `MiniWallet.generate` (`Capability.MINE`) mines to it with
 no node wallet. Each is a smaller claim than Core's own file, declared
 rather than silent, the module docstrings of `feature_cltv_test.py`,
-`feature_dersig_test.py` and `feature_csv_activation_bitcoind_test.py`
+`feature_csv_activation_test.py` and `feature_dersig_test.py`
 carrying the full argument: kept is `getdeploymentinfo`'s own transition
 one block before the configured height, and, for `feature_dersig.py` and
 `feature_cltv.py`, the buried-deployment version floor a too-low
@@ -1968,11 +1969,17 @@ node running with Core's own `-acceptnonstdtxn`
 and `submitblock` refuses a block carrying each and accepts the spend
 CLTV admits. Needing no `-testactivationheight`,
 `feature_cltv.py`'s block row asks `btclib-node` for `Capability.MINE`
-alone. Still dropped, open under ISS 167: the whole of
-`feature_csv_activation.py`'s own body, BIP68's relative locktimes,
-BIP112's `OP_CHECKSEQUENCEVERIFY` and BIP113's median-time-past cutover
-included, which Core's own file spends from `RAW_P2PK` coins with the
-same kind of prepend.
+alone. `feature_csv_activation.py`'s own body is kept too, under the
+same issue, on a row of its own: BIP68's relative lock times, BIP112's
+`OP_CHECKSEQUENCEVERIFY` and BIP113's median-time-past cutover, at
+Core's own configured height. Its coins are `RAW_P2PK` ones, signed as
+`feature_dersig.py`'s are, and each BIP112 spend has the opcode, and
+the argument it checks where there is one, prepended to that signature.
+Every spend is accepted in the block before the configured height, and
+BIP113's is refused at it, which pins where BIP113 starts; BIP68's and
+BIP112's refusals follow a few blocks on, as in Core's own file. Core's
+`invalidateblock` (`Capability.INVALIDATE_BLOCK`) takes each accepted
+block back off, so that the next check builds on the same tip.
 `feature_csv_activation.py` gains no version-floor row the way its
 siblings do: `src/validation.cpp`'s own `ContextualCheckBlockHeader`
 reads only `DEPLOYMENT_HEIGHTINCB`, `DEPLOYMENT_DERSIG` and

@@ -4,34 +4,9 @@
 
 """Core's `feature_csv_activation`, rewritten on this harness: bitcoind.
 
-Read from Core's `test/functional/feature_csv_activation.py`
-(`fab352053d6e`, 2026-04-16) and narrowed to what the option and
-MiniWallet families reach together
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
-`-testactivationheight=csv@N` (`Capability.TEST_ACTIVATION_HEIGHT`)
-holds BIP68/BIP112/BIP113 -- one deployment, `csv` -- inactive until a
-chosen height, `MiniWallet.generate` (`Capability.MINE`) mines to it.
-
-Dropped: Core's own file's whole body, which builds eighty-three inputs
-and tests BIP68's relative locktimes, BIP112's `OP_CHECKSEQUENCEVERIFY`
-and BIP113's median-time-past cutover against real transactions --
-`MiniWallet`'s own `ADDRESS_OP_TRUE` coins spend through a single fixed
-tapscript leaf carrying neither opcode. A version this harness could
-build needs a caller-chosen leaf for BIP112's opcode, and
-`create_self_transfer`'s own `sequence` and `locktime` for BIP68's and
-BIP113's fields -- more than this file's own two mechanisms, so it stays
-open under
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14).
-Kept: `getdeploymentinfo`'s own `csv` entry, transitioning one block
-before the configured height the same way `bip66`'s and `bip65`'s do in
-`feature_dersig_bitcoind_test.py` and `feature_cltv_bitcoind_test.py`.
-
-Unlike its two siblings, this file needs no `Capability.DEBUG_LOG` row:
-CSV carries no buried-deployment version floor of its own -- measured
-against `src/validation.cpp`'s own `ContextualCheckBlockHeader`, whose
-version check only ever reads `DEPLOYMENT_HEIGHTINCB`, `DEPLOYMENT_DERSIG`
-and `DEPLOYMENT_CLTV` -- so there is no version-floor refusal for this
-file to observe on the wire or in the log the way its siblings do.
+Read from Core's `test/functional/feature_csv_activation.py`:
+`feature_csv_activation_test.py` beside this module holds the bodies, run
+here against bitcoind.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """
@@ -42,60 +17,31 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import free_ports
+from tests.integration.feature_csv_activation_test import (
+    csv_activates_one_block_before_the_configured_height,
+    csv_rules_are_enforced_from_the_configured_height,
+)
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from collections.abc import Callable
 
+    from bitcoin_node_tests.bitcoind import BitcoindAdapter
     from bitcoin_node_tests.capability import SkipCounts
-    from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
 
-# Core's own file hardcodes 432; this harness needs only that the height is
-# reached in a handful of mined blocks, not that it matches Core's own value
-_CSV_ACTIVATION_HEIGHT = 12
-
 
 def test_csv_activates_one_block_before_the_configured_height(
-    make_adapter: AdapterFactory,
-    bitcoind_path: str,
-    tmp_path: Path,
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
-    """`getdeploymentinfo`'s own `csv` entry tracks the configured height."""
-    require(
-        Capability.TEST_ACTIVATION_HEIGHT, BitcoindAdapter.capabilities, skip_counts
-    )
-    rpc_port, p2p_port = free_ports(2)
-    adapter = make_adapter(
-        BitcoindAdapter,
-        bitcoind_path,
-        tmp_path,
-        rpc_port,
-        p2p_port,
-        extra_args=(f"-testactivationheight=csv@{_CSV_ACTIVATION_HEIGHT}",),
-    )
-    adapter.start()
-    try:
-        require(Capability.MINE, adapter.capabilities, skip_counts)
-        wallet = MiniWallet(adapter)
-        csv = adapter.rpc.call("getdeploymentinfo")["deployments"]["csv"]
-        assert csv == {
-            "type": "buried",
-            "active": False,
-            "height": _CSV_ACTIVATION_HEIGHT,
-        }
+    """The oracle: `getdeploymentinfo`'s own `csv` entry."""
+    csv_activates_one_block_before_the_configured_height(bitcoind_cluster, skip_counts)
 
-        wallet.generate(_CSV_ACTIVATION_HEIGHT - 2)
-        csv = adapter.rpc.call("getdeploymentinfo")["deployments"]["csv"]
-        assert csv["active"] is False
 
-        wallet.generate(1)  # tip is now one block before the configured height
-        csv = adapter.rpc.call("getdeploymentinfo")["deployments"]["csv"]
-        assert csv["active"] is True
-    finally:
-        adapter.stop()
+def test_csv_rules_are_enforced_from_the_configured_height(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: `submitblock`'s own answer to each of Core's blocks."""
+    csv_rules_are_enforced_from_the_configured_height(bitcoind_cluster, skip_counts)

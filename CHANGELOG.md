@@ -552,3 +552,9 @@ runs Core's scenario rather than a stub's `pytest.fail` (issue #125).
 Each spends a 1-of-1 multisig the test signs with btclib, so a node reads the
 dummy beneath a signature; a tampered dummy leaves the signature valid, and
 NULLDUMMY is still the only refusal (closes #165).
+
+### `rpc_validateaddress` is ported, with Core's address tables
+
+On bitcoind started on the main chain, each of Core's invalid addresses answers
+its own error and `error_locations`, and each valid one its own `scriptPubKey`;
+btclib-node's test skips on `Capability.VALIDATE_ADDRESS` (closes #153).

@@ -122,6 +122,10 @@ declared, on either build: neither `getdescriptoractivity` nor
 `getblockstats` names a callback in `src/btclib_node/rpc/callbacks.py`'s
 own dispatch table, measured at the released `2026.9.24` (`422d2640`)
 and at `main` (`d7693b2f5a16`) alike.
+
+`Capability.VALIDATE_ADDRESS` is never declared either: `validateaddress`
+names no callback in that same dispatch table, measured at the released
+`2026.9.24` (`422d2640`) and at `main` (`d0ead5f0`) alike.
 """
 
 from __future__ import annotations

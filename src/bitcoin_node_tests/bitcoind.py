@@ -212,6 +212,9 @@ class BitcoindAdapter(NodeAdapter):
     `-maxconnections` and `-blockfilterindex` are this binary's own flags,
     and inbound eviction and `scanblocks` are its own behaviour behind
     the second and the third.
+    `Capability.VALIDATE_ADDRESS` is unconditional too: `validateaddress`
+    is this binary's own RPC (`src/rpc/output_script.cpp`), with no
+    wallet behind it.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -245,6 +248,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.FASTPRUNE,
             Capability.INBOUND_EVICTION,
             Capability.BLOCK_FILTER_INDEX,
+            Capability.VALIDATE_ADDRESS,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

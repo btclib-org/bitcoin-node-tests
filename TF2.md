@@ -853,6 +853,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_scanblocks.py` (no index) | same | same | pass | skip |
 | `p2p_eviction.py` | `1b76e0473647` | 2026-07-24 | pass, `-maxconnections` read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (inbound_eviction) on the build; skip (mine) on a build past [ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064) and before [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071); not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_presegwit_node_upgrade.py` | [`fad7bd9ba3ee`](https://github.com/bitcoin/bitcoin/commit/fad7bd9ba3ee) | 2026-01-14 | pass | skip (test_activation_height) |
+| `rpc_validateaddress.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (validate_address) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1393,6 +1394,24 @@ own docstring has the argument, and the wait for `getmempoolinfo`'s
 `Capability.TEST_ACTIVATION_HEIGHT`, as the activation-height trio's
 are.
 
+`rpc_validateaddress.py`'s row is Core's own claim in full
+([ISS 153](https://github.com/btclib-org/bitcoin-node-tests/issues/153)):
+on a node started on the main chain, Core's own `self.chain = ""`, with
+Core's own `-prune` value, every address of the file's own `INVALID_DATA`
+answers `isvalid` false with the error and the `error_locations` its row
+names, and every address of its `VALID_DATA` answers the `scriptPubKey`
+its row names and neither the error nor its locations. `NodeAdapter`'s
+own `chain="main"` (`node.py`) is what starts the node there
+([ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63)).
+Both tables are Core's own, copied into
+`rpc_validateaddress_bitcoind_test.py` from the file at this row's pin,
+so re-checking the pin is also what says whether the copy has gone
+stale. `btclib-node`'s cell is a counted skip on
+`Capability.VALIDATE_ADDRESS` (`capability.py`): `validateaddress` names
+no callback in `btclib_node.rpc.callbacks`'s own dispatch table, on the
+released build or on `main` (`btclib_node.py`'s own docstring has the
+measurement).
+
 Of the rest of the family's own census, string-literal matches and
 nothing more: `feature_bind_extra.py` and `rpc_bind.py` read the
 sockets a running node has actually bound, over `lsof`
@@ -1429,16 +1448,6 @@ before the pinned release was tagged but never backported into it.
 Rule 3's oracle is not authoritative on this one file until the pin
 names a release carrying that fix --
 [ISS 62](https://github.com/btclib-org/bitcoin-node-tests/issues/62).
-
-`rpc_validateaddress.py` (`-prune`) sets `self.chain = ""`, Core's own
-main chain: its subject is `validateaddress`'s own bech32/base58 error
-wording, which differs by network. `NodeAdapter`'s own `chain="main"`
-(`node.py`) starts either node there
-([ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63)).
-What the port still needs is the file's own tables of addresses and
-expected answers carried here, and a capability for `validateaddress`
-itself, which `btclib_node.rpc.callbacks` names no callback for --
-[ISS 153](https://github.com/btclib-org/bitcoin-node-tests/issues/153).
 
 `feature_versionbits_warning.py` (`-alertnotify=<cmd>`) and
 `rpc_signer.py` (`-signer=<cmd>`) each start a node that execs an

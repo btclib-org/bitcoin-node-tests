@@ -54,6 +54,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.BLOCK_FROM_PEER,
             Capability.ACCEPT_NON_STANDARD,
             Capability.SUSPEND_NETWORK,
+            Capability.DESCRIPTOR_INFO,
         }
     )
 

@@ -173,6 +173,15 @@ names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
 table, measured at the released `2026.9.24` and at `main` (`4e155386`)
 alike.
 
+`Capability.GENERATE` and `Capability.SCAN_UTXO_SET` are never declared
+either: none of `generatetoaddress`, `generateblock`, `help` and
+`scantxoutset` names a callback in that same dispatch table, measured at
+the released `2026.9.24` (`422d2640`) and at `main` (`d2b4efa5`) alike
+([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404),
+[ISS btclib-node#1396](https://github.com/btclib-org/btclib-node/issues/1396),
+[ISS btclib-node#1405](https://github.com/btclib-org/btclib-node/issues/1405),
+[ISS btclib-node#1406](https://github.com/btclib-org/btclib-node/issues/1406)).
+
 `Capability.REINDEX_AFTER_FAILURE` is never declared either: `cli.py`
 registers no `-test`, measured at the released `2026.9.24` and at `main`
 (`4e155386`) alike, each refusing

@@ -309,9 +309,9 @@ class Capability(Enum):
     keys the caller hands it, and merge copies of one transaction each
     carrying some of the signatures into one: Core's own
     `signrawtransactionwithkey` and `combinerawtransaction`, which need no
-    wallet (`rpc_createmultisig.py`'s `do_multisig`). One member for the
-    pair, as `DATACARRIER` is: the one ported test asking for either asks
-    for both.
+    wallet (`rpc_createmultisig.py`'s `do_multisig`,
+    `rpc_signrawtransactionwithkey.py`). One member for the pair, as
+    `DATACARRIER` is.
     `INVALIDATE_BLOCK` -- mark a block invalid on request, and go back to
     the best chain not holding it, Core's own `invalidateblock`
     (`feature_csv_activation.py`, which takes each accepted block back
@@ -321,6 +321,17 @@ class Capability(Enum):
     files instead on a start given Core's own debug-only
     `-test=reindex_after_failure_noninteractive_yes`
     (`feature_reindex_init.py`).
+    `GENERATE` -- build and solve a block itself, on request, paying the
+    output an address or a descriptor names and carrying the
+    transactions the caller names, and take it as its new tip: Core's
+    own `generatetoaddress` and `generateblock`, and the `help` naming
+    the `-generate` option that replaces its hidden `generate`
+    (`rpc_generate.py`). Not `MINE`: a node can take a block a client
+    built over `submitblock`, which `MINE` names, and build none itself.
+    `SCAN_UTXO_SET` -- search its own UTXO set for the outputs a list of
+    descriptors matches, Core's own `scantxoutset`
+    (`rpc_scantxoutset.py`). Named for what it reads rather than for the
+    RPC's own spelling.
     """
 
     MINE = "mine"
@@ -361,6 +372,8 @@ class Capability(Enum):
     SIGN_RAW_TRANSACTION = "sign_raw_transaction"
     INVALIDATE_BLOCK = "invalidate_block"
     REINDEX_AFTER_FAILURE = "reindex_after_failure"
+    GENERATE = "generate"
+    SCAN_UTXO_SET = "scan_utxo_set"
 
 
 class SkipCounts:

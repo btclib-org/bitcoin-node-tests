@@ -54,8 +54,9 @@ _CHAIN_DIRS = {
 }
 
 # the capabilities a node on any chain but regtest lacks: `generatetoaddress`
-# gives up after `maxtries` nonces (`src/rpc/mining.cpp`), a bound regtest's
-# own target is met within and another chain's is not in practice;
+# and `generateblock` give up after `maxtries` nonces (`src/rpc/mining.cpp`),
+# a bound regtest's own target is met within and another chain's is not in
+# practice;
 # `setmocktime` refuses a chain that is not `IsMockableChain`
 # (`src/rpc/node.cpp`), and so does `addconnection` (`src/rpc/net.cpp`);
 # `-testactivationheight` is read by `ReadRegTestArgs`
@@ -68,6 +69,7 @@ _REGTEST_ONLY = frozenset(
         Capability.TEST_ACTIVATION_HEIGHT,
         Capability.TYPED_OUTBOUND,
         Capability.REINDEX_AFTER_FAILURE,
+        Capability.GENERATE,
     }
 )
 
@@ -254,7 +256,12 @@ class BitcoindAdapter(NodeAdapter):
     binary's own RPCs (`src/rpc/rawtransaction.cpp`), with no wallet
     behind them.
     `Capability.INVALIDATE_BLOCK` is unconditional too: `invalidateblock` is
-    this binary's own RPC (`src/rpc/blockchain.cpp`).
+    this binary's own RPC (`src/rpc/blockchain.cpp`), and so is
+    `scantxoutset`, `Capability.SCAN_UTXO_SET`'s.
+    `Capability.GENERATE` is `generatetoaddress` and `generateblock`
+    (`src/rpc/mining.cpp`), which need no wallet, unlike `mine`'s own
+    `generatetoaddress` over one: it is declared on regtest alone, not
+    narrowed by `_has_wallet`.
     `Capability.REINDEX_AFTER_FAILURE` is `-test`'s own
     `reindex_after_failure_noninteractive_yes`, a debug-only flag of this
     binary's own (`src/init.cpp`), which it refuses off regtest.
@@ -304,6 +311,8 @@ class BitcoindAdapter(NodeAdapter):
             Capability.SIGN_RAW_TRANSACTION,
             Capability.INVALIDATE_BLOCK,
             Capability.REINDEX_AFTER_FAILURE,
+            Capability.GENERATE,
+            Capability.SCAN_UTXO_SET,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

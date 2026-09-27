@@ -702,3 +702,9 @@ btclib-node skips on `Capability.TYPED_OUTBOUND` (issue #44).
 btclib-node runs `feature_includeconf`'s refusals and warning, skipping the
 include order on `Capability.UA_COMMENT`, and skips `feature_reindex_init` on
 the new `Capability.REINDEX_AFTER_FAILURE` (issue #14).
+
+### `rpc_generate`, `rpc_signrawtransactionwithkey` and `rpc_scantxoutset` are ported
+
+bitcoind mines blocks to a given address or descriptor, signs with given keys
+and searches its UTXO set by descriptor; `Capability.GENERATE` and
+`Capability.SCAN_UTXO_SET` are new, and btclib-node skips each (issue #4).

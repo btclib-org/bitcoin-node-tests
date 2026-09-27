@@ -238,6 +238,15 @@ _ROWS: dict[str, str] = {
     "feature_cltv::test_a_version_3_block_is_logged_once_active": (
         "`feature_cltv.py` (log)"
     ),
+    "feature_cltv::test_cltv_failures_are_mined_until_the_configured_height": (
+        "`feature_cltv.py` (failures, activation)"
+    ),
+    "feature_cltv::test_cltv_failures_are_refused_by_the_mempool": (
+        "`feature_cltv.py` (failures, mempool)"
+    ),
+    "feature_cltv::test_cltv_failures_are_refused_in_a_block": (
+        "`feature_cltv.py` (failures, block)"
+    ),
     "feature_csv_activation": "`feature_csv_activation.py`",
     "feature_nulldummy": "`feature_nulldummy.py`",
     "feature_dirsymlinks": "`feature_dirsymlinks.py`",

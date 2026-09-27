@@ -4,12 +4,13 @@
 
 r"""Core's `feature_cltv`, rewritten on this harness: btclib-node.
 
-The same requests `feature_cltv_bitcoind_test.py` makes, against the
-target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
-`Capability.TEST_ACTIVATION_HEIGHT` is not declared -- the same
-measurement `feature_dersig_btclib_node_test.py`'s own docstring already
-has -- so this counts a skip rather than a run, before any node is ever
-spawned.
+`feature_cltv_test.py` beside this module holds the bodies, run here
+against the target rather than the oracle (rule 3 of issue
+btclib-org/btclib#2220). `Capability.TEST_ACTIVATION_HEIGHT` is not
+declared (`TF2.md`'s activation-trio paragraph has the measurement), nor
+is `Capability.ACCEPT_NON_STANDARD` (`btclib_node.py`'s own docstring
+has it), so every body asking for either is a counted skip; the block
+refusals ask for neither.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \\
@@ -22,47 +23,71 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-from bitcoin_node_tests.capability import Capability, require
+from tests.integration.feature_cltv_test import (
+    a_version_3_block_is_logged_once_active,
+    a_version_3_block_is_refused_once_active,
+    cltv_activates_one_block_before_the_configured_height,
+    cltv_failures_are_mined_until_the_configured_height,
+    cltv_failures_are_refused_by_the_mempool,
+    cltv_failures_are_refused_in_a_block,
+)
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
 
 
 def test_cltv_activates_one_block_before_the_configured_height(
-    btclib_node_python: str, skip_counts: SkipCounts
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
 ) -> None:
-    """`Capability.TEST_ACTIVATION_HEIGHT` is not declared, so this skips."""
-    del btclib_node_python
-    require(
-        Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
+    """The target: skipped on `Capability.TEST_ACTIVATION_HEIGHT`."""
+    cltv_activates_one_block_before_the_configured_height(
+        btclib_node_cluster, skip_counts
     )
-    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
-    pytest.fail("not ported for this node")
 
 
 def test_a_version_3_block_is_refused_once_active(
-    btclib_node_python: str, skip_counts: SkipCounts
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
 ) -> None:
-    """`Capability.TEST_ACTIVATION_HEIGHT` is not declared, so this skips."""
-    del btclib_node_python
-    require(
-        Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
-    )
-    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
-    pytest.fail("not ported for this node")
+    """The target: skipped on `Capability.TEST_ACTIVATION_HEIGHT`."""
+    a_version_3_block_is_refused_once_active(btclib_node_cluster, skip_counts)
 
 
 def test_a_version_3_block_is_logged_once_active(
-    btclib_node_python: str, skip_counts: SkipCounts
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
 ) -> None:
-    """`Capability.TEST_ACTIVATION_HEIGHT` is not declared, so this skips."""
-    del btclib_node_python
-    require(
-        Capability.TEST_ACTIVATION_HEIGHT, BtclibNodeAdapter.capabilities, skip_counts
+    """The target: skipped on `Capability.TEST_ACTIVATION_HEIGHT`."""
+    a_version_3_block_is_logged_once_active(btclib_node_cluster, skip_counts)
+
+
+def test_cltv_failures_are_mined_until_the_configured_height(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: skipped on `Capability.TEST_ACTIVATION_HEIGHT`."""
+    cltv_failures_are_mined_until_the_configured_height(
+        btclib_node_cluster, skip_counts
     )
-    require(Capability.MINE, BtclibNodeAdapter.capabilities, skip_counts)
-    require(Capability.DEBUG_LOG, BtclibNodeAdapter.capabilities, skip_counts)
-    pytest.fail("not ported for this node")
+
+
+def test_cltv_failures_are_refused_by_the_mempool(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: skipped on `Capability.ACCEPT_NON_STANDARD`."""
+    cltv_failures_are_refused_by_the_mempool(btclib_node_cluster, skip_counts)
+
+
+def test_cltv_failures_are_refused_in_a_block(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the block refusals, which ask for neither capability."""
+    cltv_failures_are_refused_in_a_block(btclib_node_cluster, skip_counts)

@@ -285,6 +285,10 @@ class Capability(Enum):
     `BLOCK_FROM_PEER` -- answer `getblockfrompeer`, Core's own RPC asking a
     named peer for a block whose header the node already has
     (`rpc_getblockfrompeer.py`). Named for the RPC, as `BLOCK_STATS` is.
+    `ACCEPT_NON_STANDARD` -- admit to its mempool, on request, a
+    transaction its standardness rules refuse while its script checks
+    still run, the fact Core's own `-acceptnonstdtxn` sets
+    (`feature_cltv.py`, whose spends prepend opcodes to a scriptSig).
     """
 
     MINE = "mine"
@@ -317,6 +321,7 @@ class Capability(Enum):
     RPC_WORK_QUEUE = "rpc_work_queue"
     BLOCKS_ONLY = "blocks_only"
     BLOCK_FROM_PEER = "block_from_peer"
+    ACCEPT_NON_STANDARD = "accept_non_standard"
 
 
 class SkipCounts:

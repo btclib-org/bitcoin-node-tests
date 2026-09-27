@@ -52,6 +52,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.RPC_WORK_QUEUE,
             Capability.BLOCKS_ONLY,
             Capability.BLOCK_FROM_PEER,
+            Capability.ACCEPT_NON_STANDARD,
         }
     )
 
@@ -167,12 +168,27 @@ def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
 ) -> None:
     """Every member of `_REGTEST_ONLY` answers on regtest alone."""
     with patch.object(bitcoind_module, "_has_wallet", return_value=True):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444, chain="testnet4")
+    assert adapter.capabilities == BitcoindAdapter.capabilities - {
+        Capability.MINE,
+        Capability.CLOCK,
+        Capability.TEST_ACTIVATION_HEIGHT,
+        Capability.TYPED_OUTBOUND,
+    }
+
+
+def test_capabilities_drop_the_test_chain_only_ones_on_main(
+    tmp_path: Path,
+) -> None:
+    """Main drops `_TEST_CHAIN_ONLY` beside `_REGTEST_ONLY`."""
+    with patch.object(bitcoind_module, "_has_wallet", return_value=True):
         adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444, chain="main")
     assert adapter.capabilities == BitcoindAdapter.capabilities - {
         Capability.MINE,
         Capability.CLOCK,
         Capability.TEST_ACTIVATION_HEIGHT,
         Capability.TYPED_OUTBOUND,
+        Capability.ACCEPT_NON_STANDARD,
     }
 
 

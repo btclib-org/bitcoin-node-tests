@@ -540,3 +540,9 @@ builds each scriptSig and witness, and `MiniWallet` gains nothing (closes #64).
 It passes on bitcoind and skips on btclib-node, which has no `disconnectnode`
 RPC. `TF2.md` hands every other node-linking file to ISS 14, this file's
 `setban` half among them, unless the census disqualifies it (closes #43).
+
+### One body runs a Core test against both nodes
+
+`p2p_block_sync`, `p2p_compactblocks_hb` and `p2p_invalid_locator` call one
+body from both nodes' tests, so a btclib-node build declaring the capabilities
+runs Core's scenario rather than a stub's `pytest.fail` (issue #125).

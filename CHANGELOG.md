@@ -708,3 +708,9 @@ the new `Capability.REINDEX_AFTER_FAILURE` (issue #14).
 bitcoind mines blocks to a given address or descriptor, signs with given keys
 and searches its UTXO set by descriptor; `Capability.GENERATE` and
 `Capability.SCAN_UTXO_SET` are new, and btclib-node skips each (issue #4).
+
+### `test: every job passed` reads a lagging row again and judges `needs` results
+
+A `needs` row still listed unfinished is read again, up to three times ten
+seconds apart, before being accepted (issue btclib-org/.github#1416); a `needs`
+result neither `success` nor `skipped` fails (issue btclib-org/.github#1424).

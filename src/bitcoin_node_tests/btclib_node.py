@@ -221,27 +221,35 @@ def _evicts_inbound(executable: str) -> bool:
 
 
 # `tf2` is no `<user>:<salt>$<hash>`, so `RpcAuthEntry.parse` refuses it
-# wherever it survives the command line: `build_config` returns only where
-# `-norpcauth` discarded it. `-noconf` keeps any `bitcoin.conf` out of it.
+# wherever it survives the command line. Since
+# [ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210),
+# that refusal is kept on the returned config as `rpc_auth_invalid`
+# rather than raised, so `build_config` returns whether or not
+# `-norpcauth` discarded the value: the probe below exits on that field
+# instead of on the return itself, `getattr` defaulting `False` for a
+# build that predates the field and so raises wherever the value
+# survives. `-noconf` keeps any `bitcoin.conf` out of it.
 _NEGATION_PROBE = (
     "from btclib_node.cli import build_config; "
-    'build_config(["-regtest", "-noconf", "-rpcauth=tf2", "-norpcauth"])'
+    'config = build_config(["-regtest", "-noconf", "-rpcauth=tf2", "-norpcauth"]); '
+    'raise SystemExit(1 if getattr(config, "rpc_auth_invalid", False) else 0)'
 )
 
 
 @lru_cache
 def _negates_rpcauth(executable: str) -> bool:
-    """Return whether `executable`'s own btclib-node reads `-norpcauth`.
+    """Return whether `executable`'s own btclib-node negates `-rpcauth`.
 
     Asks the build's own `cli.build_config` -- which reads the command
     line as `main` does, and takes no lock and creates no directory -- to
-    read `-rpcauth` followed by its negation, and answers whether it
-    returns:
-    `_NEGATION_PROBE` above is why returning means the value was
-    discarded rather than merely accepted. A build with no generic
-    negation refuses the argument and exits nonzero. Otherwise in the
-    standing of `_writes_auth_cookie` above: no port bound, and cached
-    per executable.
+    read `-rpcauth` followed by its negation, and answers whether the
+    resulting config's `rpc_auth_invalid`, where the build has one, is
+    false -- and where it has none, whether it returned: `_NEGATION_PROBE`
+    above is why exiting zero means the value was discarded rather than
+    merely accepted alongside `-norpcauth` on the command line. A build
+    with no generic negation refuses the argument and exits nonzero.
+    Otherwise in the standing of `_writes_auth_cookie` above: no port
+    bound, and cached per executable.
 
     :param executable: the interpreter `btclib-node` is installed into.
     """

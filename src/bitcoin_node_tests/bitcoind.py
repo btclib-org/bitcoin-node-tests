@@ -226,6 +226,10 @@ class BitcoindAdapter(NodeAdapter):
     in the same standing as `setmocktime` above (measured against the
     pinned `31.1`: absent from `help`'s own listing, answering
     `help addconnection` directly).
+    `Capability.RPC_WORK_QUEUE` is unconditional too: `-rpcthreads` and
+    `-rpcworkqueue` are this binary's own flags, and the refusal of a
+    request past the queue's bound is its own HTTP server's
+    (`src/httpserver.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -261,6 +265,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.BLOCK_FILTER_INDEX,
             Capability.VALIDATE_ADDRESS,
             Capability.TYPED_OUTBOUND,
+            Capability.RPC_WORK_QUEUE,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

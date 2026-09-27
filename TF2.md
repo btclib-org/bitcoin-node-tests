@@ -2096,22 +2096,24 @@ there. The `rpc_getblockstats.py` cell abbreviates its capability to
 this paragraph is where both names are spelled out.
 `rpc_getdescriptoractivity.py`'s own first row needs no `MiniWallet`,
 and is what runs on bitcoind directly; its `(mempool)` row folds
-together Core's own `test_activity_in_block` and
-`test_no_mempool_inclusion`, both needing `Capability.MINE` on top of
-the RPC itself. `rpc_getdescriptoractivity.py`'s own kept and dropped
-set: kept is that an unused address carries no activity; that a payment
-to a key-path p2tr output confirmed in a named block makes `activity`
-the answer's only key and reports one `receive` entry, checked for its
-`type`, `blockhash`, `height`, `txid`, `vout` and `amount` and for its
-`output_spk`'s `hex`, `address`, `type`, the witness version opening
-its `asm` and the `rawtr` function opening its `desc`; that an
-unconfirmed payment is excluded when `include_mempool` is `False`; and
-its RPC-argument errors for a bad blockhash, a bad descriptor and a
-missing argument; dropped is Core's own multiple-address query, its
-receive-then-spend, its mix of a confirmed and an unconfirmed payment,
-and its no-address (`RAW_P2PK`) case, this repository's own `MiniWallet`
-building only Core's `ADDRESS_OP_TRUE` mode. `rpc_getblockstats.py`'s
-own kept and dropped set: kept is the genesis block's own statistics --
+together every one of Core's own subtests that needs `Capability.MINE`
+on top of the RPC itself. `rpc_getdescriptoractivity.py` drops none of
+Core's own subtests: kept is that an unused address carries no activity;
+that a payment to a key-path p2tr output confirmed in a named block
+makes `activity` the answer's only key and reports one `receive` entry,
+checked for its `type`, `blockhash`, `height`, `txid`, `vout` and
+`amount` and for its `output_spk`'s `hex`, `address`, `type`, the
+witness version opening its `asm` and the `rawtr` function opening its
+`desc`; that an unconfirmed payment is excluded when `include_mempool`
+is `False`; its RPC-argument errors for a bad blockhash, a bad
+descriptor and a missing argument; and Core's own multiple-address
+query, its mix of a confirmed and an unconfirmed payment, its
+receive-then-spend, and its no-address case, a coin paying
+`mini_wallet.py`'s `RAW_P2PK_SCRIPT_PUB_KEY` spent under
+`raw_p2pk_script_sig`
+([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)).
+`rpc_getblockstats.py`'s own kept and dropped set: kept is the genesis
+block's own statistics --
 independently computed as its serialized `TxOut` plus `getblockstats`'s
 own per-coin overhead, the one the running build's `getnetworkinfo`
 `version` implies, rather than copied from Core's own literals, genesis

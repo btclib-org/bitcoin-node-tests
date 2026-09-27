@@ -831,11 +831,11 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_dirsymlinks.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `feature_posix_fs_permissions.py` | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)) on the build; pass on a build past [ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198) |
 | `rpc_createmultisig.py` | `771200ca4362` | 2026-06-30 | pass | bitcoind only |
-| `rpc_setban.py` (ban) | `fa21edddb272` | 2026-03-27 | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
+| `rpc_setban.py` (ban) | `fa21edddb272` | 2026-03-27 | pass | skip (ban) on the build; pass on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
 | `rpc_setban.py` (restart) | same | same | pass | skip (ban) on the build; skip (debug_log) on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
-| `rpc_setban.py` (noban) | same | same | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
-| `rpc_setban.py` (non-IP) | same | same | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
-| `rpc_setban.py` (bantime) | same | same | pass | skip (ban) on the build; not ported on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
+| `rpc_setban.py` (noban) | same | same | pass | skip (ban) on the build; fail ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)) on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
+| `rpc_setban.py` (non-IP) | same | same | pass | skip (ban) on the build; fail ([ISS btclib-node#1218](https://github.com/btclib-org/btclib-node/issues/1218)) on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
+| `rpc_setban.py` (bantime) | same | same | pass | skip (ban) on the build; pass on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
 | `p2p_disconnect_ban.py` (disconnectnode) | [`dcd90fbe54cf`](https://github.com/bitcoin/bitcoin/commit/dcd90fbe54cf) | 2026-04-07 | pass | skip (disconnect) |
 | `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
@@ -1839,16 +1839,13 @@ build, and `btclib_node.py`'s own `_serves_ban_list` probe declares it on
 a build past
 [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088)
 ([ISS 140](https://github.com/btclib-org/bitcoin-node-tests/issues/140)):
-there the restart row skips on `Capability.DEBUG_LOG` and every other row
-is not ported. Run by hand against such a build (`main` at `35b26d2e`), the
-bitcoind test's own assertions hold for the ban row and, `assert_debug_log`
-aside, for the restart row; the other rows' own requests are refused --
-`-whitelist`
-([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)),
-an onion address
-([ISS btclib-node#1218](https://github.com/btclib-org/btclib-node/issues/1218))
-and `-bantime`
-([ISS btclib-node#1219](https://github.com/btclib-org/btclib-node/issues/1219)).
+there each row is one body run against both nodes
+(`tests/integration/conftest.py`'s own module docstring). The restart row
+skips on `Capability.DEBUG_LOG`; the ban and `-bantime` rows pass; and
+the other rows' own requests are refused -- `-whitelist`
+([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320))
+and an onion address
+([ISS btclib-node#1218](https://github.com/btclib-org/btclib-node/issues/1218)).
 
 `p2p_disconnect_ban.py`'s "Test disconnectnode RPCs" section is ported,
 its own row above: a pair of nodes connected both ways, `disconnectnode`

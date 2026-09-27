@@ -570,3 +570,9 @@ mempool and a block alike (issue #167).
 `mempool_resurrect`, `mempool_spend_coinbase` and `feature_utxo_set_hash` call
 one body from both nodes' tests, each reading a block's transactions off the
 raw `getblock` both nodes serve (issue #125).
+
+### `rpc_setban` runs one body per test on both nodes
+
+Each of its tests calls one body from both nodes' tests, so a btclib-node build
+serving the ban list runs Core's scenario rather than a stub's `pytest.fail`
+(issue #125).

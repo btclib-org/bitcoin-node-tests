@@ -79,10 +79,10 @@ jobs:
     # under a codeload outage that killed a cell before it reached the
     # needs context at all (btclib-benchmarks' test.yml carries the same
     # shape and the incident it answers). needs: below orders this job
-    # last, and hands the step below each of those jobs' own result for
-    # the one case the step reads it -- a row the listing still shows
-    # unfinished. What the step judges is whatever the run reports, a set
-    # that already includes both jobs above
+    # last, and hands the step below each of those jobs' own result, which
+    # the step judges beside the listing and reads to accept a row the
+    # listing still shows unfinished. What the listing holds is whatever
+    # the run reports, a set that already includes both jobs above
     needs: [changes, coverage]
     # the closed condition, added at the trigger above, skips this job
     # uniformly on a closed pull request rather than tripping it over a
@@ -119,19 +119,6 @@ jobs:
           COVERAGE_RESULT: ${{ needs.coverage.result }}
         run: |
           set -euo pipefail
-          # `.status` beside the conclusion so that an unfinished job says
-          # which kind it is: queued and running are one word to
-          # `.conclusion` and two facts to a reader of the log
-          jobs=$(gh api --paginate \
-            "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
-            --jq '.jobs[] | "\(.conclusion // "unfinished")\t\(.status)\t\(.name)"')
-          printf '%s\n' "${jobs}"
-          # awk and not grep: a tab in a grep pattern is one
-          # implementation's extension and a literal "t" in another's,
-          # and the runner's is the second -- where awk's field
-          # separator is POSIX
-          bad=$(printf '%s\n' "${jobs}" |
-            awk -F'\t' '$1 != "success" && $1 != "skipped" && $1 != "unfinished"')
           # a row of this job's own needs that the listing still shows
           # unfinished is the listing lagging and not the run: needs does
           # not let this job start before those jobs conclude. It is
@@ -162,16 +149,47 @@ jobs:
                 if (own == want) print
               }'
           }
-          lagging=$(unfinished_rows 1)
+          # such a row is read again, up to three times ten seconds apart,
+          # before it is accepted: a needs job's result is not the
+          # listing's equal, `needs` having missed matrix cells that died
+          # in *Set up job* (btclib-org/btclib#1001), and a row that
+          # concludes between reads is judged below on its conclusion.
+          # Only a row this step would accept is waited for, which is a
+          # row whose job's result is success or skipped; a listing with no
+          # such row is read once (btclib-org/.github#1416)
+          reads=0
+          while :; do
+            # `.status` beside the conclusion so that an unfinished job
+            # says which kind it is: queued and running are one word to
+            # `.conclusion` and two facts to a reader of the log
+            jobs=$(gh api --paginate \
+              "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+              --jq '.jobs[] | "\(.conclusion // "unfinished")\t\(.status)\t\(.name)"')
+            lagging=$(unfinished_rows 1)
+            if [ -z "${lagging}" ] || [ "${reads}" -eq 3 ]; then
+              break
+            fi
+            reads=$((reads + 1))
+            echo "listed unfinished, read again in 10 s (${reads} of 3):"
+            printf '%s\n' "${lagging}"
+            sleep 10
+          done
+          printf '%s\n' "${jobs}"
+          # awk and not grep: a tab in a grep pattern is one
+          # implementation's extension and a literal "t" in another's,
+          # and the runner's is the second -- where awk's field
+          # separator is POSIX
+          bad=$(printf '%s\n' "${jobs}" |
+            awk -F'\t' '$1 != "success" && $1 != "skipped" && $1 != "unfinished"')
           if [ -n "${lagging}" ]; then
-            echo "listed unfinished, accepted as a needs job's own" \
+            echo "still listed unfinished, accepted as a needs job's own" \
               "(changes: ${CHANGES_RESULT}, coverage: ${COVERAGE_RESULT}):"
             printf '%s\n' "${lagging}"
           fi
           counted=$(unfinished_rows 0)
           unfinished=$(printf '%s' "${counted}" | awk 'END { print NR }')
-          # both are reported before exiting rather than the first one
-          # reached: a gate that says what it saw says all of it, and
+          # every failure is reported before exiting rather than the first
+          # one reached: a gate that says what it saw says all of it, and
           # each annotation names the rows it is about, because an
           # annotation is what the checks page shows without the log
           # being opened. %0A is a newline to an annotation, which is
@@ -183,6 +201,26 @@ jobs:
             printf '\n'
           }
           verdict=0
+          # each needs job's own result is judged beside the listing and
+          # not only through it: a failure `needs` reports with no row of
+          # that job's listed as failed, or with its rows missing, is
+          # still a failure (btclib-org/.github#1424). This turns a pass
+          # into a fail and never the reverse, so the judgements of the
+          # listing below lose nothing
+          case "${CHANGES_RESULT}" in
+            success | skipped) ;;
+            *)
+              annotate "changes' own result is '${CHANGES_RESULT}'" ""
+              verdict=1
+              ;;
+          esac
+          case "${COVERAGE_RESULT}" in
+            success | skipped) ;;
+            *)
+              annotate "coverage's own result is '${COVERAGE_RESULT}'" ""
+              verdict=1
+              ;;
+          esac
           if [ -n "${bad}" ]; then
             annotate "these jobs of the run did not succeed:" "${bad}"
             verdict=1

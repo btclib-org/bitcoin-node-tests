@@ -238,6 +238,7 @@ _ROWS: dict[str, str] = {
     "rpc_setban::test_bantime_given_at_a_restart_sets_a_new_ban_s_duration": (
         "`rpc_setban.py` (bantime)"
     ),
+    "p2p_disconnect_ban": "`p2p_disconnect_ban.py` (disconnectnode)",
     "mempool_datacarrier": "`mempool_datacarrier.py`",
     "mempool_dust": "`mempool_dust.py`",
     "mempool_sigoplimit": "`mempool_sigoplimit.py`",

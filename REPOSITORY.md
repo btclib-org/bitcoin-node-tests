@@ -112,10 +112,10 @@ moving a job is free and renaming one is not.
 
 `node-integration.yml`'s other jobs -- `btclib-node`, `core-master` and
 `btclib-node-main` -- produce no required check: each runs with
-`continue-on-error: true` and reports rather than gates. `btclib-node`'s
-own disagreement is [ISS
-btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)
-and not a defect of this repository's own gates; `core-master` and
+`continue-on-error: true` and reports rather than gates. `btclib-node`
+installs btclib-node's latest release unpinned, so a new release moving
+a cell of `TF2.md`'s `btclib-node` column would fail a pull request for a
+reason outside it; `core-master` and
 `btclib-node-main` track Core's own `master` and btclib-node's own
 `main`, and a required check depending on either would fail a pull
 request for a reason outside it ([ISS

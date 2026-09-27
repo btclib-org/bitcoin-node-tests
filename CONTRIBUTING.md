@@ -641,7 +641,16 @@ sdist -- the job's own being the one its `Setup a second interpreter
 for btclib-node` step names. `btclib-node-main`
 is the same command again, `TF2_BTCLIB_NODE_PYTHON` pointed at an
 interpreter carrying that project's own `main` rather than its last
-release. `core-master` is `TF2_BITCOIND` pointed at a `bitcoind` built locally
+release. Each of the two compares its JUnit report with `TF2.md`'s
+`btclib-node` column, `release` or `main` naming whose verdict a cell
+gives:
+
+```shell
+python .github/scripts/btclib_node_verdict.py \
+    TF2.md integration.xml release
+```
+
+`core-master` is `TF2_BITCOIND` pointed at a `bitcoind` built locally
 from Bitcoin Core's own `master`, the job's own `Configure the build`
 step naming the CMake options; its own verdict on a failure unique to
 that build is `.github/scripts/tf2_master_verdict.py`, given the two
@@ -657,9 +666,10 @@ the same sha, which is the reliance `REVIEWING.md` provides for.
 
 `node-integration.yml`'s other jobs -- `btclib-node`, `core-master` and
 `btclib-node-main` -- gate nothing anywhere: `continue-on-error: true` in
-the workflow itself says so for each. `btclib-node`'s own disagreement
-is ISS btclib-node#1072, filed on that repository's own tracker and not
-a defect of this one's gates; `core-master` and `btclib-node-main` track
+the workflow itself says so for each. `btclib-node` installs
+btclib-node's latest release unpinned, so a new release moving a cell of
+`TF2.md`'s `btclib-node` column turns it red for a reason outside any
+pull request; `core-master` and `btclib-node-main` track
 Core's own `master` and btclib-node's own `main` rather than the pinned
 release under test, by [ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8)'s
 decision of 2026-09-25.

@@ -234,13 +234,13 @@ class Stoppable(Protocol):
 def stop_all(adapters: Sequence[Stoppable]) -> None:
     """Stop every one of `adapters`, last started first.
 
-    `tests/integration/conftest.py`'s own `bitcoind_cluster` fixture calls
-    this from its teardown. Nested `try`/`finally` rather than a
-    `contextlib.ExitStack`: each stop runs even where a later-started one
-    raised -- a node `stop` had to kill, or one that had crashed -- and
-    every error raised is kept, each chained to the one before, where an
-    `ExitStack` runs its callbacks outside an `except` block and keeps
-    only the last error it meets.
+    `tests/integration/conftest.py`'s own `bitcoind_cluster` and
+    `btclib_node_cluster` fixtures call this from their teardown. Nested
+    `try`/`finally` rather than a `contextlib.ExitStack`: each stop runs
+    even where a later-started one raised -- a node `stop` had to kill, or
+    one that had crashed -- and every error raised is kept, each chained
+    to the one before, where an `ExitStack` runs its callbacks outside an
+    `except` block and keeps only the last error it meets.
 
     :param adapters: the adapters to stop, in the order they were
         started.

@@ -25,6 +25,24 @@ options, restated as pytest ones -- CONTRIBUTING.md's own *Running
 against a Core developer's own build* has the full mapping, and
 `--nocleanup`, `--v2transport` and `--v1transport` are named there too,
 neither needing a flag of its own here.
+
+A Core test converged onto both nodes is one body
+([ISS 125](https://github.com/btclib-org/bitcoin-node-tests/issues/125)):
+a function in `<file>_test.py`, named for Core's own file
+(`p2p_block_sync_test.py`), taking the adapters it runs on and
+`skip_counts`. Its name carries no `test_` prefix, so pytest collects no
+test from that module. `<file>_bitcoind_test.py` and
+`<file>_btclib_node_test.py` each call it from a test of the same name
+with the prefix, handing it their own node's fixture --
+`bitcoind_adapter` or `btclib_node_adapter` for one node,
+`bitcoind_cluster` or `btclib_node_cluster` for several. The body asks
+`require` of the instances it was handed, never of an adapter class:
+`BtclibNodeAdapter.__init__` widens an instance's `capabilities` by
+probing the build it runs. The two test modules stay two, rather than
+one parametrized over both nodes, because the CI jobs select a node's
+tests by module: `node-integration.yml`'s `btclib-node` jobs run
+`*_btclib_node_test.py`, and its `bitcoind` job fails on a skip in any
+module whose name does not carry `btclib_node`.
 """
 
 from __future__ import annotations
@@ -40,7 +58,7 @@ import pytest
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import SkipCounts
-from bitcoin_node_tests.node import free_ports
+from bitcoin_node_tests.node import NodeAdapter, free_ports
 from bitcoin_node_tests.timeout_factor import scaled, set_factor
 from tests.conftest import (
     AdapterFactory,
@@ -232,18 +250,35 @@ def bitcoind_cluster(
     Function-scoped, unlike `bitcoind_adapter` above: the first family's
     multi-node tests (`p2p_block_sync`, `p2p_compactblocks_hb`) each want
     their own clean-chain topology rather than one node shared across the
-    whole session, and each call of the factory this yields starts one
-    more node over a fresh data directory and a fresh pair of ports.
+    whole session. `_cluster` below is the factory this yields.
     """
-    started: list[BitcoindAdapter] = []
+    yield from _cluster(
+        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path_factory, "bitcoind"
+    )
 
-    def _start(count: int) -> list[BitcoindAdapter]:
+
+def _cluster[A: NodeAdapter](
+    make_adapter: AdapterFactory,
+    cls: type[A],
+    executable: str,
+    tmp_path_factory: pytest.TempPathFactory,
+    basename: str,
+) -> Iterator[Callable[[int], list[A]]]:
+    """Yield a cluster fixture's factory over `cls`, stopping every node after.
+
+    A call starts `count` more nodes, each over a fresh data directory
+    named from `basename` and a fresh pair of ports, and returns every node
+    this factory has started so far, in the order it started them.
+    """
+    started: list[A] = []
+
+    def _start(count: int) -> list[A]:
         for _ in range(count):
             rpc_port, p2p_port = free_ports(2)
             adapter = make_adapter(
-                BitcoindAdapter,
-                bitcoind_path,
-                tmp_path_factory.mktemp("bitcoind"),
+                cls,
+                executable,
+                tmp_path_factory.mktemp(basename),
                 rpc_port,
                 p2p_port,
             )
@@ -304,6 +339,27 @@ def btclib_node_adapter(
         yield adapter
     finally:
         adapter.stop()
+
+
+@pytest.fixture
+def btclib_node_cluster(
+    btclib_node_python: str,
+    tmp_path_factory: pytest.TempPathFactory,
+    make_adapter: AdapterFactory,
+) -> Iterator[Callable[[int], list[BtclibNodeAdapter]]]:
+    """Yield `bitcoind_cluster`'s factory, over `BtclibNodeAdapter`s instead.
+
+    The same factory, so that one body taking a cluster runs against
+    either node: the module docstring's own paragraph on one body over
+    both nodes is the contract this fixture keeps.
+    """
+    yield from _cluster(
+        make_adapter,
+        BtclibNodeAdapter,
+        btclib_node_python,
+        tmp_path_factory,
+        "btclib-node",
+    )
 
 
 @pytest.fixture

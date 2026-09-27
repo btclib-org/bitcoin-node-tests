@@ -779,10 +779,10 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_users.py` (`-norpcauth`) | same | same | pass | skip (rpc_auth_negation) on the build; pass on a build past [ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176) |
 | `rpc_users.py` (`-rpcuser`/`-rpcpassword`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `rpc_users.py` (`-norpccookiefile`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
-| `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
-| `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; skip (disconnect) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) on the build; pass on a build past [ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072) |
-| `p2p_invalid_locator.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; not ported on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_invalid_locator.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; fail ([ISS btclib-node#1385](https://github.com/btclib-org/btclib-node/issues/1385)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_invalid_messages.py` (wire) | `3fd68a95e68b` | 2026-04-07 | pass | pass |
 | `p2p_invalid_messages.py` (log) | `3fd68a95e68b` | 2026-04-07 | pass | skip |
 | `p2p_invalid_messages.py` (inv, wire) | same | same | pass | fail ([ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145)) on the build; pass on a build past [ISS btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145) |
@@ -1033,15 +1033,21 @@ The first family's own rows -- `p2p_block_sync.py`,
 being the whole of it: none narrows what Core asks, each needing
 `Capability.MINE` (`p2p_block_sync.py`, `p2p_compactblocks_hb.py` and
 `p2p_invalid_locator.py`, to reach a chain tall enough to mine or to
-name) or `Capability.RAW_MESSAGE` (`p2p_net_deadlock.py`, Core's own
+name, and `Capability.DISCONNECT` besides for `p2p_compactblocks_hb.py`)
+or `Capability.RAW_MESSAGE` (`p2p_net_deadlock.py`, Core's own
 `sendmsgtopeer`), so every `btclib-node` cell is a counted skip rather
-than a run on the released build, which declares neither -- naming the
+than a run on the released build, which declares none of them -- naming the
 capability rather than the RPC, since a node offering the same fact
-under another name would still answer `pass`. A `main` declaring
-`Capability.MINE` (`btclib_node.py`'s own docstring) reaches the
-`pytest.fail` the `p2p_block_sync.py`, `p2p_compactblocks_hb.py` and
-`p2p_invalid_locator.py` stubs end in, none of them ported for that node
-yet, and `p2p_net_deadlock.py` still skips on `Capability.RAW_MESSAGE`.
+under another name would still answer `pass`. Every row of these but
+`p2p_net_deadlock.py` is one body run against both nodes
+(`tests/integration/conftest.py`'s own module docstring), so a `main`
+declaring `Capability.MINE` (`btclib_node.py`'s own docstring) runs
+Core's own scenario: `p2p_block_sync.py` passes; `p2p_compactblocks_hb.py`
+skips on `Capability.DISCONNECT` instead, each relay dropping its link to
+the block producer over `disconnectnode`; and `p2p_invalid_locator.py`
+fails its `getblocks` half, a message that build leaves unanswered
+([ISS btclib-node#1385](https://github.com/btclib-org/btclib-node/issues/1385)).
+`p2p_net_deadlock.py` still skips on `Capability.RAW_MESSAGE`.
 `p2p_compactblocks_hb.py` identifies each of the node under test's own
 peers by connection order rather than by the `-uacomment` Core's own
 `TestNode` sets, this adapter carrying no per-node command-line option;

@@ -318,6 +318,16 @@ _ROWS: dict[str, str] = {
     "rpc_getblockfrompeer": "`rpc_getblockfrompeer.py`",
     "p2p_node_network_limited": "`p2p_node_network_limited.py`",
     "rpc_getdescriptorinfo": "`rpc_getdescriptorinfo.py`",
+    "p2p_timeouts::test_peers_that_never_finish_the_handshake_are_dropped": (
+        "`p2p_timeouts.py` (wire)"
+    ),
+    "p2p_timeouts::test_handshake_timeouts_are_logged": "`p2p_timeouts.py` (log)",
+    "p2p_timeouts::test_a_non_positive_peertimeout_is_refused": (
+        "`p2p_timeouts.py` (refusal)"
+    ),
+    "p2p_ping::test_ping_replies_are_reported_on_rpc": "`p2p_ping.py` (wire)",
+    "p2p_ping::test_ping_replies_are_logged": "`p2p_ping.py` (log)",
+    "mempool_expiry": "`mempool_expiry.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

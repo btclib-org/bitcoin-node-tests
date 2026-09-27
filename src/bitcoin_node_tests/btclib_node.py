@@ -156,6 +156,11 @@ alike
 names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
 table, measured at the released `2026.9.24` (`422d2640`) and at `main`
 (`4e155386`) alike.
+
+`Capability.PEER_TIMEOUT` and `Capability.MEMPOOL_EXPIRY` are never
+declared either: `cli.py` registers neither `-peertimeout` nor
+`-mempoolexpiry`, measured at the released `2026.9.24` (`422d2640`) and
+at `main` (`4e155386`) alike.
 """
 
 from __future__ import annotations

@@ -874,6 +874,12 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_getblockfrompeer.py` | [`779f4446803d`](https://github.com/bitcoin/bitcoin/commit/779f4446803d) | 2026-05-25 | pass | skip (block_from_peer) |
 | `p2p_node_network_limited.py` | [`fa7bac94d87a`](https://github.com/bitcoin/bitcoin/commit/fa7bac94d87a) | 2026-03-12 | pass | skip (mine) on the build; skip (disconnect) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `rpc_getdescriptorinfo.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (descriptor_info) |
+| `p2p_timeouts.py` (wire) | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | skip (peer_timeout) |
+| `p2p_timeouts.py` (log) | same | same | pass | skip (peer_timeout) |
+| `p2p_timeouts.py` (refusal) | same | same | pass | skip (peer_timeout) |
+| `p2p_ping.py` (wire) | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (peer_timeout) |
+| `p2p_ping.py` (log) | same | same | pass | skip (peer_timeout) |
+| `mempool_expiry.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mempool_expiry) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1320,8 +1326,8 @@ of `p2p_addrv2_relay.py`, the rest of `p2p_bip434_feature.py`,
 `p2p_disconnect_ban.py`'s `setban` half, `p2p_filter.py`,
 `p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
 `p2p_initial_headers_sync.py`, `p2p_invalid_block.py`, `p2p_invalid_tx.py`,
-`p2p_orphan_handling.py`, `p2p_permissions.py`, `p2p_ping.py`,
-`p2p_segwit.py`, `p2p_timeouts.py`, `p2p_tx_download.py`,
+`p2p_orphan_handling.py`, `p2p_permissions.py`,
+`p2p_segwit.py`, `p2p_tx_download.py`,
 `p2p_unrequested_blocks.py`, `p2p_v2_misbehaving.py`,
 `p2p_v2_transport.py`, `rpc_misc.py` and `rpc_net.py`. Of these,
 `p2p_addr_relay.py`, `p2p_blocksonly.py`, `p2p_compactblocks.py`,
@@ -1360,6 +1366,7 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_invalid_messages.py` but for the step still open, `p2p_leak.py`,
 `rpc_setban.py`, `rpc_users.py`, `feature_posix_fs_permissions.py`,
 `feature_cltv.py`, `feature_dersig.py`, `feature_csv_activation.py`,
+`p2p_ping.py`, `p2p_timeouts.py`,
 `p2p_disconnect_ban.py`'s `disconnectnode` half and
 `p2p_bip434_feature.py`'s wire-only disconnects. Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
@@ -2087,6 +2094,27 @@ it checks, through `send_blocks_and_test`'s own `reject_reason`, and the
 peer connected through the refusals -- so it is
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
 the log family's census above.
+
+`p2p_timeouts.py`, `p2p_ping.py` and `mempool_expiry.py` are
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
+each run on a single node that no step has dial out, and each combining
+an option with the clock and either the log or `MiniWallet`: `-peertimeout` is
+`Capability.PEER_TIMEOUT` and `-mempoolexpiry` `Capability.MEMPOOL_EXPIRY`
+(`capability.py`). Each is Core's own claim in full, as Core's default
+run makes it, and each body module's own docstring
+(`tests/integration/<file>_test.py`) has how every fact is reached.
+`p2p_timeouts.py` and `p2p_ping.py` give the wire and the log a row
+each, the log family's rule, and `p2p_timeouts.py`'s refused start under
+a non-positive `-peertimeout` has a row of its own. Both start their
+node with BIP324 and automatic connections turned off, as Core's harness
+starts every node and `BitcoindAdapter` does not;
+`tests/integration/p2p_timeouts_test.py`'s own docstring has the options
+and why each is there. `mempool_expiry.py` checks Core's
+default expiry and then, over the same node restarted, its custom one.
+Every `btclib-node` cell is a counted skip on the option's capability,
+asked for first: `cli.py` registers neither option, on the released
+build or on `main` (`btclib_node.py`'s own docstring), and neither build
+names `setmocktime` in its RPC dispatch table.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

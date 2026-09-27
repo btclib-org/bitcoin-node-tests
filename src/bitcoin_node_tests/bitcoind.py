@@ -28,6 +28,7 @@ from bitcoin_core_rpc.transport import urlopen_transport
 
 from bitcoin_node_tests.capability import Capability
 from bitcoin_node_tests.node import NodeAdapter, traced_transport
+from bitcoin_node_tests.timeout_factor import rpc_client_timeout
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
@@ -513,7 +514,10 @@ class BitcoindAdapter(NodeAdapter):
         the one that already knows the credential to authenticate with.
         `self._trace_rpc` (`--tracerpc`) wraps whichever transport that
         choice builds in `traced_transport`'s own print, credential or
-        cookie alike.
+        cookie alike. Either client bounds each call by
+        `timeout_factor.rpc_client_timeout`, read when the client is built,
+        so `--timeout-factor` scales it as Core's own harness scales its RPC
+        connection's.
         """
         url = f"http://127.0.0.1:{self._rpc_port}"
         transport = (
@@ -521,13 +525,22 @@ class BitcoindAdapter(NodeAdapter):
             if self._trace_rpc
             else urlopen_transport
         )
+        timeout = rpc_client_timeout()
         if self._rpc_auth is not None:
             user, password = self._rpc_auth
             return BitcoinCoreRpcClient(
-                url, user=user, password=password, transport=transport
+                url,
+                user=user,
+                password=password,
+                timeout=timeout,
+                transport=transport,
             )
-        cookie_path = self._chain_dir / ".cookie"
-        return BitcoinCoreRpcClient(url, cookie_path=cookie_path, transport=transport)
+        return BitcoinCoreRpcClient(
+            url,
+            cookie_path=self._chain_dir / ".cookie",
+            timeout=timeout,
+            transport=transport,
+        )
 
     @property
     def debug_log_path(self) -> Path:

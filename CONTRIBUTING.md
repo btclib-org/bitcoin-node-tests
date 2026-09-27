@@ -530,6 +530,8 @@ reason. `node.wait_until` is the shared, scaled loop
 `tests/integration/`'s own test modules poll a predicate through, rather
 than each reimplementing one unscaled beside it
 ([ISS 90](https://github.com/btclib-org/bitcoin-node-tests/issues/90)).
+Each RPC client either adapter builds bounds a call by `timeout_factor.py`'s
+own `rpc_client_timeout`: Core's own `rpc_timeout`, scaled, then halved.
 The same `pytest_configure` scales `pyproject.toml`'s own per-test
 `timeout` by the factor, unless pytest-timeout's own `--timeout` or
 `PYTEST_TIMEOUT` names a bound of the caller's own

@@ -738,3 +738,9 @@ skips on `Capability.NODE_WALLET` (issue #45).
 The headers timeout drops a stalling sync peer and spares a `noban` one; BIP330's
 `sendtxrcncl` is checked sent, withheld, ignored and refused, gated on
 `Capability.TX_RECONCILIATION` and `Capability.PEER_BLOOM_FILTERS` (issue #44).
+
+### RPC stubs and `feature_blocksdir` run one body; its refusal is Core's alone
+
+`feature_blocksdir`, `rpc_validateaddress`, `rpc_scanblocks`,
+`rpc_getblockstats`, `rpc_getdescriptorinfo` and `rpc_getdescriptoractivity` run
+one body per test; the released btclib-node fails the refusal (issue #125).

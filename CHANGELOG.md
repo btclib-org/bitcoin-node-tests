@@ -504,3 +504,9 @@ names any build of it -- a release, its `main`, a checkout (closes #42).
 A malformed `-rpcauth` matches either whole stderr: Core's "Unable to start HTTP
 server", which btclib-node's `main` writes, or the older "Invalid -rpcauth
 argument." (closes #159).
+
+### `REVIEWING.md` lets a filed issue carry its fix
+
+An issue filed from a review may say the fix where one is known: *What is
+filed, and what is not* dropped its "no fix", the filing bar standing as it
+was (issue btclib-org/.github#1378).

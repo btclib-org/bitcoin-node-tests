@@ -258,6 +258,18 @@ _ROWS: dict[str, str] = {
     "rpc_getdescriptoractivity::test_no_mempool_inclusion": (
         "`rpc_getdescriptoractivity.py` (mempool)"
     ),
+    "rpc_getdescriptoractivity::test_multiple_addresses": (
+        "`rpc_getdescriptoractivity.py` (mempool)"
+    ),
+    "rpc_getdescriptoractivity::test_confirmed_and_unconfirmed": (
+        "`rpc_getdescriptoractivity.py` (mempool)"
+    ),
+    "rpc_getdescriptoractivity::test_receive_then_spend": (
+        "`rpc_getdescriptoractivity.py` (mempool)"
+    ),
+    "rpc_getdescriptoractivity::test_no_address": (
+        "`rpc_getdescriptoractivity.py` (mempool)"
+    ),
     "rpc_getblockstats": "`rpc_getblockstats.py`",
     "feature_fastprune": "`feature_fastprune.py`",
     "rpc_scanblocks": "`rpc_scanblocks.py`",

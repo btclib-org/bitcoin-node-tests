@@ -92,3 +92,47 @@ def test_required_args(
         Capability.DESCRIPTOR_ACTIVITY, btclib_node_adapter.capabilities, skip_counts
     )
     pytest.fail("not ported for this node")
+
+
+def test_multiple_addresses(
+    btclib_node_adapter: BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """The target: the same request the bitcoind module makes."""
+    require(
+        Capability.DESCRIPTOR_ACTIVITY, btclib_node_adapter.capabilities, skip_counts
+    )
+    require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
+
+
+def test_confirmed_and_unconfirmed(
+    btclib_node_adapter: BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """The target: the same request the bitcoind module makes."""
+    require(
+        Capability.DESCRIPTOR_ACTIVITY, btclib_node_adapter.capabilities, skip_counts
+    )
+    require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
+
+
+def test_receive_then_spend(
+    btclib_node_adapter: BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """The target: the same request the bitcoind module makes."""
+    require(
+        Capability.DESCRIPTOR_ACTIVITY, btclib_node_adapter.capabilities, skip_counts
+    )
+    require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")
+
+
+def test_no_address(
+    btclib_node_adapter: BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """The target: the same request the bitcoind module makes."""
+    require(
+        Capability.DESCRIPTOR_ACTIVITY, btclib_node_adapter.capabilities, skip_counts
+    )
+    require(Capability.MINE, btclib_node_adapter.capabilities, skip_counts)
+    pytest.fail("not ported for this node")

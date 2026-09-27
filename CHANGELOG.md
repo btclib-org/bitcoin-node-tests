@@ -582,3 +582,9 @@ serving the ban list runs Core's scenario rather than a stub's `pytest.fail`
 `peer.Listener` accepts a node's own outbound connection as a `Peer`, and
 `NodeAdapter.add_outbound_connection` asks for one of a chosen type under
 `Capability.TYPED_OUTBOUND`, which btclib-node declares on no build (issue #44).
+
+### `rpc_getdescriptoractivity`'s remaining subtests are ported
+
+Several addresses at once, a confirmed payment beside an unconfirmed one, a
+receive and its spend over two blocks, and a `RAW_P2PK` script with no address,
+the last spent under `mini_wallet.py`'s signing helper (issue #167).

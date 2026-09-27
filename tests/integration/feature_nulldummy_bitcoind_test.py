@@ -16,13 +16,23 @@ Before activation the mempool refuses a non-empty dummy and a block
 still carries it; from the configured height on both refuse it, and an
 empty dummy is still accepted by both.
 
-The multisig is 0-of-1 where Core's own is 1-of-1, so no spend here
-carries a signature: `EvalScript` (`src/script/interpreter.cpp`) checks
-the dummy against `SCRIPT_VERIFY_NULLDUMMY` after its signature loop,
-whatever the required count, so the refusal is the same
-`SCRIPT_ERR_SIG_NULLDUMMY` a signed spend meets. The script is
-serialized directly: `ScriptPubKey.p2ms` refuses a required count of
-zero.
+The multisig is 1-of-1, as Core's own is, and every spend carries its
+signature: `EvalScript` (`src/script/interpreter.cpp`) reaches the dummy
+only past its signature loop, so a node is asked to find the dummy
+beneath a signature, as Core's own file asks it. Each signature is
+btclib's own -- `btclib.script.sig_hash`'s `legacy` for the P2SH spends
+and `segwit_v0` for the P2SH-P2WSH one, `btclib.ecc.dsa.sign_` over
+either -- and neither sighash commits to a scriptSig or a witness, so
+the tampered dummy leaves it valid and NULLDUMMY the only refusal.
+Nothing here asserts a claim about the signature itself. Under the
+mempool's own flags a failing signature is refused on
+`SCRIPT_ERR_SIG_NULLFAIL` before the dummy is read, so a bad btclib
+signature fails the first `sendrawtransaction` carrying one, on an
+error other than NULLDUMMY's -- a finding that reproduces with btclib
+alone, and so is btclib's (`CONTRIBUTING.md`'s *This repository in
+particular*). A block is verified without NULLFAIL and still reads the
+dummy: a bad signature beneath an `OP_TRUE` dummy is refused there on
+NULLDUMMY all the same.
 
 The two coins spent first are coinbases paying the P2SH output directly,
 where Core's own pay a P2PKH key `signrawtransactionwithkey` signs for,
@@ -54,7 +64,9 @@ from btclib.block.build import build_block, build_coinbase
 from btclib.block.mining import mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
-from btclib.curves.curve import secp256k1
+from btclib.ecc.dsa import sign_
+from btclib.key import PrvKeyData
+from btclib.script import sig_hash
 from btclib.script.script import serialize
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.script.witness import Witness
@@ -88,12 +100,11 @@ _NULLDUMMY_BLK_ERROR = (
 # RPC_VERIFY_REJECTED, `src/rpc/protocol.h`
 _RPC_VERIFY_REJECTED = -26
 
-# secp256k1's own generator, an arbitrary valid public key: a 0-of-1
-# multisig checks no signature against it
-_G_X, _G_Y = secp256k1.G
-_PUBKEY = bytes([2 + _G_Y % 2]) + _G_X.to_bytes(32, "big")
+# a fixed key rather than Core's own random one, so that a run is
+# reproducible; its public key is secp256k1's own generator
+_PRV_KEY = PrvKeyData(1, "regtest")
 
-_MULTISIG = serialize(["OP_0", _PUBKEY, "OP_1", "OP_CHECKMULTISIG"])
+_MULTISIG = ScriptPubKey.p2ms(1, [_PRV_KEY.pub]).script
 _P2SH = ScriptPubKey.p2sh(_MULTISIG, "regtest")
 _P2WSH = ScriptPubKey.p2wsh(_MULTISIG, "regtest")
 _P2SH_P2WSH = ScriptPubKey.p2sh(_P2WSH.script, "regtest")
@@ -187,6 +198,13 @@ def _assert_refused(adapter: BitcoindAdapter, tx: Tx) -> None:
     assert refusal.value.code == _RPC_VERIFY_REJECTED
 
 
+def _signature(digest: bytes) -> bytes:
+    """Return `_PRV_KEY`'s DER signature over `digest`, and `SIGHASH_ALL`."""
+    signature = sign_(digest, _PRV_KEY.q)
+    assert not isinstance(signature, tuple)
+    return signature.serialize() + bytes([sig_hash.ALL])
+
+
 def _base_spend(
     prev_out: OutPoint,
     value: int,
@@ -194,28 +212,49 @@ def _base_spend(
     dummy: str = "OP_0",
     script_pub_key: ScriptPubKey = _P2SH,
 ) -> Tx:
-    """Return a spend of a `_P2SH` coin, `dummy` its scriptSig's first push.
+    """Return a signed `_P2SH` spend, `dummy` its scriptSig's first push.
 
     `OP_TRUE` is Core's own `invalidate_nulldummy_tx`.
     """
-    script_sig = serialize([dummy, _MULTISIG])
-    tx_in = TxIn(prev_out, script_sig=script_sig, sequence=0xFFFFFFFF)
     tx_out = TxOut(value, script_pub_key)
+    unsigned = TxIn(prev_out, sequence=0xFFFFFFFF)
+    digest = sig_hash.legacy(
+        _MULTISIG,
+        Tx(version=2, lock_time=0, vin=[unsigned], vout=[tx_out]),
+        0,
+        sig_hash.ALL,
+    )
+    script_sig = serialize([dummy, _signature(digest), _MULTISIG])
+    tx_in = TxIn(prev_out, script_sig=script_sig, sequence=0xFFFFFFFF)
     return Tx(version=2, lock_time=0, vin=[tx_in], vout=[tx_out])
 
 
-def _witness_spend(prev_out: OutPoint, value: int, *, dummy: bytes = b"") -> Tx:
-    r"""Return a spend of a `_P2SH_P2WSH` coin, `dummy` its first witness item.
+def _witness_spend(
+    prev_out: OutPoint, amount: int, value: int, *, dummy: bytes = b""
+) -> Tx:
+    r"""Return a signed `_P2SH_P2WSH` spend, `dummy` its first witness item.
 
     `b"\x01"` is Core's own tampered `scriptWitness.stack[0]`.
+
+    :param amount: the coin's own value, which BIP143's sighash commits to.
     """
+    tx_out = TxOut(value, _P2SH)
+    script_sig = serialize([_P2WSH.script])
+    unsigned = TxIn(prev_out, script_sig=script_sig, sequence=0xFFFFFFFF)
+    digest = sig_hash.segwit_v0(
+        _MULTISIG,
+        Tx(version=2, lock_time=0, vin=[unsigned], vout=[tx_out]),
+        0,
+        sig_hash.ALL,
+        amount,
+    )
     tx_in = TxIn(
         prev_out,
-        script_sig=serialize([_P2WSH.script]),
+        script_sig=script_sig,
         sequence=0xFFFFFFFF,
-        script_witness=Witness([dummy, _MULTISIG]),
+        script_witness=Witness([dummy, _signature(digest), _MULTISIG]),
     )
-    return Tx(version=2, lock_time=0, vin=[tx_in], vout=[TxOut(value, _P2SH)])
+    return Tx(version=2, lock_time=0, vin=[tx_in], vout=[tx_out])
 
 
 def test_nulldummy_is_policy_before_activation_and_consensus_after(
@@ -264,14 +303,16 @@ def test_nulldummy_is_policy_before_activation_and_consensus_after(
         _assert_block(adapter, [test4tx], accept=False)
 
         # 5: and so is a non-compliant P2SH-P2WSH spend
-        test5tx = _witness_spend(OutPoint(funding.id, 0), 48 * _COIN, dummy=b"\x01")
+        test5tx = _witness_spend(
+            OutPoint(funding.id, 0), 49 * _COIN, 48 * _COIN, dummy=b"\x01"
+        )
         _assert_refused(adapter, test5tx)
         _assert_block(adapter, [test5tx], accept=False)
 
         # 6: the same two spends with an empty dummy are relayed and mined
         test6txs = [
             _base_spend(OutPoint(test2tx.id, 0), 46 * _COIN),
-            _witness_spend(OutPoint(funding.id, 0), 48 * _COIN),
+            _witness_spend(OutPoint(funding.id, 0), 49 * _COIN, 48 * _COIN),
         ]
         for tx in test6txs:
             _send(adapter, tx)

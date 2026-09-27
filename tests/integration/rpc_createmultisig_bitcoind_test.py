@@ -12,11 +12,10 @@ address, a redeemScript and a descriptor -- needs no coin and no node
 wallet, and is kept in full. Spending one -- `MiniWallet.send_to` funding
 the multisig output, then `signrawtransactionwithkey` and
 `combinerawtransaction` assembling real ECDSA signatures over it -- is a
-claim about btclib's own signing surface, which every other module of
-this suite already leaves to btclib's own test suite (rule 7 of issue
-btclib-org/btclib#2220): `MiniWallet`'s own coins carry no signature at
-all (`mini_wallet.py`'s own docstring), so a spend of a multisig output
-built for real keys is not a claim this module's own mechanism can make.
+claim about btclib's own signing surface: `MiniWallet`'s own coins carry
+no signature at all (`mini_wallet.py`'s own docstring), so a spend of a
+multisig output built for real keys is not a claim this module's own
+mechanism can make.
 Dropped for that reason: `do_multisig`'s own spend/sign/combine/broadcast
 body, `test_combinerawtransaction_preconditions`,
 `test_mixing_uncompressed_and_compressed_keys` (a claim about a spend's

@@ -1632,10 +1632,14 @@ own order ([ISS 64](https://github.com/btclib-org/bitcoin-node-tests/issues/64))
 until the configured height, and each step puts a multisig spend whose
 dummy element is empty or `OP_TRUE`, in a P2SH scriptSig or a
 P2SH-P2WSH witness, to `sendrawtransaction`, to `submitblock` or to
-both. No spend carries a signature: the multisig requires none where
-Core's own requires one, `EvalScript` (`src/script/interpreter.cpp`)
-checking the dummy after its signature loop whatever the required
-count. The test builds each spend directly as a `btclib.tx.Tx`, the
+both. The multisig requires one signature, as Core's own does, and the
+test signs each spend with btclib -- `btclib.script.sig_hash` and
+`btclib.ecc.dsa.sign_` -- so that a node reads the dummy beneath a
+signature ([ISS 165](https://github.com/btclib-org/bitcoin-node-tests/issues/165)).
+Neither sighash commits to the dummy, so tampering it leaves the
+signature valid; a signature bitcoind refuses fails the row on
+`SCRIPT_ERR_SIG_NULLFAIL` instead, a finding for btclib's own tracker.
+The test builds each spend directly as a `btclib.tx.Tx`, the
 way `mempool_sigoplimit.py`'s own port spends its witness script, and
 the coins spent first are coinbases paying the multisig: every
 `MiniWallet` coin is spent through a witness, and bitcoind refuses a
@@ -1688,9 +1692,8 @@ constructs is actually spendable, through
 ECDSA signatures over a `MiniWallet`-funded coin. Only the first is
 kept: `MiniWallet`'s own coins carry no signature at all
 (`mini_wallet.py`'s own docstring), so a spend of a multisig output
-built for real keys is not a claim this repository's own mechanism can
-make, and rule 7 of issue btclib-org/btclib#2220 leaves btclib's own
-signing surface to btclib's own test suite. Dropped for that reason:
+built for real keys is not a claim `MiniWallet` can make. Dropped for
+that reason:
 `do_multisig`'s own spend/sign/combine/broadcast body,
 `test_combinerawtransaction_preconditions`, and
 `test_mixing_uncompressed_and_compressed_keys` (a claim about a spend's

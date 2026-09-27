@@ -546,3 +546,9 @@ RPC. `TF2.md` hands every other node-linking file to ISS 14, this file's
 `p2p_block_sync`, `p2p_compactblocks_hb` and `p2p_invalid_locator` call one
 body from both nodes' tests, so a btclib-node build declaring the capabilities
 runs Core's scenario rather than a stub's `pytest.fail` (issue #125).
+
+### `feature_nulldummy`'s multisig spends are signed, as Core's own are
+
+Each spends a 1-of-1 multisig the test signs with btclib, so a node reads the
+dummy beneath a signature; a tampered dummy leaves the signature valid, and
+NULLDUMMY is still the only refusal (closes #165).

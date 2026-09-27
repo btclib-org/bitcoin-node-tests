@@ -332,6 +332,14 @@ class Capability(Enum):
     descriptors matches, Core's own `scantxoutset`
     (`rpc_scantxoutset.py`). Named for what it reads rather than for the
     RPC's own spelling.
+    `PROXY` -- dial a peer through the SOCKS5 proxy `-proxy` names, an
+    onion one through `-onion`'s where that is given, sending a proxy
+    that accepts username/password credentials of each connection's own
+    under `-proxyrandomize`, and report each network's proxy in
+    `getnetworkinfo` (`feature_proxy.py`,
+    [ISS bitcoin-node-tests#47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)).
+    One member for the three, as `DATACARRIER` is for its pair: the
+    ported test sets `-onion` and `-proxyrandomize` only beside `-proxy`.
     """
 
     MINE = "mine"
@@ -374,6 +382,7 @@ class Capability(Enum):
     REINDEX_AFTER_FAILURE = "reindex_after_failure"
     GENERATE = "generate"
     SCAN_UTXO_SET = "scan_utxo_set"
+    PROXY = "proxy"
 
 
 class SkipCounts:

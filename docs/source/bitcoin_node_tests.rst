@@ -60,6 +60,13 @@ bitcoin\_node\_tests.peer module
    :members:
    :show-inheritance:
 
+bitcoin\_node\_tests.socks5 module
+----------------------------------
+
+.. automodule:: bitcoin_node_tests.socks5
+   :members:
+   :show-inheritance:
+
 bitcoin\_node\_tests.timeout\_factor module
 --------------------------------------------
 

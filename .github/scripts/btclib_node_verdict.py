@@ -379,6 +379,7 @@ _ROWS: dict[str, str] = {
     "rpc_generate": "`rpc_generate.py`",
     "rpc_signrawtransactionwithkey": "`rpc_signrawtransactionwithkey.py`",
     "rpc_scantxoutset": "`rpc_scantxoutset.py`",
+    "feature_proxy": "`feature_proxy.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

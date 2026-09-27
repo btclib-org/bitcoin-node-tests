@@ -720,3 +720,9 @@ result neither `success` nor `skipped` fails (issue btclib-org/.github#1424).
 `p2p_disconnect_ban`, `p2p_invalid_messages` but its `addrv2` checks,
 `p2p_leak`, `p2p_leak_tx` and `p2p_net_deadlock` call one body per test, over
 either node (issue #125).
+
+### `feature_proxy` is ported in part, on a mock SOCKS5 proxy
+
+`socks5.Socks5Proxy` records what a node asks a SOCKS5 proxy for, and bitcoind
+routes each network through the proxy `-proxy` or `-onion` gives it.
+btclib-node skips on `Capability.PROXY` (issue #47).

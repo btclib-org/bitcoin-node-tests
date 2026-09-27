@@ -78,8 +78,8 @@ package's own subject makes an odd fit rather than merely an unbuilt
 walk: rule 1 of ISS btclib-org/btclib#2220 is that reaching a node is a
 socket, so a generic check for "every construction that could reach the
 network carries the argument that keeps it hermetic" would have to tell
-`peer_test.py`'s own loopback-bound `_FakeNode` -- hermetic by
-construction, and the only socket the unit suite opens -- from
+a loopback-bound socket of the unit suite's own -- `peer_test.py`'s
+`_FakeNode`, say, hermetic by construction -- from
 `tests/integration/`'s deliberately real one, gated instead by
 `TF2_INTEGRATION` and left out of the coverage ratchet by
 `[tool.coverage.run]`'s own `omit`. Building that distinction is a

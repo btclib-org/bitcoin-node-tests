@@ -1001,8 +1001,8 @@ assertions, matched against `rpc_whitelist_bitcoind_test.py`'s own
 claim.
 
 `rpc_users.py`'s row shares `Capability.RPC_AUTH_CONFIG` and its
-build-dependent cell with `rpc_whitelist.py`'s own row above, and is a
-smaller claim than Core's own file in the same way. Kept: `-rpcauth`
+`skip (rpc_auth)` on the build with `rpc_whitelist.py`'s own row above,
+and is a smaller claim than Core's own file in the same way. Kept: `-rpcauth`
 authenticating a user given either through `bitcoin.conf` or on the
 command line, a wrong password or a wrong user refused where a correct
 one is accepted; `test_rpccookieperms`'s own POSIX permission bits
@@ -2692,8 +2692,9 @@ background thread, so the test reads for it: after each handshake it
 answers the node's first ping, at once for a fast peer and after Core's
 own delay for a slow one, and waits for the `sync_with_ping` barrier
 Core's `add_p2p_connection` runs. Core sends a transaction without
-waiting for it; this waits for that barrier after it too, so the node
-has accepted it before the next peer connects.
+waiting for it; this waits for that barrier after it too, so a node
+processing each peer's messages in order, as Core's does, has accepted
+it before the next peer connects.
 
 Every `btclib-node` cell of this batch is a counted skip on the released
 build. Neither `-fastprune` nor `-blockfilterindex` is one of `cli.py`'s

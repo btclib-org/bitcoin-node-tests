@@ -774,3 +774,9 @@ Core's wording, as `feature_blocksdir`'s is: the released btclib-node fails
 BIP133's `feefilter` is checked sent to an inbound peer and withheld from a
 `forcerelay`, a block-relay-only and a `-blocksonly` one, and a peer's own
 filter is checked to withhold announcements below it until lifted (issue #44).
+
+### `Peer.sync_with_ping` is a barrier on a node processing messages in order
+
+Its docstring promises the barrier only on a node processing each peer's
+messages in order, as Core's does, and not on one answering a `ping` ahead
+of them (btclib-org/btclib-node#1410) (issue #212).

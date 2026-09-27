@@ -199,6 +199,12 @@ measured at the released `2026.9.24` and at `main` (`d2b4efa5`) alike. A
 wallet kept beside the node is
 [ISS 199](https://github.com/btclib-org/bitcoin-node-tests/issues/199)'s
 to reach.
+
+`Capability.TX_RECONCILIATION` and `Capability.PEER_BLOOM_FILTERS` are
+never declared either: `cli.py` registers neither `-txreconciliation` nor
+`-peerbloomfilters`, measured at the released `2026.9.24` (`422d2640`)
+and at `main` (`dca9c2be`) alike, `txreconciliation` being a `-debug`
+category at `main`.
 """
 
 from __future__ import annotations

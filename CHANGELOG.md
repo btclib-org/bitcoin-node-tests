@@ -732,3 +732,9 @@ btclib-node skips on `Capability.PROXY` (issue #47).
 `wallet_signmessagewithaddress`, `wallet_blank` and `wallet_coinbase_category`
 run against bitcoind's own wallet, reached at `/wallet/<name>`; btclib-node
 skips on `Capability.NODE_WALLET` (issue #45).
+
+### `p2p_initial_headers_sync` and `p2p_sendtxrcncl` are ported
+
+The headers timeout drops a stalling sync peer and spares a `noban` one; BIP330's
+`sendtxrcncl` is checked sent, withheld, ignored and refused, gated on
+`Capability.TX_RECONCILIATION` and `Capability.PEER_BLOOM_FILTERS` (issue #44).

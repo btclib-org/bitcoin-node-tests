@@ -189,7 +189,8 @@ class BitcoindAdapter(NodeAdapter):
     too: this is Core's own binary, so `blk*.dat` under `blocks/` is the
     format it already writes, not one this adapter has to add anything
     for. `Capability.DEBUG_LOG` is `debug_log_path` below, over the
-    node's own `-debug=net` and `-debug=addrman`: bitcoind's own binary
+    node's own `-debug=net`, `-debug=addrman` and
+    `-debug=txreconciliation`: bitcoind's own binary
     is what writes Core's own wording, which is the fact this capability
     names.
     `Capability.UA_COMMENT` is unconditional too: `-uacomment` is Core's
@@ -283,6 +284,9 @@ class BitcoindAdapter(NodeAdapter):
     binary's own (`src/init.cpp`), which it refuses off regtest.
     `Capability.PROXY` is unconditional too: `-proxy`, `-onion` and
     `-proxyrandomize` are this binary's own flags (`src/init.cpp`).
+    `Capability.TX_RECONCILIATION` and `Capability.PEER_BLOOM_FILTERS` are
+    unconditional: `-txreconciliation` and `-peerbloomfilters` are
+    this binary's own flags (`src/init.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -333,6 +337,8 @@ class BitcoindAdapter(NodeAdapter):
             Capability.SCAN_UTXO_SET,
             Capability.PROXY,
             Capability.NODE_WALLET,
+            Capability.TX_RECONCILIATION,
+            Capability.PEER_BLOOM_FILTERS,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)
@@ -388,13 +394,14 @@ class BitcoindAdapter(NodeAdapter):
         throwaway node run from a test suite wants none of the
         three. `-fallbackfee` is set because a chain with no fee history
         refuses to fund a transaction without it, which `Capability.MINE`
-        meets the moment a caller spends what it mines. `-debug=net` and
-        `-debug=addrman` are `Capability.DEBUG_LOG`'s own condition: the
-        log lines the log family's tests read are `LogDebug`'s
-        (`src/util/log.h`), in Core's own `net` and `addrman` categories,
-        and print at all only where their own category is enabled.
+        meets the moment a caller spends what it mines. `-debug=net`,
+        `-debug=addrman` and `-debug=txreconciliation` are
+        `Capability.DEBUG_LOG`'s own condition: the log lines the log
+        family's tests read are `LogDebug`'s (`src/util/log.h`), in Core's
+        own `net`, `addrman` and `txreconciliation` categories, and print
+        at all only where their own category is enabled.
         `-debug` accumulates, each occurrence enabling one more category,
-        so the two are two entries rather than one replacing the other --
+        so each is an entry of its own rather than one replacing another --
         unconditional here rather than left to a per-test option, since
         `_check_extra_args` (`node.py`) refuses an `extra_args` entry
         naming `-debug` once this argv sets it.
@@ -450,6 +457,7 @@ class BitcoindAdapter(NodeAdapter):
             "-printtoconsole=0",
             "-debug=net",
             "-debug=addrman",
+            "-debug=txreconciliation",
             *isolation,
         ]
 

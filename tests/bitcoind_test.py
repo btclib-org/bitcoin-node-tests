@@ -64,6 +64,8 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.SCAN_UTXO_SET,
             Capability.PROXY,
             Capability.NODE_WALLET,
+            Capability.TX_RECONCILIATION,
+            Capability.PEER_BLOOM_FILTERS,
         }
     )
 
@@ -137,6 +139,7 @@ def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:
     assert "-printtoconsole=0" in command
     assert "-debug=net" in command
     assert "-debug=addrman" in command
+    assert "-debug=txreconciliation" in command
 
 
 def test_chains_are_every_one_the_release_runs() -> None:

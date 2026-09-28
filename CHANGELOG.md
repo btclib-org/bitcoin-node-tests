@@ -879,3 +879,9 @@ which a shell reads as a continuation rather than as an escaped backslash
 A `create_*` method caches no coin it creates, nor a refused send, as Core's
 `scan_tx` runs on send; `MiniWallet.new_utxos` answers a transaction's coins
 uncached, for a caller spending a created transaction's output (closes #242).
+
+### `p2p_dns_seeds` is ported
+
+A node is checked to query its DNS seeds when Core's does, `Capability.DNS_SEED`
+naming `-dnsseed` and `-forcednsseed`, and `Capability.KNOWN_ADDRESSES`
+`addpeeraddress` and `getnodeaddresses`; btclib-node skips (issue #47).

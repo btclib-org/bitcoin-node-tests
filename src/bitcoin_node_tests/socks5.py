@@ -179,18 +179,25 @@ class Socks5Proxy:
         self._negotiating: socket.socket | None = None
         self._closing = threading.Event()
         self._directory: Path | None = None
-        if family == socket.AF_UNIX:
-            self._directory = Path(tempfile.mkdtemp())
-            self._socket = socket.socket(family)
-            self._socket.bind(str(self._directory / "socks5"))
-            self._socket.listen()
-        elif family in _LOOPBACK:
-            self._socket = socket.create_server((_LOOPBACK[family], 0), family=family)
-        else:
-            err_msg = f"no SOCKS5 proxy on {family!r}"
-            raise ValueError(err_msg)
-        self._thread = threading.Thread(target=self._serve, daemon=True)
-        self._thread.start()
+        # a failure before the thread runs releases what was acquired, in
+        # the order `close` releases it: the socket, then the directory
+        with contextlib.ExitStack() as acquired:
+            if family == socket.AF_UNIX:
+                self._directory = Path(tempfile.mkdtemp())
+                acquired.callback(shutil.rmtree, self._directory)
+                self._socket = acquired.enter_context(socket.socket(family))
+                self._socket.bind(str(self._directory / "socks5"))
+                self._socket.listen()
+            elif family in _LOOPBACK:
+                self._socket = acquired.enter_context(
+                    socket.create_server((_LOOPBACK[family], 0), family=family)
+                )
+            else:
+                err_msg = f"no SOCKS5 proxy on {family!r}"
+                raise ValueError(err_msg)
+            self._thread = threading.Thread(target=self._serve, daemon=True)
+            self._thread.start()
+            acquired.pop_all()
 
     @property
     def address(self) -> tuple[str, int] | str:

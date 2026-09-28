@@ -885,3 +885,9 @@ uncached, for a caller spending a created transaction's output (closes #242).
 A node is checked to query its DNS seeds when Core's does, `Capability.DNS_SEED`
 naming `-dnsseed` and `-forcednsseed`, and `Capability.KNOWN_ADDRESSES`
 `addpeeraddress` and `getnodeaddresses`; btclib-node skips (issue #47).
+
+### `feature_anchors` and `p2p_addr_selfannouncement` are ported
+
+bitcoind's anchors and `-externalip` self-announcements are checked, the latter
+over `Peer.handshake`'s new `addrv2`; btclib-node skips on `TYPED_OUTBOUND` and
+the new `Capability.EXTERNAL_IP` (issue #44).

@@ -421,9 +421,11 @@ class Capability(Enum):
     `KNOWN_ADDRESSES` -- take a peer's address a caller hands it into the
     addresses it keeps for finding peers, and list those back: Core's own
     test-only `addpeeraddress` and its `getnodeaddresses`
-    (`p2p_dns_seeds.py`). One member for the pair, as `DATACARRIER` is:
-    that test fills the table with the first and reads its size with the
-    second.
+    (`p2p_dns_seeds.py`, `p2p_addr_selfannouncement.py`). One member for
+    the table's writer and its reader, as `BAN` is for its ban list's.
+    `EXTERNAL_IP` -- recognise `-externalip`, Core's own option naming an
+    address the node advertises to its peers as its own
+    (`p2p_addr_selfannouncement.py`).
     """
 
     MINE = "mine"
@@ -480,6 +482,7 @@ class Capability(Enum):
     BLOCK_PROPOSAL = "block_proposal"
     DNS_SEED = "dns_seed"
     KNOWN_ADDRESSES = "known_addresses"
+    EXTERNAL_IP = "external_ip"
 
 
 class SkipCounts:

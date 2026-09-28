@@ -77,6 +77,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.BLOCK_PROPOSAL,
             Capability.DNS_SEED,
             Capability.KNOWN_ADDRESSES,
+            Capability.EXTERNAL_IP,
         }
     )
 

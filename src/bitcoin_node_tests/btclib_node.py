@@ -242,6 +242,11 @@ Nor is `Capability.KNOWN_ADDRESSES`: neither `addpeeraddress` nor
 `getnodeaddresses` names a callback in `src/btclib_node/rpc/callbacks.py`'s
 own dispatch table, measured at the same two commits
 ([ISS btclib-node#1443](https://github.com/btclib-org/btclib-node/issues/1443)).
+
+`Capability.EXTERNAL_IP` is never declared either: `cli.py` registers no
+`-externalip`, measured at the released `2026.9.24` (`422d2640`) and at
+`main` (`d4559960`) alike
+([ISS btclib-node#1445](https://github.com/btclib-org/btclib-node/issues/1445)).
 """
 
 from __future__ import annotations

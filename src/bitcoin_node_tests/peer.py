@@ -37,6 +37,7 @@ from btclib.p2p import (
     Payload,
     Ping,
     Pong,
+    SendAddrV2,
     ServiceFlags,
     Verack,
     Version,
@@ -279,7 +280,9 @@ class Peer:
             timeout=timeout,
         )
 
-    def handshake(self, *, services: ServiceFlags = _SERVICES) -> Version:
+    def handshake(
+        self, *, services: ServiceFlags = _SERVICES, addrv2: bool = False
+    ) -> Version:
         """Exchange `version`/`verack`, and return the node's own `version`.
 
         Core's own handshake. The side that dialled sends its `version`
@@ -299,6 +302,11 @@ class Peer:
             `add_p2p_connection` takes the same `services`, and
             `rpc_getblockfrompeer` drops `NODE_WITNESS` from it to be a
             pre-segwit peer.
+        :param addrv2: send BIP155's `sendaddrv2` between the `wtxidrelay`
+            and the `verack`, asking the node for `addrv2` rather than
+            `addr`: Core's own `P2PInterface(support_addrv2=True)`, whose
+            `on_version` sends it there. BIP155 has it sent before
+            `verack`, and bitcoind drops a peer sending it after.
         :returns: the node's own `Version`, `nServices` and all --
             `p2p_getdata`'s own `P2PStoreBlock` reads nothing off it, but
             a later family well might.
@@ -312,6 +320,8 @@ class Peer:
             version_message = self.wait_for("version")
             self.send(version)
         self.send(WtxidRelay())
+        if addrv2:
+            self.send(SendAddrV2())
         self.send(Verack())
         self.wait_for("verack")
         return Version.parse(version_message.payload)

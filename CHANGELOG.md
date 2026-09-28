@@ -913,3 +913,8 @@ A `Listener` whose timeout `settimeout` refuses closes its socket before raising
 A node is checked to ask its `-seednode` when Core's does, under
 `Capability.ADDRESS_FETCH`; `assert_debug_log` takes `unexpected_substrings`,
 Core's own `unexpected_msgs`; btclib-node skips (issue #47).
+
+### `--timeout-factor 0` disables the waits, as Core's does
+
+`--timeout-factor 0` scales every wait by 999, Core's own reading of 0, where it
+made the adapters' RPC client timeout 0 and no node could start (closes #234).

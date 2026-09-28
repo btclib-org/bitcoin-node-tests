@@ -536,6 +536,10 @@ The same `pytest_configure` scales `pyproject.toml`'s own per-test
 `timeout` by the factor, unless pytest-timeout's own `--timeout` or
 `PYTEST_TIMEOUT` names a bound of the caller's own
 ([ISS 91](https://github.com/btclib-org/bitcoin-node-tests/issues/91)).
+`--timeout-factor 0` scales by 999, which is how Core's own
+`BitcoinTestFramework.parse_args` carries out its help's "Setting it to 0
+disables all timeouts": every wait above is still a bound, only a long one,
+and so is a wait a test expects to expire.
 
 `--v2transport` and `--v1transport`: through the adapter rather than a
 pytest option, since this suite has no central test-framework object

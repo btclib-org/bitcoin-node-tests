@@ -2,13 +2,14 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""`scaled`, `set_factor` and `rpc_client_timeout`, apart from their callers."""
+"""`timeout_factor`'s own functions, apart from their callers."""
 
 from __future__ import annotations
 
 import pytest
 
 from bitcoin_node_tests.timeout_factor import (
+    factor_from_option,
     rpc_client_timeout,
     scaled,
     set_factor,
@@ -40,5 +41,29 @@ def test_rpc_client_timeout_is_core_s_rpc_timeout_halved(
     set_factor(factor)
     try:
         assert rpc_client_timeout() == expected
+    finally:
+        set_factor(1.0)
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [("0", 999.0), ("0.0", 999.0), ("-0", 999.0), ("2.5", 2.5), ("-1", -1.0)],
+)
+def test_factor_from_option_reads_0_as_core_does(value: str, expected: float) -> None:
+    """0 is Core's 999; any other number, a negative one too, is kept."""
+    assert factor_from_option(value) == expected
+
+
+def test_factor_from_option_refuses_what_is_not_a_number() -> None:
+    """The option's own text is parsed as `float` parses it."""
+    with pytest.raises(ValueError, match="could not convert"):
+        factor_from_option("fast")
+
+
+def test_factor_0_leaves_the_rpc_client_a_timeout_it_accepts() -> None:
+    """`--timeout-factor 0` bounds an RPC call at Core's own 29970 s."""
+    set_factor(factor_from_option("0"))
+    try:
+        assert rpc_client_timeout() == 29970
     finally:
         set_factor(1.0)

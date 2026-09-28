@@ -66,7 +66,7 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import SkipCounts
 from bitcoin_node_tests.node import NodeAdapter, free_ports
-from bitcoin_node_tests.timeout_factor import scaled, set_factor
+from bitcoin_node_tests.timeout_factor import factor_from_option, scaled, set_factor
 from tests.conftest import (
     AdapterFactory,
     fold_worker_tally,
@@ -157,9 +157,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
     parser.addoption(
         "--timeout-factor",
-        type=float,
+        type=factor_from_option,
         default=1.0,
-        help="scale every wait this suite's adapters and Peer make by this factor",
+        help=(
+            "scale every wait this suite's adapters and Peer make by this "
+            "factor; 0 scales by 999, as Core's does, to disable them"
+        ),
     )
 
 

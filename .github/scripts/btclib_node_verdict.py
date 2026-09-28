@@ -584,6 +584,30 @@ _ROWS: dict[str, str] = {
     "p2p_blocksonly::test_a_block_relay_only_peer_refusal_is_logged": (
         "`p2p_blocksonly.py` (block-relay-only, log)"
     ),
+    "p2p_orphan_handling::test_parents_arriving_during_the_delay_are_not_requested": (
+        "`p2p_orphan_handling.py` (arrival timing)"
+    ),
+    "p2p_orphan_handling::test_an_orphan_is_reconsidered_once_its_parent_is_mined": (
+        "`p2p_orphan_handling.py` (parent confirmed)"
+    ),
+    "p2p_orphan_handling::test_an_orphan_of_the_same_txid_is_kept_too": (
+        "`p2p_orphan_handling.py` (same txid)"
+    ),
+    "p2p_orphan_handling::test_a_parent_of_the_same_txid_is_requested_again": (
+        "`p2p_orphan_handling.py` (same txid parent)"
+    ),
+    "p2p_orphan_handling::test_an_inv_by_an_orphan_txid_is_requested": (
+        "`p2p_orphan_handling.py` (txid inv)"
+    ),
+    "p2p_orphan_handling::test_an_outbound_announcer_is_asked_for_parents_first": (
+        "`p2p_orphan_handling.py` (prefer outbound)"
+    ),
+    "p2p_orphan_handling::test_every_announcer_is_asked_for_parents": (
+        "`p2p_orphan_handling.py` (announcers)"
+    ),
+    "p2p_orphan_handling::test_a_parent_gone_missing_is_requested": (
+        "`p2p_orphan_handling.py` (parents change)"
+    ),
     "wallet_miniscript_decaying_multisig_descriptor_psbt": (
         "`wallet_miniscript_decaying_multisig_descriptor_psbt.py`"
     ),

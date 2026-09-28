@@ -493,6 +493,7 @@ class BitcoindAdapter(NodeAdapter):
             "-debug=txreconciliation",
             "-debug=reindex",
             "-debug=validation",
+            "-debug=i2p",
             *isolation,
         ]
 

@@ -46,6 +46,8 @@ def assert_debug_log(
         this.
     :param timeout: how long to keep polling after the block exits,
         before `--timeout-factor`'s own scaling (`timeout_factor.scaled`).
+        The log is read once however short it is, so `0` is Core's own
+        default: one read, as soon as the block exits.
     :raises AssertionError: some substring never appeared within
         `timeout`.
     """
@@ -53,15 +55,14 @@ def assert_debug_log(
     start_size = log_path.stat().st_size if log_path.exists() else 0
     yield
     deadline = time.monotonic() + timeout
-    remaining = list(expected_substrings)
-    appended = ""
-    while remaining and time.monotonic() < deadline:
+    while True:
         with log_path.open(encoding="utf-8", errors="replace") as log_file:
             log_file.seek(start_size)
             appended = log_file.read()
         remaining = [s for s in expected_substrings if s not in appended]
-        if remaining:
-            time.sleep(_POLL_INTERVAL)
+        if not remaining or time.monotonic() >= deadline:
+            break
+        time.sleep(_POLL_INTERVAL)
     if remaining:
         msg = f"{remaining!r} not found in the log appended since entry:\n{appended}"
         raise AssertionError(msg)

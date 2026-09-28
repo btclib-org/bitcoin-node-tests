@@ -951,6 +951,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_accept_wtxid.py` | [`3f5211cba8e7`](https://github.com/bitcoin/bitcoin/commit/3f5211cba8e7) | 2026-01-21 | pass | skip (mine) on the build; fail ([ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `rpc_orphans.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (orphanage) |
 | `mining_template_verification.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (block_proposal) |
+| `p2p_i2p_ports.py` | [`fa20275db32c`](https://github.com/bitcoin/bitcoin/commit/fa20275db32c) | 2025-10-21 | pass | skip (i2p_sam) |
+| `p2p_i2p_sessions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (i2p_sam) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1418,8 +1420,7 @@ every `wallet_*.py` file the command lists,
 `feature_coinstatsindex_compatibility.py` and
 `feature_txindex_compatibility.py`,
 [ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)
-`p2p_dns_seeds.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`,
-`p2p_private_broadcast.py` and `p2p_seednode.py`,
+`p2p_dns_seeds.py`, `p2p_private_broadcast.py` and `p2p_seednode.py`,
 [ISS 48](https://github.com/btclib-org/bitcoin-node-tests/issues/48)
 `interface_ipc.py`, and
 [ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)
@@ -1432,8 +1433,8 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_ping.py`, `p2p_timeouts.py`,
 `p2p_disconnect_ban.py`'s `disconnectnode` half,
 `p2p_bip434_feature.py`'s wire-only disconnects, `p2p_handshake.py`,
-`p2p_initial_headers_sync.py`, `p2p_sendtxrcncl.py` and
-`p2p_mutated_blocks.py`.
+`p2p_initial_headers_sync.py`, `p2p_sendtxrcncl.py`,
+`p2p_mutated_blocks.py`, `p2p_i2p_ports.py` and `p2p_i2p_sessions.py`.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -2981,10 +2982,22 @@ with `-listenonion` on is dropped, since `BitcoindAdapter`'s own argv
 turns it off. `btclib-node`'s cells are a counted skip on each row's own
 capability.
 
+`p2p_i2p_ports.py` and `p2p_i2p_sessions.py` need no proxy at all: each
+gives its node an `-i2psam` endpoint nothing listens at, dials an I2P
+address with `addnode`'s `onetry`, and reads Core's own line of the
+node's `i2p` log category, which `BitcoindAdapter` enables
+(`bitcoind.py`'s own `_command`). Each asks for `Capability.I2P_SAM` and
+`Capability.DEBUG_LOG`, and keeps every step of Core's file in its order.
+Each line is read once, as soon as `addnode` returns, as Core's own
+`assert_debug_log` does by default:
+`tests/integration/p2p_i2p_sessions_test.py`'s module docstring has why
+that single read is what ties the persistent session's line to the dial.
+Both pins are Core's file at the pinned release too, and `btclib-node`'s
+cells are a counted skip on `Capability.I2P_SAM`.
+
 The rest of the issue is its later batches: `p2p_dns_seeds.py`,
-`p2p_i2p_ports.py`, `p2p_i2p_sessions.py`, `p2p_private_broadcast.py`,
-`p2p_private_broadcast_cap.py`, `p2p_private_broadcast_retry_v1.py` and
-`p2p_seednode.py`.
+`p2p_private_broadcast.py`, `p2p_private_broadcast_cap.py`,
+`p2p_private_broadcast_retry_v1.py` and `p2p_seednode.py`.
 
 ## The node wallet: `Capability.NODE_WALLET`
 

@@ -485,6 +485,8 @@ _ROWS: dict[str, str] = {
     "feature_remove_pruned_files_on_startup": (
         "`feature_remove_pruned_files_on_startup.py`"
     ),
+    "p2p_i2p_ports": "`p2p_i2p_ports.py`",
+    "p2p_i2p_sessions": "`p2p_i2p_sessions.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

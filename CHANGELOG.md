@@ -971,3 +971,9 @@ lacks; btclib-node, on a build that mines, fails every check (issue #44).
 A node is checked to drop a peer sending a malformed or invalid compact block
 message, not one whose block fails validation; bitcoind before `v32.0rc1` and
 btclib-node keep the peer for two of them (issue #44).
+
+### `p2p_compactblocks` is ported
+
+A node is checked to reconstruct a compact block past a stalling peer, keep a
+slot for an outbound one, report high-bandwidth peers, and ignore an unasked
+compact block from any other; bitcoind before `v32.0rc1` takes it (issue #44).

@@ -1016,6 +1016,11 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_compactblocks.py` (invalid sendcmpct, wire) | same | same | pass, the disconnect asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS btclib-node#1451](https://github.com/btclib-org/btclib-node/issues/1451)) |
 | `p2p_compactblocks.py` (invalid sendcmpct, log) | same | same | pass, the disconnect asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 | `p2p_compactblocks.py` (invalid cmpctblock) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_compactblocks.py` (sendcmpct, outbound) | same | same | pass | skip |
+| `p2p_compactblocks.py` (stalling peer) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_compactblocks.py` (parallel reconstruction) | same | same | pass | skip |
+| `p2p_compactblocks.py` (high-bandwidth states) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1223](https://github.com/btclib-org/btclib-node/issues/1223)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_compactblocks.py` (ignored) | same | same | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mine) on the build; fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1466,8 +1471,8 @@ deprecation warning, is a step of Core's `master` alone, run after its
 node restarts with `-txindex` and the other indexes; the file's other
 `logging` checks read the RPC's own answer and no log.
 `feature_assumeutxo.py` stays behind the disqualifier the node-linking
-section below names. `feature_reindex.py` and `feature_reindex_readonly.py`
-are ported, their rows in the table above.
+section below names. `feature_reindex.py`, `feature_reindex_readonly.py`
+and `p2p_compactblocks.py` are ported, their rows in the table above.
 
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
@@ -3106,33 +3111,42 @@ one resetting the node's filter of recently confirmed transactions
 through a reorg, and the one filling the orphanage with
 `create_large_orphan` are not ported yet.
 
-`p2p_compactblocks.py` is ported on it in part, its rows above each one
-of Core's checks, or the wire or the log half of one, as a body over a
+`p2p_compactblocks.py` is ported on it, its rows above each one of
+Core's checks, or the wire or the log half of one, as a body over a
 fresh node in `tests/integration/p2p_compactblocks_test.py`, whose
-module docstring has what differs from Core's file and which of Core's
-checks are not ported yet. Every body but the invalid-`sendcmpct` and
-empty-`getblocktxn` ones asks for `MINE`, and every log half for
-`DEBUG_LOG` besides, reading lines bitcoind writes under the
-`-debug=net` it starts with. None dials out of the node: Core's checks
-over its outbound peer, `test_sendcmpct`'s run over it and
-`test_compactblock_reconstruction_parallel_reconstruction`, are not
-ported. BIP152's messages are `btclib.p2p.compact_blocks`' own. Each
-`bitcoind` cell is one verdict for the pinned release and for Core's
-`master`. The invalid-`sendcmpct` and empty-`getblocktxn` rows read the
-build's own `getnetworkinfo` `version`: a build carrying
-bitcoin/bitcoin@2d0dce0af54b8eb0ebdaf62f12a92d7e559a281e or
-bitcoin/bitcoin@28641fd195db2a175fd43fee2e32758aef9816a6 drops the
-peer, and the pinned release, which carries neither, keeps it, which
-the body asserts there instead. A body sending a `cmpctblock` the node
-did not ask for first has its peer send a `sendcmpct` and deliver a
-block, so that the node selects it for high-bandwidth mode: a build
-carrying bitcoin/bitcoin#32606 ignores such a `cmpctblock` from any
-other peer, and the pinned release, which does not carry it, takes one
-either way. `btclib-node`'s cell on each log row is a counted skip, and
-on each other row asking for `MINE` a counted skip on a build before
+module docstring has what differs from Core's file. Every body but the
+invalid-`sendcmpct` and empty-`getblocktxn` ones asks for `MINE`, and
+every log half for `DEBUG_LOG` besides, reading lines bitcoind writes
+under the `-debug=net` it starts with. The outbound-`sendcmpct` and
+parallel-reconstruction bodies have the node dial an outbound
+full-relay peer, so they ask for `TYPED_OUTBOUND` ahead of `MINE`.
+BIP152's messages are `btclib.p2p.compact_blocks`' own. Each `bitcoind`
+cell is one verdict for the pinned release and for Core's `master`.
+
+The invalid-`sendcmpct`, empty-`getblocktxn` and ignored rows read the
+build's own `getnetworkinfo` `version`, and the pinned release carries
+none of the changes they read, which each body asserts there instead. A
+build carrying bitcoin/bitcoin@2d0dce0af54b8eb0ebdaf62f12a92d7e559a281e
+drops the peer on the invalid-`sendcmpct` row, where the pinned release
+keeps it. A build carrying
+bitcoin/bitcoin@28641fd195db2a175fd43fee2e32758aef9816a6 drops the peer
+on the empty-`getblocktxn` row, where the pinned release keeps it. A
+build carrying bitcoin/bitcoin#32606 ignores, on the ignored row, a
+`cmpctblock` from a peer that has sent no `sendcmpct`, and one it did
+not ask for from a peer it has not selected for high-bandwidth mode,
+where the pinned release takes each. Every other body whose check needs
+the node to take a `cmpctblock` it did not ask for first has its peer
+send a `sendcmpct` and deliver a block, so that the node selects it for
+high-bandwidth mode.
+
+`btclib-node`'s cell on each log row is a counted skip, on the
+outbound-`sendcmpct` and parallel-reconstruction rows a counted skip on
+`TYPED_OUTBOUND`, and on each other row asking for `MINE` a counted skip
+on a build before
 [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071).
 Past it, each row fails where it first asks for what Core's node does and
-that one does not: announcing a new block as a `cmpctblock`
+that one does not: announcing a new block as a `cmpctblock`, or
+reporting in `getpeerinfo` a peer asking for that
 ([ISS btclib-node#1223](https://github.com/btclib-org/btclib-node/issues/1223));
 asking for a block as a compact one, taking a `cmpctblock`, or selecting a
 peer for high-bandwidth mode

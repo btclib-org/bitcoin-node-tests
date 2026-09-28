@@ -25,6 +25,7 @@ from tests.integration.p2p_compactblocks_test import (
     a_low_work_cmpctblock_is_logged,
     a_second_blocktxn_drops_the_peer,
     a_second_blocktxn_is_logged,
+    a_stalling_peer_leaves_the_block_to_another,
     a_submitted_block_is_announced_compact,
     a_wrong_blocktxn_falls_back_to_the_block,
     an_announced_block_is_asked_for_compact,
@@ -34,9 +35,13 @@ from tests.integration.p2p_compactblocks_test import (
     an_invalid_sendcmpct_announce_drops_the_peer,
     an_invalid_sendcmpct_announce_is_logged,
     getblocktxn_is_answered_near_the_tip,
+    getpeerinfo_reports_high_bandwidth_states,
     invalid_transactions_in_a_cmpctblock_keep_the_peer,
     only_missing_transactions_are_asked_for,
     sendcmpct_negotiates_compact_announcements,
+    sendcmpct_negotiates_over_an_outbound_peer,
+    the_last_reconstruction_is_kept_for_an_outbound_peer,
+    unsolicited_cmpctblocks_are_ignored,
 )
 
 if TYPE_CHECKING:
@@ -94,6 +99,14 @@ def test_a_second_blocktxn_is_logged(
 ) -> None:
     """The target: the log half the body module names, over btclib-node."""
     a_second_blocktxn_is_logged(btclib_node_cluster, skip_counts)
+
+
+def test_a_stalling_peer_leaves_the_block_to_another(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btclib-node."""
+    a_stalling_peer_leaves_the_block_to_another(btclib_node_cluster, skip_counts)
 
 
 def test_a_submitted_block_is_announced_compact(
@@ -166,6 +179,14 @@ def test_getblocktxn_is_answered_near_the_tip(
     getblocktxn_is_answered_near_the_tip(btclib_node_cluster, skip_counts)
 
 
+def test_getpeerinfo_reports_high_bandwidth_states(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btclib-node."""
+    getpeerinfo_reports_high_bandwidth_states(btclib_node_cluster, skip_counts)
+
+
 def test_invalid_transactions_in_a_cmpctblock_keep_the_peer(
     btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
     skip_counts: SkipCounts,
@@ -188,3 +209,29 @@ def test_sendcmpct_negotiates_compact_announcements(
 ) -> None:
     """The target: the body this module's docstring names, over btclib-node."""
     sendcmpct_negotiates_compact_announcements(btclib_node_cluster, skip_counts)
+
+
+def test_sendcmpct_negotiates_over_an_outbound_peer(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btclib-node."""
+    sendcmpct_negotiates_over_an_outbound_peer(btclib_node_cluster, skip_counts)
+
+
+def test_the_last_reconstruction_is_kept_for_an_outbound_peer(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btclib-node."""
+    the_last_reconstruction_is_kept_for_an_outbound_peer(
+        btclib_node_cluster, skip_counts
+    )
+
+
+def test_unsolicited_cmpctblocks_are_ignored(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btclib-node."""
+    unsolicited_cmpctblocks_are_ignored(btclib_node_cluster, skip_counts)

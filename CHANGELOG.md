@@ -856,3 +856,8 @@ bitcoind starts with `-debug=validation`, so `p2p_mutated_blocks` asserts the
 A node given `-i2psam` is checked to dial I2P on port 0 alone, over the SAM
 session `-i2pacceptincoming` picks; bitcoind runs with `-debug=i2p`, and
 `assert_debug_log` given `timeout=0` reads the log once, as Core's (issue #47).
+
+### `_command`'s docstring ties `-debug` to the `LogDebug` lines alone
+
+A `-debug` category gates only the log family's `LogDebug` lines; the rest,
+`LogInfo`'s `Reindexing finished` for one, print regardless (closes #240).

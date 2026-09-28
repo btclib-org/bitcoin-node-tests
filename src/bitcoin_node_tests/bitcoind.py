@@ -64,7 +64,9 @@ _CHAIN_DIRS = {
 # (`src/chainparams.cpp`) alone; `AppInitParameterInteraction`
 # (`src/init.cpp`) refuses `-test` on any other chain; and `_command`
 # itself passes `-dnsseed=0` on any other chain, so `_check_extra_args`
-# (`node.py`) refuses a test's own `-dnsseed` there
+# (`node.py`) refuses a test's own `-dnsseed` there, and `-connect=0`,
+# under which `CConnman::Start` (`src/net.cpp`) never starts
+# `ThreadOpenConnections`, the thread that asks a `-seednode`
 _REGTEST_ONLY = frozenset(
     {
         Capability.MINE,
@@ -74,6 +76,7 @@ _REGTEST_ONLY = frozenset(
         Capability.REINDEX_AFTER_FAILURE,
         Capability.GENERATE,
         Capability.DNS_SEED,
+        Capability.ADDRESS_FETCH,
     }
 )
 
@@ -306,6 +309,9 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.DNS_SEED` is `-dnsseed` and `-forcednsseed`, this binary's
     own flags (`src/init.cpp`), declared on regtest alone: on any other
     chain `_command` turns `-dnsseed` off itself.
+    `Capability.ADDRESS_FETCH` is `-seednode`, this binary's own flag
+    (`src/init.cpp`), declared on regtest alone: on any other chain
+    `_command` passes `-connect=0`, under which no seed node is asked.
     `Capability.KNOWN_ADDRESSES` is unconditional: `addpeeraddress` and
     `getnodeaddresses` are this binary's own RPCs (`src/rpc/net.cpp`),
     the first hidden from `help`'s own listing.
@@ -373,6 +379,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.ORPHANAGE,
             Capability.BLOCK_PROPOSAL,
             Capability.DNS_SEED,
+            Capability.ADDRESS_FETCH,
             Capability.KNOWN_ADDRESSES,
             Capability.EXTERNAL_IP,
         }

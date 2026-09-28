@@ -418,11 +418,16 @@ class Capability(Enum):
     where it knows many, and not at all where enough outbound full-relay
     peers connect during it, block-relay-only ones not counting
     (`p2p_dns_seeds.py`).
+    `ADDRESS_FETCH` -- dial the addresses it keeps on its own, and ask a
+    node a caller names for more, the way Core's own `-seednode` does: at
+    once where it keeps no address, and otherwise only once a wait passes
+    without enough outbound full-relay peers (`p2p_seednode.py`).
     `KNOWN_ADDRESSES` -- take a peer's address a caller hands it into the
     addresses it keeps for finding peers, and list those back: Core's own
     test-only `addpeeraddress` and its `getnodeaddresses`
-    (`p2p_dns_seeds.py`, `p2p_addr_selfannouncement.py`). One member for
-    the table's writer and its reader, as `BAN` is for its ban list's.
+    (`p2p_dns_seeds.py`, `p2p_addr_selfannouncement.py`, `p2p_seednode.py`).
+    One member for the table's writer and its reader, as `BAN` is for its
+    ban list's.
     `EXTERNAL_IP` -- recognise `-externalip`, Core's own option naming an
     address the node advertises to its peers as its own
     (`p2p_addr_selfannouncement.py`).
@@ -481,6 +486,7 @@ class Capability(Enum):
     ORPHANAGE = "orphanage"
     BLOCK_PROPOSAL = "block_proposal"
     DNS_SEED = "dns_seed"
+    ADDRESS_FETCH = "address_fetch"
     KNOWN_ADDRESSES = "known_addresses"
     EXTERNAL_IP = "external_ip"
 

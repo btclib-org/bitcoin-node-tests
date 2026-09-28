@@ -907,3 +907,9 @@ transaction already spends is left out (closes #247).
 
 A `Listener` whose timeout `settimeout` refuses closes its socket before raising
 (closes #254).
+
+### `p2p_seednode` is ported
+
+A node is checked to ask its `-seednode` when Core's does, under
+`Capability.ADDRESS_FETCH`; `assert_debug_log` takes `unexpected_substrings`,
+Core's own `unexpected_msgs`; btclib-node skips (issue #47).

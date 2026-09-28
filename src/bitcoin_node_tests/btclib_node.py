@@ -232,6 +232,11 @@ table, measured at the released `2026.9.24` (`422d2640`) and at `main`
 (`503edaec`) alike, each answering it `Method not found`
 ([ISS btclib-node#1427](https://github.com/btclib-org/btclib-node/issues/1427)).
 
+`Capability.ADDRESS_FETCH` is never declared either: `cli.py` registers
+no `-seednode`, measured against its `_build_parser` at the released
+`2026.9.24` (`422d2640`) and its `_OPTIONS` at `main` (`d4559960`) alike
+([ISS btclib-node#1192](https://github.com/btclib-org/btclib-node/issues/1192)).
+
 `Capability.DNS_SEED` is never declared either: `cli.py` registers
 neither `-dnsseed` nor `-forcednsseed`, measured against its
 `_build_parser` at the released `2026.9.24` (`422d2640`) and its

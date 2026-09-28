@@ -105,3 +105,77 @@ def test_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
             pass
     finally:
         set_factor(1.0)
+
+
+def test_raises_when_an_unexpected_substring_appears(tmp_path: Path) -> None:
+    """Core's own `unexpected_msgs`: found beside the expected one, it fails."""
+    log_path = tmp_path / "debug.log"
+    log_path.write_text("before\n")
+    with (
+        pytest.raises(AssertionError, match=r"'unwanted' found"),
+        assert_debug_log(log_path, ["expected"], ["unwanted"]),
+        log_path.open("a", encoding="utf-8") as log_file,
+    ):
+        log_file.write("expected line\nunwanted line\n")
+
+
+def test_ignores_an_unexpected_substring_already_there_before_entry(
+    tmp_path: Path,
+) -> None:
+    """Only what the block appended is read for it, as for an expected one."""
+    log_path = tmp_path / "debug.log"
+    log_path.write_text("unwanted, already here\n")
+    with (
+        assert_debug_log(log_path, ["expected"], ["unwanted"]),
+        log_path.open("a", encoding="utf-8") as log_file,
+    ):
+        log_file.write("expected line\n")
+
+
+def test_no_expected_substring_reads_the_log_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With nothing expected, one read settles it however long `timeout` is."""
+    log_path = tmp_path / "debug.log"
+    log_path.write_text("before\n")
+    sleeps: list[float] = []
+    monkeypatch.setattr("time.sleep", sleeps.append)
+    with assert_debug_log(log_path, [], ["unwanted"], timeout=1000.0):
+        pass
+    assert sleeps == []
+
+
+def test_no_expected_substring_still_fails_on_an_unexpected_one(
+    tmp_path: Path,
+) -> None:
+    """The one read with nothing expected checks the unexpected ones."""
+    log_path = tmp_path / "debug.log"
+    log_path.write_text("before\n")
+    with (
+        pytest.raises(AssertionError, match=r"'unwanted' found"),
+        assert_debug_log(log_path, [], ["unwanted"]),
+        log_path.open("a", encoding="utf-8") as log_file,
+    ):
+        log_file.write("unwanted line\n")
+
+
+def test_fails_on_the_poll_that_first_finds_an_unexpected_substring(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Appearing while the expected one is awaited, it ends the wait at once."""
+    log_path = tmp_path / "debug.log"
+    log_path.write_text("")
+    sleeps: list[float] = []
+
+    def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+        with log_path.open("a", encoding="utf-8") as log_file:
+            log_file.write("unwanted\n")
+
+    monkeypatch.setattr("time.sleep", fake_sleep)
+    with (
+        pytest.raises(AssertionError, match=r"'unwanted' found"),
+        assert_debug_log(log_path, ["expected"], ["unwanted"], timeout=5),
+    ):
+        pass
+    assert sleeps == [_POLL_INTERVAL]

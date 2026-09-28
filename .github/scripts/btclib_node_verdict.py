@@ -662,6 +662,21 @@ _ROWS: dict[str, str] = {
     "p2p_compactblocks::test_an_invalid_cmpctblock_drops_the_peer": (
         "`p2p_compactblocks.py` (invalid cmpctblock)"
     ),
+    "p2p_compactblocks::test_sendcmpct_negotiates_over_an_outbound_peer": (
+        "`p2p_compactblocks.py` (sendcmpct, outbound)"
+    ),
+    "p2p_compactblocks::test_a_stalling_peer_leaves_the_block_to_another": (
+        "`p2p_compactblocks.py` (stalling peer)"
+    ),
+    "p2p_compactblocks::test_the_last_reconstruction_is_kept_for_an_outbound_peer": (
+        "`p2p_compactblocks.py` (parallel reconstruction)"
+    ),
+    "p2p_compactblocks::test_getpeerinfo_reports_high_bandwidth_states": (
+        "`p2p_compactblocks.py` (high-bandwidth states)"
+    ),
+    "p2p_compactblocks::test_unsolicited_cmpctblocks_are_ignored": (
+        "`p2p_compactblocks.py` (ignored)"
+    ),
     "wallet_miniscript_decaying_multisig_descriptor_psbt": (
         "`wallet_miniscript_decaying_multisig_descriptor_psbt.py`"
     ),

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_compactblocks`, in part, as bodies over either node.
+"""Core's `p2p_compactblocks`, as bodies over either node.
 
 Read from Core's `test/functional/p2p_compactblocks.py` (`28641fd195db`,
 2026-07-31): how a node negotiates, builds, serves and takes BIP152's
@@ -12,7 +12,7 @@ methods, a body over a fresh node:
 
 - a node announces new blocks as `cmpctblock` only to a peer whose
   `sendcmpct` asks for it at version 2, and stops once one asks it not
-  to;
+  to, an inbound peer or an outbound one;
 - a `cmpctblock` a node announces, or sends for a `getdata`, prefills
   its coinbase and carries every other transaction as the short id
   BIP152 derives from its wtxid;
@@ -42,7 +42,17 @@ methods, a body over a fresh node:
   peer;
 - a `cmpctblock` prefilling an index past its block drops the peer,
   sent unasked by a high-bandwidth peer or asked for from a
-  low-bandwidth one.
+  low-bandwidth one;
+- a block a peer announces and does not complete is reconstructed from
+  another peer's `cmpctblock`, and one whose coinbase witness the block
+  does not commit to leaves the first peer's `blocktxn` to complete it;
+- a node asks the second peer announcing a block for its transactions,
+  and a third only where that one is outbound;
+- `getpeerinfo` reports which side has selected the other for
+  high-bandwidth mode;
+- a node ignores a `cmpctblock` from a peer that has sent no
+  `sendcmpct`, and one it did not ask for from a peer it has not
+  selected for high-bandwidth mode.
 
 Where Core's check reads the node's log, it is two bodies: a wire half,
 asserting what the peer sees, and a log half asserting bitcoind's own
@@ -51,7 +61,9 @@ wording beside it (`Capability.DEBUG_LOG`).
 Every body but those over a `sendcmpct`'s announce octet and an empty
 `getblocktxn` mines its coins first (`Capability.MINE`,
 `mini_wallet.MiniWallet`), which also leaves initial block download,
-where a node neither asks for compact blocks nor announces them. BIP152's
+where a node neither asks for compact blocks nor announces them. The
+bodies over an outbound peer ask for `Capability.TYPED_OUTBOUND` first,
+`_outbound` below having the node dial a `peer.Listener`. BIP152's
 messages are btclib's own `btclib.p2p.compact_blocks`, and `_cmpctblock`
 below builds one the way Core's `HeaderAndShortIDs.initialize_from_block`
 does at `use_witness=True`.
@@ -66,17 +78,19 @@ What differs from Core's file besides:
 
 - Core runs every check over one node and its peers, each check starting
   from the chain and the peer state the checks before it left; here each
-  body starts a fresh node and builds that state itself. A body sending
-  a `cmpctblock` the node did not ask for first has its peer send a
-  `sendcmpct` and deliver a block, which makes it a high-bandwidth peer,
-  as Core's earlier checks have made it: a node carrying
-  bitcoin/bitcoin#32606 ignores such a `cmpctblock` from any other peer;
+  body starts a fresh node and builds that state itself. A body whose
+  check needs the node to take a `cmpctblock` it did not ask for first
+  has its peer send a `sendcmpct` and deliver a block, which makes it a
+  high-bandwidth peer, as Core's earlier checks have made it: a node
+  carrying bitcoin/bitcoin#32606 ignores such a `cmpctblock` from any
+  other peer;
 - Core fills its blocks with transactions paying and spending bare
   `OP_TRUE` scripts, which its node takes into the mempool only under the
   `-acceptnonstdtxn=1` it starts with; here `MiniWallet`'s own
   transactions fill them, and the node starts with no option;
 - Core runs `test_sendcmpct` over each of its peers, an outbound one
-  among them; here it runs over an inbound peer;
+  among them; here it runs over one inbound peer and over one outbound
+  one, each a body of its own;
 - Core's `test_getblocktxn_handler` reads the blocks its earlier checks
   left; here each block it reads carries a chain of transactions;
 - the log line Core's `test_getblocktxn_handler` reads beside the
@@ -96,30 +110,41 @@ What differs from Core's file besides:
   drew already does; here that one is cleared first, so the wait is for
   the node's fallback;
 - the log line Core's `test_low_work_compactblocks` reads names its peer
-  as `0`; here the id is `getpeerinfo`'s.
+  as `0`; here the id is `getpeerinfo`'s;
+- Core's `test_compactblock_reconstruction_stalling_peer` gives the
+  coinbase a witness its block carries no commitment for; here the block
+  commits to its transactions' witnesses, so the coinbase's witness is
+  given a reserved value other than the one the commitment was built
+  with, and the stalling peer's `blocktxn` carries the witnesses, where
+  Core's transactions have none;
+- Core's stalling peer in
+  `test_compactblock_reconstruction_parallel_reconstruction` has
+  delivered blocks in its earlier checks; here it delivers none, so the
+  node never selects it for high-bandwidth mode, and `getpeerinfo`'s
+  `bip152_hb_to` is read in the order of the peers' ids rather than in
+  the order `getpeerinfo` lists them;
+- Core's `test_compact_blocks_ignored` reads its high-bandwidth peer off
+  those its earlier checks left; here that peer is made high-bandwidth
+  first, in the state Core's own
+  `test_highbandwidth_mode_states_via_getpeerinfo` leaves its peer in.
 
-A `sendcmpct` whose announce octet is neither zero nor one, and a
-`getblocktxn` naming no index, drop the peer past the pinned release,
-from bitcoin/bitcoin@2d0dce0af54b8eb0ebdaf62f12a92d7e559a281e and
-bitcoin/bitcoin@28641fd195db2a175fd43fee2e32758aef9816a6, which
-`v32.0rc1` is the first tag to carry: a bitcoind whose `getnetworkinfo`
-`version` reads older than that
+A `sendcmpct` whose announce octet is neither zero nor one drops the
+peer past the pinned release, from
+bitcoin/bitcoin@2d0dce0af54b8eb0ebdaf62f12a92d7e559a281e, and so does a
+`getblocktxn` naming no index, from
+bitcoin/bitcoin@28641fd195db2a175fd43fee2e32758aef9816a6. A
+`cmpctblock` from a peer that has sent no `sendcmpct`, and one the node
+did not ask for from a peer it has not selected for high-bandwidth mode,
+are ignored past it, from bitcoin/bitcoin#32606. `v32.0rc1` is the first
+tag to carry each. A bitcoind whose `getnetworkinfo` `version` reads
+older than that
 ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35))
 keeps the peer, answering the `getblocktxn` with a `blocktxn` carrying
-no transaction, which is asserted there instead, its log half reading
-the node's own lines for the exchange and no `Misbehaving`. A `master`
-build between either change's merge and the version's move to `32.99`
-reads older and drops the peer all the same, the constants' own
-comments having the commits.
-
-Core's other checks are not ported yet: those about which peers a node
-selects for high-bandwidth mode and takes a `cmpctblock` from,
-`test_compactblock_reconstruction_stalling_peer`,
-`test_compactblock_reconstruction_parallel_reconstruction`, whose
-outbound peer asks for `Capability.TYPED_OUTBOUND`,
-`test_highbandwidth_mode_states_via_getpeerinfo` and
-`test_compact_blocks_ignored`, the last checking what the pinned release
-does not do.
+no transaction, and takes each `cmpctblock`, which is asserted there
+instead, the log halves reading the node's own lines for the exchange
+and no `Misbehaving`. A `master` build between a change's merge and the
+version's move to `32.99` reads older and does what the change has it do
+all the same, the constants' own comments having the commits.
 
 `p2p_compactblocks_bitcoind_test.py` and
 `p2p_compactblocks_btclib_node_test.py` run each body,
@@ -168,7 +193,7 @@ from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
 from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Peer
+from bitcoin_node_tests.peer import Listener, Peer
 from bitcoin_node_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
@@ -189,6 +214,7 @@ __all__ = [
     "a_low_work_cmpctblock_is_logged",
     "a_second_blocktxn_drops_the_peer",
     "a_second_blocktxn_is_logged",
+    "a_stalling_peer_leaves_the_block_to_another",
     "a_submitted_block_is_announced_compact",
     "a_wrong_blocktxn_falls_back_to_the_block",
     "an_announced_block_is_asked_for_compact",
@@ -198,9 +224,13 @@ __all__ = [
     "an_invalid_sendcmpct_announce_drops_the_peer",
     "an_invalid_sendcmpct_announce_is_logged",
     "getblocktxn_is_answered_near_the_tip",
+    "getpeerinfo_reports_high_bandwidth_states",
     "invalid_transactions_in_a_cmpctblock_keep_the_peer",
     "only_missing_transactions_are_asked_for",
     "sendcmpct_negotiates_compact_announcements",
+    "sendcmpct_negotiates_over_an_outbound_peer",
+    "the_last_reconstruction_is_kept_for_an_outbound_peer",
+    "unsolicited_cmpctblocks_are_ignored",
 ]
 
 type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
@@ -245,6 +275,16 @@ _REFUSES_ANNOUNCE_OCTET_VERSION = 320000
 # (`f3fec67c3e`, 2026-09-11) reports `319900` and drops the peer all the
 # same, so this test fails against such a build
 _REFUSES_EMPTY_GETBLOCKTXN_VERSION = 320000
+
+# Core's own `CLIENT_VERSION`, at or past which a `cmpctblock` the node did
+# not ask for is ignored from a peer it has not selected for high-bandwidth
+# mode, and any `cmpctblock` from a peer that has sent no `sendcmpct`:
+# `v32.0`'s, `v32.0rc1` being the first tag carrying bitcoin/bitcoin#32606.
+# A known limit: a `master` build from its merge (`69fc991791`,
+# 2026-07-06) until the version moved to `32.99` (`f3fec67c3e`,
+# 2026-09-11) reports `319900` and ignores them all the same, so this test
+# fails against such a build
+_IGNORES_UNSOLICITED_CMPCTBLOCK_VERSION = 320000
 
 
 class _Conn:
@@ -421,13 +461,17 @@ def _read_block(node: NodeAdapter, block_hash: bytes) -> Block:
 
 
 def _node(
-    cluster: _Cluster, skip_counts: SkipCounts, coins: int
+    cluster: _Cluster, skip_counts: SkipCounts, coins: int, *capabilities: Capability
 ) -> tuple[NodeAdapter, MiniWallet]:
     """Return a fresh node out of initial block download, and its wallet.
 
     :param coins: the matured coins the body spends.
+    :param capabilities: what the body asks for besides `Capability.MINE`,
+        asked for first.
     """
     (node,) = cluster(1)
+    for capability in capabilities:
+        require(capability, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)
     wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + coins)
@@ -441,6 +485,36 @@ def _connect(stack: ExitStack, node: NodeAdapter) -> _Conn:
     conn = _Conn(peer)
     conn.sync_with_ping()
     return conn
+
+
+def _outbound(stack: ExitStack, node: NodeAdapter) -> _Conn:
+    """Core's own `add_outbound_p2p_connection(TestP2PConn(), ...)`.
+
+    The connection type is `outbound-full-relay`, the one Core's file
+    makes.
+    """
+    with Listener(_MAGIC) as listener:
+        node.add_outbound_connection(listener.address, "outbound-full-relay")
+        peer = stack.enter_context(listener.accept())
+    peer.handshake()
+    conn = _Conn(peer)
+    conn.sync_with_ping()
+    return conn
+
+
+def _hb_states(node: NodeAdapter) -> list[tuple[bool, bool]]:
+    """Core's own `assert_highbandwidth_states`, read for every peer.
+
+    Each peer's `getpeerinfo` `bip152_hb_to` and `bip152_hb_from`, in the
+    order the node gave the peers their ids, which is the order they
+    connected in.
+    """
+    peers = node.rpc.call("getpeerinfo")
+    assert isinstance(peers, list)
+    return [
+        (peer["bip152_hb_to"], peer["bip152_hb_from"])
+        for peer in sorted(peers, key=lambda peer: peer["id"])
+    ]
 
 
 def _chain_block(
@@ -494,72 +568,88 @@ def _getblocktxn_expected(
         assert list(request.indexes) == list(indexes)
 
 
+def _sendcmpct(conn: _Conn, node: NodeAdapter, wallet: MiniWallet) -> None:
+    """Core's own `test_sendcmpct`, over `conn`."""
+    # the node's own sendcmpct offers version 2
+    conn.wait_until(lambda: conn.has("sendcmpct"))
+    assert SendCmpct.parse(conn.last("sendcmpct").payload).version == _VERSION
+
+    tip = _tip(node)
+
+    def check_announcement_of_new_block(predicate: Callable[[], bool]) -> None:
+        conn.clear_block_announcement()
+        (block_hash,) = wallet.generate(1)
+        conn.wait_for_block_announcement(block_hash)
+        assert conn.block_announced
+        assert predicate()
+
+    def no_cmpctblock() -> bool:
+        return not conn.has("cmpctblock")
+
+    # no block is announced as a cmpctblock yet
+    check_announcement_of_new_block(no_cmpctblock)
+
+    # nor after the peer asks for headers
+    conn.request_headers_and_sync(tip)
+    check_announcement_of_new_block(lambda: no_cmpctblock() and conn.has("inv"))
+
+    # a sendcmpct asking at a version below or above 2 is ignored
+    conn.request_headers_and_sync(tip)
+    conn.send_and_ping(SendCmpct(announce=True, version=_VERSION - 1))
+    check_announcement_of_new_block(no_cmpctblock)
+
+    conn.request_headers_and_sync(tip)
+    conn.send_and_ping(SendCmpct(announce=True, version=_VERSION + 1))
+    check_announcement_of_new_block(no_cmpctblock)
+
+    # as is one at version 2 not asking to be announced to
+    conn.request_headers_and_sync(tip)
+    conn.send_and_ping(SendCmpct(announce=False, version=_VERSION))
+    check_announcement_of_new_block(no_cmpctblock)
+
+    # one at version 2 asking to be is announced to, block after block
+    conn.request_headers_and_sync(tip)
+    conn.send_and_ping(SendCmpct(announce=True, version=_VERSION))
+    check_announcement_of_new_block(lambda: conn.has("cmpctblock"))
+    check_announcement_of_new_block(lambda: conn.has("cmpctblock"))
+
+    # after a sendheaders too
+    conn.send_and_ping(SendHeaders())
+    check_announcement_of_new_block(lambda: conn.has("cmpctblock"))
+
+    # and after a version 1 sendcmpct not asking to be
+    conn.send_and_ping(SendCmpct(announce=False, version=_VERSION - 1))
+    check_announcement_of_new_block(lambda: conn.has("cmpctblock"))
+
+    # until a version 2 one asks not to be, headers announcing instead
+    conn.send_and_ping(SendCmpct(announce=False, version=_VERSION))
+    check_announcement_of_new_block(lambda: no_cmpctblock() and conn.has("headers"))
+
+
 def sendcmpct_negotiates_compact_announcements(
     cluster: _Cluster, skip_counts: SkipCounts
 ) -> None:
-    """Core's own `test_sendcmpct`, over one inbound peer.
+    """Core's own `test_sendcmpct`, over an inbound peer.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 0)
     with ExitStack() as stack:
-        conn = _connect(stack, node)
+        _sendcmpct(_connect(stack, node), node, wallet)
 
-        # the node's own sendcmpct offers version 2
-        conn.wait_until(lambda: conn.has("sendcmpct"))
-        assert SendCmpct.parse(conn.last("sendcmpct").payload).version == _VERSION
 
-        tip = _tip(node)
+def sendcmpct_negotiates_over_an_outbound_peer(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_sendcmpct`, over an outbound full-relay peer.
 
-        def check_announcement_of_new_block(predicate: Callable[[], bool]) -> None:
-            conn.clear_block_announcement()
-            (block_hash,) = wallet.generate(1)
-            conn.wait_for_block_announcement(block_hash)
-            assert conn.block_announced
-            assert predicate()
-
-        def no_cmpctblock() -> bool:
-            return not conn.has("cmpctblock")
-
-        # no block is announced as a cmpctblock yet
-        check_announcement_of_new_block(no_cmpctblock)
-
-        # nor after the peer asks for headers
-        conn.request_headers_and_sync(tip)
-        check_announcement_of_new_block(lambda: no_cmpctblock() and conn.has("inv"))
-
-        # a sendcmpct asking at a version below or above 2 is ignored
-        conn.request_headers_and_sync(tip)
-        conn.send_and_ping(SendCmpct(announce=True, version=_VERSION - 1))
-        check_announcement_of_new_block(no_cmpctblock)
-
-        conn.request_headers_and_sync(tip)
-        conn.send_and_ping(SendCmpct(announce=True, version=_VERSION + 1))
-        check_announcement_of_new_block(no_cmpctblock)
-
-        # as is one at version 2 not asking to be announced to
-        conn.request_headers_and_sync(tip)
-        conn.send_and_ping(SendCmpct(announce=False, version=_VERSION))
-        check_announcement_of_new_block(no_cmpctblock)
-
-        # one at version 2 asking to be is announced to, block after block
-        conn.request_headers_and_sync(tip)
-        conn.send_and_ping(SendCmpct(announce=True, version=_VERSION))
-        check_announcement_of_new_block(lambda: conn.has("cmpctblock"))
-        check_announcement_of_new_block(lambda: conn.has("cmpctblock"))
-
-        # after a sendheaders too
-        conn.send_and_ping(SendHeaders())
-        check_announcement_of_new_block(lambda: conn.has("cmpctblock"))
-
-        # and after a version 1 sendcmpct not asking to be
-        conn.send_and_ping(SendCmpct(announce=False, version=_VERSION - 1))
-        check_announcement_of_new_block(lambda: conn.has("cmpctblock"))
-
-        # until a version 2 one asks not to be, headers announcing instead
-        conn.send_and_ping(SendCmpct(announce=False, version=_VERSION))
-        check_announcement_of_new_block(lambda: no_cmpctblock() and conn.has("headers"))
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 0, Capability.TYPED_OUTBOUND)
+    with ExitStack() as stack:
+        _sendcmpct(_outbound(stack, node), node, wallet)
 
 
 def _check_compactblock_construction(
@@ -934,11 +1024,12 @@ def _expecting(
     return assert_debug_log(log_path, expected, unexpected)
 
 
-def _refuses(node: NodeAdapter, version: int) -> bool:
-    """Whether `node` drops the peer sending what Core's check sends.
+def _carries(node: NodeAdapter, version: int) -> bool:
+    """Whether `node` does what Core's check asserts of Core's `master`.
 
     Core's own claim for every node, bitcoind before `version` excepted:
-    that build keeps the peer, read off its own `getnetworkinfo` `version`
+    that build does what the check's own body asserts there instead, read
+    off its own `getnetworkinfo` `version`
     ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
     """
     if not isinstance(node, BitcoindAdapter):
@@ -963,7 +1054,7 @@ def _invalid_sendcmpct_announce(node: NodeAdapter, log_path: Path | None) -> Non
     :param log_path: the node's own log where the check is a log half,
         `None` where it is a wire half.
     """
-    refuses = _refuses(node, _REFUSES_ANNOUNCE_OCTET_VERSION)
+    refuses = _carries(node, _REFUSES_ANNOUNCE_OCTET_VERSION)
     with ExitStack() as stack:
         bad_peer = _connect(stack, node)
         if refuses:
@@ -1173,7 +1264,7 @@ def _empty_getblocktxn(node: NodeAdapter, log_path: Path | None) -> None:
     :param log_path: the node's own log where the check is a log half,
         `None` where it is a wire half.
     """
-    refuses = _refuses(node, _REFUSES_EMPTY_GETBLOCKTXN_VERSION)
+    refuses = _carries(node, _REFUSES_EMPTY_GETBLOCKTXN_VERSION)
     with ExitStack() as stack:
         peer = _connect(stack, node)
         block_hash = _tip(node)
@@ -1273,3 +1364,241 @@ def a_low_work_cmpctblock_is_logged(cluster: _Cluster, skip_counts: SkipCounts) 
     """
     node, wallet = _node(cluster, skip_counts, 0)
     _low_work_cmpctblock(node, wallet, _debug_log(node, skip_counts))
+
+
+def _announce_cmpct_block(
+    conn: _Conn,
+    node: NodeAdapter,
+    wallet: MiniWallet,
+    utxo: Utxo,
+    count: int,
+    *,
+    solicit: bool = False,
+) -> tuple[Block, Utxo]:
+    """Core's own `announce_cmpct_block`, and the coin its block leaves.
+
+    A block on the tip carrying a chain of `count` transactions from
+    `utxo`, sent by `conn` as a `cmpctblock` the node then asks the
+    transactions of; with `solicit`, its header is sent first and the
+    `cmpctblock` is the one the node asks for.
+    """
+    block, utxo = _chain_block(node, wallet, utxo, count)
+    block_hash = block.header.hash
+    if solicit:
+        conn.send(Headers([block.header], check_validity=False))
+        conn.wait_for_getdata(block_hash)
+    conn.clear("getblocktxn")
+    conn.send_and_ping(_cmpctblock(block))
+    _getblocktxn_expected(conn, block_hash)
+    assert _tip(node) != block_hash
+    return block, utxo
+
+
+def _blocktxn(block: Block) -> BlockTxn:
+    """Core's own `msg_blocktxn` carrying every transaction but the coinbase."""
+    return BlockTxn(block.header.hash, block.transactions[1:], check_validity=False)
+
+
+def a_stalling_peer_leaves_the_block_to_another(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_compactblock_reconstruction_stalling_peer`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 1)
+    with ExitStack() as stack:
+        stalling_peer = _connect(stack, node)
+        delivery_peer = _connect(stack, node)
+        for conn in (stalling_peer, delivery_peer):
+            conn.send_and_ping(SendCmpct(announce=True, version=_VERSION))
+            _make_high_bandwidth(conn, node, wallet)
+
+        # a block the stalling peer announces and does not complete
+        block, utxo = _announce_cmpct_block(
+            stalling_peer, node, wallet, wallet.get_utxo(), 5
+        )
+        for tx in block.transactions[1:]:
+            delivery_peer.send(_tx(tx))
+        delivery_peer.sync_with_ping()
+        node_mempool = _mempool(node)
+        for tx in block.transactions[1:]:
+            assert tx.id.hex() in node_mempool
+
+        # is reconstructed from the delivery peer's own cmpctblock
+        delivery_peer.send_and_ping(_cmpctblock(block))
+        assert _tip(node) == block.header.hash
+
+        # a cmpctblock whose coinbase witness the block does not commit to
+        block, _ = _announce_cmpct_block(stalling_peer, node, wallet, utxo, 5)
+        for tx in block.transactions[1:]:
+            delivery_peer.send(_tx(tx))
+        delivery_peer.sync_with_ping()
+
+        coinbase = block.transactions[0]
+        (reserved,) = coinbase.vin[0].script_witness.stack
+        assert reserved == bytes(32)
+        mutated = Tx(
+            version=coinbase.version,
+            lock_time=coinbase.lock_time,
+            vin=[
+                replace(coinbase.vin[0], script_witness=Witness([b"\x01" + bytes(31)]))
+            ],
+            vout=list(coinbase.vout),
+            check_validity=False,
+        )
+        cmpct = _cmpctblock(
+            Block(
+                block.header, [mutated, *block.transactions[1:]], check_validity=False
+            )
+        )
+        delivery_peer.send_and_ping(cmpct)
+        assert _tip(node) != block.header.hash
+
+        # leaves the stalling peer's own blocktxn to complete it
+        stalling_peer.send_and_ping(_blocktxn(block))
+        assert _tip(node) == block.header.hash
+
+
+def getpeerinfo_reports_high_bandwidth_states(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_highbandwidth_mode_states_via_getpeerinfo`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 0)
+    with ExitStack() as stack:
+        conn = _connect(stack, node)
+        # neither side has selected the other yet
+        assert _hb_states(node) == [(False, False)]
+
+        # the peer asks to be announced to as a high-bandwidth peer
+        conn.send_and_ping(SendCmpct(announce=True, version=_VERSION))
+        assert _hb_states(node) == [(False, True)]
+
+        # the block it delivers has the node select it
+        block = build_next_block(node, wallet.script_pub_key)
+        conn.send_and_ping(_block_payload(block))
+        assert _tip(node) == block.header.hash
+        assert _hb_states(node) == [(True, True)]
+
+        # and it asks to be announced to as a low-bandwidth one
+        conn.send_and_ping(SendCmpct(announce=False, version=_VERSION))
+        assert _hb_states(node) == [(True, False)]
+
+
+def the_last_reconstruction_is_kept_for_an_outbound_peer(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_compactblock_reconstruction_parallel_reconstruction`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 1, Capability.TYPED_OUTBOUND)
+    with ExitStack() as stack:
+        stalling_peer = _connect(stack, node)
+        stalling_peer.send_and_ping(SendCmpct(announce=True, version=_VERSION))
+        delivery_peer = _connect(stack, node)
+        inbound_peer = _connect(stack, node)
+        outbound_peer = _outbound(stack, node)
+
+        # every peer but the stalling one made high-bandwidth, each then
+        # completing a block it announces
+        utxo = wallet.get_utxo()
+        for conn in (delivery_peer, inbound_peer, outbound_peer):
+            conn.send_and_ping(SendCmpct(announce=True, version=_VERSION))
+            _make_high_bandwidth(conn, node, wallet)
+            block, utxo = _announce_cmpct_block(conn, node, wallet, utxo, 1)
+            conn.send_and_ping(_blocktxn(block))
+            assert _tip(node) == block.header.hash
+            conn.clear("getblocktxn")
+
+        for num_missing in (1, 5, 20):
+            for conn in (delivery_peer, inbound_peer, outbound_peer):
+                conn.clear("getblocktxn")
+            assert [hb_to for hb_to, _ in _hb_states(node)] == [
+                False,
+                True,
+                True,
+                True,
+            ]
+
+            # the stalling peer announces first, asked for the block
+            block, utxo = _announce_cmpct_block(
+                stalling_peer, node, wallet, utxo, num_missing, solicit=True
+            )
+            block_hash = block.header.hash
+            cmpct = _cmpctblock(block)
+
+            # the second peer to announce it is asked for its transactions
+            delivery_peer.send_and_ping(cmpct)
+            _getblocktxn_expected(delivery_peer, block_hash)
+
+            # a third, inbound, is not
+            inbound_peer.send_and_ping(cmpct)
+            assert not inbound_peer.has("getblocktxn")
+            assert _tip(node) != block_hash
+
+            # and a third, outbound, is
+            outbound_peer.send_and_ping(cmpct)
+            _getblocktxn_expected(outbound_peer, block_hash)
+
+            # the second peer completes the block
+            delivery_peer.send_and_ping(_blocktxn(block))
+            assert _tip(node) == block_hash
+
+            # and the stalling peer's late blocktxn keeps it
+            stalling_peer.send_and_ping(_blocktxn(block))
+
+
+def unsolicited_cmpctblocks_are_ignored(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_compact_blocks_ignored`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 5)
+    ignores = _carries(node, _IGNORES_UNSOLICITED_CMPCTBLOCK_VERSION)
+    with ExitStack() as stack:
+        # a high-bandwidth peer, not asking to be announced to
+        hb_peer = _connect(stack, node)
+        hb_peer.send_and_ping(SendCmpct(announce=False, version=_VERSION))
+        _make_high_bandwidth(hb_peer, node, wallet)
+
+        # and a peer that has sent no sendcmpct
+        peer = _connect(stack, node)
+        assert _hb_states(node) == [(True, False), (False, False)]
+
+        def ignores_compact_block(conn: _Conn, *, solicited: bool) -> bool:
+            """Core's own `ignores_compact_block`: no `getblocktxn` came."""
+            block, _ = _chain_block(node, wallet, wallet.get_utxo(), 10)
+            conn.clear("getblocktxn")
+            if solicited:
+                conn.send(Headers([block.header], check_validity=False))
+                conn.wait_for_getdata(block.header.hash)
+            conn.send_and_ping(_cmpctblock(block))
+            return not conn.has("getblocktxn")
+
+        # a cmpctblock from it is ignored, unasked and asked for; an older
+        # build takes it either way
+        assert ignores_compact_block(peer, solicited=False) is ignores
+        assert ignores_compact_block(peer, solicited=True) is ignores
+
+        # its sendcmpct leaves it a low-bandwidth peer
+        peer.send_and_ping(SendCmpct(announce=False, version=_VERSION))
+        assert _hb_states(node) == [(True, False), (False, False)]
+
+        # whose cmpctblock is ignored unasked, and taken asked for
+        assert ignores_compact_block(peer, solicited=False) is ignores
+        assert _hb_states(node) == [(True, False), (False, False)]
+        assert not ignores_compact_block(peer, solicited=True)
+        assert _hb_states(node) == [(True, False), (False, False)]
+
+        # and the high-bandwidth peer's is taken unasked
+        assert not ignores_compact_block(hb_peer, solicited=False)

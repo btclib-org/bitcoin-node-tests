@@ -947,3 +947,9 @@ added only to a node given that option, and btclib-node skips (issue #47).
 A node is checked to ask one announcing peer at a time for a transaction, an
 outbound or `noban` one first; `Peer.handshake`'s new `wtxidrelay` off is Core's
 `P2PInterface(wtxidrelay=False)`. btclib-node skips most checks (issue #44).
+
+### `p2p_blocksonly` is ported
+
+A `-blocksonly` node is checked to drop a peer sending it a transaction, bar one
+holding the `relay` permission, and a node to drop a block-relay-only peer doing
+so; btclib-node skips (issue #44).

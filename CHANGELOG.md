@@ -941,3 +941,9 @@ Core's, where its `ConnectionError` was suppressed (closes #262).
 `Socks5Proxy` forwards each connection where a `destinations_factory` names;
 a node is checked to broadcast as `-privatebroadcast` does, its log category
 added only to a node given that option, and btclib-node skips (issue #47).
+
+### `p2p_tx_download` is ported
+
+A node is checked to ask one announcing peer at a time for a transaction, an
+outbound or `noban` one first; `Peer.handshake`'s new `wtxidrelay` off is Core's
+`P2PInterface(wtxidrelay=False)`. btclib-node skips most checks (issue #44).

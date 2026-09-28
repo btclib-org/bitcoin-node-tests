@@ -521,6 +521,57 @@ _ROWS: dict[str, str] = {
         "`p2p_ibd_stalling.py` (`manual`, log)"
     ),
     "p2p_private_broadcast": "`p2p_private_broadcast.py`",
+    "p2p_tx_download::test_an_expired_request_falls_back_to_another_peer": (
+        "`p2p_tx_download.py` (expiry)"
+    ),
+    "p2p_tx_download::test_a_disconnect_falls_back_to_another_peer": (
+        "`p2p_tx_download.py` (disconnect)"
+    ),
+    "p2p_tx_download::test_a_notfound_falls_back_to_another_peer": (
+        "`p2p_tx_download.py` (notfound)"
+    ),
+    "p2p_tx_download::test_a_ready_preferred_peer_is_asked_first": (
+        "`p2p_tx_download.py` (tiebreak)"
+    ),
+    "p2p_tx_download::test_an_inbound_peer_is_asked_after_the_delay": (
+        "`p2p_tx_download.py` (inbound)"
+    ),
+    "p2p_tx_download::test_an_outbound_peer_is_asked_at_once": (
+        "`p2p_tx_download.py` (outbound)"
+    ),
+    "p2p_tx_download::test_a_noban_peer_is_asked_at_once": (
+        "`p2p_tx_download.py` (noban)"
+    ),
+    "p2p_tx_download::test_a_txid_peer_is_asked_at_once_without_a_wtxid_peer": (
+        "`p2p_tx_download.py` (txid)"
+    ),
+    "p2p_tx_download::test_a_txid_peer_waits_beside_a_wtxid_peer": (
+        "`p2p_tx_download.py` (txid beside wtxid)"
+    ),
+    "p2p_tx_download::test_a_large_inv_is_capped_without_the_relay_permission": (
+        "`p2p_tx_download.py` (large inv)"
+    ),
+    "p2p_tx_download::test_duplicate_inv_entries_are_processed_once": (
+        "`p2p_tx_download.py` (duplicate inv)"
+    ),
+    "p2p_tx_download::test_a_spurious_notfound_is_ignored": (
+        "`p2p_tx_download.py` (spurious notfound)"
+    ),
+    "p2p_tx_download::test_requests_in_flight_are_capped": (
+        "`p2p_tx_download.py` (in flight)"
+    ),
+    "p2p_tx_download::test_a_tx_reaches_a_node_past_unresponsive_peers": (
+        "`p2p_tx_download.py` (inv block)"
+    ),
+    "p2p_tx_download::test_every_announcing_peer_is_asked_in_turn": (
+        "`p2p_tx_download.py` (tx requests)"
+    ),
+    "p2p_tx_download::test_a_rejected_tx_is_asked_for_again_after_a_block": (
+        "`p2p_tx_download.py` (rejects)"
+    ),
+    "p2p_tx_download::test_an_inv_of_the_wrong_kind_is_ignored": (
+        "`p2p_tx_download.py` (mismatch)"
+    ),
     "wallet_miniscript_decaying_multisig_descriptor_psbt": (
         "`wallet_miniscript_decaying_multisig_descriptor_psbt.py`"
     ),

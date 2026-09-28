@@ -510,6 +510,16 @@ _ROWS: dict[str, str] = {
     "p2p_i2p_sessions": "`p2p_i2p_sessions.py`",
     "p2p_dns_seeds": "`p2p_dns_seeds.py`",
     "p2p_seednode": "`p2p_seednode.py`",
+    "p2p_ibd_stalling::test_stalling_drops_the_staller": (
+        "`p2p_ibd_stalling.py` (wire)"
+    ),
+    "p2p_ibd_stalling::test_stalling_is_logged": "`p2p_ibd_stalling.py` (log)",
+    "p2p_ibd_stalling::test_manual_peer_stalling_pauses_the_peer": (
+        "`p2p_ibd_stalling.py` (`manual`, wire)"
+    ),
+    "p2p_ibd_stalling::test_manual_peer_stalling_is_logged": (
+        "`p2p_ibd_stalling.py` (`manual`, log)"
+    ),
     "wallet_miniscript_decaying_multisig_descriptor_psbt": (
         "`wallet_miniscript_decaying_multisig_descriptor_psbt.py`"
     ),

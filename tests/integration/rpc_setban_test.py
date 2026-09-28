@@ -21,15 +21,17 @@ matching Core's own `restart_node(1, [...])`. Where Core restarts with
 
 The plain restart's own ban check reads `listbanned` first, the way
 Core's own `is_banned` helper does, before the refused reconnection is
-even attempted: a `TimeoutError` out of `connect_nodes` is otherwise no
-different from a slow start, a port problem or a handshake stall, none
-of them the ban this test names
+even attempted
 ([ISS 94](https://github.com/btclib-org/bitcoin-node-tests/issues/94)).
-The dial itself is then read the way Core's own reconnection wait is,
-over `assert_debug_log` (`debug_log.py`) rather than the timeout alone:
-bitcoind's own `CreateNodeFromAcceptedSocket` (`src/net.cpp`) logs
-`dropped (banned)` the moment it refuses the accepted socket, which
-`Capability.DEBUG_LOG` gates.
+The reconnection is then Core's own: `addnode ... "onetry"` on `node0`,
+with `v2transport` false as `connect_nodes` passes it, inside
+`assert_debug_log` (`debug_log.py`) on `node1`, whose
+`CreateNodeFromAcceptedSocket` (`src/net.cpp`) logs `dropped (banned)`
+as it refuses the accepted socket; `Capability.DEBUG_LOG` gates it.
+Core then waits on `node0`'s own log for the dropped connection's
+`Cleared nodestate` line before asserting that `node0` is not connected
+to `node1`; `wait_until_disconnected` reads the same fact off `node0`'s
+`getpeerinfo`, which needs no log on `node0`.
 
 `BitcoindAdapter` declares `Capability.BAN` for every build, and
 `BtclibNodeAdapter` only for a build whose dispatch table names `setban`,
@@ -42,8 +44,6 @@ how.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-
-import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
@@ -120,11 +120,10 @@ def a_ban_survives_a_restart_until_it_is_removed(
     if not isinstance(node1, BitcoindAdapter):
         err_msg = f"{type(node1).__name__} declares DEBUG_LOG with no debug_log_path"
         raise TypeError(err_msg)
-    with (
-        assert_debug_log(node1.debug_log_path, ["dropped (banned)"]),
-        pytest.raises(TimeoutError),
-    ):
-        connect_nodes(node0, node1, timeout=2.0)
+    host, port = node1.p2p_address
+    with assert_debug_log(node1.debug_log_path, ["dropped (banned)"]):
+        node0.rpc.call("addnode", [f"{host}:{port}", "onetry", False])
+    wait_until_disconnected(node0, node1)
 
     node1.rpc.call("setban", ["127.0.0.1", "remove"])
     node1.restart()

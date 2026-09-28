@@ -2,11 +2,12 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_compactblocks`, a first batch, as bodies over either node.
+"""Core's `p2p_compactblocks`, in part, as bodies over either node.
 
 Read from Core's `test/functional/p2p_compactblocks.py` (`28641fd195db`,
 2026-07-31): how a node negotiates, builds, serves and takes BIP152's
-compact blocks. Each of the checks below is one of Core's `test_*`
+compact blocks, and which malformed or invalid ones drop the peer
+sending them. Each of the checks below is one of Core's `test_*`
 methods, a body over a fresh node:
 
 - a node announces new blocks as `cmpctblock` only to a peer whose
@@ -25,12 +26,30 @@ methods, a body over a fresh node:
 - a block deeper than Core's `MAX_CMPCTBLOCK_DEPTH` is sent whole where
   a compact one is asked for, and a `cmpctblock` for a block off the
   tip leaves only its header;
+- a `cmpctblock` whose block has too little work to be kept leaves no
+  header behind;
 - a `blocktxn` that does not complete the block has the node ask for
   the whole of it;
 - a block submitted over RPC is announced as `cmpctblock` to every peer
-  asking for it.
+  asking for it;
+- a `cmpctblock` carrying a block that fails validation keeps the peer,
+  as does the same one sent again, and one building on that block drops
+  it;
+- a `getblocktxn` naming no index drops the peer;
+- a second `blocktxn` for a block whose reconstruction failed drops the
+  peer;
+- a `sendcmpct` whose announce octet is neither zero nor one drops the
+  peer;
+- a `cmpctblock` prefilling an index past its block drops the peer,
+  sent unasked by a high-bandwidth peer or asked for from a
+  low-bandwidth one.
 
-Every body mines its coins first (`Capability.MINE`,
+Where Core's check reads the node's log, it is two bodies: a wire half,
+asserting what the peer sees, and a log half asserting bitcoind's own
+wording beside it (`Capability.DEBUG_LOG`).
+
+Every body but those over a `sendcmpct`'s announce octet and an empty
+`getblocktxn` mines its coins first (`Capability.MINE`,
 `mini_wallet.MiniWallet`), which also leaves initial block download,
 where a node neither asks for compact blocks nor announces them. BIP152's
 messages are btclib's own `btclib.p2p.compact_blocks`, and `_cmpctblock`
@@ -61,22 +80,46 @@ What differs from Core's file besides:
 - Core's `test_getblocktxn_handler` reads the blocks its earlier checks
   left; here each block it reads carries a chain of transactions;
 - the log line Core's `test_getblocktxn_handler` reads beside the
-  disconnect for an index past the block is not asserted.
+  disconnect for an index past the block is not asserted;
+- Core's `test_invalid_cmpctblock_message` reads `getpeerinfo`'s
+  `bip152_hb_to` and `bip152_hb_from` for its two peers; here the
+  `sendcmpct` the node sent each is read, and the peer's own request is
+  not;
+- Core's `test_invalid_tx_in_compactblock` adds the witness commitment
+  its transactions do not need before dropping the coinbase's witness;
+  here the transactions carry witnesses, so the block already commits to
+  them and keeps its header once the coinbase's witness is dropped, and
+  the block with an invalid transaction is built anew on the tip, where
+  Core edits its own;
+- Core's `test_multiple_blocktxn_response` waits after its first
+  `blocktxn` for a `getdata` naming the block, which the one its header
+  drew already does; here that one is cleared first, so the wait is for
+  the node's fallback;
+- the log line Core's `test_low_work_compactblocks` reads names its peer
+  as `0`; here the id is `getpeerinfo`'s.
 
-Core's other checks are not ported yet. Those about a malformed or
-invalid message, and whether the node drops the peer that sent it,
-several reading the node's log beside it:
-`test_invalid_sendcmpct_announce`, `test_invalid_cmpctblock_message`,
-`test_multiple_blocktxn_response`, `test_invalid_tx_in_compactblock`,
-`test_empty_getblocktxn_disconnects` and `test_low_work_compactblocks`.
-And those about which peers a node selects for high-bandwidth mode and
-takes a `cmpctblock` from: `test_compactblock_reconstruction_stalling_peer`,
+A `sendcmpct` whose announce octet is neither zero nor one, and a
+`getblocktxn` naming no index, drop the peer past the pinned release,
+from bitcoin/bitcoin@2d0dce0af54b8eb0ebdaf62f12a92d7e559a281e and
+bitcoin/bitcoin@28641fd195db2a175fd43fee2e32758aef9816a6, which
+`v32.0rc1` is the first tag to carry: a bitcoind whose `getnetworkinfo`
+`version` reads older than that
+([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35))
+keeps the peer, answering the `getblocktxn` with a `blocktxn` carrying
+no transaction, which is asserted there instead, its log half reading
+the node's own lines for the exchange and no `Misbehaving`. A `master`
+build between either change's merge and the version's move to `32.99`
+reads older and drops the peer all the same, the constants' own
+comments having the commits.
+
+Core's other checks are not ported yet: those about which peers a node
+selects for high-bandwidth mode and takes a `cmpctblock` from,
+`test_compactblock_reconstruction_stalling_peer`,
 `test_compactblock_reconstruction_parallel_reconstruction`, whose
 outbound peer asks for `Capability.TYPED_OUTBOUND`,
 `test_highbandwidth_mode_states_via_getpeerinfo` and
-`test_compact_blocks_ignored`. Of these, `test_invalid_sendcmpct_announce`,
-`test_empty_getblocktxn_disconnects` and `test_compact_blocks_ignored`
-check what the pinned release does not do.
+`test_compact_blocks_ignored`, the last checking what the pinned release
+does not do.
 
 `p2p_compactblocks_bitcoind_test.py` and
 `p2p_compactblocks_btclib_node_test.py` run each body,
@@ -88,7 +131,7 @@ from __future__ import annotations
 import random
 import secrets
 import time
-from contextlib import ExitStack
+from contextlib import AbstractContextManager, ExitStack, nullcontext
 from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING
@@ -106,6 +149,7 @@ from btclib.p2p import (
     Inv,
     Inventory,
     InventoryType,
+    Message,
     Ping,
     Pong,
     PrefilledTransaction,
@@ -114,9 +158,14 @@ from btclib.p2p import (
     TxPayload,
 )
 from btclib.p2p.magic import magic_from_chain
+from btclib.script.script import serialize as script_serialize
+from btclib.script.witness import Witness
+from btclib.tx import Tx
 from btclib.tx.limits import COINBASE_MATURITY
 
+from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
+from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
 from bitcoin_node_tests.node import wait_until
 from bitcoin_node_tests.peer import Peer
@@ -124,11 +173,10 @@ from bitcoin_node_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+    from pathlib import Path
 
-    from btclib.p2p import Message, Payload
-    from btclib.tx import Tx
+    from btclib.p2p import Payload
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.mini_wallet import Utxo
@@ -137,10 +185,20 @@ if TYPE_CHECKING:
 __all__ = [
     "a_block_off_the_tip_is_not_sent_compact",
     "a_compact_block_is_built_as_bip152_says",
+    "a_low_work_cmpctblock_is_ignored",
+    "a_low_work_cmpctblock_is_logged",
+    "a_second_blocktxn_drops_the_peer",
+    "a_second_blocktxn_is_logged",
     "a_submitted_block_is_announced_compact",
     "a_wrong_blocktxn_falls_back_to_the_block",
     "an_announced_block_is_asked_for_compact",
+    "an_empty_getblocktxn_drops_the_peer",
+    "an_empty_getblocktxn_is_logged",
+    "an_invalid_cmpctblock_drops_the_peer",
+    "an_invalid_sendcmpct_announce_drops_the_peer",
+    "an_invalid_sendcmpct_announce_is_logged",
     "getblocktxn_is_answered_near_the_tip",
+    "invalid_transactions_in_a_cmpctblock_keep_the_peer",
     "only_missing_transactions_are_asked_for",
     "sendcmpct_negotiates_compact_announcements",
 ]
@@ -167,6 +225,26 @@ _HANDLER_CHAIN_LENGTH = 3
 
 # Core's own `CMPCTBLOCKS_VERSION`, and the versions on either side of it
 _VERSION = 2
+
+# Core's own depth `test_low_work_compactblocks` builds its block at
+_LOW_WORK_DEPTH = 150
+
+# Core's own `CLIENT_VERSION` (`src/clientversion.h`), the running build's
+# own `getnetworkinfo` `version`, at or past which a `sendcmpct` whose
+# announce octet is neither zero nor one drops the peer: `v32.0`'s,
+# `v32.0rc1` being the first tag carrying the change. A known limit: a
+# `master` build from its merge (`d84fc352cb`, 2026-06-23) until the
+# version moved to `32.99` (`f3fec67c3e`, 2026-09-11) reports `319900` and
+# drops the peer all the same, so this test fails against such a build
+_REFUSES_ANNOUNCE_OCTET_VERSION = 320000
+
+# Core's own `CLIENT_VERSION`, at or past which a `getblocktxn` naming no
+# index drops the peer: `v32.0`'s, `v32.0rc1` being the first tag carrying
+# the change. A known limit: a `master` build from its merge
+# (`975a314667`, 2026-08-04) until the version moved to `32.99`
+# (`f3fec67c3e`, 2026-09-11) reports `319900` and drops the peer all the
+# same, so this test fails against such a build
+_REFUSES_EMPTY_GETBLOCKTXN_VERSION = 320000
 
 
 class _Conn:
@@ -830,3 +908,368 @@ def a_submitted_block_is_announced_compact(
             listener.wait_until(partial(listener.has, "cmpctblock"))
             cmpct = _parse_cmpctblock(listener.last("cmpctblock"))
             assert cmpct.header.hash == block.header.hash
+
+
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
+    """Return the log a log half reads, or skip where the node keeps none.
+
+    :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
+        being the adapter that names a `debug_log_path`.
+    """
+    require(Capability.DEBUG_LOG, node.capabilities, skip_counts)
+    if not isinstance(node, BitcoindAdapter):
+        err_msg = f"{type(node).__name__} declares DEBUG_LOG, naming no debug.log"
+        raise TypeError(err_msg)
+    return node.debug_log_path
+
+
+def _expecting(
+    log_path: Path | None,
+    expected: Sequence[str],
+    unexpected: Sequence[str] = (),
+) -> AbstractContextManager[None]:
+    """Return `assert_debug_log` over `log_path`, or nothing for a wire half."""
+    if log_path is None:
+        return nullcontext()
+    return assert_debug_log(log_path, expected, unexpected)
+
+
+def _refuses(node: NodeAdapter, version: int) -> bool:
+    """Whether `node` drops the peer sending what Core's check sends.
+
+    Core's own claim for every node, bitcoind before `version` excepted:
+    that build keeps the peer, read off its own `getnetworkinfo` `version`
+    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    """
+    if not isinstance(node, BitcoindAdapter):
+        return True
+    return bool(node.rpc.call("getnetworkinfo")["version"] >= version)
+
+
+def _sendcmpct_announcing(octet: int) -> bytes:
+    """Core's own `msg_sendcmpct(announce=octet, version=2)`, framed.
+
+    `SendCmpct.announce` is a `bool`, so an octet past one is written
+    here.
+    """
+    payload = bytes([octet]) + _VERSION.to_bytes(8, byteorder="little")
+    message = Message(_MAGIC, "sendcmpct", payload, check_validity=False)
+    return message.serialize(check_validity=False)
+
+
+def _invalid_sendcmpct_announce(node: NodeAdapter, log_path: Path | None) -> None:
+    """Core's own `test_invalid_sendcmpct_announce`, over `node`.
+
+    :param log_path: the node's own log where the check is a log half,
+        `None` where it is a wire half.
+    """
+    refuses = _refuses(node, _REFUSES_ANNOUNCE_OCTET_VERSION)
+    with ExitStack() as stack:
+        bad_peer = _connect(stack, node)
+        if refuses:
+            with _expecting(log_path, ["invalid sendcmpct announce field"]):
+                bad_peer.peer.send_raw(_sendcmpct_announcing(2))
+                bad_peer.peer.wait_for_disconnect()
+        else:
+            # an older build reads the octet as a bool, and keeps the peer
+            with _expecting(
+                log_path, ["received: sendcmpct (9 bytes)"], ["Misbehaving"]
+            ):
+                bad_peer.peer.send_raw(_sendcmpct_announcing(2))
+                bad_peer.sync_with_ping()
+
+
+def an_invalid_sendcmpct_announce_drops_the_peer(cluster: _Cluster) -> None:
+    """Check the wire half of Core's own `test_invalid_sendcmpct_announce`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    """
+    (node,) = cluster(1)
+    _invalid_sendcmpct_announce(node, None)
+
+
+def an_invalid_sendcmpct_announce_is_logged(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Check the log half of Core's own `test_invalid_sendcmpct_announce`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    (node,) = cluster(1)
+    _invalid_sendcmpct_announce(node, _debug_log(node, skip_counts))
+
+
+def an_invalid_cmpctblock_drops_the_peer(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_invalid_cmpctblock_message`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 0)
+    with ExitStack() as stack:
+        # a high-bandwidth peer
+        hb_peer = _connect(stack, node)
+        _request_cb_announcements(hb_peer, node)
+        _make_high_bandwidth(hb_peer, node, wallet)
+
+        # and a low-bandwidth one
+        lb_peer = _connect(stack, node)
+        _request_cb_announcements(lb_peer, node)
+        assert SendCmpct.parse(lb_peer.last("sendcmpct").payload).announce is False
+
+        # a cmpctblock prefilling its one transaction at index 1
+        block = build_next_block(node, wallet.script_pub_key)
+        prefilled = PrefilledTransaction(1, block.transactions[0], check_validity=False)
+        cmpct = CmpctBlock(block.header, 0, [], [prefilled], check_validity=False)
+
+        # drops the high-bandwidth peer sending it unasked
+        hb_peer.send(cmpct)
+        hb_peer.peer.wait_for_disconnect()
+        assert _tip(node) == block.header.previous_block_hash
+
+        # and the low-bandwidth peer the node asked for it
+        lb_peer.send(Headers([block.header], check_validity=False))
+        lb_peer.wait_for_getdata(block.header.hash)
+        lb_peer.send(cmpct)
+        lb_peer.peer.wait_for_disconnect()
+        assert _tip(node) == block.header.previous_block_hash
+
+
+def _multiple_blocktxn(
+    node: NodeAdapter, wallet: MiniWallet, log_path: Path | None
+) -> None:
+    """Core's own `test_multiple_blocktxn_response`, over `node`.
+
+    :param log_path: the node's own log where the check is a log half,
+        `None` where it is a wire half.
+    """
+    with ExitStack() as stack:
+        conn = _connect(stack, node)
+        conn.send_and_ping(SendCmpct(announce=False, version=_VERSION))
+
+        block, _ = _chain_block(node, wallet, wallet.get_utxo(), 2)
+        block_hash = block.header.hash
+        # the header has the node ask for the block
+        conn.send(Headers([block.header], check_validity=False))
+        conn.wait_for_getdata(block_hash)
+
+        conn.clear("getblocktxn")
+        conn.send_and_ping(_cmpctblock(block))
+        _getblocktxn_expected(conn, block_hash, [1, 2])
+
+        # a blocktxn failing the reconstruction has it ask for the block
+        wrong = BlockTxn(
+            block_hash,
+            [block.transactions[2], block.transactions[1]],
+            check_validity=False,
+        )
+        conn.clear("getdata")
+        conn.send_and_ping(wrong)
+        assert _tip(node) == block.header.previous_block_hash
+        conn.wait_for_getdata(block_hash)
+        items = GetData.parse(conn.last("getdata").payload).items
+        assert items[0].type_code in (
+            InventoryType.MSG_BLOCK,
+            InventoryType.MSG_WITNESS_BLOCK,
+        )
+
+        # and the same blocktxn again drops the peer
+        with _expecting(
+            log_path, ["previous compact block reconstruction attempt failed"]
+        ):
+            conn.send(wrong)
+            conn.peer.wait_for_disconnect()
+
+
+def a_second_blocktxn_drops_the_peer(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Check the wire half of Core's own `test_multiple_blocktxn_response`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 1)
+    _multiple_blocktxn(node, wallet, None)
+
+
+def a_second_blocktxn_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
+    """Check the log half of Core's own `test_multiple_blocktxn_response`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 1)
+    _multiple_blocktxn(node, wallet, _debug_log(node, skip_counts))
+
+
+def _prefilled_whole(block: Block) -> CmpctBlock:
+    """Core's own `initialize_from_block` prefilling every transaction."""
+    return _cmpctblock(block, range(len(block.transactions)))
+
+
+def invalid_transactions_in_a_cmpctblock_keep_the_peer(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_invalid_tx_in_compactblock`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 1)
+    with ExitStack() as stack:
+        conn = _connect(stack, node)
+        conn.send_and_ping(SendCmpct(announce=True, version=_VERSION))
+        _make_high_bandwidth(conn, node, wallet)
+
+        block, _ = _chain_block(node, wallet, wallet.get_utxo(), 5)
+        # the coinbase's witness dropped, the witness commitment kept
+        coinbase = block.transactions[0]
+        assert coinbase.vin[0].script_witness.stack
+        stripped = Tx(
+            version=coinbase.version,
+            lock_time=coinbase.lock_time,
+            vin=[replace(coinbase.vin[0], script_witness=Witness([]))],
+            vout=list(coinbase.vout),
+            check_validity=False,
+        )
+        block = Block(
+            block.header, [stripped, *block.transactions[1:]], check_validity=False
+        )
+        conn.send_and_ping(_prefilled_whole(block))
+        assert _tip(node) != block.header.hash
+
+        # a transaction of the block made invalid, the commitment rebuilt
+        txs = list(block.transactions[1:])
+        txs[3] = Tx(
+            version=txs[3].version,
+            lock_time=txs[3].lock_time,
+            vin=[replace(txs[3].vin[0], script_sig=script_serialize(["OP_RETURN"]))],
+            vout=list(txs[3].vout),
+            check_validity=False,
+        )
+        block = build_next_block(node, wallet.script_pub_key, txs)
+        conn.send_and_ping(_prefilled_whole(block))
+        assert _tip(node) != block.header.hash
+
+        # sent again, the node's cached failure answers it
+        conn.send_and_ping(_prefilled_whole(block))
+        assert _tip(node) != block.header.hash
+
+        # and a block building on it drops the peer
+        header = mine(replace(block.header, previous_block_hash=block.header.hash))
+        assert header is not None
+        child = Block(header, block.transactions, check_validity=False)
+        conn.send(_prefilled_whole(child))
+        conn.peer.wait_for_disconnect()
+
+
+def _empty_getblocktxn(node: NodeAdapter, log_path: Path | None) -> None:
+    """Core's own `test_empty_getblocktxn_disconnects`, over `node`.
+
+    :param log_path: the node's own log where the check is a log half,
+        `None` where it is a wire half.
+    """
+    refuses = _refuses(node, _REFUSES_EMPTY_GETBLOCKTXN_VERSION)
+    with ExitStack() as stack:
+        peer = _connect(stack, node)
+        block_hash = _tip(node)
+        request = GetBlockTxn(block_hash, [])
+        if refuses:
+            with _expecting(
+                log_path, ["getblocktxn received with no transaction indexes"]
+            ):
+                peer.send(request)
+                peer.peer.wait_for_disconnect()
+        else:
+            # an older build answers it with no transaction, and keeps the peer
+            with _expecting(
+                log_path,
+                ["received: getblocktxn (33 bytes)", "sending blocktxn (33 bytes)"],
+                ["Misbehaving"],
+            ):
+                peer.send_and_ping(request)
+            answer = BlockTxn.parse(peer.last("blocktxn").payload, check_validity=False)
+            assert answer.block_hash == block_hash
+            assert len(answer.transactions) == 0
+
+
+def an_empty_getblocktxn_drops_the_peer(cluster: _Cluster) -> None:
+    """Check the wire half of Core's own `test_empty_getblocktxn_disconnects`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    """
+    (node,) = cluster(1)
+    _empty_getblocktxn(node, None)
+
+
+def an_empty_getblocktxn_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
+    """Check the log half of Core's own `test_empty_getblocktxn_disconnects`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    (node,) = cluster(1)
+    _empty_getblocktxn(node, _debug_log(node, skip_counts))
+
+
+def _low_work_cmpctblock(
+    node: NodeAdapter, wallet: MiniWallet, log_path: Path | None
+) -> None:
+    """Core's own `test_low_work_compactblocks`, over `node`.
+
+    :param log_path: the node's own log where the check is a log half,
+        `None` where it is a wire half.
+    """
+    wallet.generate(_LOW_WORK_DEPTH)
+    with ExitStack() as stack:
+        conn = _connect(stack, node)
+        conn.send_and_ping(SendCmpct(announce=True, version=_VERSION))
+
+        # a block on the one Core's depth below the tip
+        height = node.rpc.call("getblockcount")
+        parent = bytes.fromhex(
+            node.rpc.call("getblockhash", [height - _LOW_WORK_DEPTH])
+        )
+        on_tip = build_next_block(node, wallet.script_pub_key)
+        header = mine(replace(on_tip.header, previous_block_hash=parent))
+        assert header is not None
+        block = Block(header, on_tip.transactions, check_validity=False)
+
+        expected = []
+        if log_path is not None:
+            (peer_info,) = node.rpc.call("getpeerinfo")
+            expected = [
+                f"[net] Ignoring low-work compact block from peer {peer_info['id']}"
+            ]
+        with _expecting(log_path, expected):
+            conn.send_and_ping(_cmpctblock(block))
+
+        # leaves no header behind
+        tips = [tip["hash"] for tip in node.rpc.call("getchaintips")]
+        assert block.header.hash.hex() not in tips
+
+
+def a_low_work_cmpctblock_is_ignored(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Check the wire half of Core's own `test_low_work_compactblocks`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 0)
+    _low_work_cmpctblock(node, wallet, None)
+
+
+def a_low_work_cmpctblock_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
+    """Check the log half of Core's own `test_low_work_compactblocks`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 0)
+    _low_work_cmpctblock(node, wallet, _debug_log(node, skip_counts))

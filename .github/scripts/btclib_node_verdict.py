@@ -608,6 +608,30 @@ _ROWS: dict[str, str] = {
     "p2p_orphan_handling::test_a_parent_gone_missing_is_requested": (
         "`p2p_orphan_handling.py` (parents change)"
     ),
+    "p2p_compactblocks::test_sendcmpct_negotiates_compact_announcements": (
+        "`p2p_compactblocks.py` (sendcmpct)"
+    ),
+    "p2p_compactblocks::test_a_compact_block_is_built_as_bip152_says": (
+        "`p2p_compactblocks.py` (construction)"
+    ),
+    "p2p_compactblocks::test_an_announced_block_is_asked_for_compact": (
+        "`p2p_compactblocks.py` (requests)"
+    ),
+    "p2p_compactblocks::test_only_missing_transactions_are_asked_for": (
+        "`p2p_compactblocks.py` (getblocktxn requests)"
+    ),
+    "p2p_compactblocks::test_getblocktxn_is_answered_near_the_tip": (
+        "`p2p_compactblocks.py` (getblocktxn handler)"
+    ),
+    "p2p_compactblocks::test_a_block_off_the_tip_is_not_sent_compact": (
+        "`p2p_compactblocks.py` (not at tip)"
+    ),
+    "p2p_compactblocks::test_a_wrong_blocktxn_falls_back_to_the_block": (
+        "`p2p_compactblocks.py` (incorrect blocktxn)"
+    ),
+    "p2p_compactblocks::test_a_submitted_block_is_announced_compact": (
+        "`p2p_compactblocks.py` (end to end)"
+    ),
     "wallet_miniscript_decaying_multisig_descriptor_psbt": (
         "`wallet_miniscript_decaying_multisig_descriptor_psbt.py`"
     ),

@@ -19,8 +19,11 @@ from __future__ import annotations
 import io
 import math
 import secrets
+import select
 import socket
+import struct
 import threading
+import time
 from collections import Counter
 from collections.abc import Iterator
 
@@ -569,6 +572,84 @@ def test_wait_for_disconnect_timeout_is_scaled_by_the_global_factor(
             set_factor(1.0)
     finally:
         peer.close()
+
+
+def _handshaken(fake_node: _FakeNode) -> Peer:
+    """Return a `Peer` that has completed its handshake with `fake_node`."""
+    peer = _connect_and_accept(fake_node)
+    server_thread = threading.Thread(target=fake_node.answer_handshake)
+    server_thread.start()
+    peer.handshake()
+    server_thread.join(timeout=5.0)
+    return peer
+
+
+def _until_readable(peer: Peer) -> None:
+    """Block until what the node sent last has reached `peer`'s socket."""
+    select.select([peer._socket], [], [], 5.0)
+
+
+def test_is_connected_answers_at_once_while_the_node_stays_up(
+    fake_node: _FakeNode,
+) -> None:
+    """An open, silent connection is `True` without waiting out the timeout."""
+    peer = _handshaken(fake_node)
+    try:
+        start = time.monotonic()
+        assert peer.is_connected
+        assert time.monotonic() - start < 1.0
+        assert peer._socket.gettimeout() == pytest.approx(5.0)
+    finally:
+        peer.close()
+
+
+def test_is_connected_keeps_what_it_reads_for_receive(fake_node: _FakeNode) -> None:
+    """A message read along the way is still `receive`'s to return."""
+    peer = _handshaken(fake_node)
+    try:
+        nonce = fake_node.send_ping()
+        _until_readable(peer)
+        assert peer.is_connected
+        message = peer.receive()
+        assert message.command == "ping"
+        assert Ping.parse(message.payload).nonce == nonce
+    finally:
+        peer.close()
+
+
+def test_is_connected_is_false_once_the_node_closes(fake_node: _FakeNode) -> None:
+    """An orderly close is a disconnect, and `receive` then sees it too."""
+    peer = _handshaken(fake_node)
+    try:
+        fake_node.close()
+        _until_readable(peer)
+        assert not peer.is_connected
+        with pytest.raises(ConnectionError):
+            peer.receive()
+    finally:
+        peer.close()
+
+
+def test_is_connected_is_false_once_the_node_resets(fake_node: _FakeNode) -> None:
+    """A reset rather than an orderly close is a disconnect too."""
+    peer = _handshaken(fake_node)
+    try:
+        assert fake_node._connection is not None
+        fake_node._connection.setsockopt(
+            socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0)
+        )
+        fake_node.close()
+        _until_readable(peer)
+        assert not peer.is_connected
+    finally:
+        peer.close()
+
+
+def test_is_connected_is_false_once_the_peer_closes(fake_node: _FakeNode) -> None:
+    """`close` on this side ends the connection without reading anything."""
+    peer = _handshaken(fake_node)
+    peer.close()
+    assert not peer.is_connected
 
 
 def test_sync_with_ping_waits_for_the_pong_to_its_second_ping(

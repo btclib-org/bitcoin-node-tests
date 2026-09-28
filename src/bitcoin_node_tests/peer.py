@@ -122,6 +122,31 @@ class Peer:
     def __exit__(self, *exc_info: object) -> None:
         self.close()
 
+    @property
+    def is_connected(self) -> bool:
+        """Whether the connection is still open, read without waiting.
+
+        Core's `P2PInterface.is_connected`, which reads the state its
+        background thread keeps. With no such thread here, this reads
+        whatever the socket already holds without blocking, keeping the
+        octets for `receive`, and answers `False` where that read ends in
+        the node's close or reset, or where `close` has run.
+        """
+        if self._socket.fileno() == -1:
+            return False
+        timeout = self._socket.gettimeout()
+        self._socket.settimeout(0.0)
+        try:
+            while chunk := self._socket.recv(4096):
+                self._buffer += chunk
+        except BlockingIOError:
+            return True
+        except ConnectionError:
+            return False
+        finally:
+            self._socket.settimeout(timeout)
+        return False
+
     def send(self, payload: Payload, *, check_validity: bool = True) -> None:
         """Frame `payload` for this connection's own network, and send it.
 

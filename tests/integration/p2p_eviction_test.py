@@ -44,6 +44,14 @@ sent first
 ([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410))
 need not have.
 
+Which peer was evicted is read off `Peer.is_connected`, Core's own
+`is_connected`, which waits for nothing. Core reads it once for each
+peer, after the evicting peer's `sync_with_ping`; `_evicted` below
+repeats that sweep until some peer reads disconnected, within a scaled
+bound, because bitcoind's `AttemptToEvictConnection` (`src/net.cpp`)
+only marks the peer, and its socket is closed on a later pass of the
+node's own network loop.
+
 `p2p_eviction_bitcoind_test.py` and `p2p_eviction_btclib_node_test.py`
 run it, `tests/integration/conftest.py`'s own module docstring having
 how, each handing it the argv that prints its own node's `-help`.
@@ -169,15 +177,6 @@ def _connect(node: NodeAdapter, peers: list[Peer], pong_delay: float) -> Peer:
     return peer
 
 
-def _is_connected(peer: Peer) -> bool:
-    """Return whether the node still holds this connection open."""
-    try:
-        peer.wait_for_disconnect(timeout=0.2)
-    except AssertionError:
-        return True
-    return False
-
-
 def _wait_until_tip(node: NodeAdapter, block_hash: str, timeout: float = 30) -> None:
     deadline = time.monotonic() + scaled(timeout)
     while node.rpc.call("getbestblockhash") != block_hash:
@@ -191,9 +190,10 @@ def _evicted(peers: list[Peer], timeout: float = 30) -> list[int]:
     """Return the indices of the peers the node disconnected, once any is."""
     deadline = time.monotonic() + scaled(timeout)
     while True:
-        evicted = [index for index, peer in enumerate(peers) if not _is_connected(peer)]
+        evicted = [index for index, peer in enumerate(peers) if not peer.is_connected]
         if evicted or time.monotonic() > deadline:
             return evicted
+        time.sleep(0.1)
 
 
 def the_evicted_inbound_peer_is_never_a_protected_one(

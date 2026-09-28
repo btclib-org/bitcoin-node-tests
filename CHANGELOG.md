@@ -918,3 +918,9 @@ Core's own `unexpected_msgs`; btclib-node skips (issue #47).
 
 `--timeout-factor 0` scales every wait by 999, Core's own reading of 0, where it
 made the adapters' RPC client timeout 0 and no node could start (closes #234).
+
+### `Peer.is_connected` answers without waiting
+
+`Peer.is_connected` is Core's `P2PInterface.is_connected`, and `p2p_eviction`
+reads it; `rpc_setban`'s restart check dials with Core's `addnode ... "onetry"`.
+Neither waits for a timeout `--timeout-factor` scales to run out (closes #250).

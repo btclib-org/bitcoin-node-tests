@@ -252,6 +252,13 @@ own dispatch table, measured at the same two commits
 `-externalip`, measured at the released `2026.9.24` (`422d2640`) and at
 `main` (`d4559960`) alike
 ([ISS btclib-node#1445](https://github.com/btclib-org/btclib-node/issues/1445)).
+
+`Capability.PRIVATE_BROADCAST` is never declared either: `cli.py`
+registers no `-privatebroadcast`, and neither `getprivatebroadcastinfo`
+nor `abortprivatebroadcast` names a callback in
+`src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at the
+released `2026.9.24` (`422d2640`) and at `main` (`d4559960`) alike,
+`privatebroadcast` being a `-debug` category at `main`.
 """
 
 from __future__ import annotations

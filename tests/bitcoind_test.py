@@ -16,6 +16,7 @@ import pytest
 from bitcoin_node_tests import bitcoind as bitcoind_module
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability
+from bitcoin_node_tests.node import NodeAdapter
 from bitcoin_node_tests.timeout_factor import set_factor
 
 
@@ -79,6 +80,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.ADDRESS_FETCH,
             Capability.KNOWN_ADDRESSES,
             Capability.EXTERNAL_IP,
+            Capability.PRIVATE_BROADCAST,
         }
     )
 
@@ -157,6 +159,39 @@ def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:
     assert "-debug=reindex" in command
     assert "-debug=validation" in command
     assert "-debug=i2p" in command
+    assert "-debug=privatebroadcast" not in command
+
+
+@pytest.mark.parametrize(
+    "extra_args",
+    [
+        ("-privatebroadcast",),
+        ("-proxy=127.0.0.1:9050", "--privatebroadcast=1"),
+    ],
+)
+def test_start_logs_private_broadcast_where_it_is_asked_for(
+    tmp_path: Path, extra_args: tuple[str, ...]
+) -> None:
+    """`-privatebroadcast` among `extra_args` brings its log category."""
+    with patch.object(bitcoind_module, "_has_wallet", return_value=True):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
+    with patch.object(NodeAdapter, "_start") as start:
+        adapter._start(extra_args)
+    start.assert_called_once_with((*extra_args, "-debug=privatebroadcast"))
+
+
+@pytest.mark.parametrize(
+    "extra_args", [(), ("-proxy=127.0.0.1:9050", "-privatebroadcastx")]
+)
+def test_start_leaves_the_category_off_where_it_is_not_asked_for(
+    tmp_path: Path, extra_args: tuple[str, ...]
+) -> None:
+    """Without `-privatebroadcast`, no category older builds lack is added."""
+    with patch.object(bitcoind_module, "_has_wallet", return_value=True):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
+    with patch.object(NodeAdapter, "_start") as start:
+        adapter._start(extra_args)
+    start.assert_called_once_with(extra_args)
 
 
 def test_chains_are_every_one_the_release_runs() -> None:
@@ -214,6 +249,7 @@ def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
         Capability.GENERATE,
         Capability.DNS_SEED,
         Capability.ADDRESS_FETCH,
+        Capability.PRIVATE_BROADCAST,
     }
 
 
@@ -232,6 +268,7 @@ def test_capabilities_drop_the_test_chain_only_ones_on_main(
         Capability.GENERATE,
         Capability.DNS_SEED,
         Capability.ADDRESS_FETCH,
+        Capability.PRIVATE_BROADCAST,
         Capability.ACCEPT_NON_STANDARD,
     }
 

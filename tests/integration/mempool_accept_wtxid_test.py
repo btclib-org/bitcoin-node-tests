@@ -19,7 +19,7 @@ block confirming the parent is one it mines carrying that parent. The
 parent is broadcast over `sendrawtransaction` directly rather than
 through the wallet, whose cache nothing below reads again.
 
-`_malleated_package` is Core's own `build_malleated_tx_package`
+`malleated_package` is Core's own `build_malleated_tx_package`
 (`test_framework/script_util.py`), built with btclib's script and
 transaction types: a parent paying a P2WSH output whose script has two
 branches, and two children spending it, one through each.
@@ -66,6 +66,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "a_child_sharing_a_txid_is_told_apart_by_its_wtxid",
+    "malleated_package",
 ]
 
 _MAGIC = magic_from_chain("regtest")
@@ -83,7 +84,7 @@ _PREIMAGE = b"Preimage"
 _TX_TYPES = frozenset({InventoryType.MSG_TX, InventoryType.MSG_WTX})
 
 
-def _malleated_package(
+def malleated_package(
     parent: Tx, rebalance_parent_output_amount: int, child_amount: int
 ) -> tuple[Tx, Tx, Tx]:
     """Core's `build_malleated_tx_package`: a parent and two malleated children.
@@ -222,7 +223,7 @@ def a_child_sharing_a_txid_is_told_apart_by_its_wtxid(
     unmodified = wallet.create_self_transfer()
     parent_amount = unmodified.vout[0].value - _REBALANCE_MARGIN
     child_amount = parent_amount - _REBALANCE_MARGIN
-    parent, child_one, child_two = _malleated_package(
+    parent, child_one, child_two = malleated_package(
         unmodified, parent_amount, child_amount
     )
     assert node.rpc.call("sendrawtransaction", [_raw(parent), 0]) == parent.id.hex()

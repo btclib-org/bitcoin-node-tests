@@ -24,8 +24,14 @@ setting, which `feature_anchors.py` sets, closing it otherwise. The node
 keeps the peer, and `getpeerinfo` lists it, until `close` or until the
 node's own `-peertimeout` drops a peer that never answered -- bitcoind's
 default is `DEFAULT_PEER_CONNECT_TIMEOUT` (`src/net.h`), a wait
-`--timeout-factor` does not scale. Nothing is forwarded: the proxy is
-the far end of every connection.
+`--timeout-factor` does not scale.
+
+Given a `destinations_factory`, the proxy forwards instead, as Core's own
+server does under its setting of that name: the factory is handed each
+request, and the client's own address as the proxy sees it, and names
+where the connection goes, the octets then copied both ways until either
+end closes. `p2p_private_broadcast.py` is what forwards its node's
+connections to peers of its own choosing.
 
 A protocol violation is not a request: it is queued in the request's
 place and raised by the `next_request` that reaches it, rather than
@@ -36,6 +42,7 @@ from __future__ import annotations
 
 import contextlib
 import queue
+import select
 import shutil
 import socket
 import tempfile
@@ -43,9 +50,12 @@ import threading
 from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from bitcoin_node_tests.timeout_factor import scaled
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 __all__ = [
     "AddressType",
@@ -86,6 +96,10 @@ _HOST_LENGTH = {AddressType.IPV4: 4, AddressType.IPV6: 16}
 # the loopback address a TCP proxy binds, by family
 _LOOPBACK: dict[int, str] = {socket.AF_INET: "127.0.0.1", socket.AF_INET6: "::1"}
 
+# how much one read of a forwarded connection takes, Core's own
+# `forward_sockets` reading the same
+_CHUNK = 4096
+
 
 @dataclass(frozen=True)
 class Socks5Request:
@@ -107,6 +121,10 @@ class Socks5Request:
     password: bytes | None
 
 
+# what `Socks5Proxy`'s own `destinations_factory` is
+type _Factory = Callable[[Socks5Request, str], tuple[str, int] | None]
+
+
 def _receive(connection: socket.socket, count: int) -> bytes:
     """Return exactly `count` octets from `connection`.
 
@@ -120,6 +138,18 @@ def _receive(connection: socket.socket, count: int) -> bytes:
             raise ConnectionError(err_msg)
         data += chunk
     return data
+
+
+def _spell(address: tuple[str, int] | str) -> str:
+    """Return `address` as `host:port`, an IPv6 host in brackets, or a path.
+
+    Core's own `format_addr_port` and `format_sock`
+    (`test/functional/test_framework/netutil.py`).
+    """
+    if isinstance(address, str):
+        return address
+    host, port = address[:2]
+    return f"[{host}]:{port}" if ":" in host else f"{host}:{port}"
 
 
 def _check_version(received: int, expected: int, what: str) -> None:
@@ -143,13 +173,15 @@ class Socks5Proxy:
       from then on, on a thread of its own, so `endpoint` is dialable
       before the caller starts the node that dials it;
     - one connection at a time: each is negotiated to its request on that
-      thread, then held open, unread, until `close`;
+      thread, then held open, unread, until `close` -- or, given a
+      `destinations_factory`, handed to a thread of its own that forwards
+      it;
     - the username/password method is chosen where `authentication` is
       set and the client offers it, and no authentication otherwise,
       where the client offers that -- the choice Core's own server makes
       between its `auth` and `unauth` settings, `unauth` always on;
-    - `close` stops accepting, closes every connection it holds, and
-      removes a unix socket's file and directory.
+    - `close` stops accepting, closes every connection it holds or
+      forwards, and removes a unix socket's file and directory.
 
     The temporary directory is the system's rather than a test's own
     `tmp_path`, as Core's `feature_proxy.py` takes its path from
@@ -162,6 +194,16 @@ class Socks5Proxy:
     :param timeout: how long `next_request` waits, and how long one
         client is given to finish its negotiation, before
         `--timeout-factor`'s own scaling (`timeout_factor.scaled`).
+    :param destinations_factory: where given, called with each request
+        once its success is sent, and with the client's own address as
+        the proxy sees it -- `host:port`, what the client's own
+        `getpeerinfo` reports as that connection's `addrbind`. It returns
+        the `(host, port)` the connection is forwarded to, or `None`,
+        which closes it. Core's own `Socks5Configuration`'s
+        `destinations_factory`, which is handed the host decoded, the
+        port and that address, and returns them as a dict. What it
+        raises, and a destination refusing the connection, is queued for
+        `next_request` behind the request, as Core's own server queues it.
     """
 
     def __init__(
@@ -170,14 +212,23 @@ class Socks5Proxy:
         authentication: bool = False,
         family: int = socket.AF_INET,
         timeout: float = 30.0,
+        destinations_factory: (
+            Callable[[Socks5Request, str], tuple[str, int] | None] | None
+        ) = None,
     ) -> None:
         self._authentication = authentication
         self._family = family
         self._timeout = scaled(timeout)
+        self._destinations_factory = destinations_factory
         self._results: queue.Queue[Socks5Request | Exception] = queue.Queue()
         self._held: list[socket.socket] = []
         self._negotiating: socket.socket | None = None
         self._closing = threading.Event()
+        # every connection a forwarding thread holds, and the threads, for
+        # `close`; the lock makes `close` and `_track` exclusive
+        self._lock = threading.Lock()
+        self._forwarded: set[socket.socket] = set()
+        self._forwarders: list[threading.Thread] = []
         self._directory: Path | None = None
         # a failure before the thread runs releases what was acquired, in
         # the order `close` releases it: the socket, then the directory
@@ -217,8 +268,7 @@ class Socks5Proxy:
         address = self.address
         if isinstance(address, str):
             return f"unix:{address}"
-        host, port = address
-        return f"[{host}]:{port}" if ":" in host else f"{host}:{port}"
+        return _spell(address)
 
     def next_request(self) -> Socks5Request:
         """Return the oldest request not yet returned.
@@ -248,11 +298,18 @@ class Socks5Proxy:
         first, so the thread returns to `accept` without waiting out that
         client's timeout; the join is bounded by the same timeout all the
         same, as Core's own `stop` bounds its handlers' joins. A unix
-        socket's file goes with the directory holding it.
+        socket's file goes with the directory holding it. A forwarded
+        connection is shut down, which ends its thread's copying and closes
+        its destination's end, and that join is bounded the same way.
         """
-        if self._closing.is_set():
-            return
-        self._closing.set()
+        with self._lock:
+            if self._closing.is_set():
+                return
+            self._closing.set()
+            forwarded = list(self._forwarded)
+        for connection in forwarded:
+            with contextlib.suppress(OSError):
+                connection.shutdown(socket.SHUT_RDWR)
         negotiating = self._negotiating
         if negotiating is not None:
             with contextlib.suppress(OSError):
@@ -263,6 +320,8 @@ class Socks5Proxy:
         self._socket.close()
         for connection in self._held:
             connection.close()
+        for forwarder in self._forwarders:
+            forwarder.join(timeout=self._timeout)
         if self._directory is not None:
             shutil.rmtree(self._directory)
 
@@ -282,14 +341,64 @@ class Socks5Proxy:
             connection.settimeout(self._timeout)
             self._negotiating = connection
             try:
-                self._results.put(self._negotiate(connection))
+                request = self._negotiate(connection)
             except (OSError, ValueError) as exc:
                 connection.close()
                 self._results.put(exc)
             else:
-                self._held.append(connection)
+                self._results.put(request)
+                factory = self._destinations_factory
+                # past `close`, a held connection is one `close` closes
+                if factory is None or not self._track(connection):
+                    self._held.append(connection)
+                else:
+                    self._forward_later(connection, request, factory)
             finally:
                 self._negotiating = None
+
+    def _track(self, connection: socket.socket) -> bool:
+        """Hand `connection` to `close`, or answer `False` once it has run."""
+        with self._lock:
+            if self._closing.is_set():
+                return False
+            self._forwarded.add(connection)
+            return True
+
+    def _forward_later(
+        self, connection: socket.socket, request: Socks5Request, factory: _Factory
+    ) -> None:
+        """Start the thread forwarding `connection`, which `_track` holds."""
+        forwarder = threading.Thread(
+            target=self._redirect, args=(connection, request, factory), daemon=True
+        )
+        self._forwarders.append(forwarder)
+        forwarder.start()
+
+    def _redirect(
+        self, connection: socket.socket, request: Socks5Request, factory: _Factory
+    ) -> None:
+        """Forward `connection` where `factory` names, then close it.
+
+        Core's own `Socks5Connection.handle` past its reply: what the
+        factory or the destination raises is queued for `next_request`
+        unless `close` has run, and the connection is closed either way.
+        """
+        try:
+            with connection:
+                destination = factory(request, _spell(connection.getpeername()))
+                if destination is not None:
+                    with socket.create_connection(
+                        destination, timeout=self._timeout
+                    ) as far:
+                        _forward(connection, far)
+        # whatever the caller's own factory raises, as Core's own handler
+        # catches it
+        except Exception as exc:  # noqa: BLE001
+            if not self._closing.is_set():
+                self._results.put(exc)
+        finally:
+            with self._lock:
+                self._forwarded.discard(connection)
 
     def _negotiate(self, connection: socket.socket) -> Socks5Request:
         """Answer one client's method choice, credentials and `CONNECT`.
@@ -331,3 +440,23 @@ class Socks5Proxy:
         port = int.from_bytes(_receive(connection, 2), "big")
         connection.sendall(_SUCCESS_REPLY)
         return Socks5Request(kind, host, port, username, password)
+
+
+def _forward(near: socket.socket, far: socket.socket) -> None:
+    """Copy what either socket receives to the other, until either closes.
+
+    Core's own `forward_sockets`, which reads whichever end `select`
+    finds readable: an end closing, or reset, ends it, and so does
+    `close` shutting the client's end down.
+    """
+    ends = (near, far)
+    try:
+        while True:
+            readable, _, _ = select.select(ends, (), ())
+            for end in readable:
+                data = end.recv(_CHUNK)
+                if not data:
+                    return
+                (far if end is near else near).sendall(data)
+    except ConnectionError:
+        return

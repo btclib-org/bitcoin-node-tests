@@ -968,6 +968,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_ibd_stalling.py` (log) | same | same | pass | skip (typed_outbound) |
 | `p2p_ibd_stalling.py` (`manual`, wire) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 | `p2p_ibd_stalling.py` (`manual`, log) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
+| `p2p_private_broadcast.py` | [`ac6b6c1f06e9`](https://github.com/bitcoin/bitcoin/commit/ac6b6c1f06e9) | 2026-08-18 | pass, the refusals without `-privatebroadcast` and `attempts_remaining` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (private_broadcast) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1429,8 +1430,6 @@ every `wallet_*.py` file the command lists,
 [ISS 46](https://github.com/btclib-org/bitcoin-node-tests/issues/46)
 `feature_coinstatsindex_compatibility.py` and
 `feature_txindex_compatibility.py`,
-[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)
-`p2p_private_broadcast.py`,
 [ISS 48](https://github.com/btclib-org/bitcoin-node-tests/issues/48)
 `interface_ipc.py`, and
 [ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)
@@ -1446,7 +1445,8 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_initial_headers_sync.py`, `p2p_sendtxrcncl.py`,
 `p2p_mutated_blocks.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`,
 `p2p_dns_seeds.py`, `feature_anchors.py`,
-`p2p_addr_selfannouncement.py`, `p2p_seednode.py` and `p2p_ibd_stalling.py`.
+`p2p_addr_selfannouncement.py`, `p2p_seednode.py`, `p2p_ibd_stalling.py` and
+`p2p_private_broadcast.py`.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -3012,7 +3012,10 @@ port and any RFC 1929 credentials -- for `next_request`, then holds the
 connection open until `close`, as Core's own `Socks5Server` does only
 under its `keep_alive` setting. The node keeps the peer, and
 `getpeerinfo` lists it, until `close` or until the node's own
-`-peertimeout` drops a peer that never answered.
+`-peertimeout` drops a peer that never answered. Given a
+`destinations_factory`, as Core's own server is, it forwards each
+connection where the factory names instead, or closes it where the
+factory names nowhere.
 `socks5_test.py` drives it against a client written octet by octet.
 It listens on IPv4 loopback, or on IPv6 loopback or a unix socket where
 its `family` asks, and `endpoint` spells each the way `-proxy` takes it.
@@ -3078,9 +3081,38 @@ differs from Core's file: among it, Core's `write_config` line turning
 the pinned release too, and `btclib-node`'s cell is a counted skip on
 `Capability.ADDRESS_FETCH`.
 
-The rest of the issue is its later batches:
-`p2p_private_broadcast.py`, `p2p_private_broadcast_cap.py` and
-`p2p_private_broadcast_retry_v1.py`.
+`p2p_private_broadcast.py` is ported on the forwarding proxy, in
+`tests/integration/p2p_private_broadcast_test.py`, whose module
+docstring has what differs from Core's file. The factory reads each
+connection's type off the node's own `getpeerinfo`, as Core's does, and
+forwards the first private broadcast connection to a second node and
+every other to a peer of the test's own, a `Listener` answering on a
+thread of its own as Core's `P2PInterface` does. It asks for
+`Capability.PRIVATE_BROADCAST` and the capability of every option its
+node is given but `-test=addrman` and `-dnsseed` off, keeps Core's
+steps in their order, and drops the last: Core restarts the node with
+`-listenonion`, which `BitcoindAdapter`'s own argv turns off. Its pin is
+past the pinned release, whose own file has no refusal of
+`getprivatebroadcastinfo` and `abortprivatebroadcast` on a node without
+`-privatebroadcast` and reads no `attempts_remaining`: the release's
+binary answers neither way, so the body reads the build's own
+`getnetworkinfo` `version` and asserts, on an older build, what that
+build answers instead. `btclib-node`'s cell is a counted skip on
+`Capability.PRIVATE_BROADCAST`.
+
+`p2p_private_broadcast_cap.py` is not ported: the file is past the
+pinned release, whose binary puts no cap on its private broadcast queue,
+the file's whole subject, and the `-proxy` its node is given names a
+port nothing listens at, so it needs no listening proxy.
+`p2p_private_broadcast_retry_v1.py` is not ported either: in Core's
+file, the peers its node reaches over IPv4 through the Tor proxy, all but
+the one whose transport it reads, answer in BIP324's v2 transport, which
+`Peer` does not speak.
+The rest of
+[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47) is
+`p2p_private_broadcast_retry_v1.py` and the proxy steps of
+`feature_config_args.py` and `rpc_net.py`, which ISS 14's list above
+holds for their log steps.
 
 ## The node wallet: `Capability.NODE_WALLET`
 

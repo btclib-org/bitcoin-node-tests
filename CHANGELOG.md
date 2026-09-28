@@ -896,3 +896,9 @@ the new `Capability.EXTERNAL_IP` (issue #44).
 
 A `Socks5Proxy` whose `bind`, `listen` or serving thread fails closes its socket
 and removes a unix socket's directory before raising (closes #253).
+
+### `MiniWallet.generate` caches a confirmed coin its wallet did not send
+
+A `confirm` transaction no send of this wallet scanned is scanned when mined,
+as Core's `generate` finds its coins through `rescan_utxos`; a coin a mempool
+transaction already spends is left out (closes #247).

@@ -8,8 +8,8 @@
 search (`build_coinbase`, `build_block`, `mine`): regtest's own target is
 wide enough that a whole chain mines in well under a second, `node_test.py`'s
 own `_FakeRpc` doctrine applied here to `submitblock`,
-`sendrawtransaction` and `gettxout`, the only calls this module ever makes
-that touch a node for real.
+`sendrawtransaction`, `gettxout`, `getrawmempool` and `getrawtransaction`,
+the only calls this module ever makes that touch a node for real.
 """
 
 from __future__ import annotations
@@ -81,6 +81,11 @@ class _FakeRpc:
     `txouts` maps a `(txid, vout)` pair to what `gettxout` answers for it,
     `None` -- the coin not in the UTXO set -- for any pair it lacks;
     `asked` records every pair `gettxout` was called for.
+
+    `mempool` maps a hex txid to the hex `getrawtransaction` answers for
+    it; `getrawmempool` answers its keys, and `mempool_reads` counts the
+    `getrawmempool` calls. Nothing adds to it on its own: a test puts in
+    it what a node's mempool would hold.
     """
 
     def __init__(
@@ -101,6 +106,8 @@ class _FakeRpc:
         self.sent: list[str] = []
         self.txouts: dict[tuple[str, int], object] = {}
         self.asked: list[tuple[str, int]] = []
+        self.mempool: dict[str, object] = {}
+        self.mempool_reads = 0
 
     def call(self, method: str, params: list[object] | None = None) -> object:
         tip_answers = {
@@ -124,6 +131,8 @@ class _FakeRpc:
             assert include_mempool is False
             self.asked.append((txid, vout))
             return self.txouts.get((txid, vout))
+        if method in {"getrawmempool", "getrawtransaction"}:
+            return self._mempool_call(method, params)
         # the only call left this fake ever answers: sendrawtransaction
         assert method == "sendrawtransaction"
         assert params is not None
@@ -135,6 +144,17 @@ class _FakeRpc:
         if self._send_answer == "sentinel":
             return _txid_of(tx_hex)
         return self._send_answer
+
+    def _mempool_call(self, method: str, params: list[object] | None) -> object:
+        """Answer `getrawmempool` or `getrawtransaction` off `mempool`."""
+        if method == "getrawmempool":
+            assert not params
+            self.mempool_reads += 1
+            return list(self.mempool)
+        assert params is not None
+        (txid,) = params
+        assert isinstance(txid, str)
+        return self.mempool[txid]
 
 
 def _txid_of(tx_hex: str) -> str:
@@ -1490,3 +1510,166 @@ def test_send_to_this_wallets_own_script_caches_both_outputs() -> None:
 
     assert wallet.get_utxo(txid=tx.id.hex(), vout=1).value == 12345
     assert wallet.get_utxo(txid=tx.id.hex(), vout=0).value == tx.vout[0].value
+
+
+def _broadcast(rpc: _FakeRpc, tx: Tx) -> None:
+    """Hand `tx` to the node the way a caller bypassing `_send` would."""
+    rpc.call("sendrawtransaction", [tx.serialize(True, check_validity=False).hex(), 0])
+
+
+def test_generate_caches_a_confirmed_coin_this_wallet_did_not_send() -> None:
+    """ISS 247's probe: a created tx broadcast directly, then mined.
+
+    Core's own `generate` ends in `rescan_utxos` (`wallet.py`), so the
+    coin is there to spend however its transaction reached the node.
+    """
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    tx = wallet.create_self_transfer()
+    _broadcast(rpc, tx)
+
+    wallet.generate(1, confirm=[tx])
+
+    coin = wallet.get_utxo(txid=tx.id.hex())
+    assert coin == Utxo(
+        OutPoint(tx.id, 0), tx.vout[0].value, COINBASE_MATURITY + 2, coinbase=False
+    )
+    spend = wallet.send_self_transfer(utxo_to_spend=coin)
+    assert spend.vin[0].prev_out == OutPoint(tx.id, 0)
+
+
+def test_generate_drops_a_cached_coin_a_confirmed_tx_spends() -> None:
+    """A tx this wallet did not send spends a coin it still holds."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    coin = wallet.get_utxo(mark_as_spent=False)
+    tx = wallet.create_self_transfer(utxo_to_spend=coin)
+    _broadcast(rpc, tx)
+
+    wallet.generate(1, confirm=[tx])
+
+    with pytest.raises(LookupError, match="no coin"):
+        wallet.get_utxo(txid=coin.outpoint.tx_id.hex())
+    assert wallet.get_utxo(txid=tx.id.hex()).confirmed
+
+
+def test_generate_scans_confirm_in_block_order() -> None:
+    """A later tx of the block spends an earlier one's coin: it stays out."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    parent = wallet.create_self_transfer()
+    child = wallet.create_self_transfer(utxo_to_spend=wallet.new_utxos(parent)[0])
+
+    wallet.generate(1, confirm=[parent, child])
+
+    with pytest.raises(LookupError, match="no coin"):
+        wallet.get_utxo(txid=parent.id.hex())
+    assert wallet.get_utxo(txid=child.id.hex()).height == COINBASE_MATURITY + 2
+    assert rpc.mempool_reads == 1
+
+
+def test_generate_leaves_out_a_coin_a_mempool_tx_already_spends() -> None:
+    """The hazard `rescan_utxos`' own mempool pass guards against.
+
+    The child spends one of the parent's coins and is still in the
+    mempool when the parent is mined: that coin is spent, its sibling is
+    not.
+    """
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    parent = wallet.create_self_transfer_multi(num_outputs=2)
+    child = wallet.create_self_transfer(utxo_to_spend=wallet.new_utxos(parent)[0])
+    for tx in (parent, child):
+        _broadcast(rpc, tx)
+    rpc.mempool[child.id.hex()] = child.serialize(True, check_validity=False).hex()
+
+    wallet.generate(1, confirm=[parent])
+
+    with pytest.raises(LookupError, match="vout 0"):
+        wallet.get_utxo(txid=parent.id.hex(), vout=0)
+    assert wallet.get_utxo(txid=parent.id.hex(), vout=1).confirmed
+    assert rpc.mempool_reads == 1
+
+
+def test_generate_scans_a_confirmed_tx_only_once() -> None:
+    """A coin taken from a scanned tx does not come back with the next block."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    tx = wallet.create_self_transfer()
+    wallet.generate(1, confirm=[tx])
+    wallet.get_utxo(txid=tx.id.hex())
+
+    wallet.generate(1, confirm=[tx])
+
+    with pytest.raises(LookupError, match="no coin"):
+        wallet.get_utxo(txid=tx.id.hex())
+
+
+def test_generate_reads_no_mempool_for_a_tx_this_wallet_sent() -> None:
+    """A sent tx's coins are already cached: the scan adds none to check."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    tx = wallet.send_self_transfer()
+
+    wallet.generate(1, confirm=[tx])
+
+    assert wallet.get_utxo(txid=tx.id.hex()).confirmed
+    assert rpc.mempool_reads == 0
+
+
+@pytest.mark.parametrize(
+    "mempool_answer,tx_answer,match",
+    [
+        ({"txids": []}, None, "getrawmempool answered"),
+        (["ab" * 32], 7, "getrawtransaction answered"),
+    ],
+    ids=["getrawmempool", "getrawtransaction"],
+)
+def test_generate_refuses_a_bad_mempool_answer(
+    mempool_answer: object, tx_answer: object, match: str
+) -> None:
+    """`_mempool_spends` refuses an answer it cannot read a spend off."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    tx = wallet.create_self_transfer()
+    fake_call = rpc.call
+
+    def _call(method: str, params: list[object] | None = None) -> object:
+        if method == "getrawmempool":
+            return mempool_answer
+        if method == "getrawtransaction":
+            return tx_answer
+        return fake_call(method, params)
+
+    with (
+        patch.object(rpc, "call", _call),
+        pytest.raises(TypeError, match=match),
+    ):
+        wallet.generate(1, confirm=[tx])
+
+
+def test_generate_drops_a_coin_a_sent_child_in_the_same_block_spends() -> None:
+    """An unsent parent and a sent child confirmed together: the coin is spent.
+
+    The child's own send already scanned it, so the scan of the parent
+    caches a coin the child, mined in the same block, spends.
+    """
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    parent = wallet.create_self_transfer()
+    _broadcast(rpc, parent)
+    child = wallet.send_self_transfer(utxo_to_spend=wallet.new_utxos(parent)[0])
+
+    wallet.generate(1, confirm=[parent, child])
+
+    with pytest.raises(LookupError, match="no coin"):
+        wallet.get_utxo(txid=parent.id.hex())
+    assert wallet.get_utxo(txid=child.id.hex()).confirmed

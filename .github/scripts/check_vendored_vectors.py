@@ -99,14 +99,17 @@ _HEADING = re.compile(r"^### (.+)$", re.MULTILINE)
 # unindented-marker line (BIP327's "behind" wraps) is not captured, and is not
 # needed -- every check below reads only the first line of a field. The
 # separator is `[ \t]+` rather than `\s+`: `\s` also matches the newline ending
-# a bare key's own line, so a key written with no value and no trailing
-# whitespace, and not last in its block, would let the separator cross into the
-# following line and capture that whole line as its own value -- leaving the
-# field the next line actually names unmatched. Confining the separator to the
-# line answers a bare key with no match at all, which is what the checks below
-# already treat as that field being absent.
+# a bare key's own line, so a key written with no value and not last in its
+# block would let the separator cross into the following line and capture that
+# whole line as its own value -- leaving the field the next line actually names
+# unmatched. The separator and the value are optional together, so a bare key
+# matches with an empty value: `trailing-whitespace` rewrites a key followed by
+# blanks to the bare key, which is the shape an empty `behind` line has once
+# committed, and it is reported as present but empty rather than as absent. An
+# empty `repo`, `path`, `commit` or `ref` fails the same checks an absent one
+# does.
 _FIELD = re.compile(
-    r"^(repo|path|ref|commit|blob|pulled|behind)[ \t]+(.*)$", re.MULTILINE
+    r"^(repo|path|ref|commit|blob|pulled|behind)(?:[ \t]+(.*))?$", re.MULTILINE
 )
 
 

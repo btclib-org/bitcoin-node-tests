@@ -983,3 +983,9 @@ compact block from any other; bitcoind before `v32.0rc1` takes it (issue #44).
 `required-version` reads `>=0.12.19`: a floor below the `uv` pin
 `dependabot-core` bundles admits a `uv` older than the one Dependabot writes
 `uv.lock` with (issue btclib-org/.github#1438).
+
+### `check_vendored_vectors` reads a bare `behind` line
+
+A `behind` key with no value after it, the shape `trailing-whitespace` gives an
+empty `behind` line, is reported as a line present but empty where it read as no
+`behind` line at all (closes #184).

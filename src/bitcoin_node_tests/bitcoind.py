@@ -416,12 +416,12 @@ class BitcoindAdapter(NodeAdapter):
         three. `-fallbackfee` is set because a chain with no fee history
         refuses to fund a transaction without it, which `Capability.MINE`
         meets the moment a caller spends what it mines. The `-debug`
-        entries are `Capability.DEBUG_LOG`'s own condition: the log lines
-        the log family's tests read are `LogDebug`'s (`src/util/log.h`),
-        each in a category of Core's own, and print at all only where that
-        category is enabled. `-debug` accumulates, each occurrence enabling
-        one more category, so each is an entry of its own rather than one
-        replacing another --
+        entries are `Capability.DEBUG_LOG`'s own condition: those of the
+        log lines the log family's tests read that are `LogDebug`'s
+        (`src/util/log.h`) are each in a category of Core's own, and print
+        at all only where that category is enabled. `-debug` accumulates,
+        each occurrence enabling one more category, so each is an entry of
+        its own rather than one replacing another --
         unconditional here rather than left to a per-test option, since
         `_check_extra_args` (`node.py`) refuses an `extra_args` entry
         naming `-debug` once this argv sets it.

@@ -198,8 +198,8 @@ def test_torcontrol_drives_a_tor_control_session_to_add_onion(
     release happens to be pinned -- the module docstring above has why.
     """
     mock_tor = _MockTorControlServer(free_port())
-    mock_tor.start()
     try:
+        mock_tor.start()
         rpc_port, p2p_port = free_ports(2)
         adapter = make_adapter(
             _OnionBitcoindAdapter,

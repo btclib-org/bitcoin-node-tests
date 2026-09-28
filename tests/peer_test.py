@@ -17,6 +17,7 @@ connection to a `Listener`.
 from __future__ import annotations
 
 import io
+import math
 import secrets
 import socket
 import threading
@@ -700,6 +701,29 @@ def test_listener_context_manager_stops_listening() -> None:
         address = listening.address
     with pytest.raises(ConnectionRefusedError):
         socket.create_connection(address, timeout=5.0)
+
+
+@pytest.mark.parametrize(
+    "timeout,error",
+    [(-1.0, ValueError), (math.nan, ValueError), (math.inf, OverflowError)],
+    ids=["negative", "nan", "inf"],
+)
+def test_listener_refusing_its_timeout_leaves_no_socket_open(
+    monkeypatch: pytest.MonkeyPatch, timeout: float, error: type[Exception]
+) -> None:
+    """A timeout `settimeout` refuses closes the socket before raising."""
+    opened: list[socket.socket] = []
+
+    class _Socket(socket.socket):
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            super().__init__(*args, **kwargs)  # type: ignore[arg-type]
+            opened.append(self)
+
+    monkeypatch.setattr(socket, "socket", _Socket)
+    with pytest.raises(error):
+        Listener(_MAGIC, timeout=timeout)
+    assert opened
+    assert all(s.fileno() == -1 for s in opened)
 
 
 def test_listener_timeout_is_scaled_by_the_global_factor() -> None:

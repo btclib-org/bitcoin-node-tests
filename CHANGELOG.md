@@ -924,3 +924,9 @@ made the adapters' RPC client timeout 0 and no node could start (closes #234).
 `Peer.is_connected` is Core's `P2PInterface.is_connected`, and `p2p_eviction`
 reads it; `rpc_setban`'s restart check dials with Core's `addnode ... "onetry"`.
 Neither waits for a timeout `--timeout-factor` scales to run out (closes #250).
+
+### `p2p_ibd_stalling` is ported
+
+A node is checked to drop a peer stalling initial block download, doubling the
+timeout for the next, and to pause a stalling `manual` peer instead; btclib-node
+skips (issue #44).

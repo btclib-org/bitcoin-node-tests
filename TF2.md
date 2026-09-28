@@ -964,6 +964,10 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_i2p_sessions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (i2p_sam) |
 | `p2p_dns_seeds.py` | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | skip (dns_seed) |
 | `p2p_seednode.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (address_fetch) |
+| `p2p_ibd_stalling.py` (wire) | [`24628d3ae7dc`](https://github.com/bitcoin/bitcoin/commit/24628d3ae7dc) | 2026-09-14 | pass | skip (typed_outbound) |
+| `p2p_ibd_stalling.py` (log) | same | same | pass | skip (typed_outbound) |
+| `p2p_ibd_stalling.py` (`manual`, wire) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
+| `p2p_ibd_stalling.py` (`manual`, log) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1418,10 +1422,6 @@ node restarts with `-txindex` and the other indexes; the file's other
 section below names. `feature_reindex.py` and `feature_reindex_readonly.py`
 are ported, their rows in the table above.
 
-[ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
-first, dialling out of the node under test (Core's
-`add_outbound_p2p_connection`) ahead of its log steps:
-`p2p_ibd_stalling.py`.
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
 [ISS 45](https://github.com/btclib-org/bitcoin-node-tests/issues/45)
@@ -1446,7 +1446,7 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_initial_headers_sync.py`, `p2p_sendtxrcncl.py`,
 `p2p_mutated_blocks.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`,
 `p2p_dns_seeds.py`, `feature_anchors.py`,
-`p2p_addr_selfannouncement.py` and `p2p_seednode.py`.
+`p2p_addr_selfannouncement.py`, `p2p_seednode.py` and `p2p_ibd_stalling.py`.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -2987,6 +2987,16 @@ no such check: `-externalip` bypasses `-onlynet` only on a build carrying
 bitcoin/bitcoin@8c87e32bd3937251d6f30295cc1924048e5b74d1, which the release
 does not, so the body reads the build's own `getnetworkinfo` `version` and
 asserts, on an older build, that the onion address is left out.
+`btclib-node`'s cell on each row is a counted skip.
+
+`p2p_ibd_stalling.py` is ported on it too, each of Core's checks a wire
+half and a log half over a fresh node in
+`tests/integration/p2p_ibd_stalling_test.py`, whose module docstring has
+what differs from Core's file. Each body asks for `TYPED_OUTBOUND`, and
+`CLOCK` for Core's own mock time; each log half asks for `DEBUG_LOG`
+besides. Its `manual` check is read per-build, as
+`p2p_add_connections.py`'s is: where the build's own `help addconnection`
+names no `manual`, it asserts the refusal instead.
 `btclib-node`'s cell on each row is a counted skip.
 
 The rest of the issue's own census is its later batches.

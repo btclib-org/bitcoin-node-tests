@@ -1021,6 +1021,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_compactblocks.py` (parallel reconstruction) | same | same | pass | skip |
 | `p2p_compactblocks.py` (high-bandwidth states) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1223](https://github.com/btclib-org/btclib-node/issues/1223)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_compactblocks.py` (ignored) | same | same | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mine) on the build; fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `feature_startupnotify.py` | [`fa71c15f8610`](https://github.com/bitcoin/bitcoin/commit/fa71c15f8610) | 2025-11-26 | pass | skip (startup_notify) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2423,6 +2424,19 @@ only the files a reindex from genesis writes.
 docstring has what differs from Core's file. The `btclib-node`
 cell is a counted skip on `Capability.FASTPRUNE`, asked for first:
 `cli.py` registers no `-fastprune` on either build.
+
+`feature_startupnotify.py` is ISS 14's too, the option and the disk
+together, as
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags it; its test builds its node through `make_adapter`. It is Core's
+own claim: a start without `-startupnotify` writes no file, and a
+restart given it runs the command once, which appends to a file inside
+the data directory, and answers RPC.
+`tests/integration/feature_startupnotify_test.py`'s own docstring has
+what differs from Core's file. The `btclib-node` cell is a counted skip
+on `Capability.STARTUP_NOTIFY`: `cli.py` registers no
+`-startupnotify` on either build
+([ISS btclib-node#1449](https://github.com/btclib-org/btclib-node/issues/1449)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

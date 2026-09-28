@@ -439,6 +439,9 @@ class Capability(Enum):
     `-privatebroadcast`, `getprivatebroadcastinfo` and
     `abortprivatebroadcast`, with the `mockscheduler` that moves a stale
     transaction's resend forward (`p2p_private_broadcast.py`).
+    `STARTUP_NOTIFY` -- run a shell command a caller names once it has
+    started, the way Core's own `-startupnotify` does
+    (`feature_startupnotify.py`).
     """
 
     MINE = "mine"
@@ -498,6 +501,7 @@ class Capability(Enum):
     KNOWN_ADDRESSES = "known_addresses"
     EXTERNAL_IP = "external_ip"
     PRIVATE_BROADCAST = "private_broadcast"
+    STARTUP_NOTIFY = "startup_notify"
 
 
 class SkipCounts:

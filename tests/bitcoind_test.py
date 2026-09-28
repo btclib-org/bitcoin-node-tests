@@ -81,6 +81,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.KNOWN_ADDRESSES,
             Capability.EXTERNAL_IP,
             Capability.PRIVATE_BROADCAST,
+            Capability.STARTUP_NOTIFY,
         }
     )
 

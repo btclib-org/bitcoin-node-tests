@@ -487,6 +487,10 @@ _ROWS: dict[str, str] = {
     ),
     "p2p_i2p_ports": "`p2p_i2p_ports.py`",
     "p2p_i2p_sessions": "`p2p_i2p_sessions.py`",
+    "wallet_miniscript_decaying_multisig_descriptor_psbt": (
+        "`wallet_miniscript_decaying_multisig_descriptor_psbt.py`"
+    ),
+    "wallet_anchor": "`wallet_anchor.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

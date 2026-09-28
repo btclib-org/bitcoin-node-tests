@@ -994,3 +994,9 @@ empty `behind` line, is reported as a line present but empty where it read as no
 
 bitcoind runs the `-startupnotify` command once per start; btclib-node skips
 on the new `Capability.STARTUP_NOTIFY` (issue #14).
+
+### `p2p_eviction` waits for a transaction in the mempool, not for a `pong`
+
+Each transaction peer waits until `getrawmempool` lists what it sent, so a
+`ping` answered ahead of the `tx` (btclib-org/btclib-node#1410) no longer fails
+`p2p_eviction.py` on btclib-node past btclib-org/btclib-node#1179 (closes #212).

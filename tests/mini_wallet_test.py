@@ -338,22 +338,23 @@ def test_create_self_transfer_spends_a_matured_coin() -> None:
     assert len(tx.vin) == 1
     assert len(tx.vout) == 1
     assert tx.vout[0].script_pub_key == wallet.script_pub_key
-    assert wallet.get_balance() == balance_before - _DEFAULT_FEE
+    # the spent coin left the cache, and the new one did not join it
+    assert wallet.get_balance() == balance_before - tx.vout[0].value - _DEFAULT_FEE
 
 
-def test_create_self_transfer_can_spend_a_coin_it_already_created() -> None:
+def test_create_self_transfer_can_spend_a_coin_it_already_sent() -> None:
     """A non-coinbase coin this class itself minted needs no maturity wait.
 
     Exactly `COINBASE_MATURITY` blocks, not one more: mining a second
     matured coinbase alongside the first would let the second call below
     pop *that* one instead, `get_utxo`'s own largest-first order putting
-    it ahead of the coin `create_self_transfer` just minted.
+    it ahead of the coin `send_self_transfer` just minted.
     """
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
     wallet.generate(COINBASE_MATURITY)
 
-    first = wallet.create_self_transfer()
+    first = wallet.send_self_transfer()
     second = wallet.create_self_transfer()
 
     assert second.vin[0].prev_out.tx_id == first.id
@@ -706,7 +707,7 @@ def test_get_utxo_selects_the_named_vout_among_several() -> None:
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
     wallet.generate(COINBASE_MATURITY + 1)
-    tx = wallet.create_self_transfer_multi(num_outputs=2)
+    tx = wallet.send_self_transfer_multi(num_outputs=2)
 
     second = wallet.get_utxo(txid=tx.id.hex(), vout=1)
     first = wallet.get_utxo(txid=tx.id.hex(), vout=0)
@@ -720,7 +721,7 @@ def test_get_utxo_refuses_an_unknown_vout() -> None:
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
     wallet.generate(COINBASE_MATURITY + 1)
-    tx = wallet.create_self_transfer()
+    tx = wallet.send_self_transfer()
     with pytest.raises(LookupError, match="vout 1"):
         wallet.get_utxo(txid=tx.id.hex(), vout=1)
 
@@ -845,22 +846,39 @@ def test_create_self_transfer_chain_links_each_tx_to_the_last() -> None:
         assert child.vin[0].prev_out == OutPoint(parent.id, 0)
 
 
-def test_create_self_transfer_chain_leaves_its_own_tip_cached() -> None:
+def test_send_self_transfer_chain_leaves_only_its_own_tip_cached() -> None:
     """The chain's last output is left for a caller to spend further.
 
-    Every other output the chain built along the way is popped to fund
-    the next transaction; only the tip is never spent by the chain
-    itself, and popping it too would silently discard the one coin a
-    caller building on top of the chain needs.
+    Every other output the chain sends along the way is spent by the next
+    transaction, and that transaction's own broadcast drops it again.
     """
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
     wallet.generate(COINBASE_MATURITY + 1)
 
-    chain = wallet.create_self_transfer_chain(chain_length=3)
+    chain = wallet.send_self_transfer_chain(chain_length=3)
     tip = wallet.get_utxo(txid=chain[-1].id.hex(), vout=0)
 
     assert tip.outpoint == OutPoint(chain[-1].id, 0)
+    for tx in chain[:-1]:
+        with pytest.raises(LookupError, match="no coin"):
+            wallet.get_utxo(txid=tx.id.hex())
+
+
+def test_create_self_transfer_chain_caches_nothing() -> None:
+    """Each link spends `new_utxos`' own answer, not a cached coin."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    balance_before = wallet.get_balance()
+
+    chain = wallet.create_self_transfer_chain(chain_length=3)
+
+    spent = chain[0].vout[0].value + _DEFAULT_FEE
+    assert wallet.get_balance() == balance_before - spent
+    for tx in chain:
+        with pytest.raises(LookupError, match="no coin"):
+            wallet.get_utxo(txid=tx.id.hex())
 
 
 def test_create_self_transfer_chain_starts_from_the_named_utxo() -> None:
@@ -973,7 +991,7 @@ def test_get_utxo_takes_the_largest_matured_coin_not_the_oldest() -> None:
     wallet = MiniWallet(_FakeNode(rpc))
     # height 149 pays 50 BTC, 150 on pay 25 BTC: regtest halves at 150
     wallet.generate(COINBASE_MATURITY + 2)
-    first = wallet.create_self_transfer()
+    first = wallet.send_self_transfer()
     assert first.vin[0].prev_out.tx_id.hex() == _coinbase_txid(rpc, 0)
 
     # cached last, and 50 BTC less its fee outweighs the 25 BTC coinbases
@@ -986,9 +1004,9 @@ def test_get_utxo_sorts_the_cache_by_value_then_descending_height() -> None:
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
     wallet.generate(COINBASE_MATURITY + 2)
-    tx_a = wallet.create_self_transfer_multi(num_outputs=2)
+    tx_a = wallet.send_self_transfer_multi(num_outputs=2)
     wallet.generate(1, confirm=[tx_a])
-    tx_b = wallet.create_self_transfer_multi(num_outputs=2)
+    tx_b = wallet.send_self_transfer_multi(num_outputs=2)
 
     largest = wallet.get_utxo(mark_as_spent=False)
     utxos = wallet.get_utxos(include_immature_coinbase=True, mark_as_spent=False)
@@ -1006,7 +1024,12 @@ def test_get_utxo_sorts_the_cache_by_value_then_descending_height() -> None:
 
 
 def test_a_coin_taken_without_being_marked_spent_is_dropped_once_spent() -> None:
-    """`mark_as_spent=False` keeps it cached until a `create_*` spends it."""
+    """`mark_as_spent=False` keeps it cached until a sent tx spends it.
+
+    Building the spend is not sending it, `scan_tx` running in Core's own
+    `sendrawtransaction` (`wallet.py`), so the coin survives the
+    `create_self_transfer` and goes only with the `send_self_transfer`.
+    """
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
     wallet.generate(COINBASE_MATURITY + 1)
@@ -1016,6 +1039,10 @@ def test_a_coin_taken_without_being_marked_spent_is_dropped_once_spent() -> None
     assert wallet.get_balance() == balance
 
     wallet.create_self_transfer(utxo_to_spend=coin)
+    assert wallet.get_balance() == balance
+    assert wallet.get_utxo(txid=coin.outpoint.tx_id.hex(), mark_as_spent=False) == coin
+
+    wallet.send_self_transfer(utxo_to_spend=coin)
     assert wallet.get_balance() == balance - _DEFAULT_FEE
     with pytest.raises(LookupError, match="no coin"):
         wallet.get_utxo(txid=coin.outpoint.tx_id.hex())
@@ -1039,7 +1066,7 @@ def test_get_utxos_confirmed_only_leaves_out_a_coin_no_block_holds() -> None:
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
     wallet.generate(COINBASE_MATURITY)
-    tx = wallet.create_self_transfer()
+    tx = wallet.send_self_transfer()
 
     unfiltered = wallet.get_utxos(mark_as_spent=False)
     confirmed = wallet.get_utxos(confirmed_only=True, mark_as_spent=False)
@@ -1128,7 +1155,7 @@ def test_confirmed_only_reaches_get_utxo_from_every_spend(
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
     wallet.generate(COINBASE_MATURITY)
-    wallet.create_self_transfer()
+    wallet.send_self_transfer()
 
     with pytest.raises(LookupError, match="confirmed"):
         spend(wallet)
@@ -1363,3 +1390,103 @@ def test_send_to_spends_with_core_s_own_fields() -> None:
     tx = wallet.send_to(nulldata_script_pub_key(b""), 1)
 
     assert (tx.version, tx.lock_time, tx.vin[0].sequence) == (2, 0, 0)
+
+
+@pytest.mark.parametrize(
+    "create",
+    [
+        lambda wallet: wallet.create_self_transfer(),
+        lambda wallet: wallet.create_self_transfer_multi(num_outputs=2),
+    ],
+    ids=["create_self_transfer", "create_self_transfer_multi"],
+)
+def test_a_created_tx_caches_nothing(create: Callable[[MiniWallet], Tx]) -> None:
+    """Core's own `scan_tx` runs on send (`wallet.py`), never on create."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    tx = create(wallet)
+
+    with pytest.raises(LookupError, match="no coin"):
+        wallet.get_utxo(txid=tx.id.hex())
+
+
+def test_a_tx_edited_after_creation_leaves_no_stale_coin() -> None:
+    """Core's `wallet_anchor.py` shape: the next spend takes a real coin.
+
+    The anchor tx gains an output after it is built, which changes its
+    txid; a coin cached under the txid it was built with would be the
+    largest matured one, spent by nothing that exists.
+    """
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)  # two coinbases matured
+
+    anchor_tx = wallet.create_self_transfer(fee_rate=0, version=3)
+    anchor_tx.vout.append(TxOut(0, nulldata_script_pub_key(b"")))
+    anchor_spend = wallet.create_self_transfer(version=3)
+
+    assert anchor_tx.vin[0].prev_out == OutPoint(
+        bytes.fromhex(_coinbase_txid(rpc, 0)), 0
+    )
+    assert anchor_spend.vin[0].prev_out == OutPoint(
+        bytes.fromhex(_coinbase_txid(rpc, 1)), 0
+    )
+
+
+@pytest.mark.parametrize(
+    "send",
+    [
+        lambda wallet: wallet.send_self_transfer(),
+        lambda wallet: wallet.send_self_transfer_multi(num_outputs=2),
+        lambda wallet: wallet.send_self_transfer_chain(chain_length=2),
+        lambda wallet: wallet.send_to(nulldata_script_pub_key(b""), 1),
+    ],
+    ids=[
+        "send_self_transfer",
+        "send_self_transfer_multi",
+        "send_self_transfer_chain",
+        "send_to",
+    ],
+)
+def test_a_refused_send_caches_nothing(send: Callable[[MiniWallet], object]) -> None:
+    """A tx the node did not accept leaves no coin of its own behind."""
+    rpc = _FakeRpc(send_answer="not-the-txid")
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    with pytest.raises(TypeError, match="sendrawtransaction answered"):
+        send(wallet)
+
+    cached = wallet.get_utxos(include_immature_coinbase=True, mark_as_spent=False)
+    assert all(utxo.coinbase for utxo in cached)
+
+
+def test_new_utxos_lists_the_outputs_paying_this_wallet() -> None:
+    """Every output but the padding, at height 0, and the cache unread."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    tx = wallet.create_self_transfer_multi(num_outputs=2, target_vsize=400)
+    balance = wallet.get_balance()
+
+    utxos = wallet.new_utxos(tx)
+
+    assert utxos == [
+        Utxo(OutPoint(tx.id, vout), tx.vout[vout].value, 0, coinbase=False)
+        for vout in (0, 1)
+    ]
+    assert wallet.get_balance() == balance
+
+
+def test_send_to_this_wallets_own_script_caches_both_outputs() -> None:
+    """`scan_tx` keeps every output paying the wallet's own script."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    tx = wallet.send_to(wallet.script_pub_key, 12345)
+
+    assert wallet.get_utxo(txid=tx.id.hex(), vout=1).value == 12345
+    assert wallet.get_utxo(txid=tx.id.hex(), vout=0).value == tx.vout[0].value

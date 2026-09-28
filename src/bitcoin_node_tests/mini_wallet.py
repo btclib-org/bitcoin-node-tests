@@ -76,8 +76,11 @@ it, or `0` for a coin no block holds as far as this wallet knows.
 `wallet.py` keeps a separate `confirmations` beside a height that is `0`
 exactly when that count is, and filters on the count being positive;
 `Utxo.confirmed` is that same test read off the height. `generate` sets
-it for the coins it caches, those paying this wallet among the outputs
-of a transaction its own `confirm` carries included. A block mined
+it for the cached coins a transaction its own `confirm` carries pays,
+which are the coins a send of this wallet cached: a transaction this
+wallet built but did not send has none
+([ISS 247](https://github.com/btclib-org/bitcoin-node-tests/issues/247)).
+A block mined
 anywhere else -- by another node, or by `generatetoaddress` on this one,
 each filling it from a mempool -- confirms a coin this wallet cannot see
 from here, so `resync` also asks the node: `gettxout` with
@@ -128,7 +131,7 @@ Both, and `create_self_transfer` alongside them, take an optional
 that many virtual bytes, `_pad_to_vsize` mirroring Core's own `bulk_vout`
 (`test_framework/script_util.py`) byte for byte. `get_utxo` gains a
 `vout` beside `txid` for the same reason Core's own carries one: a
-multi-output call caches more than one coin under the same `txid`, and a
+multi-output send caches more than one coin under the same `txid`, and a
 caller spending them in an order its own loop chooses rather than the
 order they were cached needs the pair rather than the first match alone.
 
@@ -141,6 +144,18 @@ arithmetic. Where Core's own take BTC `Decimal`s these take satoshis, and
 satoshis per 1000 virtual bytes for a rate: the unit `fee_per_output`
 already has in Core, and `create_self_transfer`'s own docstring has what
 else differs.
+
+[ISS 242](https://github.com/btclib-org/bitcoin-node-tests/issues/242):
+the cache learns of a transaction only once this class sends it, as
+Core's own `scan_tx` runs in its `sendrawtransaction` (`wallet.py`). A
+`create_*` method adds nothing to the cache, `get_utxo` taking out the
+coin it picks for one, so a transaction that is never sent, is refused,
+or is edited after it is built leaves no coin behind for the next spend
+to pick.
+`new_utxos` is Core's own `new_utxos`, the coins a transaction pays this
+wallet, less the padding output `target_vsize` adds: a caller spending
+one before sending it, or broadcasting it some other way, names that
+coin by hand.
 """
 
 from __future__ import annotations
@@ -600,7 +615,10 @@ class MiniWallet:
             mempool back, so a caller names exactly what it wants
             confirmed, in an order where a spend of one of them already
             sits after it. Every cached coin one of them pays takes that
-            block's own height, which is what `confirmed_only` reads.
+            block's own height, which is what `confirmed_only` reads. A
+            coin no send of this wallet cached stays out of the cache,
+            where Core's own `generate` rescans the UTXO set and finds it
+            ([ISS 247](https://github.com/btclib-org/bitcoin-node-tests/issues/247)).
         :returns: the mined blocks' own header hashes, display order,
             oldest first.
         :raises RuntimeError: `mine` exhausted its own search bound
@@ -685,12 +703,12 @@ class MiniWallet:
         :param txid: the hex txid of the coin's own transaction; the
             largest matured coin where `None`.
         :param vout: the coin's own output index, where more than one
-            cached coin shares `txid` -- `create_self_transfer_multi`'s
+            cached coin shares `txid` -- `send_self_transfer_multi`'s
             own several outputs -- and a caller wants a specific one
             rather than whichever the order above puts first.
         :param mark_as_spent: where false, the coin is returned and stays
-            cached, for a caller that will spend it itself; the `create_*`
-            method that spends it drops it then.
+            cached, for a caller that will spend it itself; sending the
+            transaction that spends it drops it then.
         :param confirmed_only: only a coin a block holds (`Utxo.confirmed`).
         :raises LookupError: no cached coin answers every filter given --
             `wallet.py`'s own `next` raising `StopIteration` instead.
@@ -748,26 +766,40 @@ class MiniWallet:
             self._utxos = []
         return utxos
 
-    def _cache(self, tx: Tx, outputs: int) -> None:
-        """Forget every cached coin `tx` spends, then cache its first outputs.
+    def new_utxos(self, tx: Tx) -> list[Utxo]:
+        """Return the coins `tx` pays this wallet, in output order, uncached.
 
-        `scan_tx` (`wallet.py`), for a transaction this class built and so
-        need not decode: an input naming a cached coin -- one a caller
-        took with `mark_as_spent` false -- drops it, and each of the first
-        `outputs` outputs, the ones paying this wallet, is cached with no
-        block holding it yet.
+        `new_utxos` (`wallet.py`), which Core's own `create_*` return beside
+        the transaction, and whose first entry is its `new_utxo`. Core's
+        lists every output, a `target_vsize` padding one included; this one
+        lists the outputs paying `script_pub_key`, the ones `_witness()`
+        spends, which lead every transaction a `create_*` method builds.
+        Each is at height `0`, and the cache is neither read nor changed.
+
+        :param tx: the transaction, sent or not.
         """
-        spent = {tx_in.prev_out for tx_in in tx.vin}
-        self._utxos = [u for u in self._utxos if u.outpoint not in spent]
-        self._utxos.extend(
+        return [
             Utxo(
                 outpoint=OutPoint(tx.id, vout),
-                value=tx.vout[vout].value,
+                value=tx_out.value,
                 height=0,
                 coinbase=False,
             )
-            for vout in range(outputs)
-        )
+            for vout, tx_out in enumerate(tx.vout)
+            if tx_out.script_pub_key.script == _ANYONE_CAN_SPEND.script
+        ]
+
+    def _scan_tx(self, tx: Tx) -> None:
+        """Forget every cached coin `tx` spends, then cache what it pays.
+
+        `scan_tx` (`wallet.py`), for a transaction this class holds and so
+        need not decode: an input naming a cached coin -- one a caller
+        took with `mark_as_spent` false -- drops it, and `new_utxos`' own
+        answer for `tx` joins the cache.
+        """
+        spent = {tx_in.prev_out for tx_in in tx.vin}
+        self._utxos = [u for u in self._utxos if u.outpoint not in spent]
+        self._utxos.extend(self.new_utxos(tx))
 
     def _self_transfer_tx(
         self,
@@ -831,7 +863,7 @@ class MiniWallet:
         for `ADDRESS_OP_TRUE` and asserts the tx has them; this one reads
         the vsize off the tx it built, the same 104 for the one coin shape
         this class spends. `send_self_transfer` is the caller wanting it
-        broadcast too.
+        broadcast too, and cached; `new_utxos` is the coin it creates.
 
         :param fee_rate: satoshis per 1000 virtual bytes, used where `fee`
             is `0`; `DEFAULT_FEE_RATE`, Core's own default, where not given.
@@ -880,15 +912,16 @@ class MiniWallet:
         tx.vout[0] = TxOut(utxo.value - fee, _ANYONE_CAN_SPEND)
         if target_vsize:
             _pad_to_vsize(tx, target_vsize)
-        self._cache(tx, 1)
         return tx
 
     def _send(self, tx: Tx) -> Tx:
-        """Broadcast `tx` over `sendrawtransaction`, and return it.
+        """Broadcast `tx` over `sendrawtransaction`, cache it, and return it.
 
-        `maxfeerate` 0, as `wallet.py`'s own `sendrawtransaction` passes
-        it: a caller-chosen `fee` or `fee_rate` is never refused for
-        exceeding the node's own default ceiling.
+        `sendrawtransaction` (`wallet.py`): `maxfeerate` 0, so a
+        caller-chosen `fee` or `fee_rate` is never refused for exceeding
+        the node's own default ceiling, and `scan_tx` once the node has
+        accepted `tx` -- `_scan_tx` here -- so a refused `tx` changes
+        nothing in the cache.
 
         :raises TypeError: `sendrawtransaction` answered something other
             than `tx`'s own id.
@@ -898,6 +931,7 @@ class MiniWallet:
         if txid != tx.id.hex():
             err_msg = f"sendrawtransaction answered {txid!r}, not {tx.id.hex()!r}"
             raise TypeError(err_msg)
+        self._scan_tx(tx)
         return tx
 
     def send_self_transfer(
@@ -918,9 +952,9 @@ class MiniWallet:
         own `send_self_transfer` (`wallet.py`) forwards its `kwargs`, and
         the broadcast passes `maxfeerate` 0, as Core's own does, so no fee
         is refused for exceeding the node's default ceiling. The new coin
-        `create_self_transfer` already cached is spendable the moment this
-        returns: unlike a coinbase, `get_utxo` never holds a non-coinbase
-        coin back as immature.
+        is cached once the node accepts the tx, and is spendable the
+        moment this returns: unlike a coinbase, `get_utxo` never holds a
+        non-coinbase coin back as immature.
 
         :param fee_rate: forwarded to `create_self_transfer`.
         :param fee: forwarded to `create_self_transfer`.
@@ -968,7 +1002,8 @@ class MiniWallet:
         satoshis short of an equal share of the inputs' own total, Core's
         own unit for this one parameter. It takes no `fee_rate`, as Core's
         does not. `send_self_transfer_multi` is the caller wanting it
-        broadcast too; a single new coin wants `create_self_transfer`
+        broadcast too, and cached; `new_utxos` is the coins it creates. A
+        single new coin wants `create_self_transfer`
         instead, `num_outputs` fixed at one there rather than a parameter
         of it.
 
@@ -1019,7 +1054,6 @@ class MiniWallet:
         )
         if target_vsize:
             _pad_to_vsize(tx, target_vsize)
-        self._cache(tx, num_outputs)
         return tx
 
     def send_self_transfer_multi(
@@ -1074,12 +1108,9 @@ class MiniWallet:
         `create_self_transfer_chain` (`wallet.py`): the first spends
         `utxo_to_spend`, or `get_utxo()`'s own largest matured coin where
         `None`; each of the rest spends the single output the one before
-        it just created. `send_self_transfer_chain` is the caller wanting
-        every one of them broadcast too. The last transaction's own
-        output is left cached rather than popped and discarded: it is
-        `create_self_transfer` (called on every iteration, including the
-        last) that already caches it, and a caller spending the chain's
-        own tip further still wants it there.
+        it created, `new_utxos`' own answer, as Core's spends `new_utxo`.
+        `send_self_transfer_chain` is the caller wanting every one of them
+        broadcast too, and cached.
 
         :param chain_length: how many transactions the chain carries.
         :param utxo_to_spend: the coin the first transaction spends;
@@ -1089,17 +1120,20 @@ class MiniWallet:
         """
         chain = []
         utxo = utxo_to_spend
-        for index in range(chain_length):
+        for _ in range(chain_length):
             tx = self.create_self_transfer(utxo_to_spend=utxo)
             chain.append(tx)
-            if index < chain_length - 1:
-                utxo = self.get_utxo(txid=tx.id.hex(), vout=0)
+            utxo = self.new_utxos(tx)[0]
         return chain
 
     def send_self_transfer_chain(
         self, *, chain_length: int, utxo_to_spend: Utxo | None = None
     ) -> list[Tx]:
         """Create, broadcast and cache a chain of self-transfers.
+
+        Each broadcast caches its own transaction's output and drops the
+        one before it, which that transaction spends, so the last
+        transaction's own output is the one the chain leaves cached.
 
         :param chain_length: forwarded to `create_self_transfer_chain`.
         :param utxo_to_spend: forwarded to `create_self_transfer_chain`.
@@ -1148,5 +1182,4 @@ class MiniWallet:
             [utxo], change, 1, version=2, locktime=0, sequence=0
         )
         tx.vout.append(TxOut(value, script_pub_key))
-        self._cache(tx, 1)
         return self._send(tx)

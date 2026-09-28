@@ -7,6 +7,8 @@
 from __future__ import annotations
 
 import socket
+import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -89,6 +91,73 @@ def test_close_removes_a_unix_socket_and_its_directory() -> None:
     assert path.is_socket()
     proxy.close()
     assert not path.parent.exists()
+
+
+class _Acquired:
+    """What a `Socks5Proxy` under construction opened: sockets, directories."""
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch, parent: Path | None) -> None:
+        self.sockets: list[socket.socket] = []
+        self.directories: list[Path] = []
+        sockets = self.sockets
+        directories = self.directories
+        make_directory = tempfile.mkdtemp
+
+        class _Socket(socket.socket):
+            def __init__(self, *args: object, **kwargs: object) -> None:
+                super().__init__(*args, **kwargs)  # type: ignore[arg-type]
+                sockets.append(self)
+
+        def _mkdtemp() -> str:
+            directory = make_directory(dir=parent)
+            directories.append(Path(directory))
+            return directory
+
+        monkeypatch.setattr(socket, "socket", _Socket)
+        monkeypatch.setattr(tempfile, "mkdtemp", _mkdtemp)
+
+    def released(self) -> bool:
+        """Return whether every socket is closed and every directory gone."""
+        return all(s.fileno() == -1 for s in self.sockets) and not any(
+            d.exists() for d in self.directories
+        )
+
+
+def test_a_unix_socket_failing_to_bind_leaves_nothing_behind(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A bind refused leaves no socket open and no directory behind.
+
+    The directory is made under a parent whose path outgrows
+    `sockaddr_un`'s own `sun_path`, which is what the bind refuses.
+    """
+    acquired = _Acquired(monkeypatch, tmp_path / ("d" * 120))
+    (tmp_path / ("d" * 120)).mkdir()
+    with pytest.raises(OSError, match="too long"):
+        Socks5Proxy(family=socket.AF_UNIX)
+    assert acquired.sockets
+    assert acquired.directories
+    assert acquired.released()
+
+
+@pytest.mark.parametrize(
+    "family", [socket.AF_INET, socket.AF_INET6, socket.AF_UNIX], ids=str
+)
+def test_a_thread_failing_to_start_leaves_nothing_behind(
+    monkeypatch: pytest.MonkeyPatch, family: int
+) -> None:
+    """A serving thread that cannot start leaves no socket or directory."""
+    acquired = _Acquired(monkeypatch, None)
+
+    def _refuse(_: threading.Thread) -> None:
+        err_msg = "can't start new thread"
+        raise RuntimeError(err_msg)
+
+    monkeypatch.setattr(threading.Thread, "start", _refuse)
+    with pytest.raises(RuntimeError, match="can't start new thread"):
+        Socks5Proxy(family=family)
+    assert acquired.sockets
+    assert acquired.released()
 
 
 def test_a_family_with_no_loopback_is_refused() -> None:

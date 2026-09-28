@@ -891,3 +891,8 @@ naming `-dnsseed` and `-forcednsseed`, and `Capability.KNOWN_ADDRESSES`
 bitcoind's anchors and `-externalip` self-announcements are checked, the latter
 over `Peer.handshake`'s new `addrv2`; btclib-node skips on `TYPED_OUTBOUND` and
 the new `Capability.EXTERNAL_IP` (issue #44).
+
+### `Socks5Proxy` releases what it acquired when its construction fails
+
+A `Socks5Proxy` whose `bind`, `listen` or serving thread fails closes its socket
+and removes a unix socket's directory before raising (closes #253).

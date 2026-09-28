@@ -939,6 +939,13 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_mutated_blocks.py` (log) | same | same | pass | skip |
 | `p2p_mutated_blocks.py` (missing parent, wire) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_mutated_blocks.py` (missing parent, log) | same | same | pass | skip |
+| `feature_anchors.py` | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | skip (typed_outbound) |
+| `feature_anchors.py` (onion) | same | same | pass | skip (typed_outbound) |
+| `p2p_addr_selfannouncement.py` (inbound, wire) | [`dab7f2c984bd`](https://github.com/bitcoin/bitcoin/commit/dab7f2c984bd) | 2026-07-07 | pass | skip |
+| `p2p_addr_selfannouncement.py` (inbound, log) | same | same | pass | skip |
+| `p2p_addr_selfannouncement.py` (outbound, wire) | same | same | pass | skip |
+| `p2p_addr_selfannouncement.py` (outbound, log) | same | same | pass | skip |
+| `p2p_addr_selfannouncement.py` (`-onlynet`) | same | same | pass, the onion `-externalip` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 | `p2p_message_capture.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (capture_messages) |
 | `feature_blocksxor.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (blocks_xor) |
 | `feature_remove_pruned_files_on_startup.py` | [`fa9aced8006b`](https://github.com/bitcoin/bitcoin/commit/fa9aced8006b) | 2025-01-22 | pass | skip (fastprune) |
@@ -1411,9 +1418,8 @@ section below names. `feature_reindex.py` and `feature_reindex_readonly.py`
 are ported, their rows in the table above.
 
 [ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
-first, each dialling out of the node under test (Core's
-`add_outbound_p2p_connection` or `addconnection`) in or ahead of its log
-steps: `feature_anchors.py`, `p2p_addr_selfannouncement.py` and
+first, dialling out of the node under test (Core's
+`add_outbound_p2p_connection`) ahead of its log steps:
 `p2p_ibd_stalling.py`.
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
@@ -1437,8 +1443,8 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_disconnect_ban.py`'s `disconnectnode` half,
 `p2p_bip434_feature.py`'s wire-only disconnects, `p2p_handshake.py`,
 `p2p_initial_headers_sync.py`, `p2p_sendtxrcncl.py`,
-`p2p_mutated_blocks.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py` and
-`p2p_dns_seeds.py`.
+`p2p_mutated_blocks.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`,
+`p2p_dns_seeds.py`, `feature_anchors.py` and `p2p_addr_selfannouncement.py`.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -2950,7 +2956,39 @@ cell is one verdict for both builds. `btclib-node`'s cell on the
 missing-parent wire row is a counted skip on a build before
 [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
 and a pass on one past it, and every other row this file adds is a
-counted skip. The rest of the issue's own census is its later batches.
+counted skip.
+
+`feature_anchors.py` is ported on it too, each of Core's checks a body
+over a fresh node in `tests/integration/feature_anchors_test.py`,
+whose module docstring has what differs from Core's file. Its first check
+has the node dial block-relay-only peers beside inbound ones, and reads
+`anchors.dat` once the node stops; its second has the node dial a Tor v3
+address through a `Socks5Proxy` given as `-onion`, so it asks for `PROXY`
+besides. Each asks for `TYPED_OUTBOUND` and `DEBUG_LOG`, Core's own log
+lines being where the node's read of the file, and in the second its
+dump, are asserted. `btclib-node`'s cell on each is a counted skip on
+`TYPED_OUTBOUND`.
+
+`p2p_addr_selfannouncement.py` is ported on it too, in
+`tests/integration/p2p_addr_selfannouncement_test.py`, whose module
+docstring has what differs from Core's file. Its self-announcement check
+is a wire half and a log half to an inbound peer and to an outbound one,
+each over a fresh node and run over `addr` and then over `addrv2`.
+`Peer.handshake`'s `addrv2` sends the `sendaddrv2` Core's
+`P2PInterface(support_addrv2=True)` does. Every such half asks for
+`EXTERNAL_IP` for `-externalip`, `KNOWN_ADDRESSES` for the addresses a
+`getaddr` is answered from, `MINE` to leave initial block download, and
+`CLOCK` and `PEER_TIMEOUT` for Core's own mock time under its harness's
+`-peertimeout`; the outbound halves ask for `TYPED_OUTBOUND` and each log
+half for `DEBUG_LOG` besides. Its `-onlynet` check asks for `EXTERNAL_IP`
+and `ONLYNET`, and its pin is past the pinned release, whose own file has
+no such check: `-externalip` bypasses `-onlynet` only on a build carrying
+bitcoin/bitcoin@8c87e32bd3937251d6f30295cc1924048e5b74d1, which the release
+does not, so the body reads the build's own `getnetworkinfo` `version` and
+asserts, on an older build, that the onion address is left out.
+`btclib-node`'s cell on each row is a counted skip.
+
+The rest of the issue's own census is its later batches.
 
 ## Proxies: `Socks5Proxy`
 

@@ -472,6 +472,27 @@ _ROWS: dict[str, str] = {
     "p2p_mutated_blocks::test_block_missing_its_parent_is_logged": (
         "`p2p_mutated_blocks.py` (missing parent, log)"
     ),
+    "feature_anchors::test_block_relay_only_peers_are_the_anchors": (
+        "`feature_anchors.py`"
+    ),
+    "feature_anchors::test_onion_anchor_is_dumped_and_dialled": (
+        "`feature_anchors.py` (onion)"
+    ),
+    "p2p_addr_selfannouncement::test_self_announcement_to_inbound_peers": (
+        "`p2p_addr_selfannouncement.py` (inbound, wire)"
+    ),
+    "p2p_addr_selfannouncement::test_self_announcement_to_inbound_peers_is_logged": (
+        "`p2p_addr_selfannouncement.py` (inbound, log)"
+    ),
+    "p2p_addr_selfannouncement::test_self_announcement_to_outbound_peers": (
+        "`p2p_addr_selfannouncement.py` (outbound, wire)"
+    ),
+    "p2p_addr_selfannouncement::test_self_announcement_to_outbound_peers_is_logged": (
+        "`p2p_addr_selfannouncement.py` (outbound, log)"
+    ),
+    "p2p_addr_selfannouncement::test_externalip_bypasses_onlynet": (
+        "`p2p_addr_selfannouncement.py` (`-onlynet`)"
+    ),
     "p2p_message_capture": "`p2p_message_capture.py`",
     "feature_blocksxor": "`feature_blocksxor.py`",
     "wallet_createwalletdescriptor": "`wallet_createwalletdescriptor.py`",

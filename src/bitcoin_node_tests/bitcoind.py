@@ -309,6 +309,8 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.KNOWN_ADDRESSES` is unconditional: `addpeeraddress` and
     `getnodeaddresses` are this binary's own RPCs (`src/rpc/net.cpp`),
     the first hidden from `help`'s own listing.
+    `Capability.EXTERNAL_IP` is unconditional too: `-externalip` is this
+    binary's own flag (`src/init.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -372,6 +374,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.BLOCK_PROPOSAL,
             Capability.DNS_SEED,
             Capability.KNOWN_ADDRESSES,
+            Capability.EXTERNAL_IP,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

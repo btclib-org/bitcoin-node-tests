@@ -93,7 +93,7 @@ def test_a_zero_timeout_reads_the_log_once(
 
 
 def test_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
-    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    """A factor of 0 (`set_factor`) collapses even a long-sounding wait."""
     log_path = tmp_path / "debug.log"
     log_path.write_text("unrelated\n")
     set_factor(0.0)

@@ -355,7 +355,7 @@ def test_wait_for_a_zero_timeout_never_reads_the_socket(fake_node: _FakeNode) ->
 
 
 def test_wait_for_timeout_is_scaled_by_the_global_factor(fake_node: _FakeNode) -> None:
-    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    """A factor of 0 (`set_factor`) collapses even a long-sounding wait."""
     peer = _connect_and_accept(fake_node)
     try:
         server_thread = threading.Thread(target=fake_node.answer_handshake)
@@ -553,7 +553,7 @@ def test_wait_for_disconnect_a_zero_timeout_never_reads_the_socket(
 def test_wait_for_disconnect_timeout_is_scaled_by_the_global_factor(
     fake_node: _FakeNode,
 ) -> None:
-    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    """A factor of 0 (`set_factor`) collapses even a long-sounding wait."""
     peer = _connect_and_accept(fake_node)
     try:
         server_thread = threading.Thread(target=fake_node.answer_handshake)

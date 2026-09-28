@@ -402,7 +402,7 @@ def test_start_raises_on_a_timeout(tmp_path: Path) -> None:
 
 
 def test_start_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
-    """`--timeout-factor` set to 0 collapses even a real startup timeout."""
+    """A factor of 0 (`set_factor`) collapses even a real startup timeout."""
     adapter = _FakeAdapter(
         "fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc(answers_after=10**6)
     )
@@ -902,7 +902,7 @@ def test_wait_until_raises_on_a_timeout() -> None:
 
 
 def test_wait_until_timeout_is_scaled_by_the_global_factor() -> None:
-    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    """A factor of 0 (`set_factor`) collapses even a long-sounding wait."""
     set_factor(0.0)
     try:
         with pytest.raises(TimeoutError, match="condition not met"):
@@ -995,7 +995,7 @@ def test_connect_nodes_raises_on_a_timeout(tmp_path: Path) -> None:
 
 
 def test_connect_nodes_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
-    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    """A factor of 0 (`set_factor`) collapses even a long-sounding wait."""
     first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
     second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
     set_factor(0.0)
@@ -1128,7 +1128,7 @@ def test_disconnect_nodes_raises_on_a_timeout(tmp_path: Path) -> None:
 def test_disconnect_nodes_timeout_is_scaled_by_the_global_factor(
     tmp_path: Path,
 ) -> None:
-    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    """A factor of 0 (`set_factor`) collapses even a long-sounding wait."""
     first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
     second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
     set_factor(0.0)
@@ -1142,7 +1142,7 @@ def test_disconnect_nodes_timeout_is_scaled_by_the_global_factor(
 def test_wait_until_disconnected_timeout_is_scaled_by_the_global_factor(
     tmp_path: Path,
 ) -> None:
-    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    """A factor of 0 (`set_factor`) collapses even a long-sounding wait."""
     node = _FakeAdapter("fake-node", tmp_path / "node", 0, 1111, rpc=_FakeRpc())
     peer = _FakeAdapter("fake-node", tmp_path / "peer", 0, 2222, rpc=_FakeRpc())
     set_factor(0.0)
@@ -1156,7 +1156,7 @@ def test_wait_until_disconnected_timeout_is_scaled_by_the_global_factor(
 def test_wait_until_mempools_agree_timeout_is_scaled_by_the_global_factor(
     tmp_path: Path,
 ) -> None:
-    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    """A factor of 0 (`set_factor`) collapses even a long-sounding wait."""
     first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
     second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
     set_factor(0.0)
@@ -1203,7 +1203,7 @@ def test_wait_until_tips_agree_raises_on_a_timeout(tmp_path: Path) -> None:
 def test_wait_until_tips_agree_timeout_is_scaled_by_the_global_factor(
     tmp_path: Path,
 ) -> None:
-    """`--timeout-factor` set to 0 collapses even a long-sounding wait."""
+    """A factor of 0 (`set_factor`) collapses even a long-sounding wait."""
     first = _FakeAdapter("fake-node", tmp_path / "first", 0, 1111, rpc=_FakeRpc())
     second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
     set_factor(0.0)

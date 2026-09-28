@@ -20,6 +20,7 @@ the identical reason.
 from __future__ import annotations
 
 __all__ = [
+    "factor_from_option",
     "rpc_client_timeout",
     "scaled",
     "set_factor",
@@ -28,6 +29,10 @@ __all__ = [
 # Core's own `BitcoinTestFramework.rpc_timeout` (`test_framework.py`), before
 # `--timeout-factor` scales it
 _RPC_TIMEOUT = 60
+
+# what Core's own `BitcoinTestFramework.parse_args` (`test_framework.py`) puts
+# in place of a `--timeout-factor` of 0
+_NO_TIMEOUT_FACTOR = 999
 
 
 class _Factor:
@@ -39,11 +44,29 @@ class _Factor:
 _factor = _Factor()
 
 
+def factor_from_option(value: str) -> float:
+    """Return the multiplier `--timeout-factor value` asks for.
+
+    Core's own reading of the option: its help says "Setting it to 0
+    disables all timeouts", and `BitcoinTestFramework.parse_args`
+    (`test_framework.py`) does that by putting 999 in place of 0, so
+    every wait is still a bound, only a very long one. Any other value,
+    a negative one included, is kept as given, as Core keeps it.
+
+    :param value: the option's own text, as the command line gives it.
+    :raises ValueError: `value` is not a number.
+    """
+    factor = float(value)
+    return _NO_TIMEOUT_FACTOR if factor == 0 else factor
+
+
 def set_factor(factor: float) -> None:
     """Set the multiplier `scaled` applies from now on, in this process.
 
-    :param factor: what `--timeout-factor` asks for; `1.0` leaves every
-        wait exactly as written, matching Core's own default.
+    :param factor: the multiplier itself, taken as given:
+        `--timeout-factor` reaches it through `factor_from_option`, so a
+        0 here is the caller's own and makes every wait 0. `1.0` leaves
+        every wait exactly as written, matching Core's own default.
     """
     _factor.value = factor
 

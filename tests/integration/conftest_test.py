@@ -141,6 +141,23 @@ def test_timeout_factor_option_sets_the_module_s_own_factor(
     result.assert_outcomes(passed=1)
 
 
+def test_timeout_factor_option_reads_0_as_core_does(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`--timeout-factor 0` scales by 999, as Core's own does."""
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    pytester.makeconftest(_OPTION_CONFTEST)
+    pytester.makepyfile("""
+        from bitcoin_node_tests.timeout_factor import scaled
+
+        def test_the_factor_is_999(request):
+            assert request.config.getoption("--timeout-factor") == 999.0
+            assert scaled(2.0) == 1998.0
+    """)
+    result = pytester.runpytest_subprocess("--timeout-factor", "0")
+    result.assert_outcomes(passed=1)
+
+
 def test_timeout_factor_option_defaults_to_1x(
     pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -181,6 +198,7 @@ _PER_TEST_TIMEOUT_TEST = """
         (("--timeout-factor", "2.5"), 100.0),
         (("--timeout-factor", "2.5", "-p", "xdist", "-n", "2"), 100.0),
         (("--timeout-factor", "2.5", "--timeout", "7"), 7.0),
+        (("--timeout-factor", "0"), 39960.0),
     ],
 )
 def test_timeout_factor_option_scales_the_ini_timeout(

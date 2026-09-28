@@ -302,6 +302,27 @@ def test_handshake_asks_for_addrv2_ahead_of_its_verack(fake_node: _FakeNode) -> 
         peer.close()
 
 
+def test_handshake_leaves_wtxidrelay_out_where_asked(fake_node: _FakeNode) -> None:
+    """`wtxidrelay=False` sends the `verack` straight after the `version`."""
+    commands: list[str] = []
+
+    def answer_and_record() -> None:
+        commands.append(fake_node._receive().command)
+        fake_node.send(Version(nonce=secrets.randbelow(2**64)))
+        commands.append(fake_node._receive().command)
+        fake_node.send(Verack())
+
+    peer = _connect_and_accept(fake_node)
+    try:
+        server_thread = threading.Thread(target=answer_and_record)
+        server_thread.start()
+        peer.handshake(wtxidrelay=False)
+        server_thread.join(timeout=5.0)
+        assert commands == ["version", "verack"]
+    finally:
+        peer.close()
+
+
 def test_wait_for_the_requested_block_after_a_getdata(fake_node: _FakeNode) -> None:
     """The `getdata`/`block` round trip `p2p_getdata` itself needs."""
     peer = _connect_and_accept(fake_node)

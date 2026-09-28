@@ -307,7 +307,11 @@ class Peer:
         )
 
     def handshake(
-        self, *, services: ServiceFlags = _SERVICES, addrv2: bool = False
+        self,
+        *,
+        services: ServiceFlags = _SERVICES,
+        addrv2: bool = False,
+        wtxidrelay: bool = True,
     ) -> Version:
         """Exchange `version`/`verack`, and return the node's own `version`.
 
@@ -316,8 +320,8 @@ class Peer:
         dialled a `Listener`, this peer then answering the node's own
         `version` with its own, as Core's `P2PInterface.on_version` does.
         Then, once both `version`s are out, BIP339's `wtxidrelay` goes
-        ahead of this peer's `verack` --
-        `btclib-node`'s own handshake refuses a `verack` that arrives
+        ahead of this peer's `verack` -- a `btclib-node` build before
+        btclib-org/btclib-node#1183 refuses a `verack` that arrives
         without it first (measured against `382a29fb`'s
         `p2p.callbacks.verack`, "a `verack` ahead of the
         `version`/`wtxidrelay` it depends on"), and bitcoind accepts one
@@ -333,6 +337,11 @@ class Peer:
             `addr`: Core's own `P2PInterface(support_addrv2=True)`, whose
             `on_version` sends it there. BIP155 has it sent before
             `verack`, and bitcoind drops a peer sending it after.
+        :param wtxidrelay: send BIP339's `wtxidrelay`, `True` where not
+            given. `False` is Core's own `P2PInterface(wtxidrelay=False)`,
+            a peer announcing and asked for transactions by txid, which
+            a btclib-node build before btclib-org/btclib-node#1183
+            refuses, as above.
         :returns: the node's own `Version`, `nServices` and all --
             `p2p_getdata`'s own `P2PStoreBlock` reads nothing off it, but
             a later family well might.
@@ -345,7 +354,8 @@ class Peer:
         else:
             version_message = self.wait_for("version")
             self.send(version)
-        self.send(WtxidRelay())
+        if wtxidrelay:
+            self.send(WtxidRelay())
         if addrv2:
             self.send(SendAddrV2())
         self.send(Verack())

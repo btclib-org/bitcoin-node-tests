@@ -969,6 +969,23 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_ibd_stalling.py` (`manual`, wire) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 | `p2p_ibd_stalling.py` (`manual`, log) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 | `p2p_private_broadcast.py` | [`ac6b6c1f06e9`](https://github.com/bitcoin/bitcoin/commit/ac6b6c1f06e9) | 2026-08-18 | pass, the refusals without `-privatebroadcast` and `attempts_remaining` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (private_broadcast) |
+| `p2p_tx_download.py` (expiry) | [`1278a5970d5a`](https://github.com/bitcoin/bitcoin/commit/1278a5970d5a) | 2026-08-06 | pass | skip (clock) |
+| `p2p_tx_download.py` (disconnect) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_tx_download.py` (notfound) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_tx_download.py` (tiebreak) | same | same | pass | skip (typed_outbound) |
+| `p2p_tx_download.py` (inbound) | same | same | pass | skip (clock) |
+| `p2p_tx_download.py` (outbound) | same | same | pass | skip (typed_outbound) |
+| `p2p_tx_download.py` (noban) | same | same | pass | skip (clock) |
+| `p2p_tx_download.py` (txid) | same | same | pass | skip (clock) |
+| `p2p_tx_download.py` (txid beside wtxid) | same | same | pass | skip (clock) |
+| `p2p_tx_download.py` (large inv) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_tx_download.py` (duplicate inv) | same | same | pass, the duplicates asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (debug_log) |
+| `p2p_tx_download.py` (spurious notfound) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_tx_download.py` (in flight) | same | same | pass | skip (clock) |
+| `p2p_tx_download.py` (inv block) | same | same | pass | skip (clock) |
+| `p2p_tx_download.py` (tx requests) | same | same | pass | skip (clock) |
+| `p2p_tx_download.py` (rejects) | same | same | pass | skip (clock) |
+| `p2p_tx_download.py` (mismatch) | same | same | pass | skip (clock) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1408,12 +1425,12 @@ of `p2p_addrv2_relay.py`, the rest of `p2p_bip434_feature.py`,
 `p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
 `p2p_invalid_block.py`, `p2p_invalid_tx.py`,
 `p2p_orphan_handling.py`, `p2p_permissions.py`,
-`p2p_segwit.py`, `p2p_tx_download.py`,
+`p2p_segwit.py`,
 `p2p_unrequested_blocks.py`, `p2p_v2_misbehaving.py`,
 `p2p_v2_transport.py`, `rpc_misc.py` and `rpc_net.py`. Of these,
-`p2p_addr_relay.py`, `p2p_blocksonly.py`, `p2p_compactblocks.py`,
-`p2p_orphan_handling.py` and `p2p_tx_download.py` also dial out of the
-node under test in some step,
+`p2p_addr_relay.py`, `p2p_blocksonly.py`, `p2p_compactblocks.py` and
+`p2p_orphan_handling.py` also dial out of the node under test in some
+step,
 [ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
 subject. `rpc_misc.py`'s log check, the `libevent` category's
 deprecation warning, is a step of Core's `master` alone, run after its
@@ -1445,8 +1462,8 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_initial_headers_sync.py`, `p2p_sendtxrcncl.py`,
 `p2p_mutated_blocks.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`,
 `p2p_dns_seeds.py`, `feature_anchors.py`,
-`p2p_addr_selfannouncement.py`, `p2p_seednode.py`, `p2p_ibd_stalling.py` and
-`p2p_private_broadcast.py`.
+`p2p_addr_selfannouncement.py`, `p2p_seednode.py`, `p2p_ibd_stalling.py`,
+`p2p_private_broadcast.py` and `p2p_tx_download.py`.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -2998,6 +3015,37 @@ besides. Its `manual` check is read per-build, as
 `p2p_add_connections.py`'s is: where the build's own `help addconnection`
 names no `manual`, it asserts the refusal instead.
 `btclib-node`'s cell on each row is a counted skip.
+
+`p2p_tx_download.py` is ported on it too, each of Core's checks a body
+over a fresh node in `tests/integration/p2p_tx_download_test.py`, whose
+module docstring has what differs from Core's file. Every body asks for
+`MINE`, to leave initial block download, and every body moving Core's own
+mock time for `CLOCK`; the tiebreak and outbound checks ask for
+`TYPED_OUTBOUND`, the inv-block check for `CONNECT`, the rejection check
+for `MAXMEMPOOL` and the duplicate check for `DEBUG_LOG` besides. A peer
+announcing by txid is `Peer.handshake`'s `wtxidrelay` off, Core's
+`P2PInterface(wtxidrelay=False)`. Its `-whitelist` asks for no
+capability, as the `noban` checks above do not.
+The duplicate check is read per-build: the entries of one `inv` naming
+the same transaction are processed once only on a build carrying
+bitcoin/bitcoin@1278a5970d5ada0979052a5bad899e896b8ab40b, which the
+pinned release does not, so the body reads the build's own
+`getnetworkinfo` `version` and asserts, on an older build, that each is
+processed.
+
+`btclib-node`'s cell on the disconnect, `notfound` and spurious-`notfound`
+rows is a counted skip on a build before
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
+and a pass on one past it, and on the large-inv row a counted skip before
+it and a fail on
+[ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)
+past it; every other row this file adds is a counted skip. A build that
+asks every announcer at once
+([ISS btclib-node#1196](https://github.com/btclib-org/btclib-node/issues/1196))
+asks both peers of the disconnect and `notfound` checks for the
+transaction, and Core's check that one alone is asked reads the counts
+once one has been: it passes where the second request arrives after that
+read and fails where it arrives before.
 
 The rest of the issue's own census is its later batches.
 

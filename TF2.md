@@ -963,6 +963,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_i2p_ports.py` | [`fa20275db32c`](https://github.com/bitcoin/bitcoin/commit/fa20275db32c) | 2025-10-21 | pass | skip (i2p_sam) |
 | `p2p_i2p_sessions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (i2p_sam) |
 | `p2p_dns_seeds.py` | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | skip (dns_seed) |
+| `p2p_seednode.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (address_fetch) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1429,7 +1430,7 @@ every `wallet_*.py` file the command lists,
 `feature_coinstatsindex_compatibility.py` and
 `feature_txindex_compatibility.py`,
 [ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)
-`p2p_private_broadcast.py` and `p2p_seednode.py`,
+`p2p_private_broadcast.py`,
 [ISS 48](https://github.com/btclib-org/bitcoin-node-tests/issues/48)
 `interface_ipc.py`, and
 [ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)
@@ -1444,7 +1445,8 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_bip434_feature.py`'s wire-only disconnects, `p2p_handshake.py`,
 `p2p_initial_headers_sync.py`, `p2p_sendtxrcncl.py`,
 `p2p_mutated_blocks.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`,
-`p2p_dns_seeds.py`, `feature_anchors.py` and `p2p_addr_selfannouncement.py`.
+`p2p_dns_seeds.py`, `feature_anchors.py`,
+`p2p_addr_selfannouncement.py` and `p2p_seednode.py`.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -3053,9 +3055,23 @@ differs from Core's file: among it, Core's `write_config` line turning
 `-dnsseed` off is not. The pin is Core's file at the pinned release too,
 and `btclib-node`'s cell is a counted skip on `Capability.DNS_SEED`.
 
+`p2p_seednode.py` gives its node the same unreachable `-proxy`, so every
+address the node dials and every seed node it asks is reached through a
+proxy that is not there. It asks for `Capability.ADDRESS_FETCH`,
+`Capability.KNOWN_ADDRESSES`, `Capability.PROXY`, `Capability.CLOCK` and
+`Capability.DEBUG_LOG`, and keeps every step of Core's file over one
+node, in its order, each reading the lines Core expects in the node's
+debug log and the lines it does not: `assert_debug_log` (`debug_log.py`)
+takes the second as Core's own `unexpected_msgs`.
+`tests/integration/p2p_seednode_test.py`'s module docstring has what
+differs from Core's file: among it, Core's `write_config` line turning
+`-dnsseed` off is passed on the command line. The pin is Core's file at
+the pinned release too, and `btclib-node`'s cell is a counted skip on
+`Capability.ADDRESS_FETCH`.
+
 The rest of the issue is its later batches:
-`p2p_private_broadcast.py`, `p2p_private_broadcast_cap.py`,
-`p2p_private_broadcast_retry_v1.py` and `p2p_seednode.py`.
+`p2p_private_broadcast.py`, `p2p_private_broadcast_cap.py` and
+`p2p_private_broadcast_retry_v1.py`.
 
 ## The node wallet: `Capability.NODE_WALLET`
 

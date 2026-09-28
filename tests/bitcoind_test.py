@@ -76,6 +76,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.ORPHANAGE,
             Capability.BLOCK_PROPOSAL,
             Capability.DNS_SEED,
+            Capability.ADDRESS_FETCH,
             Capability.KNOWN_ADDRESSES,
             Capability.EXTERNAL_IP,
         }
@@ -212,6 +213,7 @@ def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
         Capability.REINDEX_AFTER_FAILURE,
         Capability.GENERATE,
         Capability.DNS_SEED,
+        Capability.ADDRESS_FETCH,
     }
 
 
@@ -229,6 +231,7 @@ def test_capabilities_drop_the_test_chain_only_ones_on_main(
         Capability.REINDEX_AFTER_FAILURE,
         Capability.GENERATE,
         Capability.DNS_SEED,
+        Capability.ADDRESS_FETCH,
         Capability.ACCEPT_NON_STANDARD,
     }
 

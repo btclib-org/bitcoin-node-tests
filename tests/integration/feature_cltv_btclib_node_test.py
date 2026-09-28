@@ -13,7 +13,7 @@ has it), so every body asking for either is a counted skip; the block
 refusals ask for neither.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
-    uv run pytest \\
+    uv run pytest \
         tests/integration/feature_cltv_btclib_node_test.py
 """
 

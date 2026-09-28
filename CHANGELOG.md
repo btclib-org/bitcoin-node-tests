@@ -867,3 +867,9 @@ A `-debug` category gates only the log family's `LogDebug` lines; the rest,
 `wallet_anchor` and `wallet_miniscript_decaying_multisig_descriptor_psbt` run
 against bitcoind's own wallet, btclib-node skipping each on `NODE_WALLET`
 (issue #45).
+
+### A btclib-node module's run command pastes as one command
+
+A docstring continuing the `uv run pytest` line does so with one backslash,
+which a shell reads as a continuation rather than as an escaped backslash
+(closes #236).

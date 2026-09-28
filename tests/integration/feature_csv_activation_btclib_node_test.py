@@ -11,7 +11,7 @@ declared (`TF2.md`'s activation-trio paragraph has the measurement), and
 every body asks for it, so each is a counted skip.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
-    uv run pytest \\
+    uv run pytest \
         tests/integration/feature_csv_activation_btclib_node_test.py
 """
 

@@ -21,7 +21,7 @@ nor the store construction sets. `TF2.md`'s per-test table carries the
 verdict this failure is, not a decoration on this module.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
-    uv run pytest \\
+    uv run pytest \
         tests/integration/feature_posix_fs_permissions_btclib_node_test.py
 """
 

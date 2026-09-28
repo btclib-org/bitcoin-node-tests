@@ -12,7 +12,7 @@ own docstring already has -- so this counts a skip rather than a run,
 before the node is restarted with it.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
-    uv run pytest \\
+    uv run pytest \
         tests/integration/feature_nulldummy_btclib_node_test.py
 """
 

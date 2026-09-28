@@ -11,7 +11,7 @@ no build (`btclib_node.py`'s own docstring), so this is a counted skip
 before any node is restarted or mined on.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
-    uv run pytest \\
+    uv run pytest \
         tests/integration/p2p_compactblocks_blocksonly_btclib_node_test.py
 """
 

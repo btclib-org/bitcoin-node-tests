@@ -24,7 +24,7 @@ modules. Its required bitcoind job, which has no btclib-node, exempts
 this module's skip by its reason, `btclib_node_python`'s own message.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
-    uv run pytest \\
+    uv run pytest \
         tests/integration/mixed_cluster_block_sync_btclib_node_test.py
 """
 

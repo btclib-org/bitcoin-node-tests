@@ -13,7 +13,7 @@ its registered flags -- a counted skip on that capability alone, before
 the node is restarted with it.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
-    uv run pytest \\
+    uv run pytest \
         tests/integration/mempool_sigoplimit_btclib_node_test.py
 """
 

@@ -986,6 +986,10 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_tx_download.py` (tx requests) | same | same | pass | skip (clock) |
 | `p2p_tx_download.py` (rejects) | same | same | pass | skip (clock) |
 | `p2p_tx_download.py` (mismatch) | same | same | pass | skip (clock) |
+| `p2p_blocksonly.py` (`-blocksonly`, wire) | [`278710a88d8f`](https://github.com/bitcoin/bitcoin/commit/278710a88d8f) | 2026-06-17 | pass | skip |
+| `p2p_blocksonly.py` (`-blocksonly`, log) | same | same | pass | skip |
+| `p2p_blocksonly.py` (block-relay-only, wire) | same | same | pass | skip |
+| `p2p_blocksonly.py` (block-relay-only, log) | same | same | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1419,7 +1423,7 @@ of `feature_assumevalid.py`, `feature_block.py`, `feature_config_args.py`,
 `mempool_limit.py`, `mempool_unbroadcast.py`,
 `mining_getblocktemplate_longpoll.py`, the rest of `p2p_addr_relay.py` and
 of `p2p_addrv2_relay.py`, the rest of `p2p_bip434_feature.py`,
-`p2p_blockfilters.py`, `p2p_blocksonly.py`, `p2p_compactblocks.py`,
+`p2p_blockfilters.py`, `p2p_compactblocks.py`,
 `p2p_connection_limits.py`,
 `p2p_disconnect_ban.py`'s `setban` half, `p2p_filter.py`,
 `p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
@@ -1428,9 +1432,8 @@ of `p2p_addrv2_relay.py`, the rest of `p2p_bip434_feature.py`,
 `p2p_segwit.py`,
 `p2p_unrequested_blocks.py`, `p2p_v2_misbehaving.py`,
 `p2p_v2_transport.py`, `rpc_misc.py` and `rpc_net.py`. Of these,
-`p2p_addr_relay.py`, `p2p_blocksonly.py`, `p2p_compactblocks.py` and
-`p2p_orphan_handling.py` also dial out of the node under test in some
-step,
+`p2p_addr_relay.py`, `p2p_compactblocks.py` and `p2p_orphan_handling.py`
+also dial out of the node under test in some step,
 [ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
 subject. `rpc_misc.py`'s log check, the `libevent` category's
 deprecation warning, is a step of Core's `master` alone, run after its
@@ -1463,7 +1466,7 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_mutated_blocks.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`,
 `p2p_dns_seeds.py`, `feature_anchors.py`,
 `p2p_addr_selfannouncement.py`, `p2p_seednode.py`, `p2p_ibd_stalling.py`,
-`p2p_private_broadcast.py` and `p2p_tx_download.py`.
+`p2p_private_broadcast.py`, `p2p_tx_download.py` and `p2p_blocksonly.py`.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -3046,6 +3049,17 @@ asks both peers of the disconnect and `notfound` checks for the
 transaction, and Core's check that one alone is asked reads the counts
 once one has been: it passes where the second request arrives after that
 read and fails where it arrives before.
+
+`p2p_blocksonly.py` is ported on it too, each of Core's checks a wire
+half and a log half over a fresh node in
+`tests/integration/p2p_blocksonly_test.py`, whose module docstring has
+what differs from Core's file. Every body asks for `MINE`, for the coin
+its transaction spends; the `-blocksonly` check asks for `BLOCKS_ONLY`,
+and the block-relay-only check for `TYPED_OUTBOUND`, and `CLOCK` for
+Core's own mock time; each log half asks for `DEBUG_LOG` besides. Its
+`-whitelist` asks for no capability, as the `noban` checks above do not.
+`btclib-node`'s cell on each row is a counted skip, the `-blocksonly` rows'
+on `BLOCKS_ONLY` and the block-relay-only rows' on `TYPED_OUTBOUND`.
 
 The rest of the issue's own census is its later batches.
 

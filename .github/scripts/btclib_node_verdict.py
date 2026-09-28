@@ -572,6 +572,18 @@ _ROWS: dict[str, str] = {
     "p2p_tx_download::test_an_inv_of_the_wrong_kind_is_ignored": (
         "`p2p_tx_download.py` (mismatch)"
     ),
+    "p2p_blocksonly::test_a_blocksonly_node_refuses_transactions": (
+        "`p2p_blocksonly.py` (`-blocksonly`, wire)"
+    ),
+    "p2p_blocksonly::test_a_blocksonly_node_refusal_is_logged": (
+        "`p2p_blocksonly.py` (`-blocksonly`, log)"
+    ),
+    "p2p_blocksonly::test_a_block_relay_only_peer_is_refused_transactions": (
+        "`p2p_blocksonly.py` (block-relay-only, wire)"
+    ),
+    "p2p_blocksonly::test_a_block_relay_only_peer_refusal_is_logged": (
+        "`p2p_blocksonly.py` (block-relay-only, log)"
+    ),
     "wallet_miniscript_decaying_multisig_descriptor_psbt": (
         "`wallet_miniscript_decaying_multisig_descriptor_psbt.py`"
     ),

@@ -13,7 +13,7 @@ test is a counted skip ahead of `Capability.MINE`, which the tests
 needing a `MiniWallet` also ask for.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
-    uv run pytest \\
+    uv run pytest \
         tests/integration/rpc_getdescriptoractivity_btclib_node_test.py
 """
 

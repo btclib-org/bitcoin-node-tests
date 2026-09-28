@@ -13,7 +13,7 @@ wallet kept beside it is
 to reach -- a counted skip on that capability, asked for first.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
-    uv run pytest \\
+    uv run pytest \
         tests/integration/wallet_createwalletdescriptor_btclib_node_test.py
 """
 

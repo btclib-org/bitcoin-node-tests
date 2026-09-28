@@ -14,7 +14,7 @@ which asks for `Capability.GENERATE` first and skips on it on every
 build (`btclib_node.py`'s own docstring has why).
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
-    uv run pytest \\
+    uv run pytest \
         tests/integration/feature_framework_miniwallet_btclib_node_test.py
 """
 

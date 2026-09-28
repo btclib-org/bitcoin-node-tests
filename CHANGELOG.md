@@ -959,3 +959,9 @@ so; btclib-node skips (issue #44).
 A node is checked to ask the peers announcing an orphan for its missing parents,
 an outbound one first, and to take the orphan in once they arrive; bitcoind logs
 Core's `mempoolrej` category. btclib-node skips (issue #44).
+
+### `p2p_compactblocks` is ported in part
+
+A node is checked to announce, build, serve and reconstruct BIP152 compact
+blocks for a peer asking for them, and to ask only for the transactions it
+lacks; btclib-node, on a build that mines, fails every check (issue #44).

@@ -410,6 +410,20 @@ class Capability(Enum):
     (`mining_template_verification.py`). Not `MINE`: a node can take a
     client's block over `submitblock` and check none it is not asked to
     store.
+    `DNS_SEED` -- ask its chain's DNS seeds for peer addresses once it
+    starts, the way Core's own `-dnsseed` does: by default, but not where
+    `-connect` names its peers unless `-dnsseed` asks for it; at once
+    under `-forcednsseed`, which it refuses beside `-dnsseed` off; and
+    otherwise, with addresses already known, only after a wait, longer
+    where it knows many, and not at all where enough outbound full-relay
+    peers connect during it, block-relay-only ones not counting
+    (`p2p_dns_seeds.py`).
+    `KNOWN_ADDRESSES` -- take a peer's address a caller hands it into the
+    addresses it keeps for finding peers, and list those back: Core's own
+    test-only `addpeeraddress` and its `getnodeaddresses`
+    (`p2p_dns_seeds.py`). One member for the pair, as `DATACARRIER` is:
+    that test fills the table with the first and reads its size with the
+    second.
     """
 
     MINE = "mine"
@@ -464,6 +478,8 @@ class Capability(Enum):
     BLOCKS_XOR = "blocks_xor"
     ORPHANAGE = "orphanage"
     BLOCK_PROPOSAL = "block_proposal"
+    DNS_SEED = "dns_seed"
+    KNOWN_ADDRESSES = "known_addresses"
 
 
 class SkipCounts:

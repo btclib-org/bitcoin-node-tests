@@ -487,6 +487,7 @@ _ROWS: dict[str, str] = {
     ),
     "p2p_i2p_ports": "`p2p_i2p_ports.py`",
     "p2p_i2p_sessions": "`p2p_i2p_sessions.py`",
+    "p2p_dns_seeds": "`p2p_dns_seeds.py`",
     "wallet_miniscript_decaying_multisig_descriptor_psbt": (
         "`wallet_miniscript_decaying_multisig_descriptor_psbt.py`"
     ),

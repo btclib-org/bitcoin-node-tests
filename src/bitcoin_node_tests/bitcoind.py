@@ -61,8 +61,10 @@ _CHAIN_DIRS = {
 # `setmocktime` refuses a chain that is not `IsMockableChain`
 # (`src/rpc/node.cpp`), and so does `addconnection` (`src/rpc/net.cpp`);
 # `-testactivationheight` is read by `ReadRegTestArgs`
-# (`src/chainparams.cpp`) alone; and `AppInitParameterInteraction`
-# (`src/init.cpp`) refuses `-test` on any other chain
+# (`src/chainparams.cpp`) alone; `AppInitParameterInteraction`
+# (`src/init.cpp`) refuses `-test` on any other chain; and `_command`
+# itself passes `-dnsseed=0` on any other chain, so `_check_extra_args`
+# (`node.py`) refuses a test's own `-dnsseed` there
 _REGTEST_ONLY = frozenset(
     {
         Capability.MINE,
@@ -71,6 +73,7 @@ _REGTEST_ONLY = frozenset(
         Capability.TYPED_OUTBOUND,
         Capability.REINDEX_AFTER_FAILURE,
         Capability.GENERATE,
+        Capability.DNS_SEED,
     }
 )
 
@@ -300,10 +303,17 @@ class BitcoindAdapter(NodeAdapter):
     is this binary's own RPC (`src/rpc/mining.cpp`), and its `proposal`
     mode answers ahead of the checks its `template` mode makes of the
     chain and the peers.
+    `Capability.DNS_SEED` is `-dnsseed` and `-forcednsseed`, this binary's
+    own flags (`src/init.cpp`), declared on regtest alone: on any other
+    chain `_command` turns `-dnsseed` off itself.
+    `Capability.KNOWN_ADDRESSES` is unconditional: `addpeeraddress` and
+    `getnodeaddresses` are this binary's own RPCs (`src/rpc/net.cpp`),
+    the first hidden from `help`'s own listing.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
-    answers, and on main `_TEST_CHAIN_ONLY`'s too.
+    answers or which `_command` turns off elsewhere, and on main
+    `_TEST_CHAIN_ONLY`'s too.
     """
 
     capabilities: AbstractSet[Capability] = frozenset(
@@ -360,6 +370,8 @@ class BitcoindAdapter(NodeAdapter):
             Capability.BLOCKS_XOR,
             Capability.ORPHANAGE,
             Capability.BLOCK_PROPOSAL,
+            Capability.DNS_SEED,
+            Capability.KNOWN_ADDRESSES,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

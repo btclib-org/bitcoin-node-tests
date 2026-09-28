@@ -75,6 +75,8 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.BLOCKS_XOR,
             Capability.ORPHANAGE,
             Capability.BLOCK_PROPOSAL,
+            Capability.DNS_SEED,
+            Capability.KNOWN_ADDRESSES,
         }
     )
 
@@ -208,6 +210,7 @@ def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
         Capability.TYPED_OUTBOUND,
         Capability.REINDEX_AFTER_FAILURE,
         Capability.GENERATE,
+        Capability.DNS_SEED,
     }
 
 
@@ -224,6 +227,7 @@ def test_capabilities_drop_the_test_chain_only_ones_on_main(
         Capability.TYPED_OUTBOUND,
         Capability.REINDEX_AFTER_FAILURE,
         Capability.GENERATE,
+        Capability.DNS_SEED,
         Capability.ACCEPT_NON_STANDARD,
     }
 

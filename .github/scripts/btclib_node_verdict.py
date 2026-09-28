@@ -632,6 +632,36 @@ _ROWS: dict[str, str] = {
     "p2p_compactblocks::test_a_submitted_block_is_announced_compact": (
         "`p2p_compactblocks.py` (end to end)"
     ),
+    "p2p_compactblocks::test_a_low_work_cmpctblock_is_ignored": (
+        "`p2p_compactblocks.py` (low work, wire)"
+    ),
+    "p2p_compactblocks::test_a_low_work_cmpctblock_is_logged": (
+        "`p2p_compactblocks.py` (low work, log)"
+    ),
+    "p2p_compactblocks::test_invalid_transactions_in_a_cmpctblock_keep_the_peer": (
+        "`p2p_compactblocks.py` (invalid tx)"
+    ),
+    "p2p_compactblocks::test_an_empty_getblocktxn_drops_the_peer": (
+        "`p2p_compactblocks.py` (empty getblocktxn, wire)"
+    ),
+    "p2p_compactblocks::test_an_empty_getblocktxn_is_logged": (
+        "`p2p_compactblocks.py` (empty getblocktxn, log)"
+    ),
+    "p2p_compactblocks::test_a_second_blocktxn_drops_the_peer": (
+        "`p2p_compactblocks.py` (multiple blocktxn, wire)"
+    ),
+    "p2p_compactblocks::test_a_second_blocktxn_is_logged": (
+        "`p2p_compactblocks.py` (multiple blocktxn, log)"
+    ),
+    "p2p_compactblocks::test_an_invalid_sendcmpct_announce_drops_the_peer": (
+        "`p2p_compactblocks.py` (invalid sendcmpct, wire)"
+    ),
+    "p2p_compactblocks::test_an_invalid_sendcmpct_announce_is_logged": (
+        "`p2p_compactblocks.py` (invalid sendcmpct, log)"
+    ),
+    "p2p_compactblocks::test_an_invalid_cmpctblock_drops_the_peer": (
+        "`p2p_compactblocks.py` (invalid cmpctblock)"
+    ),
     "wallet_miniscript_decaying_multisig_descriptor_psbt": (
         "`wallet_miniscript_decaying_multisig_descriptor_psbt.py`"
     ),

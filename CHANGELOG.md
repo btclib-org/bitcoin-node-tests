@@ -935,3 +935,9 @@ skips (issue #44).
 
 A peer the node closes during a ping round trip fails the check, as it fails
 Core's, where its `ConnectionError` was suppressed (closes #262).
+
+### `p2p_private_broadcast` is ported
+
+`Socks5Proxy` forwards each connection where a `destinations_factory` names;
+a node is checked to broadcast as `-privatebroadcast` does, its log category
+added only to a node given that option, and btclib-node skips (issue #47).

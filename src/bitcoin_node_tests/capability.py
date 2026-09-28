@@ -431,6 +431,14 @@ class Capability(Enum):
     `EXTERNAL_IP` -- recognise `-externalip`, Core's own option naming an
     address the node advertises to its peers as its own
     (`p2p_addr_selfannouncement.py`).
+    `PRIVATE_BROADCAST` -- send a transaction submitted over
+    `sendrawtransaction` to peers over short-lived connections of its own
+    through Tor or I2P, without putting it in its mempool first, until a
+    peer sends it back; list what it is sending, and stop sending one on
+    request; and send one again once it goes stale: Core's own
+    `-privatebroadcast`, `getprivatebroadcastinfo` and
+    `abortprivatebroadcast`, with the `mockscheduler` that moves a stale
+    transaction's resend forward (`p2p_private_broadcast.py`).
     """
 
     MINE = "mine"
@@ -489,6 +497,7 @@ class Capability(Enum):
     ADDRESS_FETCH = "address_fetch"
     KNOWN_ADDRESSES = "known_addresses"
     EXTERNAL_IP = "external_ip"
+    PRIVATE_BROADCAST = "private_broadcast"
 
 
 class SkipCounts:

@@ -62,11 +62,13 @@ _CHAIN_DIRS = {
 # (`src/rpc/node.cpp`), and so does `addconnection` (`src/rpc/net.cpp`);
 # `-testactivationheight` is read by `ReadRegTestArgs`
 # (`src/chainparams.cpp`) alone; `AppInitParameterInteraction`
-# (`src/init.cpp`) refuses `-test` on any other chain; and `_command`
+# (`src/init.cpp`) refuses `-test` on any other chain; `_command`
 # itself passes `-dnsseed=0` on any other chain, so `_check_extra_args`
 # (`node.py`) refuses a test's own `-dnsseed` there, and `-connect=0`,
 # under which `CConnman::Start` (`src/net.cpp`) never starts
-# `ThreadOpenConnections`, the thread that asks a `-seednode`
+# `ThreadOpenConnections`, the thread that asks a `-seednode`; and
+# `mockscheduler` refuses a chain that is not `IsMockableChain`
+# (`src/rpc/node.cpp`)
 _REGTEST_ONLY = frozenset(
     {
         Capability.MINE,
@@ -77,6 +79,7 @@ _REGTEST_ONLY = frozenset(
         Capability.GENERATE,
         Capability.DNS_SEED,
         Capability.ADDRESS_FETCH,
+        Capability.PRIVATE_BROADCAST,
     }
 )
 
@@ -88,6 +91,9 @@ _TEST_CHAIN_ONLY = frozenset({Capability.ACCEPT_NON_STANDARD})
 # being what says so: `mine` pays a wallet's own address, and
 # `NODE_WALLET` is the wallet itself
 _WALLET_ONLY = frozenset({Capability.MINE, Capability.NODE_WALLET})
+
+# the log category `_start` adds for a node given `-privatebroadcast`
+_PRIVATE_BROADCAST_LOG = "-debug=privatebroadcast"
 
 
 @lru_cache
@@ -317,6 +323,11 @@ class BitcoindAdapter(NodeAdapter):
     the first hidden from `help`'s own listing.
     `Capability.EXTERNAL_IP` is unconditional too: `-externalip` is this
     binary's own flag (`src/init.cpp`).
+    `Capability.PRIVATE_BROADCAST` is `-privatebroadcast`, this binary's
+    own flag (`src/init.cpp`), with its `getprivatebroadcastinfo` and
+    `abortprivatebroadcast` (`src/rpc/mempool.cpp`) and `mockscheduler`
+    (`src/rpc/node.cpp`), declared on regtest alone, where
+    `mockscheduler` answers.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -382,6 +393,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.ADDRESS_FETCH,
             Capability.KNOWN_ADDRESSES,
             Capability.EXTERNAL_IP,
+            Capability.PRIVATE_BROADCAST,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)
@@ -446,7 +458,9 @@ class BitcoindAdapter(NodeAdapter):
         its own rather than one replacing another --
         unconditional here rather than left to a per-test option, since
         `_check_extra_args` (`node.py`) refuses an `extra_args` entry
-        naming `-debug` once this argv sets it.
+        naming `-debug` once this argv sets it. `privatebroadcast` is the
+        one category left to `_start`, which adds it where `-privatebroadcast`
+        is asked for.
 
         `-unsafesqlitesync` is Core's own `write_config` (`util.py`) line,
         written there "so that the tests don't timeout": it turns a
@@ -518,6 +532,28 @@ class BitcoindAdapter(NodeAdapter):
             "-debug=i2p",
             *isolation,
         ]
+
+    @override
+    def _start(self, extra_args: tuple[str, ...]) -> None:
+        """Start as `NodeAdapter._start` does, adding the private broadcast log.
+
+        `-debug=privatebroadcast` is appended where an entry of `extra_args`
+        names `-privatebroadcast`, and only there: a build refuses to start
+        on a `-debug` category it does not know (`Unsupported logging
+        category`), and this one is a category from `v31.0` on, so every
+        older bitcoind would refuse to start on an unconditional one. The
+        lines a test reads under it are those of a node given
+        `-privatebroadcast`, the category logging from private broadcast's
+        own code.
+
+        :param extra_args: already checked against `_command`, by
+            `__init__` or by `restart`.
+        """
+        if any(
+            arg.lstrip("-").split("=", 1)[0] == "privatebroadcast" for arg in extra_args
+        ):
+            extra_args = (*extra_args, _PRIVATE_BROADCAST_LOG)
+        super()._start(extra_args)
 
     @property
     def _chain_dir(self) -> Path:

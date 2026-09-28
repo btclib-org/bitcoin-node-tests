@@ -520,6 +520,7 @@ _ROWS: dict[str, str] = {
     "p2p_ibd_stalling::test_manual_peer_stalling_is_logged": (
         "`p2p_ibd_stalling.py` (`manual`, log)"
     ),
+    "p2p_private_broadcast": "`p2p_private_broadcast.py`",
     "wallet_miniscript_decaying_multisig_descriptor_psbt": (
         "`wallet_miniscript_decaying_multisig_descriptor_psbt.py`"
     ),

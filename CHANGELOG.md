@@ -902,3 +902,8 @@ and removes a unix socket's directory before raising (closes #253).
 A `confirm` transaction no send of this wallet scanned is scanned when mined,
 as Core's `generate` finds its coins through `rescan_utxos`; a coin a mempool
 transaction already spends is left out (closes #247).
+
+### `Listener` closes its socket when its timeout is refused
+
+A `Listener` whose timeout `settimeout` refuses closes its socket before raising
+(closes #254).

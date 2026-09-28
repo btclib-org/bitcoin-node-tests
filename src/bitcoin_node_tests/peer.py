@@ -24,6 +24,7 @@ arriving there as a `Peer` like any other.
 
 from __future__ import annotations
 
+import contextlib
 import io
 import secrets
 import socket
@@ -354,8 +355,13 @@ class Listener:
     def __init__(self, magic: bytes, *, timeout: float = 30.0) -> None:
         self._magic = magic
         self._timeout = scaled(timeout)
-        self._socket = socket.create_server(("127.0.0.1", 0), backlog=1)
-        self._socket.settimeout(self._timeout)
+        # a timeout `settimeout` refuses closes the socket before raising
+        with contextlib.ExitStack() as acquired:
+            self._socket = acquired.enter_context(
+                socket.create_server(("127.0.0.1", 0), backlog=1)
+            )
+            self._socket.settimeout(self._timeout)
+            acquired.pop_all()
 
     @property
     def address(self) -> tuple[str, int]:

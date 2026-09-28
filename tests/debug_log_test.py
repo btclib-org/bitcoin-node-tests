@@ -66,7 +66,7 @@ def test_polls_until_the_substring_appears(
 
 
 def test_raises_when_the_substring_never_appears(tmp_path: Path) -> None:
-    """A negative deadline: never enters the poll, and names what is missing."""
+    """A negative deadline: one read, no poll, and names what is missing."""
     log_path = tmp_path / "debug.log"
     log_path.write_text("unrelated\n")
     with (
@@ -74,6 +74,22 @@ def test_raises_when_the_substring_never_appears(tmp_path: Path) -> None:
         assert_debug_log(log_path, ["missing"], timeout=-1),
     ):
         pass
+
+
+def test_a_zero_timeout_reads_the_log_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Core's own default: what the block appended is found, with no poll."""
+    log_path = tmp_path / "debug.log"
+    log_path.write_text("before\n")
+    sleeps: list[float] = []
+    monkeypatch.setattr("time.sleep", sleeps.append)
+    with (
+        assert_debug_log(log_path, ["expected"], timeout=0),
+        log_path.open("a", encoding="utf-8") as log_file,
+    ):
+        log_file.write("expected line\n")
+    assert sleeps == []
 
 
 def test_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:

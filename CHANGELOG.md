@@ -850,3 +850,9 @@ bitcoind deletes pruned block files a reader still holds open, and a
 
 bitcoind starts with `-debug=validation`, so `p2p_mutated_blocks` asserts the
 `Block mutated` line Core's own test asserts (issue #44).
+
+### `p2p_i2p_ports` and `p2p_i2p_sessions` are ported
+
+A node given `-i2psam` is checked to dial I2P on port 0 alone, over the SAM
+session `-i2pacceptincoming` picks; bitcoind runs with `-debug=i2p`, and
+`assert_debug_log` given `timeout=0` reads the log once, as Core's (issue #47).

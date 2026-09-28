@@ -354,8 +354,13 @@ class Capability(Enum):
     `I2P_SAM` -- recognise `-i2psam`, the I2P router's SAM endpoint, and
     `-i2pacceptincoming`, report that endpoint as I2P's proxy in
     `getnetworkinfo` with I2P reachable, and refuse to start on one naming
-    no usable address (`feature_proxy.py`). Named for the SAM bridge
-    rather than for I2P: no ported test reaches I2P through it.
+    no usable address (`feature_proxy.py`); dial an I2P address through
+    that endpoint on port 0 alone, refusing any other port
+    (`p2p_i2p_ports.py`), over a SAM session whose key it keeps on disk
+    where `-i2pacceptincoming` asks it to accept I2P connections, and over
+    one with a key of its own, never saved, where it does not
+    (`p2p_i2p_sessions.py`). Named for the SAM bridge rather than for I2P:
+    no ported test has an I2P router answer at the endpoint.
     `ONLYNET` -- recognise `-onlynet`, Core's own restriction of outbound
     connections to the networks it names, refusing to start on a network
     it does not know or on one it has no way to reach

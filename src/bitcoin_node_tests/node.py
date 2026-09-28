@@ -699,7 +699,8 @@ class NodeAdapter(ABC):
 
         :param address: `(host, port)` to dial, a `Listener.address`.
         :param connection_type: `outbound-full-relay`, `block-relay-only`,
-            `addr-fetch` or `feeler`.
+            `addr-fetch`, `feeler` or `manual`, the last where the build's
+            own `help addconnection` names it.
         """
         host, port = address
         self.rpc.call("addconnection", [f"{host}:{port}", connection_type, False])

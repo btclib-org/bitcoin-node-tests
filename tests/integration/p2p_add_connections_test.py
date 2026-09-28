@@ -62,6 +62,7 @@ if TYPE_CHECKING:
 __all__ = [
     "manual_connection_past_the_outbound_capacity",
     "outbound_connections_by_type",
+    "takes_manual",
 ]
 
 # Core's `RPCErrorCode::RPC_INVALID_PARAMETER` (`src/rpc/protocol.h`),
@@ -116,7 +117,7 @@ def _version() -> Version:
     return Version(services=_SERVICES, nonce=secrets.randbelow(2**64))
 
 
-def _takes_manual(node: NodeAdapter) -> bool:
+def takes_manual(node: NodeAdapter) -> bool:
     """Return whether this build's own `addconnection` names `manual`.
 
     The per-build fact ISS 35 reads rather than assumes: the connection
@@ -142,7 +143,7 @@ def manual_connection_past_the_outbound_capacity(
     node.restart(["-maxconnections=1"])
     peers = [_add_outbound(node, "outbound-full-relay")]
     try:
-        if _takes_manual(node):
+        if takes_manual(node):
             peers.append(_add_outbound(node, "manual"))
             expected = {"manual", "outbound-full-relay"}
         else:

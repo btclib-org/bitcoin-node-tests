@@ -29,13 +29,25 @@ fresh node:
 
 Core's `P2PStaller` answers the node's `getdata` from its framework's
 network thread, while the test waits on the node's RPC. Here `_Staller`
-answers it on the test's own thread: every wait on the node first reads
+answers it on the test's own thread, and only where a wait reads its
+connection. A wait for what the peers' answers bring about -- the blocks
+in flight, which peer is asked for a block, the height -- first reads
 each connected peer's connection up to the `pong` of a ping round trip,
-answering whatever it read, so a peer the node dropped is found dropped
-there rather than when the node closed it. Core's
+answering whatever it read. `wait_for_disconnect` reads the one peer it
+waits on, a wait for how many peers are connected reads each through
+`Peer.is_connected` and answers nothing, and the wait of
+`assert_debug_log` reads no connection. A peer the node closes during a
+round trip fails the check, as it fails Core's. Core's
 `num_test_p2p_connections` is `getpeerinfo`'s length, the node having no
 peer of any other kind. Each body moves the node's clock
 (`Capability.CLOCK`) as Core's does.
+
+Core's harness starts every node with a `peertimeout`
+(`write_config`, `test_framework/util.py`) and this port passes none:
+`CConnman::InactivityCheck` (`src/net.cpp`) drops a peer that has
+completed its handshake only once `TIMEOUT_INTERVAL` (`src/net.h`),
+twenty minutes of the node's clock, passes without a message either way,
+and neither check moves the clock that far in all.
 
 Core runs its second check over its first check's node, restarted;
 here it starts from the genesis block of a fresh one.
@@ -58,7 +70,7 @@ from __future__ import annotations
 
 import secrets
 import time
-from contextlib import nullcontext, suppress
+from contextlib import nullcontext
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -79,6 +91,7 @@ from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.node import wait_until
 from bitcoin_node_tests.peer import Listener
 from bitcoin_node_tests.timeout_factor import scaled
+from tests.integration.p2p_add_connections_test import takes_manual
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Mapping, Sequence
@@ -163,8 +176,8 @@ class _Staller:
     """Core's own `P2PStaller`: every block asked for is sent, bar some.
 
     `Peer.wait_for` drops what it does not wait for, and the node asks for
-    blocks whatever the test is waiting on, so every wait here reads the
-    connection itself and hands each message to `_handle` first.
+    blocks whatever the test is waiting on, so `_receive` hands each
+    message it reads to `_handle` first.
 
     :param peer: the connection, its handshake done.
     :param block_store: every block the peer can send, by its hash.
@@ -181,18 +194,18 @@ class _Staller:
         self.block_store = block_store
         self.stall_blocks = stall_blocks
         self.getdata_requests: list[bytes] = []
-        self.is_connected = True
+
+    @property
+    def is_connected(self) -> bool:
+        """Core's own `P2PInterface.is_connected`, `Peer.is_connected`."""
+        return self.peer.is_connected
 
     def send(self, payload: Payload) -> None:
-        """Send `payload`, finding the connection closed where it is.
+        """Send `payload`.
 
         :raises ConnectionError: the node closed the connection.
         """
-        try:
-            self.peer.send(payload, check_validity=False)
-        except ConnectionError:
-            self.is_connected = False
-            raise
+        self.peer.send(payload, check_validity=False)
 
     def _handle(self, message: Message) -> None:
         """Core's `on_getdata`, and `P2PInterface`'s own `on_ping`."""
@@ -216,11 +229,7 @@ class _Staller:
         if remaining <= 0:
             err_msg = "no message within the wait"
             raise TimeoutError(err_msg)
-        try:
-            message = self.peer.receive(timeout=remaining)
-        except ConnectionError:
-            self.is_connected = False
-            raise
+        message = self.peer.receive(timeout=remaining)
         self._handle(message)
         return message
 
@@ -261,13 +270,12 @@ class _Staller:
 def _all_sync_send_with_ping(stallers: Sequence[_Staller]) -> None:
     """Core's own: `sync_with_ping` on every peer still connected.
 
-    A peer found closed while syncing is one Core's network thread would
-    have found closed first, and skipped.
+    :raises ConnectionError: the node closed a peer's connection during its
+        round trip.
     """
     for staller in stallers:
         if staller.is_connected:
-            with suppress(ConnectionError):
-                staller.sync_with_ping()
+            staller.sync_with_ping()
 
 
 def _serving_wait_until(
@@ -364,18 +372,6 @@ def _add_outbound(
     return staller
 
 
-def _takes_manual(node: NodeAdapter) -> bool:
-    """Return whether this build's own `addconnection` names `manual`.
-
-    The per-build fact ISS 35 reads rather than assumes: the connection
-    types are listed in the RPC's own help, `"manual"` among them on a
-    build carrying bitcoin/bitcoin@4c79f3a34d00 and absent before it.
-    """
-    help_text = node.rpc.call("help", ["addconnection"])
-    assert isinstance(help_text, str)
-    return '"manual"' in help_text
-
-
 def _node(
     cluster: _Cluster, skip_counts: SkipCounts, *, log: bool
 ) -> tuple[NodeAdapter, Path | None]:
@@ -445,8 +441,9 @@ def _stalling(node: NodeAdapter, log_path: Path | None) -> None:
 
         mocktime += 2
         node.set_mock_time(mocktime)
-        _serving_wait_until(
-            peers, lambda: sum(peer.is_connected for peer in peers) == _NUM_PEERS - 2
+        wait_until(
+            lambda: sum(peer.is_connected for peer in peers) == _NUM_PEERS - 2,
+            timeout=_WAIT,
         )
         _serving_wait_until(peers, lambda: _is_block_requested(peers, stall_blocks[0]))
         _all_sync_send_with_ping(peers)
@@ -459,8 +456,9 @@ def _stalling(node: NodeAdapter, log_path: Path | None) -> None:
 
         mocktime += 2
         node.set_mock_time(mocktime)
-        _serving_wait_until(
-            peers, lambda: sum(peer.is_connected for peer in peers) == _NUM_PEERS - 3
+        wait_until(
+            lambda: sum(peer.is_connected for peer in peers) == _NUM_PEERS - 3,
+            timeout=_WAIT,
         )
         _serving_wait_until(peers, lambda: _is_block_requested(peers, stall_blocks[0]))
         _all_sync_send_with_ping(peers)
@@ -603,7 +601,7 @@ def manual_peer_stalling_pauses_the_peer(
     :param skip_counts: the session's own tally.
     """
     node, _ = _node(cluster, skip_counts, log=False)
-    if _takes_manual(node):
+    if takes_manual(node):
         _manual_peer_stalling(node, None)
     else:
         _manual_is_refused(node)
@@ -616,7 +614,7 @@ def manual_peer_stalling_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -
     :param skip_counts: the session's own tally.
     """
     node, log_path = _node(cluster, skip_counts, log=True)
-    if _takes_manual(node):
+    if takes_manual(node):
         _manual_peer_stalling(node, log_path)
     else:
         _manual_is_refused(node)

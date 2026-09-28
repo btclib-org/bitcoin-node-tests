@@ -930,3 +930,8 @@ Neither waits for a timeout `--timeout-factor` scales to run out (closes #250).
 A node is checked to drop a peer stalling initial block download, doubling the
 timeout for the next, and to pause a stalling `manual` peer instead; btclib-node
 skips (issue #44).
+
+### `p2p_ibd_stalling` fails a peer dropped mid-sync
+
+A peer the node closes during a ping round trip fails the check, as it fails
+Core's, where its `ConnectionError` was suppressed (closes #262).

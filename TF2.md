@@ -458,7 +458,7 @@ Verdict: **tf2's (harness)**. `fill_mempool` is ported, in
 from `mini_wallet.py`
 ([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
 `tx_in_orphanage` is `tests/integration/rpc_orphans_test.py`'s own
-`_in_orphanage`; `assert_mempool_contents` and `create_large_orphan` are
+`in_orphanage`; `assert_mempool_contents` and `create_large_orphan` are
 not ported.
 
 ### `test/functional/test_framework/messages.py`
@@ -990,6 +990,14 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_blocksonly.py` (`-blocksonly`, log) | same | same | pass | skip |
 | `p2p_blocksonly.py` (block-relay-only, wire) | same | same | pass | skip |
 | `p2p_blocksonly.py` (block-relay-only, log) | same | same | pass | skip |
+| `p2p_orphan_handling.py` (arrival timing) | [`9cc7dc50bdc9`](https://github.com/bitcoin/bitcoin/commit/9cc7dc50bdc9) | 2026-08-17 | pass | skip |
+| `p2p_orphan_handling.py` (parent confirmed) | same | same | pass, the reconsideration asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
+| `p2p_orphan_handling.py` (same txid) | same | same | pass | skip |
+| `p2p_orphan_handling.py` (same txid parent) | same | same | pass | skip |
+| `p2p_orphan_handling.py` (txid inv) | same | same | pass | skip |
+| `p2p_orphan_handling.py` (prefer outbound) | same | same | pass | skip |
+| `p2p_orphan_handling.py` (announcers) | same | same | pass | skip |
+| `p2p_orphan_handling.py` (parents change) | same | same | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1428,12 +1436,12 @@ of `p2p_addrv2_relay.py`, the rest of `p2p_bip434_feature.py`,
 `p2p_disconnect_ban.py`'s `setban` half, `p2p_filter.py`,
 `p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
 `p2p_invalid_block.py`, `p2p_invalid_tx.py`,
-`p2p_orphan_handling.py`, `p2p_permissions.py`,
+`p2p_permissions.py`,
 `p2p_segwit.py`,
 `p2p_unrequested_blocks.py`, `p2p_v2_misbehaving.py`,
 `p2p_v2_transport.py`, `rpc_misc.py` and `rpc_net.py`. Of these,
-`p2p_addr_relay.py`, `p2p_compactblocks.py` and `p2p_orphan_handling.py`
-also dial out of the node under test in some step,
+`p2p_addr_relay.py` and `p2p_compactblocks.py` also dial out of the node
+under test in some step,
 [ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
 subject. `rpc_misc.py`'s log check, the `libevent` category's
 deprecation warning, is a step of Core's `master` alone, run after its
@@ -1466,7 +1474,8 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_mutated_blocks.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`,
 `p2p_dns_seeds.py`, `feature_anchors.py`,
 `p2p_addr_selfannouncement.py`, `p2p_seednode.py`, `p2p_ibd_stalling.py`,
-`p2p_private_broadcast.py`, `p2p_tx_download.py` and `p2p_blocksonly.py`.
+`p2p_private_broadcast.py`, `p2p_tx_download.py`, `p2p_blocksonly.py` and
+`p2p_orphan_handling.py`.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -3060,6 +3069,24 @@ Core's own mock time; each log half asks for `DEBUG_LOG` besides. Its
 `-whitelist` asks for no capability, as the `noban` checks above do not.
 `btclib-node`'s cell on each row is a counted skip, the `-blocksonly` rows'
 on `BLOCKS_ONLY` and the block-relay-only rows' on `TYPED_OUTBOUND`.
+
+`p2p_orphan_handling.py` is ported on it in part, its rows above each
+one of Core's checks as a body over a fresh node in
+`tests/integration/p2p_orphan_handling_test.py`, whose module docstring
+has what differs from Core's file. Every body asks for `ORPHANAGE` first,
+and for `CLOCK` and `MINE`; the prefer-outbound and announcers checks ask
+for `TYPED_OUTBOUND`, and the same-txid check for `DEBUG_LOG` besides,
+reading a line bitcoind writes under the `-debug=mempoolrej` it starts
+with. The parent-confirmed check is read per-build: an orphan is taken
+into the mempool once a block confirms its parent only on a build
+carrying bitcoin/bitcoin@9cc7dc50bdc9867d079ab7a111d39487a4566767, which
+the pinned release does not, so the body reads the build's own
+`getnetworkinfo` `version` and asserts, on an older build, that the
+orphan is kept. `btclib-node`'s cell on each row is a counted skip on
+`ORPHANAGE`. Core's checks building a transaction with no witness, the
+one resetting the node's filter of recently confirmed transactions
+through a reorg, and the one filling the orphanage with
+`create_large_orphan` are not ported yet.
 
 The rest of the issue's own census is its later batches.
 

@@ -530,6 +530,7 @@ class BitcoindAdapter(NodeAdapter):
             "-debug=reindex",
             "-debug=validation",
             "-debug=i2p",
+            "-debug=mempoolrej",
             *isolation,
         ]
 

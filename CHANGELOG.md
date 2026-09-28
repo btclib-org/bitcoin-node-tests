@@ -953,3 +953,9 @@ outbound or `noban` one first; `Peer.handshake`'s new `wtxidrelay` off is Core's
 A `-blocksonly` node is checked to drop a peer sending it a transaction, bar one
 holding the `relay` permission, and a node to drop a block-relay-only peer doing
 so; btclib-node skips (issue #44).
+
+### `p2p_orphan_handling` is ported in part
+
+A node is checked to ask the peers announcing an orphan for its missing parents,
+an outbound one first, and to take the orphan in once they arrive; bitcoind logs
+Core's `mempoolrej` category. btclib-node skips (issue #44).

@@ -19,7 +19,7 @@ the transactions that subtest sent.
 
 `Peer` stands in for Core's `P2PInterface`, connected and synced with a
 ping as `TestNode.add_p2p_connection` does, and `send_and_ping` is a
-`send` followed by `Peer.sync_with_ping`. `_in_orphanage` is Core's own
+`send` followed by `Peer.sync_with_ping`. `in_orphanage` is Core's own
 `tx_in_orphanage` (`test_framework/mempool_util.py`).
 
 `rpc_orphans_bitcoind_test.py` and `rpc_orphans_btclib_node_test.py` run
@@ -56,6 +56,7 @@ if TYPE_CHECKING:
 __all__ = [
     "getorphantxs_is_hidden_and_refuses_a_boolean_verbosity",
     "getorphantxs_reports_each_orphan_and_its_announcers",
+    "in_orphanage",
     "orphans_leave_the_orphanage_with_their_parents",
 ]
 
@@ -114,7 +115,7 @@ def _orphans(node: NodeAdapter, verbosity: int) -> list[dict[str, object]]:
     return orphanage
 
 
-def _in_orphanage(node: NodeAdapter, tx: Tx) -> bool:
+def in_orphanage(node: NodeAdapter, tx: Tx) -> bool:
     """Core's `tx_in_orphanage`: `tx` is kept, by txid and wtxid, once."""
     found = [
         orphan
@@ -184,8 +185,8 @@ def orphans_leave_the_orphanage_with_their_parents(
         _refused(
             node, {"verbosity": 3}, _INVALID_PARAMETER, "Invalid verbosity value 3"
         )
-        assert _in_orphanage(node, child_1)
-        assert _in_orphanage(node, child_2)
+        assert in_orphanage(node, child_1)
+        assert in_orphanage(node, child_2)
 
         # parent 1 brings child 1 into the mempool, leaving child 2 an orphan
         _send_and_ping(peer, TxPayload(parent_1, True))
@@ -194,7 +195,7 @@ def orphans_leave_the_orphanage_with_their_parents(
         assert parent_1.id.hex() in raw_mempool
         assert child_1.id.hex() in raw_mempool
         assert len(node.rpc.call("getorphantxs")) == 1
-        assert _in_orphanage(node, child_2)
+        assert in_orphanage(node, child_2)
 
         # parent 2 brings child 2 in, leaving the orphanage empty
         _send_and_ping(peer, TxPayload(parent_2, True))
@@ -231,8 +232,8 @@ def getorphantxs_reports_each_orphan_and_its_announcers(
         _send_and_ping(peer_2, TxPayload(child_2, True))
 
         orphanage = _orphans(node, 2)
-        assert _in_orphanage(node, child_1)
-        assert _in_orphanage(node, child_2)
+        assert in_orphanage(node, child_1)
+        assert in_orphanage(node, child_2)
         first_from, second_from = orphanage[0]["from"], orphanage[1]["from"]
         assert isinstance(first_from, list)
         assert isinstance(second_from, list)
@@ -241,7 +242,7 @@ def getorphantxs_reports_each_orphan_and_its_announcers(
 
         # child 2 leaves with its parent
         _send_and_ping(peer_2, TxPayload(parent_2, True))
-        assert not _in_orphanage(node, child_2)
+        assert not in_orphanage(node, child_2)
 
         # a second announcer of child 1 is reported beside the first
         _send_and_ping(peer_2, Inv([Inventory(InventoryType.MSG_WTX, child_1.hash)]))

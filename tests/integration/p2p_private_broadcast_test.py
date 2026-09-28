@@ -137,6 +137,7 @@ if TYPE_CHECKING:
     from tests.conftest import AdapterFactory
 
 __all__ = [
+    "malleated_to_invalid_witness",
     "transactions_are_broadcast_privately",
 ]
 
@@ -572,7 +573,7 @@ def _wait_for_tx(peer: Peer, tx: Tx) -> None:
     raise TimeoutError(err_msg)
 
 
-def _malleated_to_invalid_witness(tx: Tx) -> Tx:
+def malleated_to_invalid_witness(tx: Tx) -> Tx:
     """Core's `malleate_tx_to_invalid_witness` (`test_framework/messages.py`).
 
     The first input's witness replaced by garbage, which keeps the txid
@@ -845,7 +846,7 @@ def transactions_are_broadcast_privately(
             tx_originator.rpc.call("sendrawtransaction", [_raw(txs[0]), 0])
 
         # a malleated transaction with an invalid witness
-        malleated_invalid = _malleated_to_invalid_witness(txs[0])
+        malleated_invalid = malleated_to_invalid_witness(txs[0])
         _assert_rpc_error(
             tx_originator,
             -26,

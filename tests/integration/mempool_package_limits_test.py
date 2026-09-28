@@ -116,7 +116,7 @@ def in_package_ancestors_count_toward_the_mempool_ancestor_limit(
     assert node.rpc.call("getmempoolinfo")["size"] == 24
     chain_tip = wallet.get_utxo(txid=chain[-1].id.hex(), vout=0)
     parent = wallet.create_self_transfer(utxo_to_spend=chain_tip)
-    parent_utxo = wallet.get_utxo(txid=parent.id.hex(), vout=0)
+    parent_utxo = wallet.new_utxos(parent)[0]
     child = wallet.create_self_transfer(utxo_to_spend=parent_utxo)
     package = [parent, child]
 

@@ -873,3 +873,9 @@ against bitcoind's own wallet, btclib-node skipping each on `NODE_WALLET`
 A docstring continuing the `uv run pytest` line does so with one backslash,
 which a shell reads as a continuation rather than as an escaped backslash
 (closes #236).
+
+### `MiniWallet` caches a transaction when it sends it, not when it builds it
+
+A `create_*` method caches no coin it creates, nor a refused send, as Core's
+`scan_tx` runs on send; `MiniWallet.new_utxos` answers a transaction's coins
+uncached, for a caller spending a created transaction's output (closes #242).

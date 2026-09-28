@@ -30,13 +30,6 @@ two coins of its own mature, the one block's coinbase maturing with
 them. Core's `generate` pays that deterministic key; this mines to an
 address of `default_wallet`'s own instead.
 
-`MiniWallet.create_self_transfer` caches the output it creates, where
-Core's own caches nothing until a transaction is sent, and Core appends
-an output to the anchor transaction after creating it, which changes
-its txid. So the anchor's spend names its coin, `get_utxo`'s own largest
-confirmed one, where Core's takes whichever `get_utxo` answers: the
-cached output is a coin of a txid nothing on the chain carries.
-
 Core's clock moves to the wall clock plus `MAX_FUTURE_BLOCK_TIME` and a
 second, so that an import stamped with the mocked time rescans from
 past the anchor's blocks, the harness's cached blocks being older than
@@ -133,9 +126,7 @@ def _zero_value_anchor_listunspent(
     # an anchor output, and its spend
     anchor_tx = sender.create_self_transfer(fee_rate=0, version=3)
     anchor_tx.vout.append(TxOut(0, PAY_TO_ANCHOR))
-    anchor_spend = sender.create_self_transfer(
-        version=3, utxo_to_spend=sender.get_utxo(confirmed_only=True)
-    )
+    anchor_spend = sender.create_self_transfer(version=3)
     anchor_spend.vin.append(
         TxIn(OutPoint(anchor_tx.id, 1), b"", 0, Witness(), check_validity=False)
     )

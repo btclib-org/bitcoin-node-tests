@@ -220,7 +220,9 @@ def the_evicted_inbound_peer_is_never_a_protected_one(
     peers: list[Peer] = []
     try:
         wallet = MiniWallet(node)
-        wallet.generate(COINBASE_MATURITY + 1)
+        # one matured coinbase for each transaction peer to spend, where
+        # Core's own cached chain already holds them
+        wallet.generate(COINBASE_MATURITY + _TX_PEERS - 1)
         protected: set[int] = set()
 
         # protected by sending the node a novel block, the way Core's own

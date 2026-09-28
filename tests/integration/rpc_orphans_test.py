@@ -103,7 +103,7 @@ def _send_and_ping(peer: Peer, payload: Payload) -> None:
 def _parent_and_child(wallet: MiniWallet) -> tuple[Tx, Tx]:
     """Return an unbroadcast self-transfer and another spending its output."""
     parent = wallet.create_self_transfer()
-    coin = wallet.get_utxo(txid=parent.id.hex())
+    coin = wallet.new_utxos(parent)[0]
     return parent, wallet.create_self_transfer(utxo_to_spend=coin)
 
 

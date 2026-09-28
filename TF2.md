@@ -2543,8 +2543,8 @@ byte-length refusal is the historical "standard" bound, which a
 `-datacarriersize` test asks a node about rather than a fact this
 library should enforce before the request is ever sent), and
 `MiniWallet.send_to` (Core's own `wallet.py`), paying a second output
-while keeping a fixed-fee change output cached back to the wallet the
-way `create_self_transfer` caches its own output. Both are unit-tested
+while keeping a fixed-fee change output cached back to the wallet once
+the node accepts the transaction. Both are unit-tested
 against the fake RPC alongside the rest of `mini_wallet_test.py`.
 
 `mempool_datacarrier.py`'s own row is a smaller claim than Core's own
@@ -2619,7 +2619,7 @@ in Core) and a `target_vsize` on every `create_self_transfer*` method,
 an `OP_RETURN` of literal `OP_1`
 opcodes padding a transaction to an exact size the way Core's own
 `bulk_vout` does; `get_utxo` gains a `vout` alongside `txid`,
-disambiguating several cached coins a multi-output call caches under
+disambiguating several cached coins a multi-output send caches under
 one txid. Every addition is unit-tested against the fake RPC alongside
 the rest of `mini_wallet_test.py`.
 

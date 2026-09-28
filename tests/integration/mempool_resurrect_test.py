@@ -16,7 +16,7 @@ for `create_empty_fork`, a narrower fork than Core's own arbitrary margin
 (this module's own `_FORK_LENGTH`, only as long as it needs to outnumber
 what this test also mines meanwhile), `MiniWallet.generate`'s own
 `confirm` standing in for Core's node-side mining pulling the whole
-mempool in (this class reads no mempool back, `mini_wallet.py`'s own
+mempool in (this class reads no mempool back to fill one, `mini_wallet.py`'s own
 docstring has why), and `MiniWallet.resync` picking up the reorged tip
 afterwards: this class has no `scantxoutset` to rebuild its coin cache
 from, so nothing here calls `rescan_utxos` either.

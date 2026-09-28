@@ -76,10 +76,7 @@ it, or `0` for a coin no block holds as far as this wallet knows.
 `wallet.py` keeps a separate `confirmations` beside a height that is `0`
 exactly when that count is, and filters on the count being positive;
 `Utxo.confirmed` is that same test read off the height. `generate` sets
-it for the cached coins a transaction its own `confirm` carries pays,
-which are the coins a send of this wallet cached: a transaction this
-wallet built but did not send has none
-([ISS 247](https://github.com/btclib-org/bitcoin-node-tests/issues/247)).
+it for the cached coins a transaction its own `confirm` carries pays.
 A block mined
 anywhere else -- by another node, or by `generatetoaddress` on this one,
 each filling it from a mempool -- confirms a coin this wallet cannot see
@@ -99,6 +96,31 @@ caller that broadcast a transaction and wants it mined names it here,
 already knowing it -- `send_self_transfer`'s own return value, typically
 -- rather than this class fetching `getrawmempool` and
 `getrawtransaction` back to rediscover what it already handed the node.
+
+[ISS 247](https://github.com/btclib-org/bitcoin-node-tests/issues/247):
+a `confirm` transaction this wallet never sent -- built by a `create_*`
+method and broadcast some other way, over `submitpackage`, p2p relay or
+a raw `sendrawtransaction` -- is scanned into the cache once its block
+is accepted, where Core's own `generate` (`wallet.py`) finds the same
+coins by ending in `rescan_utxos`. The scan is `_scan_tx`'s, in block
+order: a cached coin the transaction spends is dropped, and every output
+paying this wallet is cached at that block's height. A transaction is
+scanned once, by `_send` or by `generate`, so a coin a caller already
+took from one is not cached again by a later `confirm` naming it; one
+already scanned still drops the cached coins it spends, which an unsent
+parent carried in the same block may just have cached.
+`rescan_utxos` rebuilds the whole cache from `scantxoutset` instead, an
+RPC `BtclibNodeAdapter` does not serve (it never declares
+`Capability.SCAN_UTXO_SET`), and one that would also cache every coin of
+this script that any other `MiniWallet` on the same node holds. Its
+mempool pass is kept in the one respect that decides a scanned coin: a
+coin the scan adds is left out where a transaction in the node's mempool
+already spends it -- a spend of one of `new_utxos`' own coins, broadcast
+before its parent was mined -- read off `getrawmempool` and
+`getrawtransaction`, only when the scan added a coin. What
+`rescan_utxos` caches and this does not: a coin a block mined elsewhere
+pays, a coin only a mempool transaction pays, and a coin a caller took
+from the cache and never spent.
 
 `build_fork`, alongside the class, is `create_empty_fork`
 (`test/functional/test_framework/blocktools.py`): unsubmitted blocks
@@ -146,16 +168,17 @@ already has in Core, and `create_self_transfer`'s own docstring has what
 else differs.
 
 [ISS 242](https://github.com/btclib-org/bitcoin-node-tests/issues/242):
-the cache learns of a transaction only once this class sends it, as
-Core's own `scan_tx` runs in its `sendrawtransaction` (`wallet.py`). A
-`create_*` method adds nothing to the cache, `get_utxo` taking out the
-coin it picks for one, so a transaction that is never sent, is refused,
-or is edited after it is built leaves no coin behind for the next spend
-to pick.
+the cache learns of a transaction when this class sends it, as Core's
+own `scan_tx` runs in its `sendrawtransaction` (`wallet.py`), or when
+`generate` confirms it (ISS 247, above). A `create_*` method adds nothing
+to the cache, `get_utxo` taking out the coin it picks for one, so a
+transaction that is refused, or is edited after it is built, leaves no
+coin behind for the next spend to pick, and neither does one that is
+never sent until a `confirm` names it.
 `new_utxos` is Core's own `new_utxos`, the coins a transaction pays this
 wallet, less the padding output `target_vsize` adds: a caller spending
 one before sending it, or broadcasting it some other way, names that
-coin by hand.
+coin by hand until a block confirms it.
 """
 
 from __future__ import annotations
@@ -532,6 +555,9 @@ class MiniWallet:
     def __init__(self, node: NodeAdapter) -> None:
         self._node = node
         self._utxos: list[Utxo] = []
+        # the txid of every transaction `_scan_tx` has scanned, so that
+        # `generate` scans a `confirm` transaction only where no send did
+        self._scanned: set[bytes] = set()
         # seeded from the existing chain's own median-time-past rather than
         # 0: a node this wallet did not mine into -- the session-scoped
         # `bitcoind_adapter` fixture hands more than one MiniWallet the same
@@ -612,20 +638,23 @@ class MiniWallet:
             first of the `count` blocks -- `send_self_transfer`'s own
             return value, typically. Bitcoind's own node-side mining pulls
             the whole mempool in on every block; this class reads no
-            mempool back, so a caller names exactly what it wants
+            mempool back to fill one, so a caller names exactly what it wants
             confirmed, in an order where a spend of one of them already
-            sits after it. Every cached coin one of them pays takes that
-            block's own height, which is what `confirmed_only` reads. A
-            coin no send of this wallet cached stays out of the cache,
-            where Core's own `generate` rescans the UTXO set and finds it
-            ([ISS 247](https://github.com/btclib-org/bitcoin-node-tests/issues/247)).
+            sits after it. One this wallet has not scanned yet -- never
+            sent through it -- is scanned once the block is accepted, as
+            `_scan_tx` scans a send, except that a coin the scan adds is
+            left out where a transaction in the node's mempool already
+            spends it: this module's own docstring has the choice and its
+            limits. Every cached coin one of them pays takes that block's
+            own height, which is what `confirmed_only` reads.
         :returns: the mined blocks' own header hashes, display order,
             oldest first.
         :raises RuntimeError: `mine` exhausted its own search bound
             without solving one -- regtest's own target is wide enough
             that this is not expected to happen.
         :raises TypeError: `submitblock` answered anything but
-            acceptance (`None`).
+            acceptance (`None`), or `getrawmempool` or
+            `getrawtransaction` something `_mempool_spends` cannot use.
         """
         hashes = []
         for index in range(count):
@@ -644,6 +673,15 @@ class MiniWallet:
             if answer is not None:
                 err_msg = f"submitblock refused height {height}: {answer!r}"
                 raise TypeError(err_msg)
+            added: set[OutPoint] = set()
+            for tx in extra_transactions:
+                if tx.id not in self._scanned:
+                    added.update(utxo.outpoint for utxo in self._scan_tx(tx))
+                else:
+                    # its own send dropped what it spent then; an unsent
+                    # parent this block also carries may have cached one since
+                    spent = {tx_in.prev_out for tx_in in tx.vin}
+                    self._utxos = [u for u in self._utxos if u.outpoint not in spent]
             confirmed_ids = {tx.id for tx in extra_transactions}
             self._utxos = [
                 replace(utxo, height=height)
@@ -651,6 +689,9 @@ class MiniWallet:
                 else utxo
                 for utxo in self._utxos
             ]
+            if added:
+                spent = added & self._mempool_spends()
+                self._utxos = [u for u in self._utxos if u.outpoint not in spent]
             self._utxos.append(
                 Utxo(
                     outpoint=OutPoint(block.transactions[0].id, 0),
@@ -789,17 +830,47 @@ class MiniWallet:
             if tx_out.script_pub_key.script == _ANYONE_CAN_SPEND.script
         ]
 
-    def _scan_tx(self, tx: Tx) -> None:
-        """Forget every cached coin `tx` spends, then cache what it pays.
+    def _scan_tx(self, tx: Tx) -> list[Utxo]:
+        """Forget every cached coin `tx` spends; cache and return what it pays.
 
         `scan_tx` (`wallet.py`), for a transaction this class holds and so
         need not decode: an input naming a cached coin -- one a caller
         took with `mark_as_spent` false -- drops it, and `new_utxos`' own
-        answer for `tx` joins the cache.
+        answer for `tx` joins the cache. `tx`'s own txid joins the set
+        `generate` reads to scan a `confirm` transaction only once.
         """
         spent = {tx_in.prev_out for tx_in in tx.vin}
         self._utxos = [u for u in self._utxos if u.outpoint not in spent]
-        self._utxos.extend(self.new_utxos(tx))
+        new = self.new_utxos(tx)
+        self._utxos.extend(new)
+        self._scanned.add(tx.id)
+        return new
+
+    def _mempool_spends(self) -> set[OutPoint]:
+        """Return every outpoint a transaction in the node's mempool spends.
+
+        `rescan_utxos`' own mempool pass (`wallet.py`), which runs
+        `scan_tx` over every mempool transaction, in the one respect
+        `generate` needs: the coins those transactions spend. Read off
+        `getrawmempool` and each txid's own `getrawtransaction`, whose hex
+        answer `Tx.parse` decodes.
+
+        :raises TypeError: `getrawmempool` answered something other than a
+            list, or `getrawtransaction` something other than a hex string.
+        """
+        txids = self._node.rpc.call("getrawmempool")
+        if not isinstance(txids, list):
+            err_msg = f"getrawmempool answered {txids!r}, not a list of txids"
+            raise TypeError(err_msg)
+        spent: set[OutPoint] = set()
+        for txid in txids:
+            tx_hex = self._node.rpc.call("getrawtransaction", [txid])
+            if not isinstance(tx_hex, str):
+                err_msg = f"getrawtransaction answered {tx_hex!r}, not a hex string"
+                raise TypeError(err_msg)
+            tx = Tx.parse(bytes.fromhex(tx_hex), check_validity=False)
+            spent.update(tx_in.prev_out for tx_in in tx.vin)
+        return spent
 
     def _self_transfer_tx(
         self,

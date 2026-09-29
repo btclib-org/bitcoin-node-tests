@@ -590,6 +590,9 @@ _ROWS: dict[str, str] = {
     "p2p_orphan_handling::test_a_rejected_parent_is_requested_only_under_another_witness": (
         "`p2p_orphan_handling.py` (rejected parents)"
     ),
+    "p2p_orphan_handling::test_parents_not_recently_confirmed_are_requested": (
+        "`p2p_orphan_handling.py` (multiple parents)"
+    ),
     "p2p_orphan_handling::test_parents_already_requested_are_not_requested_again": (
         "`p2p_orphan_handling.py` (overlapping parents)"
     ),
@@ -619,6 +622,9 @@ _ROWS: dict[str, str] = {
     ),
     "p2p_orphan_handling::test_a_parent_gone_missing_is_requested": (
         "`p2p_orphan_handling.py` (parents change)"
+    ),
+    "p2p_orphan_handling::test_a_maximal_ancestor_package_is_protected_in_the_orphanage": (
+        "`p2p_orphan_handling.py` (maximal package)"
     ),
     "p2p_compactblocks::test_sendcmpct_negotiates_compact_announcements": (
         "`p2p_compactblocks.py` (sendcmpct)"

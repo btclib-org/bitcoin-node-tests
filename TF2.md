@@ -458,8 +458,9 @@ Verdict: **tf2's (harness)**. `fill_mempool` is ported, in
 from `mini_wallet.py`
 ([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
 `tx_in_orphanage` is `tests/integration/rpc_orphans_test.py`'s own
-`in_orphanage`; `assert_mempool_contents` and `create_large_orphan` are
-not ported.
+`in_orphanage`, and `create_large_orphan` is
+`tests/integration/p2p_orphan_handling_test.py`'s own `_large_orphan`;
+`assert_mempool_contents` is not ported.
 
 ### `test/functional/test_framework/messages.py`
 
@@ -992,6 +993,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_blocksonly.py` (block-relay-only, log) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (arrival timing) | [`9cc7dc50bdc9`](https://github.com/bitcoin/bitcoin/commit/9cc7dc50bdc9) | 2026-08-17 | pass | skip |
 | `p2p_orphan_handling.py` (rejected parents) | same | same | pass | skip |
+| `p2p_orphan_handling.py` (multiple parents) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (overlapping parents) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (orphan of orphan) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (parent confirmed) | same | same | pass, the reconsideration asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
@@ -1002,6 +1004,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_orphan_handling.py` (prefer outbound) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (announcers) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (parents change) | same | same | pass | skip |
+| `p2p_orphan_handling.py` (maximal package) | same | same | pass | skip |
 | `p2p_compactblocks.py` (sendcmpct) | [`28641fd195db`](https://github.com/bitcoin/bitcoin/commit/28641fd195db) | 2026-07-31 | pass | skip (mine) on the build; fail ([ISS btclib-node#1223](https://github.com/btclib-org/btclib-node/issues/1223)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_compactblocks.py` (construction) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1223](https://github.com/btclib-org/btclib-node/issues/1223)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_compactblocks.py` (requests) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
@@ -3166,12 +3169,13 @@ Core's own mock time; each log half asks for `DEBUG_LOG` besides. Its
 `btclib-node`'s cell on each row is a counted skip, the `-blocksonly` rows'
 on `BLOCKS_ONLY` and the block-relay-only rows' on `TYPED_OUTBOUND`.
 
-`p2p_orphan_handling.py` is ported on it in part, its rows above each
+`p2p_orphan_handling.py` is ported on it, its rows above each
 one of Core's checks as a body over a fresh node in
 `tests/integration/p2p_orphan_handling_test.py`, whose module docstring
 has what differs from Core's file. Every body asks for `ORPHANAGE` first,
 and for `CLOCK` and `MINE`; the prefer-outbound and announcers checks ask
-for `TYPED_OUTBOUND`, and the same-txid check for `DEBUG_LOG` besides,
+for `TYPED_OUTBOUND`, the multiple-parents check for `INVALIDATE_BLOCK`,
+and the same-txid check for `DEBUG_LOG` besides,
 reading a line bitcoind writes under the `-debug=mempoolrej` it starts
 with. The parent-confirmed check is read per-build: an orphan is taken
 into the mempool once a block confirms its parent only on a build
@@ -3181,10 +3185,7 @@ the pinned release does not, so the body reads the build's own
 orphan is kept. A transaction with no witness spends
 `mini_wallet.py`'s `RAW_P2PK_SCRIPT_PUB_KEY`, Core's own `RAW_P2PK`
 output, under `raw_p2pk_script_sig`, from coinbases the body mines.
-`btclib-node`'s cell on each row is a counted skip on `ORPHANAGE`. Core's
-check resetting the node's filter of recently confirmed transactions
-through a reorg, and the one filling the orphanage with
-`create_large_orphan`, are not ported yet.
+`btclib-node`'s cell on each row is a counted skip on `ORPHANAGE`.
 
 `p2p_compactblocks.py` is ported on it, its rows above each one of
 Core's checks, or the wire or the log half of one, as a body over a

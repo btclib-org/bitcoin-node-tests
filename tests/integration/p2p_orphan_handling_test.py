@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_orphan_handling`, in part, as bodies over either node.
+"""Core's `p2p_orphan_handling`, as bodies over either node.
 
 Read from Core's `test/functional/p2p_orphan_handling.py` (`9cc7dc50bdc9`,
 2026-08-17): which peers a node asks for the missing parents of an
@@ -15,6 +15,10 @@ below is one of Core's `test_*` methods, a body over a fresh node:
   too and its parents asked for by nobody, while a parent refused for
   its fee, or with its witness stripped, is asked for again, the second
   taken in under its witness;
+- a parent confirmed ahead of a block taken off the tip
+  (`Capability.INVALIDATE_BLOCK`) is asked for beside a missing one, and
+  neither one confirmed since nor one in the mempool is, the orphan
+  outliving a `notfound` for the first;
 - a parent whose request is in flight, to another peer or for another
   orphan, is not asked for again, the first until that request expires;
 - a parent kept as an orphan is not asked for by its orphan child;
@@ -35,7 +39,10 @@ below is one of Core's `test_*` methods, a body over a fresh node:
 - every peer announcing an orphan, before it arrives or after, is asked
   for its parents in turn, a peer that disconnects dropping out;
 - a parent that leaves the mempool while its orphan waits is asked for
-  beside the parent still missing.
+  beside the parent still missing;
+- an ancestor package of the largest size, its first transaction missing,
+  is kept whole while other peers fill the orphanage with large orphans,
+  and taken in once that transaction arrives.
 
 Every body moves the node's clock (`Capability.CLOCK`) where Core's
 does, from the wall clock at its start, and mines its coins first
@@ -65,6 +72,14 @@ What differs from Core's file besides:
   fresh node and asserts none of that;
 - Core confirms the parent of its reconsideration check with
   `generateblock`; here `MiniWallet.generate` carries it;
+- Core's reorg calls `preciousblock` on the block `invalidateblock` has
+  just marked invalid, which leaves the tip where `invalidateblock` put
+  it; here the body asserts that tip instead;
+- Core's `syncwithvalidationinterfacequeue`, and the one its `generate`
+  ends in, are bitcoind's own RPC, so `_sync_validation_queue` calls it
+  on bitcoind alone: the node empties and fills its filter of recently
+  confirmed transactions on events queued behind the block
+  (`src/validationinterface.cpp`);
 - Core's harness starts every node with a `peertimeout` (`write_config`,
   `test_framework/util.py`) and this port passes none: no body moves the
   node's clock as far as `TIMEOUT_INTERVAL` (`src/net.h`);
@@ -91,11 +106,6 @@ between that change's merge and the version's move to `32.99` reads
 older and takes it in all the same, the constant's own comment having
 the commits.
 
-Core's other checks are not ported yet: the one resetting the node's
-filter of recently confirmed transactions through a reorg, and the one
-filling the orphanage with Core's `create_large_orphan`
-(`test_framework/mempool_util.py`).
-
 `p2p_orphan_handling_bitcoind_test.py` and
 `p2p_orphan_handling_btclib_node_test.py` run each body,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -114,6 +124,7 @@ from btclib.p2p import (
     Inv,
     Inventory,
     InventoryType,
+    NotFound,
     Ping,
     Pong,
     TxPayload,
@@ -121,6 +132,7 @@ from btclib.p2p import (
 from btclib.p2p.magic import magic_from_chain
 from btclib.script.script import serialize
 from btclib.script.script_pub_key import ScriptPubKey
+from btclib.script.witness import Witness
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
@@ -152,6 +164,7 @@ if TYPE_CHECKING:
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
+    "a_maximal_ancestor_package_is_protected_in_the_orphanage",
     "a_parent_gone_missing_is_requested",
     "a_parent_kept_as_an_orphan_is_not_requested",
     "a_parent_of_the_same_txid_is_requested_again",
@@ -164,6 +177,7 @@ __all__ = [
     "every_announcer_is_asked_for_parents",
     "parents_already_requested_are_not_requested_again",
     "parents_arriving_during_the_delay_are_not_requested",
+    "parents_not_recently_confirmed_are_requested",
 ]
 
 type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
@@ -212,6 +226,20 @@ _SIGNING_ATTEMPTS = 64
 # `32.99` (`f3fec67c3e`, 2026-09-11) reports `319900` and takes it in all
 # the same, so this test fails against such a build
 _RECONSIDERS_ON_BLOCK_VERSION = 320000
+
+# Core's own `DEFAULT_ANCESTOR_LIMIT` (`test_framework/messages.py`)
+_DEFAULT_ANCESTOR_LIMIT = 25
+
+# Core's own `test_maximal_package_protected`: the large orphans it makes,
+# the ones among them each sent by a peer of its own, and the virtual size
+# its ancestor package adds up to
+_LARGE_ORPHANS = 60
+_INDIVIDUAL_DOSERS = 20
+_MAXIMAL_PACKAGE_VSIZE = 101_000
+
+# the size of the one witness item Core's own `create_large_orphan`
+# (`test_framework/mempool_util.py`) spends its input with
+_LARGE_ORPHAN_WITNESS_SIZE = 390_000
 
 _TX_TYPES = (InventoryType.MSG_TX, InventoryType.MSG_WTX)
 
@@ -313,6 +341,17 @@ class _Conn:
             )
 
         self._wait_until(_requested, timeout=_PARENT_REQUESTS_WAIT)
+
+    def wait_for_request(self, txhash: bytes) -> None:
+        """Wait for the latest `getdata` to name `txhash`, among any others.
+
+        Core's `test_maximal_package_protected` waits so on its peer, where
+        `wait_for_getdata` asks for the latest to name exactly its hashes.
+        """
+        self._wait_until(
+            lambda: txhash in [item.hash for item in self.last_getdata],
+            timeout=_WAIT,
+        )
 
     def assert_no_immediate_response(self, payload: Payload) -> None:
         """Core's own `assert_no_immediate_response`.
@@ -518,6 +557,28 @@ def _p2pk_new_utxo(tx: Tx) -> Utxo:
     return Utxo(OutPoint(tx.id, 0), tx.vout[0].value, 0, False)
 
 
+def _large_orphan() -> Tx:
+    """Core's own `create_large_orphan` (`test_framework/mempool_util.py`).
+
+    Its one input spends an outpoint of a random txid, at a random index
+    past the first, under a witness of one `_LARGE_ORPHAN_WITNESS_SIZE`
+    item; its one output pays a hundred satoshis to an `OP_RETURN` of
+    twenty bytes.
+    """
+    prev_out = OutPoint(
+        secrets.token_bytes(32), secrets.randbelow(99) + 1, check_validity=False
+    )
+    witness = Witness([b"X" * _LARGE_ORPHAN_WITNESS_SIZE])
+    script = serialize(["OP_RETURN", b"a" * 20])
+    return Tx(
+        version=2,
+        lock_time=0,
+        vin=[TxIn(prev_out, script_witness=witness)],
+        vout=[TxOut(100, ScriptPubKey(script, check_validity=False))],
+        check_validity=False,
+    )
+
+
 def _orphans(node: NodeAdapter) -> list[dict[str, object]]:
     """Return `getorphantxs` at verbosity 2, each orphan and its announcers."""
     orphanage = node.rpc.call("getorphantxs", {"verbosity": 2})
@@ -552,6 +613,17 @@ def _send_raw(node: NodeAdapter, tx: Tx) -> None:
 def _new_utxo(wallet: MiniWallet, tx: Tx) -> Utxo:
     """Core's own `new_utxo`: the first coin `tx` pays the wallet."""
     return wallet.new_utxos(tx)[0]
+
+
+def _ancestor_count(node: NodeAdapter, tx: Tx) -> object:
+    """Return `getmempoolentry`'s own `ancestorcount` for `tx`."""
+    return node.rpc.call("getmempoolentry", [tx.id.hex()])["ancestorcount"]
+
+
+def _sync_validation_queue(node: NodeAdapter) -> None:
+    """Core's own `syncwithvalidationinterfacequeue`, on bitcoind alone."""
+    if isinstance(node, BitcoindAdapter):
+        node.rpc.call("syncwithvalidationinterfacequeue")
 
 
 def _relay_transaction(conn: _Conn, clock: _Clock, tx: Tx) -> None:
@@ -707,6 +779,68 @@ def a_rejected_parent_is_requested_only_under_another_witness(
             parent_normal.id.hex(),
             child_invalid_witness.id.hex(),
         }
+
+
+def parents_not_recently_confirmed_are_requested(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_orphan_multiple_parents`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet, clock = _node(cluster, skip_counts, 4, Capability.INVALIDATE_BLOCK)
+    with ExitStack() as stack:
+        peer = _inbound(stack, node)
+
+        # a parent confirmed long ago
+        tx_conf_old = wallet.send_self_transfer()
+        hashes = wallet.generate(10, confirm=[tx_conf_old])
+        utxo_conf_old = wallet.get_utxo(txid=tx_conf_old.id.hex())
+
+        # a block taken off the tip empties the node's filter of recently
+        # confirmed transactions, which holds that parent until then
+        node.rpc.call("invalidateblock", [hashes[-1].hex()])
+        assert node.rpc.call("getbestblockhash") == hashes[-2].hex()
+        _sync_validation_queue(node)
+        wallet.resync()
+
+        # a parent confirmed since
+        tx_conf_recent = wallet.send_self_transfer()
+        wallet.generate(1, confirm=[tx_conf_recent])
+        _sync_validation_queue(node)
+        utxo_conf_recent = wallet.get_utxo(txid=tx_conf_recent.id.hex())
+
+        # a parent in the mempool, and one missing
+        assert _mempool(node) == []
+        mempool_tx = wallet.send_self_transfer()
+        utxo_unconf_mempool = wallet.get_utxo(txid=mempool_tx.id.hex())
+        missing_tx = wallet.create_self_transfer()
+        assert missing_tx.id.hex() not in _mempool(node)
+
+        orphan = wallet.create_self_transfer_multi(
+            utxos_to_spend=[
+                utxo_conf_old,
+                utxo_conf_recent,
+                utxo_unconf_mempool,
+                _new_utxo(wallet, missing_tx),
+            ]
+        )
+
+        # the orphan is kept, and the parents neither in the mempool nor
+        # recently confirmed asked for
+        _relay_transaction(peer, clock, orphan)
+        clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY)
+        peer.sync_with_ping()
+        assert in_orphanage(node, orphan)
+        assert len(peer.last_getdata) == 2
+        peer.wait_for_parent_requests([tx_conf_old.id, missing_tx.id])
+
+        # a `notfound` for the old parent does not drop the orphan, which is
+        # taken in once the missing parent arrives
+        peer.send(NotFound([Inventory(InventoryType.MSG_WITNESS_TX, tx_conf_old.id)]))
+        peer.send_and_ping(_tx(missing_tx))
+        assert _ancestor_count(node, orphan) == 3
 
 
 def parents_already_requested_are_not_requested_again(
@@ -1208,3 +1342,71 @@ def a_parent_gone_missing_is_requested(
         assert parent_peekaboo_ab.id.hex() in final_mempool
         assert orphan.id.hex() in final_mempool
         assert tx_replacer_c.id.hex() in final_mempool
+
+
+def a_maximal_ancestor_package_is_protected_in_the_orphanage(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_maximal_package_protected`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet, clock = _node(cluster, skip_counts, 1)
+    large_orphans = [_large_orphan() for _ in range(_LARGE_ORPHANS)]
+
+    # each is an orphan, and within the standard size an orphan is kept at
+    for large_orphan in large_orphans:
+        (result,) = node.rpc.call(
+            "testmempoolaccept", [[large_orphan.serialize(True).hex()]]
+        )
+        assert not result["allowed"]
+        assert result["reject-reason"] == "missing-inputs"
+
+    with ExitStack() as stack:
+        peer_normal = _inbound(stack, node)
+        peer_doser = _inbound(stack, node)
+
+        # a large orphan from each of a set of peers, its parent asked for
+        for large_orphan in large_orphans[:_INDIVIDUAL_DOSERS]:
+            peer_doser_individual = _inbound(stack, node)
+            peer_doser_individual.send_and_ping(_tx(large_orphan))
+            clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY + 1)
+            peer_doser_individual.wait_for_getdata([large_orphan.vin[0].prev_out.tx_id])
+        wait_until(
+            lambda: len(node.rpc.call("getorphantxs")) == _INDIVIDUAL_DOSERS,
+            timeout=_WAIT,
+        )
+
+        # an ancestor package of the largest size, off one missing parent
+        ancestor_package = wallet.create_self_transfer_chain(
+            chain_length=_DEFAULT_ANCESTOR_LIMIT - 1
+        )
+        final_tx = wallet.create_self_transfer(
+            utxo_to_spend=_new_utxo(wallet, ancestor_package[-1]),
+            target_vsize=_MAXIMAL_PACKAGE_VSIZE
+            - sum(tx.vsize for tx in ancestor_package),
+        )
+        ancestor_package.append(final_tx)
+
+        # every transaction but that parent is kept as an orphan
+        for orphan in ancestor_package[1:]:
+            peer_normal.send_and_ping(_tx(orphan))
+        orphan_set = node.rpc.call("getorphantxs")
+        for orphan in ancestor_package[1:]:
+            assert orphan.id.hex() in orphan_set
+
+        # and the parent asked for
+        clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY)
+        peer_normal.wait_for_request(ancestor_package[0].id)
+
+        # the rest of the large orphans, from one peer
+        for large_orphan in large_orphans[_INDIVIDUAL_DOSERS:]:
+            peer_doser.send_and_ping(_tx(large_orphan))
+
+        # the parent arrives, and the whole package is taken in
+        peer_normal.send_and_ping(_tx(ancestor_package[0]))
+        wait_until(
+            lambda: _ancestor_count(node, final_tx) == _DEFAULT_ANCESTOR_LIMIT,
+            timeout=_WAIT,
+        )

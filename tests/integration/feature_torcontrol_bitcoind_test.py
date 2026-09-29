@@ -136,6 +136,12 @@ class _MockTorControlServer:
         while self._running:
             try:
                 conn, _ = sock.accept()
+            except TimeoutError:
+                # `settimeout(1.0)` bounds each wait so that `stop()` is seen
+                # within a second, not the time bitcoind has to connect: as
+                # in Core's own `MockTorControlServer._serve`, the listener
+                # waits again. Caught ahead of `OSError`, its base class.
+                continue
             except OSError:
                 return
             with conn:

@@ -1000,3 +1000,9 @@ on the new `Capability.STARTUP_NOTIFY` (issue #14).
 Each transaction peer waits until `getrawmempool` lists what it sent, so a
 `ping` answered ahead of the `tx` (btclib-org/btclib-node#1410) no longer fails
 `p2p_eviction.py` on btclib-node past btclib-org/btclib-node#1179 (closes #212).
+
+### `feature_torcontrol`'s mock Tor control server waits past its first second
+
+The mock server keeps listening when no connection arrives within a second of
+its start, so a `bitcoind` that reaches `-torcontrol` later than that is answered
+rather than left unread until the test's own timeout (closes #198).

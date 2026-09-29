@@ -1036,3 +1036,9 @@ format under `-loadblock`; btclib-node skips on the new `Capability.LOAD_BLOCK`
 A node is checked to refuse the descendants of a parent refused for its size, to
 ask for no parent it keeps as an orphan or already asks a peer for, and to ask
 again for one refused for its fee or witness; btclib-node skips (issue #44).
+
+### `feature_port` is ported
+
+bitcoind listens where `-port` and `-bind` say, read off its `Bound to` lines,
+and refuses a `-port` of `65536` or `0`; btclib-node skips on the new
+`Capability.LISTEN_ADDRESS` (issue #14).

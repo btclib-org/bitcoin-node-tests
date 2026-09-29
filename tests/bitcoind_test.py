@@ -84,6 +84,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.STARTUP_NOTIFY,
             Capability.DUMP_UTXO_SET,
             Capability.LOAD_BLOCK,
+            Capability.LISTEN_ADDRESS,
         }
     )
 

@@ -1028,6 +1028,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_startupnotify.py` | [`fa71c15f8610`](https://github.com/bitcoin/bitcoin/commit/fa71c15f8610) | 2025-11-26 | pass | skip (startup_notify) |
 | `rpc_dumptxoutset.py` | [`58eeab790d98`](https://github.com/bitcoin/bitcoin/commit/58eeab790d98) | 2026-05-13 | pass, the dump at a forked height asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (dump_utxo_set) |
 | `feature_loadblock.py` | [`fa4fc8c1d7b5`](https://github.com/bitcoin/bitcoin/commit/fa4fc8c1d7b5) | 2026-05-22 | pass | skip (load_block) |
+| `feature_port.py` | [`997757dd2b4d`](https://github.com/bitcoin/bitcoin/commit/997757dd2b4d) | 2024-11-15 | pass | skip (listen_address) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2478,6 +2479,23 @@ else differs from Core's file. The `btclib-node` cell is a counted skip
 on `Capability.LOAD_BLOCK`: no source file names `loadblock` on either
 build, reading Core's block files being left out by decision
 ([ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)).
+
+`feature_port.py` is ISS 14's too, the option and the log together, as
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags it; its test builds its node through `make_adapter`. It is Core's
+own claim: a node restarted with `-port` listens on every address at the
+last port given and on the loopback address at the port after it, a
+`-bind` naming a port overrides `-port`, a `-bind` naming none takes
+`-port`'s, an onion bind naming none takes the port after it, and a
+`-port` out of range stops the start with Core's own error.
+`BitcoindAdapter` passes a `-bind` of its own, so the bitcoind test
+builds a subclass leaving it out, as Core's own test keeps its
+framework's off.
+`tests/integration/feature_port_test.py`'s own docstring has what else
+differs from Core's file. The `btclib-node` cell is a counted skip on
+`Capability.LISTEN_ADDRESS`: `cli.py` registers no `-bind` on either
+build, and the node binds no onion listener
+([ISS btclib-node#1257](https://github.com/btclib-org/btclib-node/issues/1257)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

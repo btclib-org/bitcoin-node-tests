@@ -144,7 +144,7 @@ dev = [
 ]
 
 [tool.uv]
-required-version = ">=0.12.17"
+required-version = ">=0.12.19"
 
 [tool.uv.build-backend]
 # `module-name` is not written: it defaults to `project.name` normalized,

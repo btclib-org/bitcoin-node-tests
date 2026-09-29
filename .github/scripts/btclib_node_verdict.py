@@ -683,6 +683,7 @@ _ROWS: dict[str, str] = {
     "wallet_anchor": "`wallet_anchor.py`",
     "feature_startupnotify": "`feature_startupnotify.py`",
     "rpc_dumptxoutset": "`rpc_dumptxoutset.py`",
+    "feature_loadblock": "`feature_loadblock.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

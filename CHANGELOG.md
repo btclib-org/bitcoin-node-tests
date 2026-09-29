@@ -1024,3 +1024,9 @@ numbered worker started with it takes one before the node binds it (closes #192)
 bitcoind's UTXO set dump is checked against what the same node reports rather
 than against Core's constant hashes, a dump at a forked height per build;
 btclib-node skips on the new `Capability.DUMP_UTXO_SET` (issue #14).
+
+### `feature_loadblock` is ported
+
+bitcoind imports a bootstrap file the test writes in `linearize-data.py`'s
+format under `-loadblock`; btclib-node skips on the new `Capability.LOAD_BLOCK`
+(issue #14).

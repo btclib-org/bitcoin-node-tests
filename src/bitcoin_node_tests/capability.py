@@ -446,6 +446,10 @@ class Capability(Enum):
     its tip or rolled back to an earlier block of its own chain, Core's
     own `dumptxoutset` (`rpc_dumptxoutset.py`). Named for what it writes
     rather than for the RPC's own spelling, as `SCAN_UTXO_SET` is.
+    `LOAD_BLOCK` -- import, on starting, the blocks a file a caller names
+    holds, each record the network's message start, the block's length
+    little-endian and the block, the way Core's own `-loadblock` does
+    (`feature_loadblock.py`).
     """
 
     MINE = "mine"
@@ -507,6 +511,7 @@ class Capability(Enum):
     PRIVATE_BROADCAST = "private_broadcast"
     STARTUP_NOTIFY = "startup_notify"
     DUMP_UTXO_SET = "dump_utxo_set"
+    LOAD_BLOCK = "load_block"
 
 
 class SkipCounts:

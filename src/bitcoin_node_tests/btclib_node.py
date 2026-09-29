@@ -275,6 +275,12 @@ names `loadblock`, measured at the released `2026.9.24` (`422d2640`)
 and at `main` (`ecb9b190`) alike. Reading Core's block files is left
 out by decision, the node taking the same blocks over p2p
 ([ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)).
+
+`Capability.LISTEN_ADDRESS` is never declared either: `cli.py` registers
+`-port` and no `-bind`, and the listener binds `0.0.0.0` and `::` alone,
+measured at the released `2026.9.24` (`422d2640`) and at `main`
+(`ecb9b190`) alike
+([ISS btclib-node#1257](https://github.com/btclib-org/btclib-node/issues/1257)).
 """
 
 from __future__ import annotations

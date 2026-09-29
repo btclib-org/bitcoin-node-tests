@@ -696,6 +696,7 @@ _ROWS: dict[str, str] = {
     "feature_startupnotify": "`feature_startupnotify.py`",
     "rpc_dumptxoutset": "`rpc_dumptxoutset.py`",
     "feature_loadblock": "`feature_loadblock.py`",
+    "feature_port": "`feature_port.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

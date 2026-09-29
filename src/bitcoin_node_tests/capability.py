@@ -450,6 +450,14 @@ class Capability(Enum):
     holds, each record the network's message start, the block's length
     little-endian and the block, the way Core's own `-loadblock` does
     (`feature_loadblock.py`).
+    `LISTEN_ADDRESS` -- listen for peers where a caller's own options
+    say rather than where its adapter binds it, the way Core's own
+    `-port` and `-bind` do: on every address at the port the last
+    `-port` names, and on `127.0.0.1` at the port after it for Tor's
+    inbound connections; only on the addresses `-bind` names where one
+    is given, a bind naming no port taking `-port`'s, or the port after
+    it where the bind is an onion one; and refusing to start on a
+    `-port` outside 1 to 65535 (`feature_port.py`).
     """
 
     MINE = "mine"
@@ -512,6 +520,7 @@ class Capability(Enum):
     STARTUP_NOTIFY = "startup_notify"
     DUMP_UTXO_SET = "dump_utxo_set"
     LOAD_BLOCK = "load_block"
+    LISTEN_ADDRESS = "listen_address"
 
 
 class SkipCounts:

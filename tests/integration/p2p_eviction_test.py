@@ -37,12 +37,10 @@ tenth of a second for a slow peer and at once for a fast one, and it is
 the `sync_with_ping` barrier Core's `add_p2p_connection` runs after the
 handshake, which returns on the node's own `verack` before the node has
 processed this peer's. Core sends a transaction without waiting for it;
-this waits for that barrier after it too, so a node processing each
-peer's messages in order, as Core's does, has accepted it before the next
-peer connects, where one answering a `ping` ahead of the `tx` its peer
-sent first
-([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410))
-need not have.
+this waits until the node's `getrawmempool` lists it before the next
+peer connects, which that barrier would not ensure of a node answering a
+`ping` ahead of the `tx` its peer sent first
+([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410)).
 
 Which peer was evicted is read off `Peer.is_connected`, Core's own
 `is_connected`, which waits for nothing. Core reads it once for each
@@ -72,6 +70,7 @@ from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet, build_fork
+from bitcoin_node_tests.node import wait_until
 from bitcoin_node_tests.peer import Peer
 from bitcoin_node_tests.timeout_factor import scaled
 
@@ -186,6 +185,10 @@ def _wait_until_tip(node: NodeAdapter, block_hash: str, timeout: float = 30) -> 
         time.sleep(0.1)
 
 
+def _wait_until_in_mempool(node: NodeAdapter, txid: str) -> None:
+    wait_until(lambda: txid in node.rpc.call("getrawmempool"))
+
+
 def _evicted(peers: list[Peer], timeout: float = 30) -> list[int]:
     """Return the indices of the peers the node disconnected, once any is."""
     deadline = time.monotonic() + scaled(timeout)
@@ -248,8 +251,7 @@ def the_evicted_inbound_peer_is_never_a_protected_one(
             peer = _connect(node, peers, _SLOW)
             tx = wallet.create_self_transfer()
             peer.send(TxPayload(tx, True))
-            _sync_with_ping(peer, pong_delay=_SLOW, await_node_ping=False)
-            assert tx.id.hex() in node.rpc.call("getrawmempool")
+            _wait_until_in_mempool(node, tx.id.hex())
             protected.add(len(peers) - 1)
 
         # protected by the lowest ping: answered at once

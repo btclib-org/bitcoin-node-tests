@@ -876,7 +876,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_fastprune.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `rpc_scanblocks.py` | `aeca0610865e` | 2026-07-01 | pass | skip |
 | `rpc_scanblocks.py` (no index) | same | same | pass | skip |
-| `p2p_eviction.py` | `1b76e0473647` | 2026-07-24 | pass, `-maxconnections` read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (inbound_eviction) on the build; skip (mine) on a build past [ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064) and before [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071); fail ([ISS btclib-node#1179](https://github.com/btclib-org/btclib-node/issues/1179)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) and before [ISS btclib-node#1179](https://github.com/btclib-org/btclib-node/issues/1179); fail ([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410)) on a build past [ISS btclib-node#1179](https://github.com/btclib-org/btclib-node/issues/1179) |
+| `p2p_eviction.py` | `1b76e0473647` | 2026-07-24 | pass, `-maxconnections` read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (inbound_eviction) on the build; skip (mine) on a build past [ISS btclib-node#1064](https://github.com/btclib-org/btclib-node/issues/1064) and before [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071); fail ([ISS btclib-node#1179](https://github.com/btclib-org/btclib-node/issues/1179)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) and before [ISS btclib-node#1179](https://github.com/btclib-org/btclib-node/issues/1179); pass on a build past [ISS btclib-node#1179](https://github.com/btclib-org/btclib-node/issues/1179) |
 | `feature_presegwit_node_upgrade.py` | [`fad7bd9ba3ee`](https://github.com/bitcoin/bitcoin/commit/fad7bd9ba3ee) | 2026-01-14 | pass | skip (test_activation_height) |
 | `rpc_validateaddress.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (validate_address) |
 | `p2p_addrfetch.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | skip (typed_outbound) |
@@ -2863,9 +2863,10 @@ background thread, so the test reads for it: after each handshake it
 answers the node's first ping, at once for a fast peer and after Core's
 own delay for a slow one, and waits for the `sync_with_ping` barrier
 Core's `add_p2p_connection` runs. Core sends a transaction without
-waiting for it; this waits for that barrier after it too, so a node
-processing each peer's messages in order, as Core's does, has accepted
-it before the next peer connects.
+waiting for it; this waits until the node's `getrawmempool` lists it
+before the next peer connects, which that barrier would not ensure of a
+node answering a `ping` ahead of the `tx` its peer sent first
+([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410)).
 
 Every `btclib-node` cell of this batch is a counted skip on the released
 build. Neither `-fastprune` nor `-blockfilterindex` is one of `cli.py`'s
@@ -2883,12 +2884,7 @@ on declares too. There the row is one body run against both nodes
 [ISS btclib-node#1179](https://github.com/btclib-org/btclib-node/issues/1179)
 fails it: a block a peer announces by `headers` is asked of peers that
 connected before it rather than of the one that announced it, so that
-peer never sees the `getdata` it waits for. A build past it fails it on
-some runs and not on others: the node answers a `ping` ahead of the `tx`
-its peer sent first, so the `pong` the test waits on after each
-transaction can reach it before the node has accepted that transaction,
-and `getrawmempool` then does not list it
-([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410)).
+peer never sees the `getdata` it waits for. A build past it passes.
 
 `tool_utxo_to_sqlite.py`, the last of this batch, is not ported. Its
 subject is `contrib/utxo-tools/utxo_to_sqlite.py`, a script of Core's

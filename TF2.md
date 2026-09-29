@@ -1022,6 +1022,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_compactblocks.py` (high-bandwidth states) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1223](https://github.com/btclib-org/btclib-node/issues/1223)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_compactblocks.py` (ignored) | same | same | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mine) on the build; fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_startupnotify.py` | [`fa71c15f8610`](https://github.com/bitcoin/bitcoin/commit/fa71c15f8610) | 2025-11-26 | pass | skip (startup_notify) |
+| `rpc_dumptxoutset.py` | [`58eeab790d98`](https://github.com/bitcoin/bitcoin/commit/58eeab790d98) | 2026-05-13 | pass, the dump at a forked height asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (dump_utxo_set) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2437,6 +2438,25 @@ what differs from Core's file. The `btclib-node` cell is a counted skip
 on `Capability.STARTUP_NOTIFY`: `cli.py` registers no
 `-startupnotify` on either build
 ([ISS btclib-node#1449](https://github.com/btclib-org/btclib-node/issues/1449)).
+
+`rpc_dumptxoutset.py` is ISS 14's too, the clock and the disk together,
+as
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags it; its test builds its node through `make_adapter`. It keeps
+every check of Core's but the hashes Core asserts as constants: the
+block hash, the file's SHA256 and `txoutset_hash` depend on the coinbase
+the build writes, and the commit this row pins changed that coinbase and
+every one of them. The test asserts each against the same node instead:
+`getblockhash` at the tip's height, the file's metadata and a second
+dump writing the same bytes, and `gettxoutsetinfo`'s own
+`hash_serialized_3`. The pinned release refuses a dump at a height a
+fork also reaches, so the bitcoind cell reads which the running build
+does from its own version.
+`tests/integration/rpc_dumptxoutset_test.py`'s own docstring has what
+else differs from Core's file. The `btclib-node` cell is a counted skip
+on `Capability.DUMP_UTXO_SET`: no source file names `dumptxoutset` on
+either build
+([ISS btclib-node#1471](https://github.com/btclib-org/btclib-node/issues/1471)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

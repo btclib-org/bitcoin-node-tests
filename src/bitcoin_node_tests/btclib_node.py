@@ -264,6 +264,11 @@ released `2026.9.24` (`422d2640`) and at `main` (`d4559960`) alike,
 no `-startupnotify`, measured at the released `2026.9.24` (`422d2640`)
 and at `main` (`d4559960`) alike
 ([ISS btclib-node#1449](https://github.com/btclib-org/btclib-node/issues/1449)).
+
+`Capability.DUMP_UTXO_SET` is never declared either: no source file
+names `dumptxoutset`, measured at the released `2026.9.24` (`422d2640`)
+and at `main` (`ecb9b190`) alike
+([ISS btclib-node#1471](https://github.com/btclib-org/btclib-node/issues/1471)).
 """
 
 from __future__ import annotations

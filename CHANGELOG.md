@@ -977,3 +977,9 @@ btclib-node keep the peer for two of them (issue #44).
 A node is checked to reconstruct a compact block past a stalling peer, keep a
 slot for an outbound one, report high-bandwidth peers, and ignore an unasked
 compact block from any other; bitcoind before `v32.0rc1` takes it (issue #44).
+
+### `[tool.uv] required-version` follows the `uv` `dependabot-core` bundles to `0.12.19`
+
+`required-version` reads `>=0.12.19`: a floor below the `uv` pin
+`dependabot-core` bundles admits a `uv` older than the one Dependabot writes
+`uv.lock` with (issue btclib-org/.github#1438).

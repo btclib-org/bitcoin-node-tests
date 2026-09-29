@@ -991,7 +991,11 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_blocksonly.py` (block-relay-only, wire) | same | same | pass | skip |
 | `p2p_blocksonly.py` (block-relay-only, log) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (arrival timing) | [`9cc7dc50bdc9`](https://github.com/bitcoin/bitcoin/commit/9cc7dc50bdc9) | 2026-08-17 | pass | skip |
+| `p2p_orphan_handling.py` (rejected parents) | same | same | pass | skip |
+| `p2p_orphan_handling.py` (overlapping parents) | same | same | pass | skip |
+| `p2p_orphan_handling.py` (orphan of orphan) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (parent confirmed) | same | same | pass, the reconsideration asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
+| `p2p_orphan_handling.py` (inherit rejection) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (same txid) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (same txid parent) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (txid inv) | same | same | pass | skip |
@@ -3156,11 +3160,13 @@ into the mempool once a block confirms its parent only on a build
 carrying bitcoin/bitcoin@9cc7dc50bdc9867d079ab7a111d39487a4566767, which
 the pinned release does not, so the body reads the build's own
 `getnetworkinfo` `version` and asserts, on an older build, that the
-orphan is kept. `btclib-node`'s cell on each row is a counted skip on
-`ORPHANAGE`. Core's checks building a transaction with no witness, the
-one resetting the node's filter of recently confirmed transactions
+orphan is kept. A transaction with no witness spends
+`mini_wallet.py`'s `RAW_P2PK_SCRIPT_PUB_KEY`, Core's own `RAW_P2PK`
+output, under `raw_p2pk_script_sig`, from coinbases the body mines.
+`btclib-node`'s cell on each row is a counted skip on `ORPHANAGE`. Core's
+check resetting the node's filter of recently confirmed transactions
 through a reorg, and the one filling the orphanage with
-`create_large_orphan` are not ported yet.
+`create_large_orphan`, are not ported yet.
 
 `p2p_compactblocks.py` is ported on it, its rows above each one of
 Core's checks, or the wire or the log half of one, as a body over a

@@ -20,12 +20,16 @@ import pytest
 
 from tests.integration.p2p_orphan_handling_test import (
     a_parent_gone_missing_is_requested,
+    a_parent_kept_as_an_orphan_is_not_requested,
     a_parent_of_the_same_txid_is_requested_again,
+    a_rejected_parent_is_requested_only_under_another_witness,
     an_inv_by_an_orphan_txid_is_requested,
     an_orphan_is_reconsidered_once_its_parent_is_mined,
     an_orphan_of_the_same_txid_is_kept_too,
     an_outbound_announcer_is_asked_for_parents_first,
+    descendants_of_a_rejected_parent_are_rejected_too,
     every_announcer_is_asked_for_parents,
+    parents_already_requested_are_not_requested_again,
     parents_arriving_during_the_delay_are_not_requested,
 )
 
@@ -46,12 +50,30 @@ def test_a_parent_gone_missing_is_requested(
     a_parent_gone_missing_is_requested(btclib_node_cluster, skip_counts)
 
 
+def test_a_parent_kept_as_an_orphan_is_not_requested(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btclib-node."""
+    a_parent_kept_as_an_orphan_is_not_requested(btclib_node_cluster, skip_counts)
+
+
 def test_a_parent_of_the_same_txid_is_requested_again(
     btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """The target: the body this module's docstring names, over btclib-node."""
     a_parent_of_the_same_txid_is_requested_again(btclib_node_cluster, skip_counts)
+
+
+def test_a_rejected_parent_is_requested_only_under_another_witness(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btclib-node."""
+    a_rejected_parent_is_requested_only_under_another_witness(
+        btclib_node_cluster, skip_counts
+    )
 
 
 def test_an_inv_by_an_orphan_txid_is_requested(
@@ -86,12 +108,28 @@ def test_an_outbound_announcer_is_asked_for_parents_first(
     an_outbound_announcer_is_asked_for_parents_first(btclib_node_cluster, skip_counts)
 
 
+def test_descendants_of_a_rejected_parent_are_rejected_too(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btclib-node."""
+    descendants_of_a_rejected_parent_are_rejected_too(btclib_node_cluster, skip_counts)
+
+
 def test_every_announcer_is_asked_for_parents(
     btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """The target: the body this module's docstring names, over btclib-node."""
     every_announcer_is_asked_for_parents(btclib_node_cluster, skip_counts)
+
+
+def test_parents_already_requested_are_not_requested_again(
+    btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btclib-node."""
+    parents_already_requested_are_not_requested_again(btclib_node_cluster, skip_counts)
 
 
 def test_parents_arriving_during_the_delay_are_not_requested(

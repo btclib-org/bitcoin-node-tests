@@ -1030,3 +1030,9 @@ btclib-node skips on the new `Capability.DUMP_UTXO_SET` (issue #14).
 bitcoind imports a bootstrap file the test writes in `linearize-data.py`'s
 format under `-loadblock`; btclib-node skips on the new `Capability.LOAD_BLOCK`
 (issue #14).
+
+### `p2p_orphan_handling`'s checks needing no-witness coins are ported
+
+A node is checked to refuse the descendants of a parent refused for its size, to
+ask for no parent it keeps as an orphan or already asks a peer for, and to ask
+again for one refused for its fee or witness; btclib-node skips (issue #44).

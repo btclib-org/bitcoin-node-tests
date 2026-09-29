@@ -19,12 +19,16 @@ import pytest
 
 from tests.integration.p2p_orphan_handling_test import (
     a_parent_gone_missing_is_requested,
+    a_parent_kept_as_an_orphan_is_not_requested,
     a_parent_of_the_same_txid_is_requested_again,
+    a_rejected_parent_is_requested_only_under_another_witness,
     an_inv_by_an_orphan_txid_is_requested,
     an_orphan_is_reconsidered_once_its_parent_is_mined,
     an_orphan_of_the_same_txid_is_kept_too,
     an_outbound_announcer_is_asked_for_parents_first,
+    descendants_of_a_rejected_parent_are_rejected_too,
     every_announcer_is_asked_for_parents,
+    parents_already_requested_are_not_requested_again,
     parents_arriving_during_the_delay_are_not_requested,
 )
 
@@ -45,12 +49,30 @@ def test_a_parent_gone_missing_is_requested(
     a_parent_gone_missing_is_requested(bitcoind_cluster, skip_counts)
 
 
+def test_a_parent_kept_as_an_orphan_is_not_requested(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: the body this module's docstring names, over bitcoind."""
+    a_parent_kept_as_an_orphan_is_not_requested(bitcoind_cluster, skip_counts)
+
+
 def test_a_parent_of_the_same_txid_is_requested_again(
     bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """The oracle: the body this module's docstring names, over bitcoind."""
     a_parent_of_the_same_txid_is_requested_again(bitcoind_cluster, skip_counts)
+
+
+def test_a_rejected_parent_is_requested_only_under_another_witness(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: the body this module's docstring names, over bitcoind."""
+    a_rejected_parent_is_requested_only_under_another_witness(
+        bitcoind_cluster, skip_counts
+    )
 
 
 def test_an_inv_by_an_orphan_txid_is_requested(
@@ -85,12 +107,28 @@ def test_an_outbound_announcer_is_asked_for_parents_first(
     an_outbound_announcer_is_asked_for_parents_first(bitcoind_cluster, skip_counts)
 
 
+def test_descendants_of_a_rejected_parent_are_rejected_too(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: the body this module's docstring names, over bitcoind."""
+    descendants_of_a_rejected_parent_are_rejected_too(bitcoind_cluster, skip_counts)
+
+
 def test_every_announcer_is_asked_for_parents(
     bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """The oracle: the body this module's docstring names, over bitcoind."""
     every_announcer_is_asked_for_parents(bitcoind_cluster, skip_counts)
+
+
+def test_parents_already_requested_are_not_requested_again(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: the body this module's docstring names, over bitcoind."""
+    parents_already_requested_are_not_requested_again(bitcoind_cluster, skip_counts)
 
 
 def test_parents_arriving_during_the_delay_are_not_requested(

@@ -19,6 +19,8 @@ one answers.
 
 from __future__ import annotations
 
+import os
+import secrets
 import socket
 import subprocess
 import tempfile
@@ -26,7 +28,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Sequence
-from contextlib import ExitStack
+from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple, Protocol
 from urllib.request import Request
@@ -37,7 +39,7 @@ from bitcoin_core_rpc.transport import HttpTransport
 from bitcoin_node_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
     from collections.abc import Set as AbstractSet
 
     from bitcoin_node_tests.capability import Capability
@@ -80,46 +82,112 @@ _CHAIN_SELECTORS = frozenset({"chain", "regtest", "testnet", "testnet4", "signet
 # the chain `NodeAdapter` starts on where the caller names none
 _DEFAULT_CHAIN = "regtest"
 
+# the ports `free_ports` draws from: past every port Core's own
+# `p2p_port`, `rpc_port` and `tor_port` (`test_framework/util.py`)
+# return at their default `PORT_MIN`, and below the first port the
+# kernel picks a local port from -- 32768 in Linux's default
+# `ip_local_port_range` (`Documentation/networking/ip-sysctl.rst`), 49152
+# in macOS's `net.inet.ip.portrange.first`
+_PORTS = range(26000, 32768)
+
 
 def free_port() -> int:
-    """Return a port nothing is listening on, by letting the OS pick one.
-
-    Bound and closed rather than guessed: a fixed port is what makes two
-    runs of this suite -- or a node under test and the maintainer's own
-    -- fight over one socket. Core's own `p2p_port`/`rpc_port`
-    (`test_framework/util.py`) take the opposite trade, a formula over a
-    per-process `PortSeed` and a node index rather than a port the OS
-    ever confirmed was free: that avoids two of Core's own ports
-    colliding at all, at the cost of a seed some caller has to keep
-    unique, which this suite has nothing to hold one in -- `pytest-xdist`
-    workers here share no counterpart to Core's one seed per test
-    process.
-
-    A single call answers for one port. Two calls in a row have nothing
-    telling them apart: each binds, reads its own port back and closes
-    before the next one opens, so the second can be handed the very port
-    the first just freed. `free_ports` below is what a caller after more
-    than one port at once wants instead.
-    """
+    """Return one port a bind on `127.0.0.1` accepts, as `free_ports` does."""
     return free_ports(1)[0]
 
 
 def free_ports(count: int) -> tuple[int, ...]:
-    """Return `count` ports nothing is listening on, pairwise distinct.
+    """Return `count` ports a bind on `127.0.0.1` accepts, pairwise distinct.
 
-    Every probe socket stays open until all `count` are bound, so the OS
-    -- which never hands out the port of a socket that is still open --
-    cannot repeat one of them the way `count` separate calls of
-    `free_port` above can: each of those closes its own probe, and so
-    frees its port again, before the next one ever binds.
+    Drawn from `_PORTS` rather than from the kernel's own pick: a port
+    the kernel hands out is one it can hand out again, to any other
+    process's `bind` to port `0` or outgoing connection, between this
+    call returning and the caller's node binding it
+    ([ISS 192](https://github.com/btclib-org/bitcoin-node-tests/issues/192)).
+
+    Each process draws from a block of its own, `_worker_block`'s, the
+    way Core's own `p2p_port` (`test_framework/util.py`) offsets each
+    test process by its `PortSeed`, so no two of the numbered workers
+    `pytest-xdist -n` starts together draw the same port. Within the block,
+    `_PortCursor` walks on from where its last draw stopped, and a
+    candidate another process holds on `127.0.0.1` or on every IPv4
+    address -- another run of this suite included -- fails its probe bind
+    and is skipped; one held on IPv6 alone does not.
 
     :param count: how many ports to return.
+    :raises RuntimeError: fewer than `count` ports of this process's
+        block were free.
     """
-    with ExitStack() as probes:
-        sockets = [probes.enter_context(socket.socket()) for _ in range(count)]
-        for probe in sockets:
-            probe.bind(("127.0.0.1", 0))
-        return tuple(int(probe.getsockname()[1]) for probe in sockets)
+    return _process_cursor().take(count)
+
+
+def _worker_block(environ: Mapping[str, str]) -> range:
+    """Return the slice of `_PORTS` this process draws its ports from.
+
+    `pytest-xdist` numbers each worker in `PYTEST_XDIST_WORKER` (`gw0`,
+    `gw1`, ...) and says how many there are in
+    `PYTEST_XDIST_WORKER_COUNT` (`xdist/remote.py`), and `_PORTS` is cut
+    into that many equal blocks. A worker restarted after a crash is
+    numbered past the count, and takes the block its number wraps onto,
+    which a live worker may still be drawing from. A process outside
+    `pytest-xdist`, or one whose id names no number (`--tx
+    popen//id=...`), has the whole of `_PORTS`.
+
+    :param environ: the process environment, `os.environ`.
+    """
+    worker = environ.get("PYTEST_XDIST_WORKER", "").removeprefix("gw")
+    if not worker.isdecimal():
+        return _PORTS
+    workers = int(environ.get("PYTEST_XDIST_WORKER_COUNT", "1"))
+    size = len(_PORTS) // workers
+    index = int(worker) % workers
+    return _PORTS[index * size : (index + 1) * size]
+
+
+class _PortCursor:
+    """A walk over one block of ports, from a random start, wrapping round.
+
+    The random start is for two runs of this suite side by side on one
+    machine, whose workers of the same number share a block: each run
+    starts its walk somewhere else in it.
+    """
+
+    def __init__(self, block: range) -> None:
+        self._block = block
+        self._next = secrets.randbelow(len(block))
+
+    def take(self, count: int) -> tuple[int, ...]:
+        """Return the next `count` ports of the block a probe bind accepts.
+
+        At most one lap of the block per call, so no port repeats within
+        one answer, and a port answered is not visited again until the
+        walk has come round the whole block.
+
+        :param count: how many ports to return.
+        :raises RuntimeError: the lap ended with fewer than `count` found.
+        """
+        ports: list[int] = []
+        for _ in self._block:
+            if len(ports) == count:
+                break
+            port = self._block[self._next]
+            self._next = (self._next + 1) % len(self._block)
+            with socket.socket() as probe:
+                try:
+                    probe.bind(("127.0.0.1", port))
+                except OSError:
+                    continue
+            ports.append(port)
+        if len(ports) < count:
+            err_msg = f"{len(ports)} of {count} ports free in {self._block}"
+            raise RuntimeError(err_msg)
+        return tuple(ports)
+
+
+@cache
+def _process_cursor() -> _PortCursor:
+    """Return this process's own cursor, built on its first draw."""
+    return _PortCursor(_worker_block(os.environ))
 
 
 def traced_transport(transport: HttpTransport) -> HttpTransport:

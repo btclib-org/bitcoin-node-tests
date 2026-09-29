@@ -13,6 +13,7 @@ branch.
 
 from __future__ import annotations
 
+import errno
 import subprocess
 import sys
 from pathlib import Path
@@ -146,67 +147,135 @@ def test_free_ports_returns_pairwise_distinct_bindable_ports() -> None:
             probe.bind(("127.0.0.1", port))
 
 
-class _RecyclingSocket:
-    """A `socket.socket` stand-in whose OS reissues a just-closed port.
+def test_free_ports_draws_below_every_ephemeral_range() -> None:
+    """No port `free_ports` returns is one the kernel could hand out itself.
 
-    `bind` hands out the lowest of two ports (`0` and `1`) not currently
-    held by another instance of this class -- modelling the one fact
-    `free_port` and `free_ports` differ on: whether a port is still
-    reserved by a probe that has not yet closed. Two ports are enough to
-    force the collision ISS 85 measured at random in the real ephemeral
-    range: `free_port` called twice closes its first probe, freeing port
-    `0`, before its second one ever binds, so the second gets `0` back
-    every time under this fake; `free_ports` closes neither until both
-    are bound, so its second probe only ever sees port `1` still free.
+    [ISS 192](https://github.com/btclib-org/bitcoin-node-tests/issues/192):
+    a port inside Linux's default `ip_local_port_range`, which starts at
+    32768, can be taken by any outgoing connection before the node binds
+    it.
     """
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
 
-    _held: ClassVar[set[int]] = set()
+    assert node_module._PORTS.stop <= 32768
+    assert all(port in node_module._PORTS for port in free_ports(3))
+
+
+def _xdist(worker: str, count: int) -> dict[str, str]:
+    """Return what `pytest-xdist` sets for worker `worker` of `count`."""
+    return {"PYTEST_XDIST_WORKER": worker, "PYTEST_XDIST_WORKER_COUNT": str(count)}
+
+
+def test_worker_block_is_the_whole_range_outside_xdist() -> None:
+    """A process `pytest-xdist` did not start draws from all of `_PORTS`."""
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    assert node_module._worker_block({}) == node_module._PORTS
+
+
+def test_worker_blocks_are_disjoint_slices_of_the_range() -> None:
+    """No two workers of one run share a port, and none leaves `_PORTS`."""
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    blocks = [node_module._worker_block(_xdist(f"gw{i}", 4)) for i in range(4)]
+    ports = [port for block in blocks for port in block]
+    assert len(set(ports)) == len(ports)
+    assert set(ports) <= set(node_module._PORTS)
+
+
+def test_worker_block_is_the_whole_range_for_an_id_naming_no_number() -> None:
+    """A worker named by `--tx popen//id=...` draws from all of `_PORTS`."""
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    assert node_module._worker_block(_xdist("custom", 4)) == node_module._PORTS
+
+
+def test_worker_block_of_a_restarted_worker_wraps_onto_the_count() -> None:
+    """A worker numbered past the count takes the block its number wraps to."""
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    restarted = node_module._worker_block(_xdist("gw5", 4))
+    assert restarted == node_module._worker_block(_xdist("gw1", 4))
+
+
+class _HeldSocket:
+    """A `socket.socket` stand-in whose `bind` refuses every port in `held`."""
+
+    held: ClassVar[set[int]] = set()
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         del args, kwargs
-        self._port = -1  # not yet bound; not a member of the pool below
 
     def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc_info: object) -> None:
         del exc_info
-        self.close()
 
     def bind(self, address: tuple[str, int]) -> None:
-        del address
-        self._port = next(c for c in (0, 1) if c not in _RecyclingSocket._held)
-        _RecyclingSocket._held.add(self._port)
-
-    def getsockname(self) -> tuple[str, int]:
-        return ("127.0.0.1", self._port)
-
-    def close(self) -> None:
-        _RecyclingSocket._held.discard(self._port)
+        if address[1] in _HeldSocket.held:
+            raise OSError(errno.EADDRINUSE, "Address already in use")
 
 
-def test_free_ports_does_not_repeat_a_port_the_os_would_reissue(
-    monkeypatch: pytest.MonkeyPatch,
+@pytest.fixture
+def held_ports(monkeypatch: pytest.MonkeyPatch) -> set[int]:
+    """Replace `socket.socket` with `_HeldSocket`; return its `held` set."""
+    monkeypatch.setattr("socket.socket", _HeldSocket)
+    _HeldSocket.held.clear()
+    return _HeldSocket.held
+
+
+def test_port_cursor_skips_a_held_port_and_wraps_round(
+    held_ports: set[int], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Two ports drawn together never collide, even where two drawn apart do.
+    """A port whose probe bind fails is skipped; the walk wraps at the end."""
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    monkeypatch.setattr("secrets.randbelow", lambda n: n - 1)
+    held_ports.add(11)
+    cursor = node_module._PortCursor(range(10, 14))
+    assert cursor.take(3) == (13, 10, 12)
+
+
+def test_port_cursor_does_not_repeat_across_calls(held_ports: set[int]) -> None:
+    """Two draws of one port each answer two ports, not the same one twice.
 
     [ISS 85](https://github.com/btclib-org/bitcoin-node-tests/issues/85)'s
-    own defect, reproduced under `_RecyclingSocket`'s tiny pool rather
-    than left to the real ephemeral range's own odds. Two sequential
-    `free_port` calls collide on port `0` every time here, its second
-    probe binding only after the first has already closed and freed it;
-    `free_ports(2)` holds both probes open until each is bound, so its
-    second one is forced onto port `1` instead.
+    own defect: two sequential `free_port` calls answering one port.
     """
-    monkeypatch.setattr("socket.socket", _RecyclingSocket)
-    _RecyclingSocket._held.clear()
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
 
-    sequential = (free_port(), free_port())
-    assert sequential == (0, 0)
+    del held_ports
+    cursor = node_module._PortCursor(range(10, 12))
+    assert cursor.take(1) != cursor.take(1)
 
-    _RecyclingSocket._held.clear()
-    together = free_ports(2)
-    assert together == (0, 1)
+
+def test_port_cursor_skips_a_port_a_socket_listens_on() -> None:
+    """A port an IPv4 socket listens on, as a node's does, fails the probe."""
+    import socket  # noqa: PLC0415
+
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    with socket.socket() as listener:
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen()
+        port = int(listener.getsockname()[1])
+        cursor = node_module._PortCursor(range(port, port + 1))
+        with pytest.raises(RuntimeError, match="0 of 1 ports free"):
+            cursor.take(1)
+
+
+def test_port_cursor_raises_where_a_lap_finds_too_few(held_ports: set[int]) -> None:
+    """One lap of the block is the whole search, held ports and all."""
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    cursor = node_module._PortCursor(range(10, 12))
+    with pytest.raises(RuntimeError, match="2 of 3 ports free"):
+        cursor.take(3)
+    held_ports.update({10, 11})
+    with pytest.raises(RuntimeError, match="0 of 1 ports free"):
+        cursor.take(1)
 
 
 def test_traced_transport_prints_the_call_and_forwards_the_answer(

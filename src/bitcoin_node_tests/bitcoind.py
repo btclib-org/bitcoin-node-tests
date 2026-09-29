@@ -491,9 +491,10 @@ class BitcoindAdapter(NodeAdapter):
         admits `127.0.0.0/8` and `::1` whatever `-rpcallowip` names.
         Core's own framework passes neither option (`util.py`'s
         `write_config`), its ports coming from `--portseed` (`util.py`'s
-        `p2p_port`) rather than from the OS, as `free_ports` (`node.py`)
-        takes them. `-bind` needs no such partner: `CConnman::InitBinds`
-        (`src/net.cpp`) fails init on any `-bind` address it cannot bind.
+        `p2p_port`) unprobed, where `free_ports` (`node.py`) binds each
+        once before handing it out. `-bind` needs no such partner:
+        `CConnman::InitBinds` (`src/net.cpp`) fails init on any `-bind`
+        address it cannot bind.
 
         `-chain` names the chain. On any chain but regtest, `-connect=0`,
         `-dnsseed=0` and `-fixedseeds=0` keep the node off the real

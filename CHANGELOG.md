@@ -1006,3 +1006,9 @@ Each transaction peer waits until `getrawmempool` lists what it sent, so a
 The mock server keeps listening when no connection arrives within a second of
 its start, so a `bitcoind` that reaches `-torcontrol` later than that is answered
 rather than left unread until the test's own timeout (closes #198).
+
+### `p2p_tx_download`'s racy rows read fail on btclib-node `main`
+
+The disconnect and `notfound` rows read fail on btclib-org/btclib-node#1196,
+whose race with Core's one-peer-asked read CI's runners usually lose, so the
+`btclib-node` `main` job stops reporting both as regressions (closes #274).

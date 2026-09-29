@@ -970,8 +970,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_ibd_stalling.py` (`manual`, log) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 | `p2p_private_broadcast.py` | [`ac6b6c1f06e9`](https://github.com/bitcoin/bitcoin/commit/ac6b6c1f06e9) | 2026-08-18 | pass, the refusals without `-privatebroadcast` and `attempts_remaining` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (private_broadcast) |
 | `p2p_tx_download.py` (expiry) | [`1278a5970d5a`](https://github.com/bitcoin/bitcoin/commit/1278a5970d5a) | 2026-08-06 | pass | skip (clock) |
-| `p2p_tx_download.py` (disconnect) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
-| `p2p_tx_download.py` (notfound) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_tx_download.py` (disconnect) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1196](https://github.com/btclib-org/btclib-node/issues/1196)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_tx_download.py` (notfound) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1196](https://github.com/btclib-org/btclib-node/issues/1196)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_tx_download.py` (tiebreak) | same | same | pass | skip (typed_outbound) |
 | `p2p_tx_download.py` (inbound) | same | same | pass | skip (clock) |
 | `p2p_tx_download.py` (outbound) | same | same | pass | skip (typed_outbound) |
@@ -3078,19 +3078,23 @@ pinned release does not, so the body reads the build's own
 `getnetworkinfo` `version` and asserts, on an older build, that each is
 processed.
 
-`btclib-node`'s cell on the disconnect, `notfound` and spurious-`notfound`
-rows is a counted skip on a build before
+`btclib-node`'s cell on the spurious-`notfound` row is a counted skip on a
+build before
 [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
-and a pass on one past it, and on the large-inv row a counted skip before
-it and a fail on
+and a pass on one past it; on the disconnect and `notfound` rows a counted
+skip before it and a fail on
+[ISS btclib-node#1196](https://github.com/btclib-org/btclib-node/issues/1196)
+past it, and on the large-inv row a counted skip before it and a fail on
 [ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)
 past it; every other row this file adds is a counted skip. A build that
 asks every announcer at once
 ([ISS btclib-node#1196](https://github.com/btclib-org/btclib-node/issues/1196))
 asks both peers of the disconnect and `notfound` checks for the
 transaction, and Core's check that one alone is asked reads the counts
-once one has been: it passes where the second request arrives after that
-read and fails where it arrives before.
+once one has been: it fails where the second request arrives before that
+read, which on `node-integration.yml`'s runners it usually does, and
+passes where it arrives after, a run
+`.github/scripts/btclib_node_verdict.py` then reports as **fixed**.
 
 `p2p_blocksonly.py` is ported on it too, each of Core's checks a wire
 half and a log half over a fresh node in

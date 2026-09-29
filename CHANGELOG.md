@@ -1018,3 +1018,9 @@ whose race with Core's one-peer-asked read CI's runners usually lose, so the
 Below the range Linux and macOS pick local ports from by default, one block per
 numbered `pytest-xdist -n` worker, so neither an outgoing connection nor another
 numbered worker started with it takes one before the node binds it (closes #192).
+
+### `rpc_dumptxoutset` is ported
+
+bitcoind's UTXO set dump is checked against what the same node reports rather
+than against Core's constant hashes, a dump at a forked height per build;
+btclib-node skips on the new `Capability.DUMP_UTXO_SET` (issue #14).

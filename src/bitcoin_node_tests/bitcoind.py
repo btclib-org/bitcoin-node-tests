@@ -330,6 +330,8 @@ class BitcoindAdapter(NodeAdapter):
     `mockscheduler` answers.
     `Capability.STARTUP_NOTIFY` is unconditional too: `-startupnotify` is
     this binary's own flag (`src/init.cpp`).
+    `Capability.DUMP_UTXO_SET` is unconditional too: `dumptxoutset` is
+    this binary's own RPC (`src/rpc/blockchain.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -397,6 +399,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.EXTERNAL_IP,
             Capability.PRIVATE_BROADCAST,
             Capability.STARTUP_NOTIFY,
+            Capability.DUMP_UTXO_SET,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

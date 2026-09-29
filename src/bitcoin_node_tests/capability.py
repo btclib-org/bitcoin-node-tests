@@ -442,6 +442,10 @@ class Capability(Enum):
     `STARTUP_NOTIFY` -- run a shell command a caller names once it has
     started, the way Core's own `-startupnotify` does
     (`feature_startupnotify.py`).
+    `DUMP_UTXO_SET` -- write its own UTXO set to a file a caller names, at
+    its tip or rolled back to an earlier block of its own chain, Core's
+    own `dumptxoutset` (`rpc_dumptxoutset.py`). Named for what it writes
+    rather than for the RPC's own spelling, as `SCAN_UTXO_SET` is.
     """
 
     MINE = "mine"
@@ -502,6 +506,7 @@ class Capability(Enum):
     EXTERNAL_IP = "external_ip"
     PRIVATE_BROADCAST = "private_broadcast"
     STARTUP_NOTIFY = "startup_notify"
+    DUMP_UTXO_SET = "dump_utxo_set"
 
 
 class SkipCounts:

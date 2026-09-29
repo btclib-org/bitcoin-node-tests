@@ -1048,3 +1048,9 @@ and refuses a `-port` of `65536` or `0`; btclib-node skips on the new
 Each thread calling a node keeps one connection to it until `stop`, rather than
 one per call, each of which left a socket in `TIME_WAIT` on the node's port
 (closes #278).
+
+### `test_stop_terminates_without_waiting_on_a_call_in_flight` is deterministic
+
+The test server holds the in-flight call for twice the client's timeout rather
+than exactly as long, so a `stop` closing the connections before terminating the
+node fails the test every time instead of as a rule (closes #286).

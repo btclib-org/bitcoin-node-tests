@@ -156,12 +156,12 @@ repos:
   # repairs the very seam the third check exists to name, so a hook
   # reading the file after it would find nothing left to report.
   - repo: https://github.com/btclib-org/.github
-    rev: 93615580cdf8afb1b0a89bf38b707232d39a502a
+    rev: 1c3cb979a34a31b5cfa3b7abfc924e4962a2b963
     hooks:
       - id: check-changelog
         args: [--grandfathered, "0"]
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.23.2
+    rev: v0.23.3
     hooks:
       - id: markdownlint-cli2
         name: markdownlint-cli2 (in place fixes)
@@ -192,7 +192,7 @@ repos:
         types: [markdown]
         exclude: ^CHANGELOG\.md$
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.9.6
+    rev: v3.9.9
     hooks:
       - id: prettier
         name: prettier (yaml and jsonc, in place fixes)
@@ -216,7 +216,7 @@ repos:
         entry: '^(?=[ \t]*#).{80}\S*[ \t]'
         files: \.toml$
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.38.0
+    rev: 0.38.2
     hooks:
       - id: check-dependabot
       - id: check-readthedocs
@@ -225,7 +225,7 @@ repos:
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
     # not below actionlint 1.7.12: its list of runner labels is compiled
     # in, and 1.7.9 does not know macos-26-intel
-    rev: v1.7.12.24
+    rev: v1.7.12.25
     hooks:
       - id: actionlint
         name: actionlint (github workflows)
@@ -238,7 +238,7 @@ repos:
       - id: zizmor
         args: [--offline, --no-progress, --persona=auditor]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.7
+    rev: v0.16.9
     hooks:
       - id: ruff-check
         name: ruff check (in place fixes)
@@ -250,7 +250,7 @@ repos:
   # the signature declares. Scoped to bitcoin_node_tests, which is where
   # the contract has to be written down
   - repo: https://github.com/jsh9/pydoclint
-    rev: 0.9.1
+    rev: 0.10.1
     hooks:
       - id: pydoclint
         name: pydoclint (arguments and return values)
@@ -285,7 +285,7 @@ repos:
         pass_filenames: false
         require_serial: true
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.12.17
+    rev: 0.12.19
     hooks:
       # keep uv.lock in sync with pyproject.toml
       - id: uv-lock

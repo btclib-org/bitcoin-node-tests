@@ -24,10 +24,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, override
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient
-from bitcoin_core_rpc.transport import urlopen_transport
 
 from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import NodeAdapter, traced_transport
+from bitcoin_node_tests.node import NodeAdapter
 from bitcoin_node_tests.timeout_factor import rpc_client_timeout
 
 if TYPE_CHECKING:
@@ -586,19 +585,15 @@ class BitcoindAdapter(NodeAdapter):
         cookie at all, so nothing here can wait on a file that never
         appears -- the caller that put either flag on the command line is
         the one that already knows the credential to authenticate with.
-        `self._trace_rpc` (`--tracerpc`) wraps whichever transport that
-        choice builds in `traced_transport`'s own print, credential or
-        cookie alike. Either client bounds each call by
+        Either client is built over `NodeAdapter._rpc_transport`, this
+        adapter's own connections, `--tracerpc` included. Either bounds each
+        call by
         `timeout_factor.rpc_client_timeout`, read when the client is built,
         so `--timeout-factor` scales it as Core's own harness scales its RPC
         connection's.
         """
         url = f"http://127.0.0.1:{self._rpc_port}"
-        transport = (
-            traced_transport(urlopen_transport)
-            if self._trace_rpc
-            else urlopen_transport
-        )
+        transport = self._rpc_transport()
         timeout = rpc_client_timeout()
         if self._rpc_auth is not None:
             user, password = self._rpc_auth

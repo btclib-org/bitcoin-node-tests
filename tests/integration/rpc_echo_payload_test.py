@@ -20,10 +20,11 @@ A smaller claim than Core's own test, declared rather than silent: Core
 matches a refusal on its message, "Work queue depth exceeded" after the
 HTTP 503 status, where `bitcoin_core_rpc`'s own `HttpError` carries the
 status alone, the body of a non-JSON reply not being kept, so a refusal
-here is the 503 status. Each caller's client opens a connection per call
-rather than holding one open, `urlopen_transport` being the transport
-`BitcoindAdapter` builds; up to `_CALLERS` requests are still in
-flight at once, as in Core's own.
+here is the 503 status. Each caller keeps one connection of its own
+across its calls, the adapter holding one per thread (`node.py`'s
+`_ThreadSessions`) the way Core's own threads each hold the one
+`create_new_rpc_connection` gives them, so up to `_CALLERS` requests
+are in flight at once.
 
 `rpc_echo_payload_bitcoind_test.py` and
 `rpc_echo_payload_btclib_node_test.py` run it,

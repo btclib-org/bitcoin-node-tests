@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_orphan_handling`, a first batch, as bodies over either node.
+"""Core's `p2p_orphan_handling`, in part, as bodies over either node.
 
 Read from Core's `test/functional/p2p_orphan_handling.py` (`9cc7dc50bdc9`,
 2026-08-17): which peers a node asks for the missing parents of an
@@ -11,7 +11,17 @@ below is one of Core's `test_*` methods, a body over a fresh node:
 
 - a parent that arrives while the request for it waits is not asked
   for, and one that does not arrive is;
+- the child of a parent with no witness refused for its size is refused
+  too and its parents asked for by nobody, while a parent refused for
+  its fee, or with its witness stripped, is asked for again, the second
+  taken in under its witness;
+- a parent whose request is in flight, to another peer or for another
+  orphan, is not asked for again, the first until that request expires;
+- a parent kept as an orphan is not asked for by its orphan child;
 - an orphan is taken into the mempool once a block confirms its parent;
+- the descendants of a parent with no witness refused for its size are
+  refused too, and the child is not asked for again, as a missing parent
+  or announced by its txid;
 - a transaction sharing an orphan's txid and not its witness is kept
   beside it, and the one whose witness is valid is taken in once the
   parent arrives (`Capability.DEBUG_LOG` for the node's own
@@ -32,6 +42,12 @@ does, from the wall clock at its start, and mines its coins first
 (`Capability.MINE`, `mini_wallet.MiniWallet`), which also leaves initial
 block download, where a node ignores every transaction announced to it.
 
+Core builds a transaction with no witness, whose txid is its wtxid,
+with a `MiniWalletMode.RAW_P2PK` wallet: here `_p2pk_coins` mines
+coinbases paying `RAW_P2PK_SCRIPT_PUB_KEY` ahead of the wallet's own, so
+that they mature with its coins, and `raw_p2pk_script_sig`
+(`mini_wallet.py`) signs every spend of one.
+
 Core's `PeerTxRelayer` records each `getdata` from its framework's
 network thread, and its `P2PInterface` asks for whatever the node
 announces. Here `_Conn` does both on the test's own thread, where a
@@ -51,7 +67,18 @@ What differs from Core's file besides:
   `generateblock`; here `MiniWallet.generate` carries it;
 - Core's harness starts every node with a `peertimeout` (`write_config`,
   `test_framework/util.py`) and this port passes none: no body moves the
-  node's clock as far as `TIMEOUT_INTERVAL` (`src/net.h`).
+  node's clock as far as `TIMEOUT_INTERVAL` (`src/net.h`);
+- Core's `RAW_P2PK` wallet signs a transaction's first input alone, and
+  ahead of the output `target_vsize` pads it with; here every input is
+  signed, after that output, a padded transaction paying a satoshi more
+  fee for each signing retried to reach its size;
+- Core's inherit-rejection check hands `assert_never_requested` a hex
+  string where a requested hash is an integer, so none of those checks
+  can fail; here each reads the hash, once the node's clock has moved
+  past the delay a parent's request waits. The refused parent's check
+  reads the latest `getdata` its peer had, which names the child: that
+  peer was asked for the parent when it relayed it, under the wtxid that
+  is also its txid.
 
 An orphan is taken into the mempool once a block confirms its parent
 past the pinned release, from
@@ -64,10 +91,9 @@ between that change's merge and the version's move to `32.99` reads
 older and takes it in all the same, the constant's own comment having
 the commits.
 
-Core's other checks are not ported yet: those building a transaction
-with no witness (Core's `MiniWalletMode.RAW_P2PK`), the one resetting
-the node's filter of recently confirmed transactions through a reorg,
-and the one filling the orphanage with Core's `create_large_orphan`
+Core's other checks are not ported yet: the one resetting the node's
+filter of recently confirmed transactions through a reorg, and the one
+filling the orphanage with Core's `create_large_orphan`
 (`test_framework/mempool_util.py`).
 
 `p2p_orphan_handling_bitcoind_test.py` and
@@ -82,6 +108,7 @@ import time
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
+from btclib import var_int
 from btclib.p2p import (
     GetData,
     Inv,
@@ -92,13 +119,23 @@ from btclib.p2p import (
     TxPayload,
 )
 from btclib.p2p.magic import magic_from_chain
-from btclib.tx import OutPoint
+from btclib.script.script import serialize
+from btclib.script.script_pub_key import ScriptPubKey
+from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import MiniWallet, Utxo
+from bitcoin_node_tests.mini_wallet import (
+    DEFAULT_FEE_RATE,
+    FEE,
+    RAW_P2PK_SCRIPT_PUB_KEY,
+    MiniWallet,
+    Utxo,
+    build_next_block,
+    raw_p2pk_script_sig,
+)
 from bitcoin_node_tests.node import wait_until
 from bitcoin_node_tests.peer import Listener, Peer
 from bitcoin_node_tests.timeout_factor import scaled
@@ -109,7 +146,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from btclib.p2p import Message, Payload
-    from btclib.tx import Tx
 
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
@@ -117,12 +153,16 @@ if TYPE_CHECKING:
 
 __all__ = [
     "a_parent_gone_missing_is_requested",
+    "a_parent_kept_as_an_orphan_is_not_requested",
     "a_parent_of_the_same_txid_is_requested_again",
+    "a_rejected_parent_is_requested_only_under_another_witness",
     "an_inv_by_an_orphan_txid_is_requested",
     "an_orphan_is_reconsidered_once_its_parent_is_mined",
     "an_orphan_of_the_same_txid_is_kept_too",
     "an_outbound_announcer_is_asked_for_parents_first",
+    "descendants_of_a_rejected_parent_are_rejected_too",
     "every_announcer_is_asked_for_parents",
+    "parents_already_requested_are_not_requested_again",
     "parents_arriving_during_the_delay_are_not_requested",
 ]
 
@@ -148,6 +188,21 @@ _PARENT_REQUESTS_WAIT = 10.0
 
 # Core's own `FEE_INCREMENT` (`p2p_orphan_handling.py`), in satoshis
 _FEE_INCREMENT = 2400
+
+# Core's own `MAX_STANDARD_TX_WEIGHT` (`test_framework/blocktools.py`)
+_MAX_STANDARD_TX_WEIGHT = 400_000
+
+# a virtual size one past what `_MAX_STANDARD_TX_WEIGHT` admits, Core's own
+# `target_vsize=int(MAX_STANDARD_TX_WEIGHT / 4) + 1`
+_OVERLY_LARGE_VSIZE = _MAX_STANDARD_TX_WEIGHT // 4 + 1
+
+# Core's own virtual size of a `RAW_P2PK` self-transfer, which its
+# `create_self_transfer` (`wallet.py`) prices the fee at
+_P2PK_VSIZE = 168
+
+# how many signings `_p2pk_tx` tries before it raises rather than keeps
+# looking for one whose size matches `target_vsize`
+_SIGNING_ATTEMPTS = 64
 
 # Core's own `CLIENT_VERSION` (`src/clientversion.h`), the running build's
 # own `getnetworkinfo` `version`, at or past which an orphan is taken into
@@ -330,12 +385,11 @@ def _outbound(stack: ExitStack, node: NodeAdapter) -> _Conn:
     return conn
 
 
-def _node(
-    cluster: _Cluster, skip_counts: SkipCounts, coins: int, *capabilities: Capability
-) -> tuple[NodeAdapter, MiniWallet, _Clock]:
-    """Return a fresh node, a wallet holding `coins` coins, and its clock.
+def _fresh_node(
+    cluster: _Cluster, skip_counts: SkipCounts, *capabilities: Capability
+) -> NodeAdapter:
+    """Return a fresh node, every capability the body asks for declared.
 
-    :param coins: the matured coins the body spends.
     :param capabilities: what the body asks for besides `Capability.CLOCK`
         and `Capability.MINE`, asked for after `Capability.ORPHANAGE`.
     """
@@ -344,9 +398,124 @@ def _node(
         require(capability, node.capabilities, skip_counts)
     require(Capability.CLOCK, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)
+    return node
+
+
+def _wallet(node: NodeAdapter, coins: int) -> tuple[MiniWallet, _Clock]:
+    """Return a wallet holding `coins` matured coins, and the node's clock.
+
+    Every coinbase mined ahead of this call matures with them.
+    """
     wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + coins)
-    return node, wallet, _Clock(node)
+    return wallet, _Clock(node)
+
+
+def _node(
+    cluster: _Cluster, skip_counts: SkipCounts, coins: int, *capabilities: Capability
+) -> tuple[NodeAdapter, MiniWallet, _Clock]:
+    """Return a fresh node, a wallet holding `coins` coins, and its clock.
+
+    :param coins: the matured coins the body spends.
+    :param capabilities: `_fresh_node`'s own.
+    """
+    node = _fresh_node(cluster, skip_counts, *capabilities)
+    return node, *_wallet(node, coins)
+
+
+def _p2pk_coins(node: NodeAdapter, count: int) -> list[Utxo]:
+    """Return `count` coins spent with no witness, mined on the node's tip.
+
+    Core's own `generate(self.wallet_nonsegwit, count)`: `count` blocks,
+    each built by `build_next_block` and submitted, whose coinbase pays
+    `RAW_P2PK_SCRIPT_PUB_KEY`. Each coin is that coinbase's own output, a
+    `Utxo` that `raw_p2pk_script_sig` spends rather than `MiniWallet`,
+    immature until `_wallet` mines past it.
+
+    :raises TypeError: `submitblock` answered anything but acceptance.
+    """
+    coins = []
+    for _ in range(count):
+        block = build_next_block(node, RAW_P2PK_SCRIPT_PUB_KEY)
+        answer = node.rpc.call(
+            "submitblock", [block.serialize(check_validity=False).hex()]
+        )
+        if answer is not None:
+            err_msg = f"submitblock refused a coinbase paying P2PK: {answer!r}"
+            raise TypeError(err_msg)
+        coinbase = block.transactions[0]
+        height = node.rpc.call("getblockcount")
+        coins.append(
+            Utxo(OutPoint(coinbase.id, 0), coinbase.vout[0].value, height, True)
+        )
+    return coins
+
+
+def _p2pk_tx(coins: Sequence[Utxo], fee: int, target_vsize: int) -> Tx:
+    """Return a signed tx spending `coins` into one `RAW_P2PK` output.
+
+    Core's own `create_self_transfer_multi` in `RAW_P2PK` mode
+    (`wallet.py`), paying `fee` and padded, where `target_vsize` is
+    nonzero, by an `OP_RETURN` output of `OP_1` opcodes to exactly that
+    many virtual bytes, as Core's own `bulk_vout`
+    (`test_framework/script_util.py`) pads it. Every input is signed after
+    the padding, which is sized for the signatures of the attempt before.
+    A signature's length moves with what it signs, and btclib's nonce is
+    deterministic, so each padding after the first also takes one more
+    satoshi off the output, for a different transaction to sign, where
+    Core's own `sign_tx` draws a random nonce until the length is fixed.
+
+    :raises RuntimeError: no attempt within `_SIGNING_ATTEMPTS` reached
+        `target_vsize`.
+    """
+    value = sum(coin.value for coin in coins) - fee
+    tx = Tx(
+        version=2,
+        lock_time=0,
+        vin=[TxIn(coin.outpoint) for coin in coins],
+        vout=[TxOut(value, RAW_P2PK_SCRIPT_PUB_KEY)],
+        check_validity=False,
+    )
+    for attempt in range(_SIGNING_ATTEMPTS):
+        for vin_i, tx_in in enumerate(tx.vin):
+            tx_in.script_sig = raw_p2pk_script_sig(tx, vin_i)
+        if not target_vsize or tx.vsize == target_vsize:
+            return tx
+        # the padding output: its value, its script's length prefix, and
+        # the `OP_RETURN` opcode leave the rest to `OP_1` opcodes
+        del tx.vout[1:]
+        deficit = target_vsize - tx.vsize - 8
+        length = next(
+            deficit - size
+            for size in (1, 3, 5)
+            if len(var_int.serialize(deficit - size)) == size
+        )
+        padding = serialize(["OP_RETURN", *(["OP_1"] * (length - 1))])
+        tx.vout[0] = TxOut(value - attempt, RAW_P2PK_SCRIPT_PUB_KEY)
+        tx.vout.append(TxOut(0, ScriptPubKey(padding, check_validity=False)))
+    err_msg = f"no signature reached target_vsize {target_vsize}"
+    raise RuntimeError(err_msg)
+
+
+def _p2pk_self_transfer(coin: Utxo, *, target_vsize: int = 0) -> Tx:
+    """Core's own `create_self_transfer` of its `RAW_P2PK` wallet.
+
+    Its fee: `DEFAULT_FEE_RATE` over Core's own `RAW_P2PK` virtual size,
+    or over `target_vsize` where nonzero, rounded up, plus a satoshi for
+    each signing `_p2pk_tx` retries to reach that size.
+    """
+    fee = -(-DEFAULT_FEE_RATE * (target_vsize or _P2PK_VSIZE) // 1000)
+    return _p2pk_tx([coin], fee, target_vsize)
+
+
+def _p2pk_self_transfer_multi(coins: Sequence[Utxo]) -> Tx:
+    """Core's own `create_self_transfer_multi` of its `RAW_P2PK` wallet."""
+    return _p2pk_tx(coins, FEE, 0)
+
+
+def _p2pk_new_utxo(tx: Tx) -> Utxo:
+    """Core's own `new_utxo` of a `RAW_P2PK` transfer: its first output."""
+    return Utxo(OutPoint(tx.id, 0), tx.vout[0].value, 0, False)
 
 
 def _orphans(node: NodeAdapter) -> list[dict[str, object]]:
@@ -457,6 +626,186 @@ def parents_arriving_during_the_delay_are_not_requested(
         peer_spy.assert_never_requested(tx_parent_arrives.id)
 
 
+def a_rejected_parent_is_requested_only_under_another_witness(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_orphan_rejected_parents_exceptions`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node = _fresh_node(cluster, skip_counts)
+    coin_overly_large, coin_other = _p2pk_coins(node, 2)
+    wallet, clock = _wallet(node, 2)
+    with ExitStack() as stack:
+        peer1 = _inbound(stack, node)
+        peer2 = _inbound(stack, node)
+
+        # a parent with no witness, refused for its size: its txid is its
+        # wtxid, and so is known to be invalid
+        parent_overly_large_nonsegwit = _p2pk_self_transfer(
+            coin_overly_large, target_vsize=_OVERLY_LARGE_VSIZE
+        )
+        assert parent_overly_large_nonsegwit.id == parent_overly_large_nonsegwit.hash
+        parent_other = _p2pk_self_transfer(coin_other)
+        child_nonsegwit = _p2pk_self_transfer_multi(
+            [
+                _p2pk_new_utxo(parent_other),
+                _p2pk_new_utxo(parent_overly_large_nonsegwit),
+            ]
+        )
+        _relay_transaction(peer1, clock, parent_overly_large_nonsegwit)
+        assert parent_overly_large_nonsegwit.id.hex() not in _mempool(node)
+
+        # its child is refused, not kept, its parents asked of nobody
+        _relay_transaction(peer2, clock, child_nonsegwit)
+        assert child_nonsegwit.id.hex() not in _mempool(node)
+        assert not in_orphanage(node, child_nonsegwit)
+        clock.bump(_GETDATA_TX_INTERVAL)
+        peer1.assert_never_requested(parent_other.id)
+        peer2.assert_never_requested(parent_other.id)
+        peer2.assert_never_requested(parent_overly_large_nonsegwit.id)
+
+        # a parent refused for its fee, which its txid does not commit to
+        parent_low_fee = wallet.create_self_transfer(fee_rate=0)
+        child_low_fee = wallet.create_self_transfer(
+            utxo_to_spend=_new_utxo(wallet, parent_low_fee)
+        )
+        _relay_transaction(peer1, clock, parent_low_fee)
+        assert parent_low_fee.id.hex() not in _mempool(node)
+
+        # its child is kept, and the parent asked for by txid
+        _relay_transaction(peer2, clock, child_low_fee)
+        assert child_low_fee.id.hex() not in _mempool(node)
+        assert in_orphanage(node, child_low_fee)
+        clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY)
+        peer2.wait_for_getdata([parent_low_fee.id])
+
+        # a parent refused with its witness stripped, which its txid does
+        # not commit to either
+        parent_normal = wallet.create_self_transfer()
+        parent1_witness_stripped = Tx.parse(
+            parent_normal.serialize(include_witness=False), check_validity=False
+        )
+        child_invalid_witness = wallet.create_self_transfer(
+            utxo_to_spend=_new_utxo(wallet, parent_normal)
+        )
+        _relay_transaction(peer1, clock, parent1_witness_stripped)
+        assert parent1_witness_stripped.id == parent_normal.id
+        assert parent1_witness_stripped.id.hex() not in _mempool(node)
+
+        # its child is kept, and the parent asked for by txid
+        _relay_transaction(peer2, clock, child_invalid_witness)
+        assert child_invalid_witness.id.hex() not in _mempool(node)
+        assert in_orphanage(node, child_invalid_witness)
+        clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY)
+        peer2.wait_for_getdata([parent_normal.id])
+
+        # the parent with its witness is taken in, and its child with it
+        _relay_transaction(peer1, clock, parent_normal)
+        assert set(_mempool(node)) == {
+            parent_normal.id.hex(),
+            child_invalid_witness.id.hex(),
+        }
+
+
+def parents_already_requested_are_not_requested_again(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_orphans_overlapping_parents`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node = _fresh_node(cluster, skip_counts)
+    confirmed_utxos = _p2pk_coins(node, 4)
+    _, clock = _wallet(node, 0)
+    # a parent of `child_a` alone, of both children, and of `child_b` alone
+    missing_parent_a = _p2pk_self_transfer(confirmed_utxos[0])
+    missing_parent_ab = _p2pk_self_transfer(confirmed_utxos[1])
+    inflight_parent_ab = _p2pk_self_transfer(confirmed_utxos[2])
+    missing_parent_b = _p2pk_self_transfer(confirmed_utxos[3])
+    child_a = _p2pk_self_transfer_multi(
+        [
+            _p2pk_new_utxo(missing_parent_a),
+            _p2pk_new_utxo(missing_parent_ab),
+            _p2pk_new_utxo(inflight_parent_ab),
+        ]
+    )
+    child_b = _p2pk_self_transfer_multi(
+        [
+            _p2pk_new_utxo(missing_parent_b),
+            _p2pk_new_utxo(missing_parent_ab),
+            _p2pk_new_utxo(inflight_parent_ab),
+        ]
+    )
+    # the missing input and the request in flight name one transaction only
+    # where its txid is its wtxid
+    assert inflight_parent_ab.id == inflight_parent_ab.hash
+    with ExitStack() as stack:
+        peer_txrequest = _inbound(stack, node)
+        peer_orphans = _inbound(stack, node)
+
+        # `inflight_parent_ab` is announced and asked for
+        peer_txrequest.send_and_ping(
+            _inv(InventoryType.MSG_WTX, inflight_parent_ab.hash)
+        )
+        clock.bump(_NONPREF_PEER_TX_DELAY)
+        peer_txrequest.wait_for_getdata([inflight_parent_ab.hash])
+
+        # a parent whose request is in flight is not asked for again
+        _relay_transaction(peer_orphans, clock, child_a)
+        clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY)
+        assert in_orphanage(node, child_a)
+        peer_orphans.wait_for_parent_requests(
+            [missing_parent_a.id, missing_parent_ab.id]
+        )
+
+        # nor is one whose request for another orphan is in flight
+        _relay_transaction(peer_orphans, clock, child_b)
+        clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY)
+        assert in_orphanage(node, child_b)
+        peer_orphans.wait_for_parent_requests([missing_parent_b.id])
+        peer_orphans.assert_never_requested(inflight_parent_ab.id)
+
+        # until the first request expires unanswered
+        clock.bump(_GETDATA_TX_INTERVAL)
+        peer_orphans.wait_for_parent_requests([inflight_parent_ab.id])
+
+
+def a_parent_kept_as_an_orphan_is_not_requested(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_orphan_of_orphan`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node = _fresh_node(cluster, skip_counts)
+    coin_grandparent, coin_parent = _p2pk_coins(node, 2)
+    _, clock = _wallet(node, 0)
+    missing_grandparent = _p2pk_self_transfer(coin_grandparent)
+    missing_parent_orphan = _p2pk_self_transfer(_p2pk_new_utxo(missing_grandparent))
+    missing_parent = _p2pk_self_transfer(coin_parent)
+    orphan = _p2pk_self_transfer_multi(
+        [_p2pk_new_utxo(missing_parent), _p2pk_new_utxo(missing_parent_orphan)]
+    )
+    with ExitStack() as stack:
+        peer = _inbound(stack, node)
+
+        # a parent is kept as an orphan, and its own parent asked for
+        _relay_transaction(peer, clock, missing_parent_orphan)
+        clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY)
+        assert in_orphanage(node, missing_parent_orphan)
+        peer.wait_for_parent_requests([missing_grandparent.id])
+
+        # its child is kept, and asked only for the parent the node lacks
+        _relay_transaction(peer, clock, orphan)
+        clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY)
+        assert in_orphanage(node, orphan)
+        peer.wait_for_parent_requests([missing_parent.id])
+
+
 def an_orphan_is_reconsidered_once_its_parent_is_mined(
     cluster: _Cluster, skip_counts: SkipCounts
 ) -> None:
@@ -486,6 +835,61 @@ def an_orphan_is_reconsidered_once_its_parent_is_mined(
             peer.sync_with_ping()
             assert child.id.hex() not in _mempool(node)
             assert in_orphanage(node, child)
+
+
+def descendants_of_a_rejected_parent_are_rejected_too(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_orphan_inherit_rejection`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    """
+    node = _fresh_node(cluster, skip_counts)
+    (coin,) = _p2pk_coins(node, 1)
+    wallet, clock = _wallet(node, 0)
+    # a parent with no witness, refused for its size, and two descendants
+    # that have one
+    parent_overly_large_nonsegwit = _p2pk_self_transfer(
+        coin, target_vsize=_OVERLY_LARGE_VSIZE
+    )
+    assert parent_overly_large_nonsegwit.id == parent_overly_large_nonsegwit.hash
+    child = wallet.create_self_transfer(
+        utxo_to_spend=_p2pk_new_utxo(parent_overly_large_nonsegwit)
+    )
+    grandchild = wallet.create_self_transfer(utxo_to_spend=_new_utxo(wallet, child))
+    assert child.id != child.hash
+    assert grandchild.id != grandchild.hash
+    with ExitStack() as stack:
+        peer1 = _inbound(stack, node)
+        peer2 = _inbound(stack, node)
+        # announcing by txid
+        peer3 = _inbound(stack, node, wtxidrelay=False)
+
+        _relay_transaction(peer1, clock, parent_overly_large_nonsegwit)
+        assert parent_overly_large_nonsegwit.id.hex() not in _mempool(node)
+
+        # the child is refused, not kept, and its parent not asked for
+        # again once an orphan's would be
+        _relay_transaction(peer1, clock, child)
+        assert len(_mempool(node)) == 0
+        assert not in_orphanage(node, child)
+        clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY)
+        peer1.sync_with_ping()
+        assert [item.hash for item in peer1.last_getdata] == [child.hash]
+
+        # the grandchild is refused too, its parent asked for by neither hash
+        _relay_transaction(peer2, clock, grandchild)
+        assert len(_mempool(node)) == 0
+        assert not in_orphanage(node, grandchild)
+        clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY)
+        peer2.assert_never_requested(child.id)
+        peer2.assert_never_requested(child.hash)
+
+        # the child is not asked for by txid, whatever witness it might carry
+        peer3.send_and_ping(_inv(InventoryType.MSG_TX, child.id))
+        clock.bump(_TXREQUEST_TIME_SKIP)
+        peer3.assert_never_requested(child.id)
 
 
 def an_orphan_of_the_same_txid_is_kept_too(

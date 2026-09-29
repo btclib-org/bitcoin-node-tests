@@ -587,8 +587,20 @@ _ROWS: dict[str, str] = {
     "p2p_orphan_handling::test_parents_arriving_during_the_delay_are_not_requested": (
         "`p2p_orphan_handling.py` (arrival timing)"
     ),
+    "p2p_orphan_handling::test_a_rejected_parent_is_requested_only_under_another_witness": (
+        "`p2p_orphan_handling.py` (rejected parents)"
+    ),
+    "p2p_orphan_handling::test_parents_already_requested_are_not_requested_again": (
+        "`p2p_orphan_handling.py` (overlapping parents)"
+    ),
+    "p2p_orphan_handling::test_a_parent_kept_as_an_orphan_is_not_requested": (
+        "`p2p_orphan_handling.py` (orphan of orphan)"
+    ),
     "p2p_orphan_handling::test_an_orphan_is_reconsidered_once_its_parent_is_mined": (
         "`p2p_orphan_handling.py` (parent confirmed)"
+    ),
+    "p2p_orphan_handling::test_descendants_of_a_rejected_parent_are_rejected_too": (
+        "`p2p_orphan_handling.py` (inherit rejection)"
     ),
     "p2p_orphan_handling::test_an_orphan_of_the_same_txid_is_kept_too": (
         "`p2p_orphan_handling.py` (same txid)"

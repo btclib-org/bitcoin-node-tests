@@ -1023,6 +1023,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_compactblocks.py` (ignored) | same | same | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mine) on the build; fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_startupnotify.py` | [`fa71c15f8610`](https://github.com/bitcoin/bitcoin/commit/fa71c15f8610) | 2025-11-26 | pass | skip (startup_notify) |
 | `rpc_dumptxoutset.py` | [`58eeab790d98`](https://github.com/bitcoin/bitcoin/commit/58eeab790d98) | 2026-05-13 | pass, the dump at a forked height asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (dump_utxo_set) |
+| `feature_loadblock.py` | [`fa4fc8c1d7b5`](https://github.com/bitcoin/bitcoin/commit/fa4fc8c1d7b5) | 2026-05-22 | pass | skip (load_block) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2457,6 +2458,22 @@ else differs from Core's file. The `btclib-node` cell is a counted skip
 on `Capability.DUMP_UTXO_SET`: no source file names `dumptxoutset` on
 either build
 ([ISS btclib-node#1471](https://github.com/btclib-org/btclib-node/issues/1471)).
+
+`feature_loadblock.py` is ISS 14's too, the option and the disk
+together, as
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags it; its test takes its nodes from the cluster fixture. It is
+Core's own claim: a node restarted with `-loadblock` naming a file of
+the first node's chain reaches that node's height and best block.
+Core writes the file with `contrib/linearize/`'s own scripts, which are
+Core's source tree rather than the release, as `tool_utxo_to_sqlite.py`
+below has it; so the test writes the file itself, in the format
+`linearize-data.py` writes, from the blocks `getblock` serializes.
+`tests/integration/feature_loadblock_test.py`'s own docstring has what
+else differs from Core's file. The `btclib-node` cell is a counted skip
+on `Capability.LOAD_BLOCK`: no source file names `loadblock` on either
+build, reading Core's block files being left out by decision
+([ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

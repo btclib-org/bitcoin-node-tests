@@ -269,6 +269,12 @@ and at `main` (`d4559960`) alike
 names `dumptxoutset`, measured at the released `2026.9.24` (`422d2640`)
 and at `main` (`ecb9b190`) alike
 ([ISS btclib-node#1471](https://github.com/btclib-org/btclib-node/issues/1471)).
+
+`Capability.LOAD_BLOCK` is never declared either: no source file
+names `loadblock`, measured at the released `2026.9.24` (`422d2640`)
+and at `main` (`ecb9b190`) alike. Reading Core's block files is left
+out by decision, the node taking the same blocks over p2p
+([ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)).
 """
 
 from __future__ import annotations

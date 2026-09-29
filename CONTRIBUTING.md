@@ -467,7 +467,7 @@ suite has nothing under.
 | `--tmpdir` | pytest's own `--basetemp=<dir>` |
 | `-l`, `--loglevel` | -- (no central logger to set a level on) |
 | `--tracerpc` | `--tracerpc`, `tests/integration/conftest.py` |
-| `--portseed` | -- (`node.free_port` asks the OS, never a seed) |
+| `--portseed` | -- (`node.free_ports`: one block per `pytest-xdist` worker) |
 | `--previous-releases` | -- (no previous-release binaries mechanism) |
 | `--coveragedir` | -- (no RPC-coverage instrumentation) |
 | `--configfile` | -- (`bitcoind.py`'s `_has_wallet` probes the binary) |

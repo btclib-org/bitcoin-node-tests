@@ -1012,3 +1012,9 @@ rather than left unread until the test's own timeout (closes #198).
 The disconnect and `notfound` rows read fail on btclib-org/btclib-node#1196,
 whose race with Core's one-peer-asked read CI's runners usually lose, so the
 `btclib-node` `main` job stops reporting both as regressions (closes #274).
+
+### `free_ports` draws below the kernel's ephemeral range, one block per worker
+
+Below the range Linux and macOS pick local ports from by default, one block per
+numbered `pytest-xdist -n` worker, so neither an outgoing connection nor another
+numbered worker started with it takes one before the node binds it (closes #192).

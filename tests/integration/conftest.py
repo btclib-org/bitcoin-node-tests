@@ -395,9 +395,8 @@ def mixed_cluster(
 
     Both adapters are constructed, and so both draw their ports, before
     either starts -- unlike `bitcoind_cluster`'s own loop, which starts
-    each node before the next one draws its ports. `free_ports` reserves
-    all four here in one call rather than as two pairs, which is what
-    keeps this node's ports from landing on the other's.
+    each node before the next one draws its ports. All four come from
+    one `free_ports` call.
     """
     rpc_port1, p2p_port1, rpc_port2, p2p_port2 = free_ports(4)
     bitcoind = make_adapter(

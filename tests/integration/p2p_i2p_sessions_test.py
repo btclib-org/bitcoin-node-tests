@@ -22,8 +22,8 @@ polled for longer finds the line whether or not the dial wrote it.
 
 Nothing listens at the `-i2psam` endpoint, which is what Core's file
 assumes of its own. Core names a fixed port, `60000`; the endpoint here
-is a port `node.free_port` has the OS hand out, bound and closed, and
-both nodes are given it, as Core gives both its own.
+is a port `node.free_port` hands out, bound and closed, and both nodes
+are given it, as Core gives both its own.
 
 Core's two nodes are not linked to each other here, where Core's
 `setup_network` links them: neither step reads the other node.

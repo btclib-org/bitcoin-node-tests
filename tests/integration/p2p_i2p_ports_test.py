@@ -15,8 +15,8 @@ Core's own `i2p` line out of the node's debug log, so the test asks for
 
 Nothing listens at the `-i2psam` endpoint, which is what Core's file
 assumes of its own. Core names a port by formula, the p2p port of a node
-its file never starts; the endpoint here is a port `node.free_port` has
-the OS hand out, bound and closed.
+its file never starts; the endpoint here is a port `node.free_port`
+hands out, bound and closed.
 
 `p2p_i2p_ports_bitcoind_test.py` and `p2p_i2p_ports_btclib_node_test.py`
 run it, `tests/integration/conftest.py`'s own module docstring having

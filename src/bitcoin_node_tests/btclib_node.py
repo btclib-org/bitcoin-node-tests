@@ -292,11 +292,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, override
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient
-from bitcoin_core_rpc.transport import urlopen_transport
 
 from bitcoin_node_tests.capability import Capability
 from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import NodeAdapter, traced_transport, wait_until
+from bitcoin_node_tests.node import NodeAdapter, wait_until
 from bitcoin_node_tests.timeout_factor import rpc_client_timeout
 
 if TYPE_CHECKING:
@@ -639,18 +638,14 @@ class BtclibNodeAdapter(NodeAdapter):
         `_writes_auth_cookie` finds the build writes one, in `_chain_dir`.
         A build with no
         Core-style RPC authentication at all is given the placeholder
-        credential instead, which it never checks. `self._trace_rpc`
-        (`--tracerpc`) decides whether either path wraps its transport in
-        `traced_transport`'s own print, matching `BitcoindAdapter`. Every
-        path bounds each call by `timeout_factor.rpc_client_timeout`, read
-        when the client is built, matching `BitcoindAdapter` too.
+        credential instead, which it never checks. Every path builds its
+        client over `NodeAdapter._rpc_transport`, this adapter's own
+        connections, `--tracerpc` included, and bounds each call by
+        `timeout_factor.rpc_client_timeout`, read when the client is built,
+        matching `BitcoindAdapter`.
         """
         url = f"http://127.0.0.1:{self._rpc_port}"
-        transport = (
-            traced_transport(urlopen_transport)
-            if self._trace_rpc
-            else urlopen_transport
-        )
+        transport = self._rpc_transport()
         timeout = rpc_client_timeout()
         if self._rpc_auth is not None:
             user, password = self._rpc_auth

@@ -1042,3 +1042,9 @@ again for one refused for its fee or witness; btclib-node skips (issue #44).
 bitcoind listens where `-port` and `-bind` say, read off its `Bound to` lines,
 and refuses a `-port` of `65536` or `0`; btclib-node skips on the new
 `Capability.LISTEN_ADDRESS` (issue #14).
+
+### An adapter keeps its RPC connections open across calls
+
+Each thread calling a node keeps one connection to it until `stop`, rather than
+one per call, each of which left a socket in `TIME_WAIT` on the node's port
+(closes #278).

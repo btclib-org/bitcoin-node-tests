@@ -24,6 +24,7 @@ import secrets
 import socket
 import subprocess
 import tempfile
+import threading
 import time
 from abc import ABC, abstractmethod
 from collections import Counter
@@ -34,7 +35,7 @@ from typing import TYPE_CHECKING, NamedTuple, Protocol
 from urllib.request import Request
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient, HttpError, RpcError, RPCErrorCode
-from bitcoin_core_rpc.transport import HttpTransport
+from bitcoin_core_rpc.transport import HttpTransport, SessionTransport
 
 from bitcoin_node_tests.timeout_factor import scaled
 
@@ -200,9 +201,8 @@ def traced_transport(transport: HttpTransport) -> HttpTransport:
     already-built `Request` and a timeout answered with a status and a
     body, so tracing needs no change to the client itself.
 
-    :param transport: the transport to wrap, `urlopen_transport`
-        (`bitcoin_core_rpc.transport`) unless a caller already passed
-        something else.
+    :param transport: the transport to wrap, an adapter's own
+        `_ThreadSessions` where `NodeAdapter._rpc_transport` is what asks.
     """
 
     def _traced(request: Request, timeout: float) -> tuple[int, bytes]:
@@ -212,6 +212,56 @@ def traced_transport(transport: HttpTransport) -> HttpTransport:
         return status, body
 
     return _traced
+
+
+class _ThreadSessions:
+    """An `HttpTransport` keeping one `SessionTransport` per calling thread.
+
+    `bitcoin_core_rpc.transport.urlopen_transport` opens a connection per
+    call and the node closes it, leaving one socket in `TIME_WAIT` on the
+    node's port per call
+    ([ISS 278](https://github.com/btclib-org/bitcoin-node-tests/issues/278));
+    a `SessionTransport` keeps one open across calls instead.
+
+    One per thread rather than one for the adapter: a `SessionTransport`
+    serializes every call made through it under one lock, so threads
+    sharing one would never have two calls in flight at once, which is
+    the subject of `rpc_echo_payload_test.py`, whose callers have to fill
+    the node's own work queue. Which thread's is looked up on each call,
+    not when a client is built, so a client built in one thread and
+    called from another still uses the caller's.
+
+    `close` closes every connection each of them holds, and leaves each
+    usable: the next call opens a connection afresh.
+
+    :param factory: what builds each thread's `SessionTransport`, the
+        seam a test replaces.
+    """
+
+    def __init__(
+        self, factory: Callable[[], SessionTransport] = SessionTransport
+    ) -> None:
+        self._factory = factory
+        self._local = threading.local()
+        self._lock = threading.Lock()
+        self._sessions: list[SessionTransport] = []
+
+    def __call__(self, request: Request, timeout: float) -> tuple[int, bytes]:
+        """Send `request` over the calling thread's own `SessionTransport`."""
+        session: SessionTransport | None = getattr(self._local, "session", None)
+        if session is None:
+            session = self._factory()
+            self._local.session = session
+            with self._lock:
+                self._sessions.append(session)
+        return session(request, timeout)
+
+    def close(self) -> None:
+        """Close every connection any thread's `SessionTransport` holds."""
+        with self._lock:
+            sessions = list(self._sessions)
+        for session in sessions:
+            session.close()
 
 
 class _RpcProbe(Protocol):
@@ -482,11 +532,15 @@ class NodeAdapter(ABC):
     it was chosen.
 
     `trace_rpc` is Core's own `--tracerpc`, restated per adapter rather
-    than as a global: a subclass's own `_rpc_client` reads
-    `self._trace_rpc` and wraps the transport it builds with
-    `traced_transport` where it is set, wrapping whichever client that
-    method already builds -- `rpc_auth`'s credential one included --
-    rather than this base class building the client itself.
+    than as a global: `_rpc_transport` wraps this adapter's transport in
+    `traced_transport` where it is set, so whichever client a subclass's
+    own `_rpc_client` builds over it -- `rpc_auth`'s credential one
+    included -- prints, rather than this base class building the client
+    itself.
+
+    The RPC connections are this adapter's, kept across calls and closed
+    by `stop` (`_ThreadSessions`), so a restarted node is never asked
+    over a connection its previous process accepted.
 
     `chain` is the chain the node runs, in Core's own `-chain=` vocabulary
     (`main`, `test`, `testnet4`, `signet`, `regtest`), `regtest` where a
@@ -529,6 +583,7 @@ class NodeAdapter(ABC):
         self._rpc_auth = rpc_auth
         self._trace_rpc = trace_rpc
         self._running: _Running | None = None
+        self._sessions = _ThreadSessions()
 
     @abstractmethod
     def _command(self) -> list[str]:
@@ -538,9 +593,19 @@ class NodeAdapter(ABC):
     def _rpc_client(self) -> BitcoinCoreRpcClient:
         """Return a fresh RPC client for this node, however it authenticates.
 
-        `self._trace_rpc` is what a subclass's own implementation wraps
-        the transport it builds with, through `traced_transport`.
+        Built over `_rpc_transport`, so every client of this adapter shares
+        its connections.
         """
+
+    def _rpc_transport(self) -> HttpTransport:
+        """Return the transport every RPC client of this adapter is built over.
+
+        This adapter's own `_ThreadSessions`, wrapped in `traced_transport`
+        where `trace_rpc` is set.
+        """
+        if self._trace_rpc:
+            return traced_transport(self._sessions)
+        return self._sessions
 
     def _log_path(self) -> Path | None:
         """Return the file this node logs to, or `None` where none is known.
@@ -563,13 +628,11 @@ class NodeAdapter(ABC):
 
     @property
     def rpc(self) -> BitcoinCoreRpcClient:
-        """Return a fresh RPC client for this node.
+        """Return a fresh RPC client for this node, over its kept connections.
 
-        Fresh rather than cached: `bitcoin_core_rpc.BitcoinCoreRpcClient`
-        holds no connection of its own to go stale across a `restart`,
-        and a cached instance built before the cookie file existed would
-        be one `stop`/`start` away from reading a credential this node no
-        longer recognises.
+        Each access builds a client of its own, so what one caller sets on
+        it reaches no other; the connection underneath is the adapter's,
+        one per calling thread, and `stop` closes it.
         """
         return self._rpc_client()
 
@@ -644,8 +707,11 @@ class NodeAdapter(ABC):
             )
         except BaseException:
             self._running = None
-            process.kill()
-            process.wait(timeout=scaled(_STARTUP_TIMEOUT))
+            try:
+                process.kill()
+                process.wait(timeout=scaled(_STARTUP_TIMEOUT))
+            finally:
+                self._sessions.close()
             raise
 
     def stop(self) -> None:
@@ -654,6 +720,12 @@ class NodeAdapter(ABC):
         A no-op where nothing was ever started, which is what lets a
         fixture's own teardown call this unconditionally rather than
         track whether `start` succeeded.
+
+        The adapter's RPC connections are closed once the process has
+        exited, whichever way this returns or raises: a call another
+        thread still has in flight holds its connection until the node
+        answers it or goes, so closing any earlier would wait on that
+        call rather than on the node.
 
         A process still running once the wait expires is killed rather
         than left behind holding its datadir and ports, then waited for
@@ -685,13 +757,40 @@ class NodeAdapter(ABC):
             already exited before this call, and what it wrote to stderr.
         """
         if self._running is None:
+            self._sessions.close()
             return
         (process, stderr_path), self._running = self._running, None
+        try:
+            exit_code, already_exited = self._terminate(process, stderr_path)
+        finally:
+            self._sessions.close()
+        if exit_code != _CLEAN_EXIT:
+            when = "before stop was called" if already_exited else "on terminate"
+            err_msg = (
+                f"node process exited with {exit_code} {when} -- "
+                f"stderr: {_read_output(stderr_path)}"
+            )
+            raise RuntimeError(err_msg)
+
+    @staticmethod
+    def _terminate(
+        process: subprocess.Popen[bytes], stderr_path: Path
+    ) -> tuple[int, bool]:
+        """Terminate `process` and wait for it, killing it if the wait expires.
+
+        :param process: the process `stop` ends.
+        :param stderr_path: where its stderr was redirected, read back into
+            the error raised on a kill.
+        :returns: the exit code, and whether the process had already exited
+            before this call.
+        :raises TimeoutError: the process ignored the termination for the
+            whole wait and was killed.
+        """
         already_exited = process.poll() is not None
         process.terminate()
         timeout = scaled(_STARTUP_TIMEOUT)
         try:
-            exit_code = process.wait(timeout=timeout)
+            return process.wait(timeout=timeout), already_exited
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait(timeout=timeout)
@@ -700,13 +799,6 @@ class NodeAdapter(ABC):
                 f"killed -- stderr: {_read_output(stderr_path)}"
             )
             raise TimeoutError(err_msg) from None
-        if exit_code != _CLEAN_EXIT:
-            when = "before stop was called" if already_exited else "on terminate"
-            err_msg = (
-                f"node process exited with {exit_code} {when} -- "
-                f"stderr: {_read_output(stderr_path)}"
-            )
-            raise RuntimeError(err_msg)
 
     def restart(self, extra_args: Sequence[str] | None = None) -> None:
         """Stop and start again, over the same data directory.

@@ -989,3 +989,8 @@ compact block from any other; bitcoind before `v32.0rc1` takes it (issue #44).
 A `behind` key with no value after it, the shape `trailing-whitespace` gives an
 empty `behind` line, is reported as a line present but empty where it read as no
 `behind` line at all (closes #184).
+
+### `feature_startupnotify` is ported
+
+bitcoind runs the `-startupnotify` command once per start; btclib-node skips
+on the new `Capability.STARTUP_NOTIFY` (issue #14).

@@ -681,6 +681,7 @@ _ROWS: dict[str, str] = {
         "`wallet_miniscript_decaying_multisig_descriptor_psbt.py`"
     ),
     "wallet_anchor": "`wallet_anchor.py`",
+    "feature_startupnotify": "`feature_startupnotify.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

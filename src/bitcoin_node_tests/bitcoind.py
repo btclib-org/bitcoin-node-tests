@@ -328,6 +328,8 @@ class BitcoindAdapter(NodeAdapter):
     `abortprivatebroadcast` (`src/rpc/mempool.cpp`) and `mockscheduler`
     (`src/rpc/node.cpp`), declared on regtest alone, where
     `mockscheduler` answers.
+    `Capability.STARTUP_NOTIFY` is unconditional too: `-startupnotify` is
+    this binary's own flag (`src/init.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -394,6 +396,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.KNOWN_ADDRESSES,
             Capability.EXTERNAL_IP,
             Capability.PRIVATE_BROADCAST,
+            Capability.STARTUP_NOTIFY,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

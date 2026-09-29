@@ -157,3 +157,42 @@ def test_an_empty_listing_names_the_branch_walked(
     assert "no commit on the default branch of" in checker._issue_body(
         ledger, [unnamed], []
     )
+
+
+@pytest.mark.parametrize(
+    "behind_line, reason",
+    [
+        ("", "no behind line at all"),
+        ("behind\n", "behind line present but empty"),
+        ("behind\npulled  2026-09-05\n", "behind line present but empty"),
+        ("behind  \n", "behind line present but empty"),
+        ("behind\t\n", "behind line present but empty"),
+        ("behind  1\n", "already documented as behind"),
+    ],
+)
+def test_a_behind_line_is_told_from_its_absence(
+    checker: ModuleType, behind_line: str, reason: str
+) -> None:
+    """A bare `behind` key is a line present but empty, not a missing one.
+
+    `trailing-whitespace` rewrites `behind` followed by blanks to the
+    bare key, so the bare key is the shape an empty line takes once
+    committed.
+    [ISS 184](https://github.com/btclib-org/bitcoin-node-tests/issues/184).
+    """
+    ledger = _LEDGER.replace("behind  0\n", behind_line)
+    assert checker._entries_at_tip(ledger) == ([], [f"`bignum.py` ({reason})"])
+
+
+def test_a_bare_key_reads_as_that_field_absent(checker: ModuleType) -> None:
+    """A bare `commit` or `ref` answers as an absent one does."""
+    bare_commit = _LEDGER.replace(f"commit  {_PIN}", "commit")
+    assert checker._entries_at_tip(bare_commit) == (
+        [],
+        ["`bignum.py` (no commit to check against)"],
+    )
+    bare_ref = _LEDGER.replace("behind", "ref\nbehind")
+    entries, skipped = checker._entries_at_tip(bare_ref)
+    assert skipped == []
+    assert [entry.ref for entry in entries] == [None]
+    assert [entry.commit for entry in entries] == [_PIN]

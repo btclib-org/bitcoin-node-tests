@@ -31,8 +31,12 @@ if TYPE_CHECKING:
 
     from bitcoin_node_tests.capability import Capability
 
-# how long a test waits for the server to see a connection end
+# how long a test waits on the server, and the client's own timeout
 _WAIT = 5.0
+
+# how long the server holds `block` without a `release`: past the client's
+# timeout, so that a call answered in time was answered because of `release`
+_HOLD = 2 * _WAIT
 
 # what `_HttpAdapter`'s client authenticates with, which `_Handler` never reads
 _CREDENTIAL = ("user", "pw")
@@ -46,9 +50,9 @@ class _Server(ThreadingHTTPServer):
     def __init__(self) -> None:
         super().__init__(("127.0.0.1", 0), _Handler)
         self.hang_up = False
-        # `block` is held until `release` is set, the way a node holds a
-        # `waitfornewblock` until something happens -- its own shutdown
-        # included -- and `blocked` says the request has arrived
+        # `block` is held until `release` is set, or for `_HOLD`, the way a
+        # node holds a `waitfornewblock` until something happens -- its own
+        # shutdown included -- and `blocked` says the request has arrived
         self.blocked = threading.Event()
         self.release = threading.Event()
         self._lock = threading.Condition()
@@ -104,7 +108,7 @@ class _Handler(BaseHTTPRequestHandler):
         method = request["method"]
         if method == "block":
             self._server.blocked.set()
-            self._server.release.wait(_WAIT)
+            self._server.release.wait(_HOLD)
         reply: dict[str, object] = {"jsonrpc": "2.0", "id": request["id"]}
         if method == "fail":
             status = 500
@@ -283,7 +287,8 @@ def test_stop_terminates_without_waiting_on_a_call_in_flight(
 
     The node answers the held call only once `terminate` reaches it, so a
     `stop` closing the connections before terminating would wait on that
-    call until the client's own timeout, and the call would end in it.
+    call until the client's own timeout, and the call would end in it: the
+    server holds the call past that timeout, so it cannot answer first.
     """
     process = _running()
     process.terminate.side_effect = server.release.set

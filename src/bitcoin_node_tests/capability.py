@@ -494,6 +494,10 @@ class Capability(Enum):
     output, its `gettxspendingprevout` with no index behind it
     (`mempool_packages.py`). Named for what it walks rather than for an
     RPC's own spelling, as `SCAN_UTXO_SET` is.
+    `ALERT_NOTIFY` -- run a shell command a caller names whenever it
+    raises an alert, the alert's message in place of the command's `%s`,
+    the way Core's own `-alertnotify` does
+    (`feature_versionbits_warning.py`).
     """
 
     MINE = "mine"
@@ -564,6 +568,7 @@ class Capability(Enum):
     CLUSTER_LINEARIZATION = "cluster_linearization"
     MINIMUM_CHAIN_WORK = "minimum_chain_work"
     MEMPOOL_GRAPH = "mempool_graph"
+    ALERT_NOTIFY = "alert_notify"
 
 
 class SkipCounts:

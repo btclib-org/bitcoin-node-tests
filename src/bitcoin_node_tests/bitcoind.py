@@ -359,6 +359,8 @@ class BitcoindAdapter(NodeAdapter):
     `gettxspendingprevout` are this binary's own RPCs
     (`src/rpc/mempool.cpp`), the last reading the mempool where no
     `-txospenderindex` is given.
+    `Capability.ALERT_NOTIFY` is unconditional too: `-alertnotify` is
+    this binary's own flag (`src/init.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -436,6 +438,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.CLUSTER_LINEARIZATION,
             Capability.MINIMUM_CHAIN_WORK,
             Capability.MEMPOOL_GRAPH,
+            Capability.ALERT_NOTIFY,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

@@ -768,6 +768,21 @@ _ROWS: dict[str, str] = {
     "mempool_reorg::test_disconnected_transactions_are_available_for_relay": (
         "`mempool_reorg.py` (relay)"
     ),
+    "interface_rpc::test_getrpcinfo_names_the_call_running_and_the_log": (
+        "`interface_rpc.py` (getrpcinfo)"
+    ),
+    "interface_rpc::test_a_batch_is_answered_member_by_member": (
+        "`interface_rpc.py` (batch)"
+    ),
+    "interface_rpc::test_each_version_is_answered_with_its_own_status": (
+        "`interface_rpc.py` (status codes)"
+    ),
+    "interface_rpc::test_a_notification_runs_and_is_answered_with_no_content": (
+        "`interface_rpc.py` (notifications)"
+    ),
+    "interface_rpc::test_a_full_work_queue_refuses_the_request_beyond_it": (
+        "`interface_rpc.py` (work queue)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

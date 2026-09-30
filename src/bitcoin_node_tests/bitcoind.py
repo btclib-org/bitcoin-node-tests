@@ -342,6 +342,9 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.PEER_BLOCK_FILTERS` is unconditional too:
     `-peerblockfilters` is this binary's own flag (`src/init.cpp`), off
     unless a test's own arguments pass it.
+    `Capability.RPC_INFO` is unconditional too: `getrpcinfo` is this
+    binary's own RPC (`src/rpc/server.cpp`), its `logpath` naming
+    `debug_log_path` below.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -414,6 +417,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.LISTEN_ADDRESS,
             Capability.MAX_TIP_AGE,
             Capability.PEER_BLOCK_FILTERS,
+            Capability.RPC_INFO,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

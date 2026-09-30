@@ -468,6 +468,10 @@ class Capability(Enum):
     asking for any of them where it is off (`p2p_blockfilters.py`). Beside
     `BLOCK_FILTER_INDEX`, which keeps the filters this serves: a node can
     keep them for its own RPC and serve none.
+    `RPC_INFO` -- answer `getrpcinfo`, Core's own RPC listing the calls it
+    is running, each with how long it has run, and the full path of its
+    debug log (`interface_rpc.py`). Named for the RPC, as `BLOCK_STATS`
+    is.
     """
 
     MINE = "mine"
@@ -533,6 +537,7 @@ class Capability(Enum):
     LISTEN_ADDRESS = "listen_address"
     MAX_TIP_AGE = "max_tip_age"
     PEER_BLOCK_FILTERS = "peer_block_filters"
+    RPC_INFO = "rpc_info"
 
 
 class SkipCounts:

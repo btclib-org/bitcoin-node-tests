@@ -1057,6 +1057,11 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_getaddr_caching.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (listen_address) |
 | `mempool_reorg.py` (coinbase) | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mine) on the build; skip (invalidate_block) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `mempool_reorg.py` (relay) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `interface_rpc.py` (getrpcinfo) | [`fa2bd96cc0d4`](https://github.com/bitcoin/bitcoin/commit/fa2bd96cc0d4) | 2026-08-06 | pass | skip (rpc_info) |
+| `interface_rpc.py` (batch) | same | same | pass | fail ([ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109)) on the build; pass on a build past [ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109) |
+| `interface_rpc.py` (status codes) | same | same | pass | fail ([ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109)) on the build; pass on a build past [ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109) |
+| `interface_rpc.py` (notifications) | same | same | pass | skip (generate) |
+| `interface_rpc.py` (work queue) | same | same | pass | skip (rpc_work_queue) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2633,6 +2638,44 @@ nor `setmocktime`
 ([ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479))
 names a callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
 table, at the released build or at `main`.
+
+`interface_rpc.py` is ISS 14's too, an option, which
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+sets aside for the `bitcoin-cli` binary. Only its work queue step goes
+through that binary, and what the step asserts of the server, the
+refusal's status and the "Work queue depth exceeded" sent with it, is
+read off the HTTP reply here instead; what the binary makes of that reply is
+`interface_bitcoin_cli.py`'s subject
+([ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)).
+Each test takes its node from the cluster fixture, and a request whose
+HTTP exchange is under test is sent as written, over
+`bitcoin_core_rpc`'s own `http_request` with the node's own RPC
+connection and credential, the status and the body read back. It is
+Core's own claim otherwise: `getrpcinfo` lists itself as
+the one call running and names the node's debug log
+(`Capability.RPC_INFO`); a batch is answered member by member in each
+member's own JSON-RPC version, a notification left out; a legacy
+request's error is an HTTP error status and a newer request's is not; a
+notification runs and is answered with no content, an invalid one
+running nothing (`Capability.GENERATE`, its notification being
+`generatetoaddress`);
+and a node with one RPC thread and a queue of one refuses the request
+beyond them (`Capability.RPC_WORK_QUEUE`).
+`tests/integration/interface_rpc_test.py`'s own docstring has what
+differs from Core's file. The `bitcoind` cells are one verdict for the
+pinned release and for Core's `master`. On `btclib-node` the
+`getrpcinfo` row is a counted skip on `Capability.RPC_INFO`, which no
+build declares
+([ISS btclib-node#1486](https://github.com/btclib-org/btclib-node/issues/1486)),
+and the work queue row on `Capability.RPC_WORK_QUEUE`, the node also
+serving no `waitfornewblock`. The notification row checks the requests
+that are no notification and skips on `Capability.GENERATE`. The batch
+and status code rows fail on the released build, which answers every
+request in the newer version's envelope with a success status and
+refuses a request with no `id`; a build past
+[ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109)
+parses each request as Core's `JSONRPCRequest` does (`rpc/jsonrpc.py`,
+read at `main`).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

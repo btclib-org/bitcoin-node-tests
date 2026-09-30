@@ -295,6 +295,12 @@ registers no `-peerblockfilters`, and `p2p/callbacks.py` answers
 option to turn either off, measured at the released `2026.9.24`
 (`422d2640`) and at `main` (`9ae620c2`) alike
 ([ISS btclib-node#1395](https://github.com/btclib-org/btclib-node/issues/1395)).
+
+`Capability.RPC_INFO` is never declared either: `getrpcinfo` names no
+callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch table,
+measured at the released `2026.9.24` (`422d2640`) and at `main`
+(`76d7daa4`) alike
+([ISS btclib-node#1486](https://github.com/btclib-org/btclib-node/issues/1486)).
 """
 
 from __future__ import annotations

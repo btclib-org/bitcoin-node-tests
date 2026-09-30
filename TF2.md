@@ -1065,6 +1065,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_ibd_txrelay.py` (wire) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_ibd_txrelay.py` (log) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (mine) on the build; skip (test_activation_height) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (permit_bare_multisig) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2734,6 +2735,32 @@ cell is a counted skip on `MINE` on the released build, and on
 its `cli.py` registering no `-testactivationheight` at the released
 build or at `main`; past that, no build serves `invalidateblock`
 ([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480)).
+
+`mempool_accept.py` is ISS 14's too, an option and MiniWallet, as
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags it. It is Core's own claim in full: `testmempoolaccept` answers
+each raw transaction Core's file builds with Core's own verdict,
+reject reason and fees, refuses garbage with Core's own RPC errors,
+and leaves the mempool as it found it, and `getmempoolinfo` reports the
+default relay fees and bare multisig not permitted, as the node is
+started. It asks for
+`Capability.PERMIT_BARE_MULTISIG` and `MINE`.
+`tests/integration/mempool_accept_test.py`'s own docstring has what
+differs from Core's file, the census's `-txindex` among it. The
+`bitcoind` cell is one verdict for the pinned release and for Core's
+`master`: an allowed transaction's `vsize_adjusted` and `vsize_bip141`
+are expected where the build's own `getnetworkinfo` `version` reads at
+or past the first release carrying bitcoin/bitcoin#32800, and
+absent where it reads older
+([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+the test file's own `_VSIZE_FIELDS_VERSION` naming the known limit.
+`btclib-node`'s cell is a counted skip on `PERMIT_BARE_MULTISIG` on
+every build, `cli.py` registering no `-permitbaremultisig` at the
+released build or at `main`
+([ISS btclib-node#1497](https://github.com/btclib-org/btclib-node/issues/1497)).
+Past it, the file's standardness refusals are the rules
+[ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382)
+is about.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

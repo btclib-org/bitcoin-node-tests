@@ -370,6 +370,8 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.SETTINGS_FILE` is unconditional too: `-settings` is this
     binary's own flag (`src/init.cpp`), its file read and written by
     `ArgsManager` (`src/common/args.cpp`).
+    `Capability.PRECIOUS_BLOCK` is unconditional too: `preciousblock` is
+    this binary's own RPC (`src/rpc/blockchain.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -452,6 +454,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.BLOCK_NOTIFY,
             Capability.SHUTDOWN_NOTIFY,
             Capability.SETTINGS_FILE,
+            Capability.PRECIOUS_BLOCK,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

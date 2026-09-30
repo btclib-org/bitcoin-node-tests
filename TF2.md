@@ -1084,6 +1084,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_notifications.py` (`-shutdownnotify`) | same | same | pass | skip |
 | `feature_settings.py` | [`0654511e1b93`](https://github.com/bitcoin/bitcoin/commit/0654511e1b93) | 2026-06-17 | pass | skip (settings_file) |
 | `rpc_getchaintips.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (generate) |
+| `rpc_preciousblock.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (precious_block) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3116,7 +3117,8 @@ adapter lacks, outside ISS 14's own scope: `feature_shutdown.py`,
 `rpc_signmessagewithprivkey.py`, `rpc_estimatefee.py`, `rpc_getchaintips.py`,
 `rpc_preciousblock.py`, `rpc_invalidateblock.py`,
 `feature_chain_tiebreaks.py`, `p2p_sendheaders.py` and `p2p_fingerprint.py`.
-`rpc_getchaintips.py` is ported, its row in the table above.
+`rpc_getchaintips.py` and `rpc_preciousblock.py` are ported, their rows in
+the table above.
 
 `rpc_getchaintips.py`'s row is Core's own claim in full. Nodes linked in a line,
 as Core's `setup_network` links them, each report one active tip. With the
@@ -3134,6 +3136,26 @@ here. The `bitcoind` cell is one verdict for the pinned release and for Core's
 skip on `GENERATE` on either build, `generatetoaddress` naming no callback in
 `src/btclib_node/rpc/callbacks.py`'s dispatch table at the released build or at
 `main`; neither build names `submitheader` there either.
+
+`rpc_preciousblock.py`'s row is Core's own claim in full. The nodes start
+unlinked on a clean chain, and each mines blocks of its own. Handed each other's
+blocks over `submitblock`, the first node reorgs to the second node's longer
+chain. The first and the second node then each mine a branch of equal length on
+it, and neither reorgs once handed the other's branch and linked to it:
+`preciousblock` moves each to the other's tip and back. A block the first node
+mines on the second node's branch takes the second node to it, and
+`preciousblock` on the first node's branch no longer moves it. The third node
+mines a branch as long as that chain; linked, the second node keeps its tip and
+the third its own, until `preciousblock` names the other's. The test asks for
+`Capability.PRECIOUS_BLOCK`, then `GENERATE`, then `CONNECT`.
+`tests/integration/rpc_preciousblock_test.py`'s own docstring has what differs
+from Core's file. The `bitcoind` cell is one verdict for the pinned release and
+for Core's `master`, whose copy of the file is the pin's. `btclib-node`'s cell
+is a counted skip on `PRECIOUS_BLOCK` on either build, `preciousblock` naming no
+callback in `src/btclib_node/rpc/callbacks.py`'s dispatch table at the released
+build or at `main`
+([ISS btclib-node#1534](https://github.com/btclib-org/btclib-node/issues/1534));
+neither build names `generatetoaddress` there either.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

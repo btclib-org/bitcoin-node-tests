@@ -528,6 +528,11 @@ class Capability(Enum):
     that holds a key twice refusing the start, `-nosettings` on the
     command line or in `bitcoin.conf` turning it off, and
     `-settings=<path>` naming another file (`feature_settings.py`).
+    `PRECIOUS_BLOCK` -- take a block a caller names as if it had been
+    received before every other block of the same work, moving its tip to
+    that block where the two tie, until a later call names another or the
+    node restarts: Core's own `preciousblock` (`rpc_preciousblock.py`).
+    Named for the RPC, as `BLOCK_STATS` is.
     """
 
     MINE = "mine"
@@ -603,6 +608,7 @@ class Capability(Enum):
     BLOCK_NOTIFY = "block_notify"
     SHUTDOWN_NOTIFY = "shutdown_notify"
     SETTINGS_FILE = "settings_file"
+    PRECIOUS_BLOCK = "precious_block"
 
 
 class SkipCounts:

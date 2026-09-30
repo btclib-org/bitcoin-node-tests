@@ -350,6 +350,12 @@ no `-settings`, and no file under `src/` reads or writes a
 `settings.json`, measured at the released `2026.9.24` (`422d2640`) and
 at `main` (`84677942`) alike
 ([ISS btclib-node#1523](https://github.com/btclib-org/btclib-node/issues/1523)).
+
+`Capability.PRECIOUS_BLOCK` is never declared either: `preciousblock`
+names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
+table, measured at the released `2026.9.24` (`422d2640`) and at `main`
+(`d0943a37`) alike
+([ISS btclib-node#1534](https://github.com/btclib-org/btclib-node/issues/1534)).
 """
 
 from __future__ import annotations

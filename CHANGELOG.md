@@ -1060,3 +1060,9 @@ node fails the test every time instead of as a rule (closes #286).
 A node is checked to ask for a parent confirmed ahead of a block taken off its
 tip, and to keep an ancestor package of the largest size as an orphan while
 other peers fill its orphanage; btclib-node skips (issue #44).
+
+### `p2p_opportunistic_1p1c` is ported in part
+
+A node is checked to take a parent refused for its fee into the mempool with a
+child paying for it, the pair sent by one peer, and to ask for no parent of a
+child whose parents are each refused; btclib-node skips (issue #44).

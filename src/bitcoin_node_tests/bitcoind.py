@@ -383,6 +383,9 @@ class BitcoindAdapter(NodeAdapter):
     binary's own RPC (`src/rpc/blockchain.cpp`).
     `Capability.ASSUME_VALID` is unconditional too: `-assumevalid` is this
     binary's own flag (`src/init.cpp`).
+    `Capability.INCREMENTAL_RELAY_FEE` is unconditional too:
+    `-incrementalrelayfee` is this binary's own flag
+    (`src/node/mempool_args.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -470,6 +473,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.ESTIMATE_SMART_FEE,
             Capability.CHAIN_TIPS,
             Capability.ASSUME_VALID,
+            Capability.INCREMENTAL_RELAY_FEE,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

@@ -379,6 +379,11 @@ not gain the capability.
 `assumevalid`, measured at the released `2026.9.24` (`422d2640`) and at
 `main` (`26ec9ec5`) alike
 ([ISS btclib-node#1576](https://github.com/btclib-org/btclib-node/issues/1576)).
+
+`Capability.INCREMENTAL_RELAY_FEE` is never declared: `cli.py` registers
+no `-incrementalrelayfee`, measured at the released `2026.9.24`
+(`422d2640`) and at `main` (`eb18985c`) alike
+([ISS btclib-node#1596](https://github.com/btclib-org/btclib-node/issues/1596)).
 """
 
 from __future__ import annotations

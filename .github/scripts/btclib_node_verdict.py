@@ -703,6 +703,36 @@ _ROWS: dict[str, str] = {
     "rpc_dumptxoutset": "`rpc_dumptxoutset.py`",
     "feature_loadblock": "`feature_loadblock.py`",
     "feature_port": "`feature_port.py`",
+    "p2p_opportunistic_1p1c::test_a_rejected_parent_is_taken_in_with_its_child": (
+        "`p2p_opportunistic_1p1c.py` (parent first)"
+    ),
+    "p2p_opportunistic_1p1c::test_a_rejected_parent_with_no_witness_is_taken_in_with_its_child": (
+        "`p2p_opportunistic_1p1c.py` (parent first, P2PK)"
+    ),
+    "p2p_opportunistic_1p1c::test_an_orphan_is_taken_in_with_its_low_fee_parent": (
+        "`p2p_opportunistic_1p1c.py` (child first)"
+    ),
+    "p2p_opportunistic_1p1c::test_a_rejected_parent_is_taken_in_only_with_a_child_paying_enough": (
+        "`p2p_opportunistic_1p1c.py` (low, high child)"
+    ),
+    "p2p_opportunistic_1p1c::test_a_rejected_parent_with_no_witness_is_taken_in_only_with_a_child_paying_enough": (
+        "`p2p_opportunistic_1p1c.py` (low, high, P2PK)"
+    ),
+    "p2p_opportunistic_1p1c::test_parent_and_child_are_evaluated_together_only_from_one_peer": (
+        "`p2p_opportunistic_1p1c.py` (orphan invalid)"
+    ),
+    "p2p_opportunistic_1p1c::test_an_invalid_parent_from_another_peer_leaves_the_orphan": (
+        "`p2p_opportunistic_1p1c.py` (parent invalid)"
+    ),
+    "p2p_opportunistic_1p1c::test_no_rejected_parent_of_a_two_parent_orphan_is_requested": (
+        "`p2p_opportunistic_1p1c.py` (multiple parents)"
+    ),
+    "p2p_opportunistic_1p1c::test_an_orphan_is_taken_in_with_one_parent_beside_another_in_the_mempool": (
+        "`p2p_opportunistic_1p1c.py` (parent in mempool)"
+    ),
+    "p2p_opportunistic_1p1c::test_a_package_is_taken_in_on_top_of_another": (
+        "`p2p_opportunistic_1p1c.py` (1p1c on 1p1c)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

@@ -1032,6 +1032,16 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_dumptxoutset.py` | [`58eeab790d98`](https://github.com/bitcoin/bitcoin/commit/58eeab790d98) | 2026-05-13 | pass, the dump at a forked height asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (dump_utxo_set) |
 | `feature_loadblock.py` | [`fa4fc8c1d7b5`](https://github.com/bitcoin/bitcoin/commit/fa4fc8c1d7b5) | 2026-05-22 | pass | skip (load_block) |
 | `feature_port.py` | [`997757dd2b4d`](https://github.com/bitcoin/bitcoin/commit/997757dd2b4d) | 2024-11-15 | pass | skip (listen_address) |
+| `p2p_opportunistic_1p1c.py` (parent first) | [`0bd3d3dfa562`](https://github.com/bitcoin/bitcoin/commit/0bd3d3dfa562) | 2026-07-24 | pass | skip |
+| `p2p_opportunistic_1p1c.py` (parent first, P2PK) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (child first) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (low, high child) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (low, high, P2PK) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (orphan invalid) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (parent invalid) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (multiple parents) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (parent in mempool) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (1p1c on 1p1c) | same | same | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3237,6 +3247,24 @@ The invalid-`sendcmpct` and empty-`getblocktxn` wire rows fail on every
 build, the node keeping a peer Core's `master` drops
 ([ISS btclib-node#1451](https://github.com/btclib-org/btclib-node/issues/1451) and
 [ISS btclib-node#1450](https://github.com/btclib-org/btclib-node/issues/1450)).
+
+`p2p_opportunistic_1p1c.py` is ported on it in part, its rows above each
+one of Core's checks as a body over a fresh node in
+`tests/integration/p2p_opportunistic_1p1c_test.py`, whose module
+docstring has what differs from Core's file. Every body asks for
+`ORPHANAGE` first, and for `MAXMEMPOOL` and `MINE`: its node restarts
+with the `-maxmempool` Core's own starts with, and
+`mempool_util.fill_mempool` fills its mempool. The parent-first,
+low-and-high-child, multiple-parents and parent-in-mempool checks have
+the node dial outbound full-relay peers, so they ask for
+`TYPED_OUTBOUND`, and every check but the one chaining a package on
+another asks for `CLOCK`. A `P2PK` row is its check over a parent with
+no witness, Core's `RAW_P2PK` wallet. Each `bitcoind` cell is one
+verdict for the pinned release and for Core's `master`. `btclib-node`'s
+cell on each row is a counted skip on `ORPHANAGE`
+([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
+Core's orphanage checks, `test_orphanage_dos_large` and
+`test_orphanage_dos_many`, are not ported yet.
 
 The rest of the issue's own census is its later batches.
 

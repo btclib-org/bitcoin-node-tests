@@ -34,8 +34,16 @@ def _client(proxy: Socks5Proxy) -> socket.socket:
 
 
 def _receive(client: socket.socket, count: int) -> bytes:
-    """Return `count` octets the proxy sent `client`, fewer where it closed."""
-    return client.recv(count, socket.MSG_WAITALL)
+    """Return `count` octets the proxy sent `client`, fewer where it closed.
+
+    A loop rather than `MSG_WAITALL`: a socket with a timeout is
+    non-blocking underneath, and Linux answers a `MSG_WAITALL` read of
+    one with whatever has arrived so far.
+    """
+    data = b""
+    while len(data) < count and (chunk := client.recv(count - len(data))):
+        data += chunk
+    return data
 
 
 def _connect(host: bytes, address_type: int = 3, port: int = 8333) -> bytes:

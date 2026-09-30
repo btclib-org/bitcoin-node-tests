@@ -1087,6 +1087,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_preciousblock.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (precious_block) |
 | `rpc_invalidateblock.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass, the ancestors' check run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (generate) |
 | `rpc_signmessagewithprivkey.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (sign_message_with_privkey) |
+| `feature_chain_tiebreaks.py` | [`20ae9b98eab2`](https://github.com/bitcoin/bitcoin/commit/20ae9b98eab2) | 2026-03-04 | pass, the restart's tip check run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (invalidate_block) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3119,9 +3120,9 @@ adapter lacks, outside ISS 14's own scope: `feature_shutdown.py`,
 `rpc_signmessagewithprivkey.py`, `rpc_estimatefee.py`, `rpc_getchaintips.py`,
 `rpc_preciousblock.py`, `rpc_invalidateblock.py`,
 `feature_chain_tiebreaks.py`, `p2p_sendheaders.py` and `p2p_fingerprint.py`.
-`rpc_getchaintips.py`, `rpc_preciousblock.py`, `rpc_invalidateblock.py`
-and `rpc_signmessagewithprivkey.py` are ported, their rows in the table
-above.
+`rpc_getchaintips.py`, `rpc_preciousblock.py`, `rpc_invalidateblock.py`,
+`rpc_signmessagewithprivkey.py` and `feature_chain_tiebreaks.py` are ported,
+their rows in the table above.
 
 `rpc_getchaintips.py`'s row is Core's own claim in full. Nodes linked in a line,
 as Core's `setup_network` links them, each report one active tip. With the
@@ -3204,6 +3205,32 @@ release and for Core's `master`, whose copy of the file is the pin's.
 build, no file naming `signmessagewithprivkey` or `verifymessage` at the
 released build or at `main`
 ([ISS btclib-node#1538](https://github.com/btclib-org/btclib-node/issues/1538)).
+
+`feature_chain_tiebreaks.py`'s row is Core's own claim in full. Of the blocks
+of equal work a node holds, it takes as its tip the one whose chain it held in
+full first. A peer feeds each node blocks. Given the headers of sibling blocks
+on its tip and then their blocks, the first node takes the block it received
+first, and headers alone do not move it. Given the blocks of deeper descendants
+whose parents' blocks it lacks, and then those parents, it takes a block whose
+chain was complete first rather than the block it received first; invalidating
+that block and its sibling takes it to the block it received first. The second
+node, given blocks of equal work on its own tip, takes the first of them, keeps
+it as its tip across a restart, and takes a block built on it. The test asks for
+`Capability.INVALIDATE_BLOCK`, then `GENERATE`.
+`tests/integration/feature_chain_tiebreaks_test.py`'s own docstring has what
+differs from Core's file, among it the restart's tip check, which `bitcoind`
+runs only where its version says it carries Core's change. The `bitcoind` cell
+is one verdict for the pinned release and for Core's `master`, whose copy of the
+file is the pin's.
+`btclib-node`'s cell is a counted skip on `INVALIDATE_BLOCK` on either build,
+`invalidateblock` naming no callback in `src/btclib_node/rpc/callbacks.py`'s
+dispatch table at the released build or at `main`
+([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480));
+neither build names `generatetoaddress`
+([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404))
+or `submitheader`
+([ISS btclib-node#1533](https://github.com/btclib-org/btclib-node/issues/1533))
+there either.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

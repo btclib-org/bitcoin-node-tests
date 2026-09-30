@@ -35,6 +35,7 @@ def test_capabilities_gain_rpc_auth_config_where_the_build_writes_a_cookie(
         patch.object(btclib_node_module, "_connects_alone", return_value=False),
         patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -53,6 +54,7 @@ def test_capabilities_gain_rpc_auth_negation_where_the_build_negates(
         patch.object(btclib_node_module, "_connects_alone", return_value=False),
         patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -71,6 +73,7 @@ def test_capabilities_gain_inbound_eviction_where_the_build_evicts(
         patch.object(btclib_node_module, "_connects_alone", return_value=False),
         patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -89,6 +92,7 @@ def test_capabilities_gain_mine_where_the_build_connects_alone(
         patch.object(btclib_node_module, "_connects_alone", return_value=True),
         patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset({Capability.CONNECT, Capability.MINE})
@@ -105,6 +109,7 @@ def test_capabilities_gain_ban_where_the_build_serves_a_ban_list(
         patch.object(btclib_node_module, "_connects_alone", return_value=False),
         patch.object(btclib_node_module, "_serves_ban_list", return_value=True),
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset({Capability.CONNECT, Capability.BAN})
@@ -121,10 +126,30 @@ def test_capabilities_gain_min_relay_tx_fee_where_the_build_sets_it(
         patch.object(btclib_node_module, "_connects_alone", return_value=False),
         patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=True),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
         {Capability.CONNECT, Capability.MIN_RELAY_TX_FEE}
+    )
+
+
+def test_capabilities_gain_chain_tips_where_the_build_serves_them(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a `getchaintips`-serving build declares it."""
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=False),
+        patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
+        patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=True),
+    ):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities == frozenset(
+        {Capability.CONNECT, Capability.CHAIN_TIPS}
     )
 
 
@@ -139,6 +164,7 @@ def test_capabilities_stay_connect_alone_where_the_build_does_not(
         patch.object(btclib_node_module, "_connects_alone", return_value=False),
         patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities is BtclibNodeAdapter.capabilities
@@ -209,6 +235,7 @@ def test_capabilities_drop_mine_on_another_chain(tmp_path: Path) -> None:
         patch.object(btclib_node_module, "_connects_alone", return_value=True),
         patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
     ):
         adapter = BtclibNodeAdapter(
             sys.executable, tmp_path, 18443, 18444, chain="signet"
@@ -406,6 +433,25 @@ def test_serves_ban_list_is_false_where_the_table_lacks_them() -> None:
     btclib_node_module._serves_ban_list.cache_clear()
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
         assert btclib_node_module._serves_ban_list("fake-python-pre-1088") is False
+
+
+def test_serves_chain_tips_reads_the_probe_s_own_return_code() -> None:
+    """`_serves_chain_tips` is `_CHAIN_TIPS_PROBE` exiting zero."""
+    btclib_node_module._serves_chain_tips.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._serves_chain_tips("fake-python-main") is True
+    run.assert_called_once_with(
+        ["fake-python-main", "-c", btclib_node_module._CHAIN_TIPS_PROBE],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_serves_chain_tips_is_false_where_the_table_lacks_it() -> None:
+    """A nonzero exit -- the RPC missing, or no such table -- is `False`."""
+    btclib_node_module._serves_chain_tips.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
+        assert btclib_node_module._serves_chain_tips("fake-python-release") is False
 
 
 def test_sets_min_relay_fee_reads_the_probe_s_own_return_code() -> None:

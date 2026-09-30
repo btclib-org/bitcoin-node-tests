@@ -368,6 +368,12 @@ released `2026.9.24` (`422d2640`) and at `main` (`59618462`) alike
 `estimatesmartfee` or `estimaterawfee`, measured at the released
 `2026.9.24` (`422d2640`) and at `main` (`02b2ed6e`) alike
 ([ISS btclib-node#1543](https://github.com/btclib-org/btclib-node/issues/1543)).
+
+`Capability.CHAIN_TIPS` is declared per instance, by `_serves_chain_tips`'s
+own probe: a build whose `rpc/callbacks.py` names `getchaintips` in its
+public `callbacks`, as `main` (`e471c576`) does. The released `2026.9.24`
+(`422d2640`) names no such callback, so an instance built against it does
+not gain the capability.
 """
 
 from __future__ import annotations
@@ -602,6 +608,32 @@ def _sets_min_relay_fee(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# exits 0 only where the dispatch table holds `Capability.CHAIN_TIPS`'s RPC
+_CHAIN_TIPS_PROBE = """\
+from btclib_node.rpc.callbacks import callbacks
+raise SystemExit(0 if "getchaintips" in callbacks else 1)
+"""
+
+
+@lru_cache
+def _serves_chain_tips(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node answers `getchaintips`.
+
+    Asks the build's own `rpc.callbacks.callbacks`, as `_serves_ban_list`
+    above does, whether it names `getchaintips`: `_CHAIN_TIPS_PROBE`
+    above. Otherwise in the standing of `_writes_auth_cookie` above: no
+    node started, no port bound, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _CHAIN_TIPS_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 class BtclibNodeAdapter(NodeAdapter):
     """A `btclib-node`, run as `python -m btclib_node`.
 
@@ -645,8 +677,9 @@ class BtclibNodeAdapter(NodeAdapter):
         `_negates_rpcauth` answers `Capability.RPC_AUTH_NEGATION`,
         `_evicts_inbound` answers `Capability.INBOUND_EVICTION`,
         `_connects_alone` answers `Capability.MINE`,
-        `_serves_ban_list` answers `Capability.BAN`, and
-        `_sets_min_relay_fee` answers `Capability.MIN_RELAY_TX_FEE`. The
+        `_serves_ban_list` answers `Capability.BAN`,
+        `_sets_min_relay_fee` answers `Capability.MIN_RELAY_TX_FEE`, and
+        `_serves_chain_tips` answers `Capability.CHAIN_TIPS`. The
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
         is left untouched where every probe answers `False`. A `chain`
         other than regtest drops `Capability.MINE` whatever its probe
@@ -675,6 +708,8 @@ class BtclibNodeAdapter(NodeAdapter):
             probed.add(Capability.BAN)
         if _sets_min_relay_fee(executable):
             probed.add(Capability.MIN_RELAY_TX_FEE)
+        if _serves_chain_tips(executable):
+            probed.add(Capability.CHAIN_TIPS)
         if probed:
             self.capabilities = type(self).capabilities | probed
 

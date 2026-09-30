@@ -419,11 +419,12 @@ session installing it installs it for every other. Run the gate by hand
 before committing -- the `uv run pre-commit run --all-files` above.
 
 One of those hooks needs maintenance, and only one. `.secrets.baseline`
-carries no reviewed finding yet -- the addresses
-`rpc_validateaddress_test.py` copies from Core raise none, and
-this tree vendors no golden file -- but its two entropy plugins are off
-from the first scan, the same way every other repository of the
-organization keeps them off: a 40-character commit SHA is what most of `.pre-commit-config.yaml`'s
+carries findings of the `Secret Keyword` plugin, none of them a secret --
+`btclib_node.py`'s placeholder `_RPC_PASSWORD` among them; the addresses
+`rpc_validateaddress_test.py` copies from Core raise none, and this tree
+vendors no golden file. Its two entropy plugins are off from the first
+scan, the same way every other repository of the organization keeps
+them off: a 40-character commit SHA is what most of `.pre-commit-config.yaml`'s
 own `rev:` pins are, and a hex string that long is indistinguishable
 from a high-entropy secret to a detector that does not know what a git
 pin looks like. Adding a vector or a golden file later, or seeing a new

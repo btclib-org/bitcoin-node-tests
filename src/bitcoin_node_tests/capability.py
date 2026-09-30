@@ -461,6 +461,13 @@ class Capability(Enum):
     `MAX_TIP_AGE` -- recognise `-maxtipage`, Core's own bound, in seconds,
     on how old its tip may be, by its own clock, for the node to leave
     initial block download (`feature_maxtipage.py`).
+    `PEER_BLOCK_FILTERS` -- serve BIP157's compact block filters to peers
+    once `-peerblockfilters` asks for it, Core's own switch, and not
+    otherwise: signal `NODE_COMPACT_FILTERS` and answer `getcfilters`,
+    `getcfheaders` and `getcfcheckpt` where it is on, and drop a peer
+    asking for any of them where it is off (`p2p_blockfilters.py`). Beside
+    `BLOCK_FILTER_INDEX`, which keeps the filters this serves: a node can
+    keep them for its own RPC and serve none.
     """
 
     MINE = "mine"
@@ -525,6 +532,7 @@ class Capability(Enum):
     LOAD_BLOCK = "load_block"
     LISTEN_ADDRESS = "listen_address"
     MAX_TIP_AGE = "max_tip_age"
+    PEER_BLOCK_FILTERS = "peer_block_filters"
 
 
 class SkipCounts:

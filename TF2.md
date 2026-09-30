@@ -1053,6 +1053,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_invalid_block.py` (wire) | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_invalid_block.py` (log) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_maxtipage.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (max_tip_age) |
+| `p2p_blockfilters.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | skip (peer_block_filters) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1504,8 +1505,8 @@ node restarts with `-txindex` and the other indexes; the file's other
 `logging` checks read the RPC's own answer and no log.
 `feature_assumeutxo.py` stays behind the disqualifier the node-linking
 section below names. `feature_reindex.py`, `feature_reindex_readonly.py`,
-`p2p_compactblocks.py` and `p2p_invalid_block.py` are ported, their rows
-in the table above.
+`p2p_blockfilters.py`, `p2p_compactblocks.py` and `p2p_invalid_block.py`
+are ported, their rows in the table above.
 
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
@@ -2562,6 +2563,28 @@ on `Capability.MAX_TIP_AGE`: `cli.py` registers no `-maxtipage` on
 either build, the age being a constant of a day
 ([ISS btclib-node#1474](https://github.com/btclib-org/btclib-node/issues/1474)).
 
+`p2p_blockfilters.py` is ISS 14's too, an option and the log beside
+node-linking, its test taking its nodes from the cluster fixture. It is
+Core's own claim in full, Core's chain lengths included: a node under
+`-blockfilterindex` and `-peerblockfilters` signals `NODE_COMPACT_FILTERS`
+and serves `cfcheckpt`, `cfheaders` and `cfilter` for its active chain and
+for a block it reorged away from, each matching `getblockfilter`; a node
+under the index alone does not signal it and drops a peer asking for any
+of them; a request out of range, of an unknown type or for an unknown
+block is dropped, each in Core's own words in the node's log; and
+`-peerblockfilters` without the index, or an unknown index type, refuses
+the start. Serving is `Capability.PEER_BLOCK_FILTERS`, beside
+`Capability.BLOCK_FILTER_INDEX`'s index, and the log the refusals are
+read from is `Capability.DEBUG_LOG`;
+`tests/integration/p2p_blockfilters_test.py`'s own docstring has what
+differs from Core's file. The `bitcoind` cell is one
+verdict for the pinned release and for Core's `master`. The `btclib-node`
+cell is a counted skip on `Capability.PEER_BLOCK_FILTERS`: `cli.py`
+registers no `-peerblockfilters` on either build, and the node answers
+`getcfilters`, `getcfheaders` and `getcfcheckpt` and signals
+`NODE_COMPACT_FILTERS` to every peer with nothing to turn it off
+([ISS btclib-node#1395](https://github.com/btclib-org/btclib-node/issues/1395)).
+
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 
 [ISS 43](https://github.com/btclib-org/bitcoin-node-tests/issues/43):
@@ -2725,7 +2748,7 @@ go as follows.
   ([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)).
 - `p2p_blockfilters.py` (`-blockfilterindex`, `-peerblockfilters`, log,
   and BIP157's own `getcfilters`/`getcfheaders`/`getcfcheckpt` from a
-  raw peer): ISS 14's.
+  raw peer): ISS 14's, ported, its row in the table above.
 - `p2p_disconnect_ban.py`'s `setban` half: ISS 14's, the paragraph
   above.
 - `feature_assumeutxo.py` stays disqualified on the sixth thing the

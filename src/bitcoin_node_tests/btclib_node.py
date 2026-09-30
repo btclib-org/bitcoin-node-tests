@@ -287,6 +287,14 @@ no `-maxtipage`, the age being `constants.py`'s own `MAX_TIP_AGE` of a
 day, measured at the released `2026.9.24` (`422d2640`) and at `main`
 (`9ae620c2`) alike
 ([ISS btclib-node#1474](https://github.com/btclib-org/btclib-node/issues/1474)).
+
+`Capability.PEER_BLOCK_FILTERS` is never declared either: `cli.py`
+registers no `-peerblockfilters`, and `p2p/callbacks.py` answers
+`getcfilters`, `getcfheaders` and `getcfcheckpt` for every peer while
+`p2p/connection.py` signals `NODE_COMPACT_FILTERS` to every one, with no
+option to turn either off, measured at the released `2026.9.24`
+(`422d2640`) and at `main` (`9ae620c2`) alike
+([ISS btclib-node#1395](https://github.com/btclib-org/btclib-node/issues/1395)).
 """
 
 from __future__ import annotations

@@ -1272,3 +1272,9 @@ and valid calls; `Capability.ESTIMATE_SMART_FEE` is new; btclib-node skips
 bitcoind closes an idle RPC connection after 99000 s, not 30 s, a close a reused
 connection could report as `ConnectionResetError`; a thread's kept connection
 closes with the thread, freeing a `-rpcmaxconnections` slot (closes #336).
+
+### A `Peer` read waits its own timeout, not the last one's
+
+`Peer.receive`'s `timeout` holds for that call alone, so a later `receive`
+without one, and `send`, wait the peer's default rather than what an earlier
+`receive` or `wait_for` left on the socket (closes #326).

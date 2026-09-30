@@ -308,6 +308,12 @@ measured at the released `2026.9.24` (`422d2640`) and at `main`
 released `2026.9.24` (`422d2640`) and at `main` (`93c1d066`) alike
 ([ISS btclib-node#1499](https://github.com/btclib-org/btclib-node/issues/1499)).
 
+`Capability.MINIMUM_CHAIN_WORK` is never declared either: `cli.py`
+registers no `-minimumchainwork`, the floor being the chain's own
+`minimum_chain_work` (`btclib.consensus`), measured at the released
+`2026.9.24` (`422d2640`) and at `main` (`93c1d066`) alike
+([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)).
+
 `Capability.MIN_RELAY_TX_FEE` is declared per instance, by
 `_sets_min_relay_fee`'s own probe: a build whose `cli.py` registers
 `-minrelaytxfee` -- `main` from btclib-node PR 1452 (`88f5c894`) on, the

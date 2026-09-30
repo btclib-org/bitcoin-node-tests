@@ -480,6 +480,12 @@ class Capability(Enum):
     `getmempoolfeeratediagram` and `getmempoolinfo`'s own `optimal`
     (`mempool_cluster.py`). Named for what it keeps rather than for an
     RPC's own spelling, as `ORPHANAGE` is.
+    `MINIMUM_CHAIN_WORK` -- recognise `-minimumchainwork`, Core's own
+    debug-only floor, in hex, on chain work: a node whose tip is below it
+    stays in initial block download and answers `getheaders` empty, it
+    downloads no block from a peer whose best known block is below it,
+    and a value that is not hex refuses the start
+    (`feature_minchainwork.py`).
     """
 
     MINE = "mine"
@@ -548,6 +554,7 @@ class Capability(Enum):
     RPC_INFO = "rpc_info"
     MIN_RELAY_TX_FEE = "min_relay_tx_fee"
     CLUSTER_LINEARIZATION = "cluster_linearization"
+    MINIMUM_CHAIN_WORK = "minimum_chain_work"
 
 
 class SkipCounts:

@@ -1149,3 +1149,9 @@ skips on `-permitbaremultisig` (issue #14).
 A cluster is checked to be reported in chunks, and a transaction taking it past
 `-limitclustercount` or `-limitclustersize` to be refused; btclib-node skips,
 and `Capability.CLUSTER_LINEARIZATION` is new (issue #14).
+
+### `feature_minchainwork` is ported
+
+A node under `-minimumchainwork` is checked to relay no block, and to answer
+`getheaders` with no header, until its chain has the work the option names;
+btclib-node skips, and `Capability.MINIMUM_CHAIN_WORK` is new (issue #14).

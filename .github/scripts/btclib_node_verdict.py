@@ -788,6 +788,7 @@ _ROWS: dict[str, str] = {
     "feature_bip68_sequence": "`feature_bip68_sequence.py`",
     "mempool_accept": "`mempool_accept.py`",
     "mempool_cluster": "`mempool_cluster.py`",
+    "feature_minchainwork": "`feature_minchainwork.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

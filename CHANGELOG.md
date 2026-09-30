@@ -1125,3 +1125,9 @@ fails the first two (btclib-org/btclib-node#1109) (issue #14).
 A node in initial block download is checked to send the top `feefilter` and
 ignore transactions and their announcements, and not once out of it;
 btclib-node skips, and `Capability.MIN_RELAY_TX_FEE` is new (issue #14).
+
+### `CONTRIBUTING.md` points a newcomer at `good first issue`
+
+An issue carrying the label is small and self-contained: *The issue
+tracker* says so, and links the organization-wide search for the open
+ones (issue btclib-org/.github#1362).

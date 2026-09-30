@@ -282,9 +282,10 @@ class BitcoindAdapter(NodeAdapter):
     `signrawtransactionwithkey` and `combinerawtransaction` are this
     binary's own RPCs (`src/rpc/rawtransaction.cpp`), with no wallet
     behind them.
-    `Capability.INVALIDATE_BLOCK` is unconditional too: `invalidateblock` is
-    this binary's own RPC (`src/rpc/blockchain.cpp`), and so is
-    `scantxoutset`, `Capability.SCAN_UTXO_SET`'s.
+    `Capability.INVALIDATE_BLOCK` is unconditional too: `invalidateblock`
+    and `reconsiderblock` are this binary's own RPCs
+    (`src/rpc/blockchain.cpp`), and so is `scantxoutset`,
+    `Capability.SCAN_UTXO_SET`'s.
     `Capability.GENERATE` is `generatetoaddress` and `generateblock`
     (`src/rpc/mining.cpp`), which need no wallet, unlike `mine`'s own
     `generatetoaddress` over one: it is declared on regtest alone, not

@@ -1208,3 +1208,9 @@ skips, but for a parent tested alone under `-minrelaytxfee=0` (issue #14).
 A node's `-blocknotify`, `-alertnotify` and `-shutdownnotify` commands are
 checked to run, `-walletnotify` left unported; btclib-node skips, and
 `Capability.BLOCK_NOTIFY` and `Capability.SHUTDOWN_NOTIFY` are new (issue #14).
+
+### `feature_settings` is ported
+
+A node's `settings.json` is checked to be written, logged and kept, refused when
+malformed or with a non-string `wallet`, and set aside by `-nosettings` or
+`-settings`; `Capability.SETTINGS_FILE` is new; btclib-node skips (issue #14).

@@ -811,6 +811,7 @@ _ROWS: dict[str, str] = {
     "feature_notifications::test_the_shutdown_is_notified": (
         "`feature_notifications.py` (`-shutdownnotify`)"
     ),
+    "feature_settings": "`feature_settings.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

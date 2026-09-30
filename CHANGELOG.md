@@ -1243,3 +1243,9 @@ btclib-node skips (issue #317).
 
 A node is checked to take, of tips with equal work, the one whose chain it held
 in full first, and to keep it across a restart; btclib-node skips (issue #317).
+
+### `p2p_sendheaders` is ported
+
+A node is checked to announce blocks to a peer by `inv` until `sendheaders` and
+by their headers after it, and to fetch announced headers; btclib-node skips
+(issue #317).

@@ -1173,3 +1173,9 @@ the new `Capability.ALERT_NOTIFY` (issue #14).
 A package replacing its parent's conflicts is checked, and each refusal to carry
 Core's reason; btclib-node skips. `Capability.PACKAGE_ACCEPTANCE` is new, and
 every ported test handing a node a package over RPC now asks for it (issue #14).
+
+### `p2p_headers_sync_with_minchainwork` is ported
+
+Nodes are checked to ignore a chain with less work than `-minimumchainwork`
+until it has it, the headers of a `noban` peer still taken, and to report a
+peer's low-work headers as presynced; btclib-node skips (issue #14).

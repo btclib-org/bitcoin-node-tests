@@ -1073,6 +1073,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass | skip (limit_cluster_count) |
 | `feature_versionbits_warning.py` | [`5bd990a3ddb1`](https://github.com/bitcoin/bitcoin/commit/5bd990a3ddb1) | 2026-06-03 | pass, the reserved bit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
 | `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (package_acceptance) |
+| `p2p_headers_sync_with_minchainwork.py` | [`ff3e2e4ebdce`](https://github.com/bitcoin/bitcoin/commit/ff3e2e4ebdce) | 2026-08-19 | pass | skip (minimum_chain_work) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1524,7 +1525,8 @@ node restarts with `-txindex` and the other indexes; the file's other
 `logging` checks read the RPC's own answer and no log.
 `feature_assumeutxo.py` stays behind the disqualifier the node-linking
 section below names. `feature_reindex.py`, `feature_reindex_readonly.py`,
-`p2p_blockfilters.py`, `p2p_compactblocks.py`, `p2p_ibd_txrelay.py` and
+`p2p_blockfilters.py`, `p2p_compactblocks.py`,
+`p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py` and
 `p2p_invalid_block.py` are ported, their rows in the table above.
 
 The rest go where the node wallet, another Core binary, an older release,
@@ -2898,6 +2900,37 @@ past that, replacing a conflict at all is
 and a package a peer relays, how the basic body's peer takes the
 replacement,
 [ISS btclib-node#1473](https://github.com/btclib-org/btclib-node/issues/1473)'s.
+
+`p2p_headers_sync_with_minchainwork.py` is ISS 14's too, an option, the
+log and the clock beside node-linking, its test taking its nodes from the
+cluster fixture. Its row is Core's own claim but for its last step: every
+node is restarted under Core's own options, each but the first under a
+`-minimumchainwork` floor and the last also giving the first `noban`, and
+the first node dials each of the others. While the chain the first node
+mines has less work than a node's floor, that node logs "Ignoring
+low-work chain" at the chain's height and keeps the genesis block as its
+only chain tip, where the `noban` node logs "Synchronizing blockheaders"
+at that height and holds the chain as a headers-only tip; each node syncs
+once the chain has the work its floor names. The first and the second
+node, disconnected, each mine a chain of their own past the next locator
+entry, and once reconnected, their clocks held, every node syncs. A
+peer's headers forking from genesis, with less work than the chain, are
+reported by `getpeerinfo` as presynced. It asks for
+`Capability.MINIMUM_CHAIN_WORK` first, then `GENERATE`, `DEBUG_LOG`,
+`CLOCK`, `CONNECT` and `DISCONNECT`.
+`tests/integration/p2p_headers_sync_with_minchainwork_test.py`'s own
+docstring has what differs from Core's file. The step not ported is a
+lagging clock aborting the presync, which the pinned release's own copy
+of the file does not carry and Core's `master` does: it waits for the
+node's process to exit on its own and reads the exit code and stderr it
+exits with (`TestNode.wait_until_stopped`), a wait `NodeAdapter` does not
+have. The `bitcoind` cell is one verdict for the pinned release and for
+Core's `master`. `btclib-node`'s cell is a counted skip on
+`MINIMUM_CHAIN_WORK` on every build, `cli.py` registering no
+`-minimumchainwork` at the released build or at `main`
+([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500));
+past it, neither build serves `generatetoaddress`
+([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

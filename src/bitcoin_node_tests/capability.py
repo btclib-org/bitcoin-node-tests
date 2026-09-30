@@ -486,6 +486,14 @@ class Capability(Enum):
     downloads no block from a peer whose best known block is below it,
     and a value that is not hex refuses the start
     (`feature_minchainwork.py`).
+    `MEMPOOL_GRAPH` -- walk the spends connecting its mempool's
+    transactions and report them: every mempool transaction a given one
+    descends from and every one descending from it, bare or with each
+    one's own entry, Core's own `getmempoolancestors` and
+    `getmempooldescendants`, and the mempool transaction spending a given
+    output, its `gettxspendingprevout` with no index behind it
+    (`mempool_packages.py`). Named for what it walks rather than for an
+    RPC's own spelling, as `SCAN_UTXO_SET` is.
     """
 
     MINE = "mine"
@@ -555,6 +563,7 @@ class Capability(Enum):
     MIN_RELAY_TX_FEE = "min_relay_tx_fee"
     CLUSTER_LINEARIZATION = "cluster_linearization"
     MINIMUM_CHAIN_WORK = "minimum_chain_work"
+    MEMPOOL_GRAPH = "mempool_graph"
 
 
 class SkipCounts:

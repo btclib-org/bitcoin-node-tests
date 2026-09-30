@@ -1143,3 +1143,9 @@ btclib-node skips (issue #14).
 `testmempoolaccept` is checked to give each of Core's raw transactions its
 verdict, reject reason and fees, the newer vsizes read per build; btclib-node
 skips on `-permitbaremultisig` (issue #14).
+
+### `mempool_cluster` is ported
+
+A cluster is checked to be reported in chunks, and a transaction taking it past
+`-limitclustercount` or `-limitclustersize` to be refused; btclib-node skips,
+and `Capability.CLUSTER_LINEARIZATION` is new (issue #14).

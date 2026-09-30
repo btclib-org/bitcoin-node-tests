@@ -302,6 +302,12 @@ measured at the released `2026.9.24` (`422d2640`) and at `main`
 (`76d7daa4`) alike
 ([ISS btclib-node#1486](https://github.com/btclib-org/btclib-node/issues/1486)).
 
+`Capability.CLUSTER_LINEARIZATION` is never declared either:
+`getmempoolcluster` and `getmempoolfeeratediagram` name no callback in
+`src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at the
+released `2026.9.24` (`422d2640`) and at `main` (`93c1d066`) alike
+([ISS btclib-node#1499](https://github.com/btclib-org/btclib-node/issues/1499)).
+
 `Capability.MIN_RELAY_TX_FEE` is declared per instance, by
 `_sets_min_relay_fee`'s own probe: a build whose `cli.py` registers
 `-minrelaytxfee` -- `main` from btclib-node PR 1452 (`88f5c894`) on, the

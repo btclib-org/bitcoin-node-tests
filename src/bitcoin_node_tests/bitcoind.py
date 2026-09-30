@@ -347,6 +347,10 @@ class BitcoindAdapter(NodeAdapter):
     `debug_log_path` below.
     `Capability.MIN_RELAY_TX_FEE` is unconditional too: `-minrelaytxfee`
     is this binary's own flag (`src/init.cpp`).
+    `Capability.CLUSTER_LINEARIZATION` is unconditional too:
+    `getmempoolcluster` and `getmempoolfeeratediagram` are this binary's
+    own RPCs, and `optimal` a field of its own `getmempoolinfo`
+    (`src/rpc/mempool.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -421,6 +425,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.PEER_BLOCK_FILTERS,
             Capability.RPC_INFO,
             Capability.MIN_RELAY_TX_FEE,
+            Capability.CLUSTER_LINEARIZATION,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

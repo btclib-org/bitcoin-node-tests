@@ -1074,6 +1074,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_versionbits_warning.py` | [`5bd990a3ddb1`](https://github.com/bitcoin/bitcoin/commit/5bd990a3ddb1) | 2026-06-03 | pass, the reserved bit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
 | `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (package_acceptance) |
 | `p2p_headers_sync_with_minchainwork.py` | [`ff3e2e4ebdce`](https://github.com/bitcoin/bitcoin/commit/ff3e2e4ebdce) | 2026-08-19 | pass | skip (minimum_chain_work) |
+| `p2p_unrequested_blocks.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (minimum_chain_work) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1526,8 +1527,9 @@ node restarts with `-txindex` and the other indexes; the file's other
 `feature_assumeutxo.py` stays behind the disqualifier the node-linking
 section below names. `feature_reindex.py`, `feature_reindex_readonly.py`,
 `p2p_blockfilters.py`, `p2p_compactblocks.py`,
-`p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py` and
-`p2p_invalid_block.py` are ported, their rows in the table above.
+`p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
+`p2p_invalid_block.py` and `p2p_unrequested_blocks.py` are ported, their
+rows in the table above.
 
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
@@ -2928,6 +2930,37 @@ have. The `bitcoind` cell is one verdict for the pinned release and for
 Core's `master`. `btclib-node`'s cell is a counted skip on
 `MINIMUM_CHAIN_WORK` on every build, `cli.py` registering no
 `-minimumchainwork` at the released build or at `main`
+([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500));
+past it, neither build serves `generatetoaddress`
+([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)).
+
+`p2p_unrequested_blocks.py` is one of ISS 14's files in the log family's
+census above, an option and the log beside node-linking, its test taking
+its nodes from the cluster fixture. Its row is Core's own claim in full,
+over a pair of nodes not linked, the second restarted under
+`-minimumchainwork`, each mining a block of its own and each fed blocks
+by a peer. The first node takes a block extending its tip; the second
+stores no header of one on a chain below its floor, and its log says so.
+The first node keeps the header alone of a block forking from genesis
+that nobody asked for, and stores without connecting a block of that
+fork with as much work as its tip or more. A block whose parent it has
+no header for drops the peer; given that header, the node stores every
+block of a deep fork but the one more than Core's `MIN_BLOCKS_TO_KEEP`
+past its tip. The fork's first block, sent again unasked, is ignored; an
+`inv` for a later block of the fork makes the node ask for the first,
+and once it arrives the node reorganises onto the fork. A block spending an
+immature coinbase drops the peer, the node staying on its chain with
+that block stored, and a header extending its fork drops the next peer. The
+first node then dials the second, and both reach one tip. It asks for
+`Capability.MINIMUM_CHAIN_WORK` first, then `GENERATE`, `DEBUG_LOG` and
+`CONNECT`. `tests/integration/p2p_unrequested_blocks_test.py`'s own
+docstring has what differs from Core's file. The `bitcoind` cell is one
+verdict for the pinned release and for Core's `master`, the pinned
+release's own copy of the file differing from the pin only in handing
+each `create_block` a coinbase of its own `create_coinbase` rather than
+a height. `btclib-node`'s cell is a
+counted skip on `MINIMUM_CHAIN_WORK` on either build, `cli.py`
+registering no `-minimumchainwork` at the released build or at `main`
 ([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500));
 past it, neither build serves `generatetoaddress`
 ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)).

@@ -1054,6 +1054,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_invalid_block.py` (log) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_maxtipage.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (max_tip_age) |
 | `p2p_blockfilters.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | skip (peer_block_filters) |
+| `p2p_getaddr_caching.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (listen_address) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2584,6 +2585,27 @@ registers no `-peerblockfilters` on either build, and the node answers
 `getcfilters`, `getcfheaders` and `getcfcheckpt` and signals
 `NODE_COMPACT_FILTERS` to every peer with nothing to turn it off
 ([ISS btclib-node#1395](https://github.com/btclib-org/btclib-node/issues/1395)).
+
+`p2p_getaddr_caching.py` is ISS 14's too, an option and the clock, as
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags it; its test builds its node through `make_adapter`. It is Core's
+own claim: a node listening on a loopback bind and on onion binds beside
+it, its address table filled over `addpeeraddress`, answers every
+`getaddr` through one bind with the same `MAX_ADDR_TO_SEND` addresses
+while its clock moves by minutes, through each bind a different answer,
+and through each a new answer once the clock has moved past the cache's
+lifetime. `BitcoindAdapter` passes a `-bind` of its own, so the bitcoind
+test builds a subclass leaving it out, as `feature_port.py`'s own
+bitcoind test does, and names the loopback bind beside the onion ones.
+`tests/integration/p2p_getaddr_caching_test.py`'s own docstring has what
+else differs from Core's file. The `btclib-node` cell is a counted skip
+on `Capability.LISTEN_ADDRESS`, and the test asks for
+`Capability.KNOWN_ADDRESSES` and `Capability.CLOCK` besides, which no
+build declares either
+([ISS btclib-node#1443](https://github.com/btclib-org/btclib-node/issues/1443)).
+Past those, `callbacks.getaddr` answers every inbound connection from one
+sample, where Core keeps one per network and local socket
+([ISS btclib-node#1478](https://github.com/btclib-org/btclib-node/issues/1478)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

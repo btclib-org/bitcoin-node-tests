@@ -733,6 +733,12 @@ _ROWS: dict[str, str] = {
     "p2p_opportunistic_1p1c::test_a_package_is_taken_in_on_top_of_another": (
         "`p2p_opportunistic_1p1c.py` (1p1c on 1p1c)"
     ),
+    "p2p_opportunistic_1p1c::test_an_orphan_outlives_large_orphans_from_other_peers": (
+        "`p2p_opportunistic_1p1c.py` (DoS, large orphans)"
+    ),
+    "p2p_opportunistic_1p1c::test_an_orphan_outlives_many_orphans_from_other_peers": (
+        "`p2p_opportunistic_1p1c.py` (DoS, many orphans)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

@@ -39,12 +39,12 @@ already made and closed on -- reading Core's own files was refused in
 favour of `-connect`/`-addnode` delivering the same blocks over loopback
 p2p, which this repository's own `Capability.CONNECT` already reaches.
 
-`Capability.DISCONNECT` is not declared, on either build: `addnode` is
-answered (this module's own opening paragraph) but `disconnectnode`
-names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
-table, measured at the released `2026.9.24` (`422d2640`) and at `main`
-(`d98bd7d6`) alike. Filed as
-[ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193).
+`Capability.DISCONNECT` is declared per instance, by `_serves_disconnect`'s
+own probe: a build whose `rpc/callbacks.py` names `disconnectnode` in its
+public `callbacks`, as `main` (`053d5d83`) does from `24de126d` on
+([ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193)).
+The released `2026.9.24` (`422d2640`) names no such callback, so an instance
+built against it does not gain the capability.
 
 `Capability.BAN` is declared per instance, by `_serves_ban_list`'s own
 probe: a build whose `rpc/callbacks.py` names `setban`, `listbanned` and
@@ -64,7 +64,7 @@ at `main` (`8ded5494`) alike, `-uacomment` is registered by neither.
 `btclib-node` `18b6ae1e2c74`.
 
 `Capability.RPC_AUTH_CONFIG` is not a class-level fact the way
-`BLK_FILES`, `DISCONNECT`, `UA_COMMENT` and `CLOCK` above are, and unlike
+`BLK_FILES`, `UA_COMMENT` and `CLOCK` above are, and unlike
 them this is not a fact about `btclib-node` itself: `cli.py`'s own
 `_RECOGNIZED_KEYS` at `18b6ae1e2c74` already names `rpcauth`,
 `rpcwhitelist` and `rpcwhitelistdefault`, landed by
@@ -639,6 +639,32 @@ def _serves_chain_tips(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# exits 0 only where the dispatch table holds `Capability.DISCONNECT`'s RPC
+_DISCONNECT_PROBE = """\
+from btclib_node.rpc.callbacks import callbacks
+raise SystemExit(0 if "disconnectnode" in callbacks else 1)
+"""
+
+
+@lru_cache
+def _serves_disconnect(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node answers `disconnectnode`.
+
+    Asks the build's own `rpc.callbacks.callbacks`, as `_serves_chain_tips`
+    above does, whether it names `disconnectnode`: `_DISCONNECT_PROBE`
+    above. Otherwise in the standing of `_writes_auth_cookie` above: no
+    node started, no port bound, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _DISCONNECT_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 class BtclibNodeAdapter(NodeAdapter):
     """A `btclib-node`, run as `python -m btclib_node`.
 
@@ -683,8 +709,9 @@ class BtclibNodeAdapter(NodeAdapter):
         `_evicts_inbound` answers `Capability.INBOUND_EVICTION`,
         `_connects_alone` answers `Capability.MINE`,
         `_serves_ban_list` answers `Capability.BAN`,
-        `_sets_min_relay_fee` answers `Capability.MIN_RELAY_TX_FEE`, and
-        `_serves_chain_tips` answers `Capability.CHAIN_TIPS`. The
+        `_sets_min_relay_fee` answers `Capability.MIN_RELAY_TX_FEE`,
+        `_serves_chain_tips` answers `Capability.CHAIN_TIPS`, and
+        `_serves_disconnect` answers `Capability.DISCONNECT`. The
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
         is left untouched where every probe answers `False`. A `chain`
         other than regtest drops `Capability.MINE` whatever its probe
@@ -715,6 +742,8 @@ class BtclibNodeAdapter(NodeAdapter):
             probed.add(Capability.MIN_RELAY_TX_FEE)
         if _serves_chain_tips(executable):
             probed.add(Capability.CHAIN_TIPS)
+        if _serves_disconnect(executable):
+            probed.add(Capability.DISCONNECT)
         if probed:
             self.capabilities = type(self).capabilities | probed
 

@@ -785,7 +785,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_users.py` (`-rpcuser`/`-rpcpassword`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `rpc_users.py` (`-norpccookiefile`) | same | same | pass | skip (rpc_auth) on the build; pass on a build past [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070) |
 | `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
-| `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; skip (disconnect) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; skip (disconnect) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) and before [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193); fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) on a build past [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193) |
 | `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | fail ([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)) on the build; pass on a build past [ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072) |
 | `p2p_invalid_locator.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; fail ([ISS btclib-node#1385](https://github.com/btclib-org/btclib-node/issues/1385)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_invalid_messages.py` (wire) | `3fd68a95e68b` | 2026-04-07 | pass | pass |
@@ -863,7 +863,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_setban.py` (noban) | same | same | pass | skip (ban) on the build; fail ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)) on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
 | `rpc_setban.py` (non-IP) | same | same | pass | skip (ban) on the build; fail ([ISS btclib-node#1218](https://github.com/btclib-org/btclib-node/issues/1218)) on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) and before [ISS btclib-node#1218](https://github.com/btclib-org/btclib-node/issues/1218); pass on a build past [ISS btclib-node#1218](https://github.com/btclib-org/btclib-node/issues/1218) |
 | `rpc_setban.py` (bantime) | same | same | pass | skip (ban) on the build; pass on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
-| `p2p_disconnect_ban.py` (disconnectnode) | [`dcd90fbe54cf`](https://github.com/bitcoin/bitcoin/commit/dcd90fbe54cf) | 2026-04-07 | pass | skip (disconnect) |
+| `p2p_disconnect_ban.py` (disconnectnode) | [`dcd90fbe54cf`](https://github.com/bitcoin/bitcoin/commit/dcd90fbe54cf) | 2026-04-07 | pass | skip (disconnect) on the build; pass on a build past [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193) |
 | `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
@@ -887,7 +887,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_compactblocks_blocksonly.py` | [`bf9884f4e55d`](https://github.com/bitcoin/bitcoin/commit/bf9884f4e55d) | 2026-06-18 | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (blocks_only) |
 | `rpc_getblockfilter.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (block_filter_index) |
 | `rpc_getblockfrompeer.py` | [`779f4446803d`](https://github.com/bitcoin/bitcoin/commit/779f4446803d) | 2026-05-25 | pass | skip (block_from_peer) |
-| `p2p_node_network_limited.py` | [`fa7bac94d87a`](https://github.com/bitcoin/bitcoin/commit/fa7bac94d87a) | 2026-03-12 | pass | skip (mine) on the build; skip (disconnect) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_node_network_limited.py` | [`fa7bac94d87a`](https://github.com/bitcoin/bitcoin/commit/fa7bac94d87a) | 2026-03-12 | pass | skip (mine) on the build; skip (disconnect) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) and before [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193); skip (suspend_network) on a build past [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193) |
 | `rpc_getdescriptorinfo.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (descriptor_info) |
 | `p2p_timeouts.py` (wire) | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | skip (peer_timeout) |
 | `p2p_timeouts.py` (log) | same | same | pass | skip (peer_timeout) |
@@ -1078,7 +1078,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_1p1c_network.py` | [`95ef0fc5e781`](https://github.com/bitcoin/bitcoin/commit/95ef0fc5e781) | 2025-12-29 | pass | skip (orphanage) |
 | `mempool_ephemeral_dust.py` | [`7c8030143925`](https://github.com/bitcoin/bitcoin/commit/7c8030143925) | 2026-02-25 | pass | skip (package_acceptance) |
 | `mempool_ephemeral_dust.py` (nonzero dust) | same | same | pass | skip (min_relay_tx_fee) on the build; pass on a build past [ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332) |
-| `mempool_ephemeral_dust.py` (reorg) | same | same | pass | skip (disconnect) |
+| `mempool_ephemeral_dust.py` (reorg) | same | same | pass | skip (disconnect) on the build; fail ([ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382)) on a build past [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193) |
 | `feature_notifications.py` (`-blocknotify`) | [`469b0e59a29a`](https://github.com/bitcoin/bitcoin/commit/469b0e59a29a) | 2026-09-01 | pass | skip (block_notify) |
 | `feature_notifications.py` (`-alertnotify`) | same | same | pass, the warning's wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
 | `feature_notifications.py` (`-shutdownnotify`) | same | same | pass | skip |
@@ -1270,11 +1270,14 @@ capability rather than the RPC, since a node offering the same fact
 under another name would still answer `pass`. Every row of these is one
 body run against both nodes
 (`tests/integration/conftest.py`'s own module docstring), so a `main`
-declaring `Capability.MINE` (`btclib_node.py`'s own docstring) runs
-Core's own scenario: `p2p_block_sync.py` passes; `p2p_compactblocks_hb.py`
-skips on `Capability.DISCONNECT` instead, each relay dropping its link to
-the block producer over `disconnectnode`; and `p2p_invalid_locator.py`
-fails its `getblocks` half, a message that build leaves unanswered
+declaring `Capability.MINE` and `Capability.DISCONNECT`
+(`btclib_node.py`'s own docstring) runs Core's own scenario:
+`p2p_block_sync.py` passes; `p2p_compactblocks_hb.py`
+fails there, every peer's `bip152_hb_to` staying false as this node picks no
+high-bandwidth peer
+([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321));
+and `p2p_invalid_locator.py` fails its `getblocks` half, a message that build
+leaves unanswered
 ([ISS btclib-node#1385](https://github.com/btclib-org/btclib-node/issues/1385)).
 `p2p_net_deadlock.py` skips on `Capability.RAW_MESSAGE`, which it asks for
 ahead of `Capability.MINE`.
@@ -1771,8 +1774,13 @@ step 5 mechanism. Core expects `NODE_P2P_V2` besides under its own
 `--v2transport`, and the test expects it where the node declares
 `Capability.V2TRANSPORT` (`tests/integration/p2p_node_network_limited_test.py`'s
 own docstring). `btclib-node`'s cell is a counted skip, on
-`Capability.MINE` on the released build and on `Capability.DISCONNECT`
-on `main`. Measured apart from the test, on both builds: a `getdata` for
+`Capability.MINE` on the released build, on `Capability.DISCONNECT` on a
+build past
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
+and before
+[ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193),
+and on `Capability.SUSPEND_NETWORK` past that.
+Measured apart from the test, on both builds: a `getdata` for
 the oldest block the window holds is served and one for the block before
 it disconnects, as on bitcoind; `setnetworkactive` and `getchaintips`
 name no callback
@@ -3042,21 +3050,26 @@ takes it, `MIN_RELAY_TX_FEE`, `CONNECT`, `DISCONNECT` for the reorg body,
 `GENERATE` where Core's `generate` mines from the node's own mempool, and
 `MINE`. `tests/integration/mempool_ephemeral_dust_test.py`'s own docstring has
 what differs from Core's file. The `bitcoind` cells are one verdict for the
-pinned release and for Core's `master`. `btclib-node`'s cells are counted skips
-on either build: on `PACKAGE_ACCEPTANCE`, no file under its `src/` naming
+pinned release and for Core's `master`. `btclib-node`'s cells are
+counted skips: on `PACKAGE_ACCEPTANCE`, no file under its `src/` naming
 `submitpackage` at the released build or at `main`
 ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494));
-for the reorg body on `DISCONNECT`, which `BtclibNodeAdapter` declares on
-neither build, `disconnectnode` naming no callback at the released build
-([ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193))
-and served at `main`
-([ISS 297](https://github.com/btclib-org/bitcoin-node-tests/issues/297)); and
-for the nonzero-dust row's body on `MIN_RELAY_TX_FEE` at the released build
-alone. Past
+for the reorg body on `DISCONNECT` at the released build, `disconnectnode`
+naming no callback there
+([ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193));
+and for the nonzero-dust row's body on `MIN_RELAY_TX_FEE` at the released build
+alone. The reorg body fails at `main`: a mined parent with a second dust output
+comes back into its mempool, where Core's `IsStandardTx` would refuse it as
+`dust`
+([ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382)).
+Past that, the body would still fail at `dusty_fee`, a parent with a dust
+output and a fee, which Core refuses through `PreCheckEphemeralTx`
+([ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594)).
+Past
 [ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332)
-that body passes, read from btclib-node's own source at `ef61ba33` rather than
-run: `verify_mempool_acceptance` (`main.py`) applies no dust rule, and no fee
-floor where `-minrelaytxfee` sets the relay floor to zero. Past
+the nonzero-dust body passes, read from btclib-node's own source at `ef61ba33`
+rather than run: `verify_mempool_acceptance` (`main.py`) applies no dust rule,
+and no fee floor where `-minrelaytxfee` sets the relay floor to zero. Past
 `PACKAGE_ACCEPTANCE`, neither build serves `prioritisetransaction`
 ([ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502))
 or `generatetoaddress`
@@ -3365,8 +3378,9 @@ node-linking's own RPCs: `addnode`, `disconnectnode` and `setban` are
 each their own, so a node answering one is not thereby assumed to
 answer either of the others. Both are in bitcoind's own `help` listing
 with no argument, unconditional the same way `CONNECT` already is.
-`btclib-node` declares `DISCONNECT` on no build measured, filed as
-[ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193),
+`btclib-node` declares `DISCONNECT` only on a build serving
+`disconnectnode`, `main` from `24de126d` on
+([ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193)),
 and `BAN` only on a build past
 [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088),
 the `rpc_setban.py` paragraph below.
@@ -3436,9 +3450,10 @@ its own row above: a pair of nodes connected both ways, `disconnectnode`
 refusing an address and a node id given together and an address no
 peer has, then dropping a peer by address, the pair reconnecting, and
 dropping a peer by node id. `Capability.DISCONNECT` is `btclib-node`'s
-counted skip on every build,
+counted skip on the released build,
 [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193)
-being why. The file's `setban` half is not ported: it reads
+being why; it passes on `main`, which serves `disconnectnode`. The file's
+`setban` half is not ported: it reads
 `ban_duration` and `time_remaining` under `setmocktime`, waits for
 "Recreating the banlist database" in `debug.log`, and deletes
 `banlist.json` from the data directory -- the clock, log and disk

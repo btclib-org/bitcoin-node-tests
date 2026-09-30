@@ -6,9 +6,10 @@
 
 `p2p_disconnect_ban_test.py` beside this module is the body, run here
 against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `Capability.DISCONNECT` is not declared on any
-build (`btclib_node.py`'s own docstring), so the test skips once its two
-nodes are started, before a `disconnectnode` call is made.
+btclib-org/btclib#2220). `Capability.DISCONNECT` is declared only by a
+build naming `disconnectnode` (`btclib_node.py`'s own docstring): PyPI's
+`2026.9.24` skips once its two nodes are started, before a
+`disconnectnode` call is made.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_disconnect_ban_btclib_node_test.py

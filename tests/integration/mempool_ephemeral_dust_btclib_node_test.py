@@ -9,9 +9,14 @@ here against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). The body with no relay floor and no package is
 a counted skip on `Capability.MIN_RELAY_TX_FEE` on the released build,
 which does not declare it, and runs on a build that does. The reorg body
-is a counted skip on `Capability.DISCONNECT` and every other one on
-`Capability.PACKAGE_ACCEPTANCE`, neither of which any build declares
-(`btclib_node.py`'s own docstring).
+is a counted skip on `Capability.DISCONNECT` on the released build, which
+does not declare it. A `main` that does runs it and fails it: a parent with
+two dust outputs returns to the mempool
+([ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382)).
+Past that it fails at the parent with a dust output and a fee
+([ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594)).
+Every other one is a counted skip on `Capability.PACKAGE_ACCEPTANCE`, which no
+build declares (`btclib_node.py`'s own docstring).
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/mempool_ephemeral_dust_btclib_node_test.py

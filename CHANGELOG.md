@@ -1314,3 +1314,9 @@ open, not only that the call after the idle is answered (closes #341).
 A node given `-assumevalid` at a buried spend's own hash skips checking it, one
 given none catches it and marks the chain past it invalid.
 `Capability.ASSUME_VALID` is new; btclib-node skips (issue #14).
+
+### `BtclibNodeAdapter` declares `Capability.DISCONNECT` per build
+
+An instance declares it where the build's own `rpc.callbacks.callbacks` names
+`disconnectnode`, as btclib-node's `main` does and its release does not
+(closes #297).

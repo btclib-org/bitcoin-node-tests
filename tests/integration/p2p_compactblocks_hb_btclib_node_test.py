@@ -9,10 +9,11 @@ against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). `Capability.MINE` is declared only by a build
 that connects a submitted block with no peer (`btclib_node.py`'s own
 docstring): PyPI's `2026.9.24` is a counted skip here. A `main` from
-btclib-node PR 1152 on declares it and is a counted skip on
-`Capability.DISCONNECT` instead, `btclib_node.py`'s own docstring
-measuring neither build answering `disconnectnode`
-([ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193)).
+btclib-node PR 1152 on declares it, and `Capability.DISCONNECT` too
+from `24de126d` on (`btclib_node.py`'s own docstring). Such a `main` runs
+the body and fails it: `bip152_hb_to` stays false, this node picking no
+high-bandwidth peer
+([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)).
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_compactblocks_hb_btclib_node_test.py

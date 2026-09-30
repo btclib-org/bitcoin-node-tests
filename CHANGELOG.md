@@ -1137,3 +1137,9 @@ ones (issue btclib-org/.github#1362).
 The mempool is checked to hold spends to BIP68's relative lock times, across a
 reorg too, where a block before the deployment activates is not held to them;
 btclib-node skips (issue #14).
+
+### `mempool_accept` is ported
+
+`testmempoolaccept` is checked to give each of Core's raw transactions its
+verdict, reject reason and fees, the newer vsizes read per build; btclib-node
+skips on `-permitbaremultisig` (issue #14).

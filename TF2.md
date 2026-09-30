@@ -2037,10 +2037,10 @@ own file in the RPCs it exercises, not in the boundary it checks.
 Both rows are one body run against both nodes
 (`tests/integration/conftest.py`'s own module docstring), each reading a
 block's own transactions off `getblock`'s raw form, the only one
-btclib-node serves. A `main` declaring `Capability.MINE` runs each and
-fails it. In `mempool_spend_coinbase.py` the immature spend is refused,
-but as "Invalid signatures or script" rather than Core's own
-`bad-txns-premature-spend-of-coinbase`
+btclib-node serves at the released build. A `main` declaring
+`Capability.MINE` runs each and fails it. In `mempool_spend_coinbase.py`
+the immature spend is refused, but as "Invalid signatures or script"
+rather than Core's own `bad-txns-premature-spend-of-coinbase`
 ([ISS btclib-node#1328](https://github.com/btclib-org/btclib-node/issues/1328)).
 In `mempool_resurrect.py` the orphaned spends do return to the mempool,
 and the body then stops at `MiniWallet.resync`, which asks `gettxout`,
@@ -2775,9 +2775,10 @@ merger that would take a cluster past either limit, and a package past
 the count, are refused `too-large-cluster`, where a replacement keeping
 the cluster's count or size and a spend of each cluster apart are
 taken; and a merger or a package that replaces transactions forms a
-cluster without them. The row asks for
-`Capability.LIMIT_CLUSTER_SIZE` and `LIMIT_CLUSTER_COUNT`, then
-`CLUSTER_LINEARIZATION` (`capability.py`), naming `getmempoolcluster`,
+cluster without them. The row asks for `Capability.LIMIT_CLUSTER_SIZE`
+and `LIMIT_CLUSTER_COUNT`, then `MEMPOOL_GRAPH` (`capability.py`),
+naming `getmempoolancestors` and `getmempooldescendants`, then
+`CLUSTER_LINEARIZATION`, naming `getmempoolcluster`,
 `getmempoolfeeratediagram` and `getmempoolinfo`'s own `optimal`, then
 `PACKAGE_ACCEPTANCE`, naming `submitpackage`, ahead of `MINE`.
 `tests/integration/mempool_cluster_test.py`'s own docstring has what
@@ -2787,7 +2788,9 @@ counted skip on `LIMIT_CLUSTER_SIZE` on either build, its `cli.py`
 registering no `-limitclustersize` at the released build or at `main`,
 and its mempool bounding no cluster
 ([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383));
-past that, neither build serves `getmempoolcluster`
+past that, neither build serves `getmempoolancestors`
+([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501)),
+`getmempoolcluster`
 ([ISS btclib-node#1499](https://github.com/btclib-org/btclib-node/issues/1499))
 or `submitpackage`
 ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)).

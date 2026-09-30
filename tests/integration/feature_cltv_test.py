@@ -62,7 +62,7 @@ from typing import TYPE_CHECKING
 from btclib.script.script import serialize
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
-from btclib.tx.limits import COINBASE_MATURITY
+from btclib.tx.limits import COINBASE_MATURITY, SEQUENCE_FINAL
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
@@ -111,8 +111,6 @@ _RAW_OP_TRUE_SCRIPT_SIG = serialize(["OP_NOP"] * 43)
 # the other lock-time type from a block height
 _TIME_GENESIS_BLOCK = 1296688602
 
-_SEQUENCE_FINAL = 0xFFFFFFFF
-
 # Core's own `cltv_invalidate` table: what to prepend, and the nSequence and
 # nLockTime to set where not None
 _INVALIDATE: tuple[tuple[list[int | str], int | None, int | None], ...] = (
@@ -120,7 +118,7 @@ _INVALIDATE: tuple[tuple[list[int | str], int | None, int | None], ...] = (
     (["OP_1NEGATE", "OP_CHECKLOCKTIMEVERIFY", "OP_DROP"], None, None),
     ([100, "OP_CHECKLOCKTIMEVERIFY", "OP_DROP"], 0, _TIME_GENESIS_BLOCK),
     ([100, "OP_CHECKLOCKTIMEVERIFY", "OP_DROP"], 0, 50),
-    ([50, "OP_CHECKLOCKTIMEVERIFY", "OP_DROP"], _SEQUENCE_FINAL, 50),
+    ([50, "OP_CHECKLOCKTIMEVERIFY", "OP_DROP"], SEQUENCE_FINAL, 50),
 )
 
 # the reason bitcoind names for each row of `_INVALIDATE`, after the

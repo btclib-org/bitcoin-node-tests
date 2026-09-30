@@ -70,6 +70,7 @@ from btclib.p2p import (
 )
 from btclib.p2p.magic import magic_from_chain
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
+from btclib.tx.limits import SEQUENCE_FINAL
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
@@ -111,10 +112,6 @@ _FORK_BLOCKS = 288
 
 # what Core's own `create_coinbase` pays
 _OP_TRUE = b"\x51"
-
-# Core's own `SEQUENCE_FINAL` (`test_framework/messages.py`), which
-# `create_tx_with_script` gives its input
-_SEQUENCE_FINAL = 0xFFFFFFFF
 
 # Core's own `script_sig` and `amount` for the immature spend
 _IMMATURE_SCRIPT_SIG = b"42"
@@ -168,7 +165,7 @@ def _child(parent: Block, height: int, transactions: Sequence[Tx] = ()) -> Block
 def _immature_spend(block: Block) -> Tx:
     """Core's own `create_tx_with_script(block.vtx[0], 0, b"42", amount=1)`."""
     tx_in = TxIn(
-        OutPoint(block.transactions[0].id, 0), _IMMATURE_SCRIPT_SIG, _SEQUENCE_FINAL
+        OutPoint(block.transactions[0].id, 0), _IMMATURE_SCRIPT_SIG, SEQUENCE_FINAL
     )
     return Tx(2, 0, [tx_in], [TxOut(_IMMATURE_AMOUNT, b"")], check_validity=False)
 

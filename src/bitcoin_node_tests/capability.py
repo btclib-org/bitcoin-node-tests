@@ -521,6 +521,13 @@ class Capability(Enum):
     `SHUTDOWN_NOTIFY` -- run a shell command a caller names once it
     begins shutting down, the way Core's own `-shutdownnotify` does
     (`feature_notifications.py`).
+    `SETTINGS_FILE` -- keep a settings file in its chain's data directory
+    the way Core's own `settings.json` is kept: written at start with a
+    `_warning_` key, each value logged at the next start and left in the
+    file at shutdown, a file that is not valid JSON, not a JSON object or
+    that holds a key twice refusing the start, `-nosettings` on the
+    command line or in `bitcoin.conf` turning it off, and
+    `-settings=<path>` naming another file (`feature_settings.py`).
     """
 
     MINE = "mine"
@@ -595,6 +602,7 @@ class Capability(Enum):
     PACKAGE_ACCEPTANCE = "package_acceptance"
     BLOCK_NOTIFY = "block_notify"
     SHUTDOWN_NOTIFY = "shutdown_notify"
+    SETTINGS_FILE = "settings_file"
 
 
 class SkipCounts:

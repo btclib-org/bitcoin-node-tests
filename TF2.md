@@ -1082,6 +1082,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_notifications.py` (`-blocknotify`) | [`469b0e59a29a`](https://github.com/bitcoin/bitcoin/commit/469b0e59a29a) | 2026-09-01 | pass | skip (block_notify) |
 | `feature_notifications.py` (`-alertnotify`) | same | same | pass, the warning's wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
 | `feature_notifications.py` (`-shutdownnotify`) | same | same | pass | skip |
+| `feature_settings.py` | [`0654511e1b93`](https://github.com/bitcoin/bitcoin/commit/0654511e1b93) | 2026-06-17 | pass | skip (settings_file) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1535,8 +1536,8 @@ node restarts with `-txindex` and the other indexes; the file's other
 section below names. `feature_reindex.py`, `feature_reindex_readonly.py`,
 `p2p_blockfilters.py`, `p2p_compactblocks.py`,
 `p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
-`p2p_invalid_block.py` and `p2p_unrequested_blocks.py` are ported, their
-rows in the table above.
+`p2p_invalid_block.py`, `p2p_unrequested_blocks.py` and
+`feature_settings.py` are ported, their rows in the table above.
 
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
@@ -3086,6 +3087,27 @@ cells are counted skips on each capability on either build, no file naming
 ([ISS btclib-node#1519](https://github.com/btclib-org/btclib-node/issues/1519)),
 nor `alertnotify`
 ([ISS btclib-node#1475](https://github.com/btclib-org/btclib-node/issues/1475)).
+
+`feature_settings.py` is one of ISS 14's files in the log family's census
+above, an option and the disk beside the log. Its row is Core's own claim in
+full, over a node started with no `bitcoin.conf` of the harness's own. A node
+writes its settings file at its first start, holding Core's `_warning_` alone.
+It logs each value of the file at the next start, warning about each one it
+does not use, and leaves the values in the file when it stops. A file that is
+not valid JSON, not a JSON object, or that holds a key twice refuses the start
+in Core's own words. `-nosettings` on the command line, then in `bitcoin.conf`'s
+`[regtest]` section, starts the node over such a file, and `-settings=<path>`
+reads another file. A `wallet` value in the file that is not a list of strings
+refuses the start for each value Core's list names. The first test asks for
+`Capability.SETTINGS_FILE` first, then `DEBUG_LOG`; the wallet test asks for
+`SETTINGS_FILE`, then `NODE_WALLET`. `tests/integration/feature_settings_test.py`'s
+own docstring has what differs from Core's file, the invalid-JSON refusal's
+wording being read from the running build's version. The `bitcoind` cell is one
+verdict for the pinned release and for Core's `master`, whose copies of the file
+are the pin's. `btclib-node`'s cell is a counted skip on `SETTINGS_FILE` on
+either build, `cli.py` registering no `-settings` and no file under `src/`
+reading or writing a `settings.json` at the released build or at `main`
+([ISS btclib-node#1523](https://github.com/btclib-org/btclib-node/issues/1523)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

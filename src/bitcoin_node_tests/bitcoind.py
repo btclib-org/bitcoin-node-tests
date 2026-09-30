@@ -367,6 +367,9 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.BLOCK_NOTIFY` and `Capability.SHUTDOWN_NOTIFY` are
     unconditional too: `-blocknotify` and `-shutdownnotify` are this
     binary's own flags (`src/init.cpp`).
+    `Capability.SETTINGS_FILE` is unconditional too: `-settings` is this
+    binary's own flag (`src/init.cpp`), its file read and written by
+    `ArgsManager` (`src/common/args.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -448,6 +451,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.PACKAGE_ACCEPTANCE,
             Capability.BLOCK_NOTIFY,
             Capability.SHUTDOWN_NOTIFY,
+            Capability.SETTINGS_FILE,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

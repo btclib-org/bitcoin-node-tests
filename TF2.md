@@ -1055,6 +1055,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_maxtipage.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (max_tip_age) |
 | `p2p_blockfilters.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | skip (peer_block_filters) |
 | `p2p_getaddr_caching.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (listen_address) |
+| `mempool_reorg.py` (coinbase) | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mine) on the build; skip (invalidate_block) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `mempool_reorg.py` (relay) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2607,6 +2609,31 @@ Past those, `callbacks.getaddr` answers every inbound connection from one
 sample, where Core keeps one per network and local socket
 ([ISS btclib-node#1478](https://github.com/btclib-org/btclib-node/issues/1478)).
 
+`mempool_reorg.py` is ISS 14's too, MiniWallet, the clock and
+node-linking together, each of its tests taking a pair of nodes from the
+cluster fixture. It is Core's own claim in full, on a chain mined to the
+height Core's framework caches. The (coinbase) row checks that a reorg
+returns a coinbase spend to the mempool, or drops it where the reorg
+makes that coinbase immature, and drops a spend time-locked past the new
+tip's median time past; it asks for `Capability.INVALIDATE_BLOCK`, beside
+`MINE` and `CONNECT`. The (relay) row checks that a transaction a reorg
+returns from a disconnected block is served to a peer asking for it
+before the node has announced it, where one no block has held is not;
+it asks for `Capability.CLOCK`, beside `MINE`, `CONNECT` and
+`DISCONNECT`.
+`tests/integration/mempool_reorg_test.py`'s own docstring has what
+differs from Core's file. Each `bitcoind` cell is one verdict for the
+pinned release and for Core's `master`. `btclib-node`'s cell on each row
+is a counted skip on `MINE` on the released build, and on a build past
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
+on `INVALIDATE_BLOCK` and on `CLOCK` respectively, which no build
+declares: neither `invalidateblock`
+([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480))
+nor `setmocktime`
+([ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479))
+names a callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
+table, at the released build or at `main`.
+
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 
 [ISS 43](https://github.com/btclib-org/bitcoin-node-tests/issues/43):
@@ -2753,7 +2780,6 @@ go as follows.
 - `interface_rest.py` (option, MiniWallet, disk) and
   `mining_getblocktemplate_longpoll.py` (log, MiniWallet): ISS 14's.
 - `feature_fee_estimation.py` (MiniWallet, log, `-blockmaxweight`),
-  `mempool_reorg.py` (MiniWallet, `setmocktime`, `-whitelist`),
   `mining_basic.py` (MiniWallet, `setmocktime`, `-blockmaxweight`,
   `-prune`), `p2p_segwit.py` (MiniWallet, log, `-testactivationheight`),
   `feature_bip68_sequence.py` (MiniWallet, `setmocktime`,
@@ -2771,6 +2797,8 @@ go as follows.
 - `p2p_blockfilters.py` (`-blockfilterindex`, `-peerblockfilters`, log,
   and BIP157's own `getcfilters`/`getcfheaders`/`getcfcheckpt` from a
   raw peer): ISS 14's, ported, its row in the table above.
+- `mempool_reorg.py` (MiniWallet, `setmocktime`, `-whitelist`): ISS 14's,
+  ported, its rows in the table above.
 - `p2p_disconnect_ban.py`'s `setban` half: ISS 14's, the paragraph
   above.
 - `feature_assumeutxo.py` stays disqualified on the sixth thing the

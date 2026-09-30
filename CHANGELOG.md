@@ -1107,3 +1107,9 @@ the new `Capability.PEER_BLOCK_FILTERS` (issue #14).
 A node listening on a loopback and two onion binds is checked to answer every
 `getaddr` through one bind with the same addresses, through each a different
 answer, and a new one once the cache expires; btclib-node skips (issue #14).
+
+### `mempool_reorg` is ported
+
+A reorg is checked to return coinbase spends to the mempool or drop them as
+immature or non-final, and a transaction it returns to be served before it is
+announced; btclib-node skips (issue #14).

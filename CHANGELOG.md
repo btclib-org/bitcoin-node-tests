@@ -1113,3 +1113,9 @@ answer, and a new one once the cache expires; btclib-node skips (issue #14).
 A reorg is checked to return coinbase spends to the mempool or drop them as
 immature or non-final, and a transaction it returns to be served before it is
 announced; btclib-node skips (issue #14).
+
+### `interface_rpc` is ported
+
+Raw JSON-RPC batches and statuses, notifications, `getrpcinfo` and a full work
+queue's 503 are checked; btclib-node skips the last three, and its release
+fails the first two (btclib-org/btclib-node#1109) (issue #14).

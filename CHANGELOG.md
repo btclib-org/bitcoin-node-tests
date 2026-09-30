@@ -1083,3 +1083,9 @@ unless it is protected; btclib-node skips (issue #44).
 
 A node is checked to announce a transaction only to a peer whose handshake was
 complete when the node received it; btclib-node's release skips (issue #14).
+
+### `p2p_invalid_block` is ported
+
+A node is checked to refuse a block with a duplicated transaction, an input
+spent twice, an overpaying coinbase or a time too far ahead of its clock, and
+to take each valid block; btclib-node skips (issue #14).

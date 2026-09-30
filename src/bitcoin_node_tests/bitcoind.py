@@ -554,7 +554,7 @@ class BitcoindAdapter(NodeAdapter):
         (`DEFAULT_HTTP_SERVER_TIMEOUT`, `src/httpserver.h`), while
         `NodeAdapter` keeps its connections open across calls
         (`_ThreadSessions`, `node.py`). `SessionTransport` probes a kept
-        connection before reusing it and does not retry a
+        connection before reusing it and does not retry a bare
         `ConnectionResetError` its read raises, so a close landing between
         that probe and the request can reach the caller as a `FetchError`
         raised from one (measured against the pinned `31.1`,

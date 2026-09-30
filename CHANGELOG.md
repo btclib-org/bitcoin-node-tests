@@ -1302,3 +1302,9 @@ btclib-org/btclib-node#1332 does it pass, tested alone under
 `Capability.CHAIN_TIPS` is new, declared by a btclib-node build serving it;
 `wallet_signmessagewithaddress` asks for `SIGN_MESSAGE_WITH_PRIVKEY` too, and
 `rpc_invalidateblock` reads a version off bitcoind alone (closes #339).
+
+### The kept-connection test fails without `-rpcservertimeout=99000`
+
+`test_a_kept_connection_outlives_the_default_server_timeout` checks that the
+probe of a connection idle past bitcoind's default server timeout finds it
+open, not only that the call after the idle is answered (closes #341).

@@ -10,7 +10,7 @@ earlier adapter left
 ([ISS 86](https://github.com/btclib-org/bitcoin-node-tests/issues/86)),
 `stop` reporting a node killed out from under the adapter
 ([ISS 84](https://github.com/btclib-org/bitcoin-node-tests/issues/84)),
-and a kept RPC connection answered after idling past bitcoind's default
+and a kept RPC connection still open after idling past bitcoind's default
 `-rpcservertimeout`
 ([ISS 336](https://github.com/btclib-org/bitcoin-node-tests/issues/336)).
 
@@ -128,21 +128,35 @@ def test_a_kept_connection_outlives_the_default_server_timeout(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A connection idle past bitcoind's default server timeout is answered.
+    """A connection idle past bitcoind's default server timeout is still open.
 
-    `SessionTransport`'s probe of a kept connection is turned off, which is
-    what a server's idle close landing between that probe and the request
-    looks like to the transport.
+    `SessionTransport` probes a kept connection before reusing it, and
+    replaces one the probe finds closed, so an answered call alone cannot
+    tell a connection the server kept from one it closed. The probe here
+    records what the real one answers and then answers `False` regardless,
+    which is what a server's idle close landing between that probe and the
+    request looks like to the transport: the one probe the call after the
+    idle makes has to have found the connection open. `start` leaves the
+    connection its own polling opened pooled, and the answers that polling
+    recorded are cleared before the idle.
     """
-    monkeypatch.setattr(transport, "_is_reused_connection_dead", lambda _: False)
+    real_probe = transport._is_reused_connection_dead
+    probed: list[bool] = []
+
+    def recording_probe(connection: transport._Connection) -> bool:
+        probed.append(real_probe(connection))
+        return False
+
+    monkeypatch.setattr(transport, "_is_reused_connection_dead", recording_probe)
     rpc_port, p2p_port = free_ports(2)
     adapter = make_adapter(
         BitcoindAdapter, bitcoind_path, tmp_path / "node", rpc_port, p2p_port
     )
     adapter.start()
     try:
-        adapter.rpc.call("getblockcount")
+        probed.clear()
         time.sleep(_PAST_DEFAULT_SERVER_TIMEOUT)
         assert adapter.rpc.call("getblockcount") == 0
+        assert probed == [False]
     finally:
         adapter.stop()

@@ -1238,3 +1238,8 @@ names both; btclib-node skips (issue #317).
 `signmessagewithprivkey` and `verifymessage` are checked against Core's own key,
 signature and refusals; `Capability.SIGN_MESSAGE_WITH_PRIVKEY` is new;
 btclib-node skips (issue #317).
+
+### `feature_chain_tiebreaks` is ported
+
+A node is checked to take, of tips with equal work, the one whose chain it held
+in full first, and to keep it across a restart; btclib-node skips (issue #317).

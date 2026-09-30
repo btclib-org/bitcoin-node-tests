@@ -1052,6 +1052,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_tx_privacy.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_invalid_block.py` (wire) | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_invalid_block.py` (log) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `feature_maxtipage.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (max_tip_age) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2541,6 +2542,25 @@ differs from Core's file. The `btclib-node` cell is a counted skip on
 `Capability.LISTEN_ADDRESS`: `cli.py` registers no `-bind` on either
 build, and the node binds no onion listener
 ([ISS btclib-node#1257](https://github.com/btclib-org/btclib-node/issues/1257)).
+
+`feature_maxtipage.py` is ISS 14's too, an option and the clock beside
+node-linking:
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags it for multi-node linkage, its `connect_nodes` and `sync_all`,
+which the node-linking section below answers, and its test takes its
+nodes from the cluster fixture. It is Core's own claim: a restarted
+node stays in initial block download while each block a connected miner
+relays is older than the maximum tip age by its clock, and leaves it on
+the first block exactly that old, for the default of a day, for each of
+Core's hour values under `-maxtipage` and for the largest value the
+option takes. Each block is built client-side at the time Core's
+`setmocktime` gives the miner and submitted over `submitblock`, where
+Core's `generate` has the miner build it;
+`tests/integration/feature_maxtipage_test.py`'s own docstring has what
+else differs from Core's file. The `btclib-node` cell is a counted skip
+on `Capability.MAX_TIP_AGE`: `cli.py` registers no `-maxtipage` on
+either build, the age being a constant of a day
+([ISS btclib-node#1474](https://github.com/btclib-org/btclib-node/issues/1474)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

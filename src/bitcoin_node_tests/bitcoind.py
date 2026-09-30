@@ -337,6 +337,8 @@ class BitcoindAdapter(NodeAdapter):
     are this binary's own flags (`src/init.cpp`). `_command` names a
     `-bind` of its own, so a test reaching the capability starts a
     subclass whose `_command` leaves that entry out.
+    `Capability.MAX_TIP_AGE` is unconditional too: `-maxtipage` is this
+    binary's own flag (`src/init.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -407,6 +409,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.DUMP_UTXO_SET,
             Capability.LOAD_BLOCK,
             Capability.LISTEN_ADDRESS,
+            Capability.MAX_TIP_AGE,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

@@ -1089,3 +1089,9 @@ complete when the node received it; btclib-node's release skips (issue #14).
 A node is checked to refuse a block with a duplicated transaction, an input
 spent twice, an overpaying coinbase or a time too far ahead of its clock, and
 to take each valid block; btclib-node skips (issue #14).
+
+### `feature_maxtipage` is ported
+
+A node restarted with `-maxtipage` is checked to leave initial block download
+at the first tip exactly that old; btclib-node skips on the new
+`Capability.MAX_TIP_AGE` (issue #14).

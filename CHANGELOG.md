@@ -1214,3 +1214,9 @@ checked to run, `-walletnotify` left unported; btclib-node skips, and
 A node's `settings.json` is checked to be written, logged and kept, refused when
 malformed or with a non-string `wallet`, and set aside by `-nosettings` or
 `-settings`; `Capability.SETTINGS_FILE` is new; btclib-node skips (issue #14).
+
+### `rpc_getchaintips` is ported
+
+`getchaintips` is checked to report the active tip, a `valid-fork` once a split
+network rejoins, and a `headers-only` chain turning `invalid`; btclib-node skips
+(issue #317).

@@ -1083,6 +1083,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_notifications.py` (`-alertnotify`) | same | same | pass, the warning's wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
 | `feature_notifications.py` (`-shutdownnotify`) | same | same | pass | skip |
 | `feature_settings.py` | [`0654511e1b93`](https://github.com/bitcoin/bitcoin/commit/0654511e1b93) | 2026-06-17 | pass | skip (settings_file) |
+| `rpc_getchaintips.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (generate) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3108,6 +3109,31 @@ are the pin's. `btclib-node`'s cell is a counted skip on `SETTINGS_FILE` on
 either build, `cli.py` registering no `-settings` and no file under `src/`
 reading or writing a `settings.json` at the released build or at `main`
 ([ISS btclib-node#1523](https://github.com/btclib-org/btclib-node/issues/1523)).
+
+[ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)'s
+files are those a planning pass for ISS 14 found to need no mechanism the
+adapter lacks, outside ISS 14's own scope: `feature_shutdown.py`,
+`rpc_signmessagewithprivkey.py`, `rpc_estimatefee.py`, `rpc_getchaintips.py`,
+`rpc_preciousblock.py`, `rpc_invalidateblock.py`,
+`feature_chain_tiebreaks.py`, `p2p_sendheaders.py` and `p2p_fingerprint.py`.
+`rpc_getchaintips.py` is ported, its row in the table above.
+
+`rpc_getchaintips.py`'s row is Core's own claim in full. Nodes linked in a line,
+as Core's `setup_network` links them, each report one active tip. With the
+network split between the second and the third node, each half mines a chain of
+its own, the second half's longer, and reports its own tip alone. Once joined,
+the first node reports the long tip as active and the short one as a
+`valid-fork`. Isolated again, the first node is given the headers of a block
+whose coinbase pays too much and of a child of it: that chain is its
+`headers-only` tip, and the block itself, once submitted, turns it `invalid`.
+The test asks for `Capability.CONNECT`, then `GENERATE`, then `DISCONNECT`.
+`tests/integration/rpc_getchaintips_test.py`'s own docstring has what differs
+from Core's file, the cached chain Core starts on being mined by the first node
+here. The `bitcoind` cell is one verdict for the pinned release and for Core's
+`master`, whose copy of the file is the pin's. `btclib-node`'s cell is a counted
+skip on `GENERATE` on either build, `generatetoaddress` naming no callback in
+`src/btclib_node/rpc/callbacks.py`'s dispatch table at the released build or at
+`main`; neither build names `submitheader` there either.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

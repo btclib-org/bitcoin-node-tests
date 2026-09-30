@@ -812,6 +812,7 @@ _ROWS: dict[str, str] = {
         "`feature_notifications.py` (`-shutdownnotify`)"
     ),
     "feature_settings": "`feature_settings.py`",
+    "rpc_getchaintips": "`rpc_getchaintips.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

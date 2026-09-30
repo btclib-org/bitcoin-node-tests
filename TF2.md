@@ -3125,6 +3125,17 @@ adapter lacks, outside ISS 14's own scope: `feature_shutdown.py`,
 `rpc_signmessagewithprivkey.py`, `feature_chain_tiebreaks.py` and
 `p2p_sendheaders.py` are ported, their rows in the table above.
 
+`feature_shutdown.py` is not ported: it needs a wait the adapter lacks. Its
+node is asked to `stop` over RPC while a `waitfornewblock` call on a second
+connection is still pending, and `TestNode.stop_node` then waits for the
+process to exit on its own, with a success exit code and nothing on stderr
+(`TestNode.wait_until_stopped`, `test_framework/test_node.py`). That exit is
+the file's subject, and `NodeAdapter` has no wait for it
+([ISS 318](https://github.com/btclib-org/bitcoin-node-tests/issues/318)):
+`NodeAdapter.stop` sends the process `SIGTERM`, which ends a node the RPC left
+running, so a port ending in it cannot tell the RPC's shutdown from the
+signal's.
+
 `rpc_getchaintips.py`'s row is Core's own claim in full. Nodes linked in a line,
 as Core's `setup_network` links them, each report one active tip. With the
 network split between the second and the third node, each half mines a chain of

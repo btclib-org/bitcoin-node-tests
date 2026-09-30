@@ -1249,3 +1249,8 @@ in full first, and to keep it across a restart; btclib-node skips (issue #317).
 A node is checked to announce blocks to a peer by `inv` until `sendheaders` and
 by their headers after it, and to fetch announced headers; btclib-node skips
 (issue #317).
+
+### `feature_shutdown` is recorded as blocked
+
+`TF2.md` names `feature_shutdown.py` as not ported until `NodeAdapter` can wait
+for a node that exits on its own (issue #318) (issue #317).

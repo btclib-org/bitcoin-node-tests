@@ -760,6 +760,7 @@ _ROWS: dict[str, str] = {
         "`p2p_invalid_block.py` (log)"
     ),
     "feature_maxtipage": "`feature_maxtipage.py`",
+    "p2p_blockfilters": "`p2p_blockfilters.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

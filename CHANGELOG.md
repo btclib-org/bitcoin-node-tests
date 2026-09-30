@@ -1095,3 +1095,9 @@ to take each valid block; btclib-node skips (issue #14).
 A node restarted with `-maxtipage` is checked to leave initial block download
 at the first tip exactly that old; btclib-node skips on the new
 `Capability.MAX_TIP_AGE` (issue #14).
+
+### `p2p_blockfilters` is ported
+
+A node under `-peerblockfilters` is checked to serve BIP157 filters for its
+active and stale blocks and to drop each invalid request; btclib-node skips on
+the new `Capability.PEER_BLOCK_FILTERS` (issue #14).

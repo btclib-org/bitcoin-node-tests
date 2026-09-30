@@ -86,6 +86,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.LOAD_BLOCK,
             Capability.LISTEN_ADDRESS,
             Capability.MAX_TIP_AGE,
+            Capability.PEER_BLOCK_FILTERS,
         }
     )
 

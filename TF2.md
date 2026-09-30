@@ -459,8 +459,10 @@ from `mini_wallet.py`
 ([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
 `tx_in_orphanage` is `tests/integration/rpc_orphans_test.py`'s own
 `in_orphanage`, and `create_large_orphan` is
-`tests/integration/p2p_orphan_handling_test.py`'s own `_large_orphan`;
-`assert_mempool_contents` is not ported.
+`tests/integration/p2p_orphan_handling_test.py`'s own `_large_orphan`,
+and `assert_mempool_contents` is
+`tests/integration/mempool_package_rbf_test.py`'s own
+`_assert_mempool_contents`.
 
 ### `test/functional/test_framework/messages.py`
 
@@ -1070,6 +1072,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_minchainwork.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (minimum_chain_work) |
 | `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass | skip (limit_cluster_count) |
 | `feature_versionbits_warning.py` | [`5bd990a3ddb1`](https://github.com/bitcoin/bitcoin/commit/5bd990a3ddb1) | 2026-06-03 | pass, the reserved bit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
+| `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (package_acceptance) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2072,15 +2075,15 @@ run against both nodes (`tests/integration/conftest.py`'s own module
 docstring). Its subject is `getblocktemplate` in BIP23's `proposal`
 mode, checking a block without storing it, so it asks for
 `Capability.BLOCK_PROPOSAL` (`capability.py`) ahead of
-`Capability.MINE`, `MiniWallet` mining the chain the proposals build on
-and the transaction they carry. `getblocktemplate` is not in
-`btclib_node`'s own dispatch table, at the released build or at `main`,
-so the `btclib-node` cell is that skip on both, `main`'s own `MINE`
-never reached
+`Capability.PACKAGE_ACCEPTANCE`, for the package of duplicates
+`testmempoolaccept` refuses, and `Capability.MINE`, `MiniWallet` mining
+the chain the proposals build on and the transaction they carry.
+`getblocktemplate` is not in `btclib_node`'s own dispatch table, at the
+released build or at `main`, so the `btclib-node` cell is that skip on
+both, `main`'s own `MINE` never reached
 ([ISS btclib-node#1427](https://github.com/btclib-org/btclib-node/issues/1427)).
-With that ask removed, `main` fails the body next on `getblock` at its
-default verbosity, which it refuses
-([ISS btclib-node#1428](https://github.com/btclib-org/btclib-node/issues/1428)).
+With that ask removed, `main` skips next on `PACKAGE_ACCEPTANCE`
+([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)).
 The blocks it proposes are built with btclib in the shape of Core's own
 `create_block` and `create_coinbase` (`blocktools.py`), and what the
 port changes from Core's file is in its own
@@ -2148,22 +2151,13 @@ rule 3's own exclusion), the log, the disk or the clock alongside
 MiniWallet, or an option -- ISS 14's once every step-5 mechanism lands,
 the wallet files excepted.
 
-`mempool_package_rbf.py` and `mempool_truc.py`, the family's other own
-mempool-policy files, are read this round too and stay open, as
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s:
-each also sets an option, `-maxmempool` at every start of Core's own
-`mempool_package_rbf.py`, which its `fill_mempool` needs, and a restart's
-own in `mempool_truc.py`. `mempool_package_rbf.py` drives a second node
-in Core's own file, never read from -- its own `sync_all` calls confirm
-nothing either test asserts on -- dropped as a smaller claim, so what
-actually blocked it was the same `fill_mempool` `rpc_packages.py` needed
-above, now built
-([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)),
-and the caller-chosen fee, sequence and TRUC's own non-default
-transaction version its own self-transfers pass, which
-`create_self_transfer` takes
-([ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103)).
-`mempool_truc.py` needs no second node and no option at its own base
+`mempool_package_rbf.py`, the family's other own mempool-policy file
+beside `mempool_truc.py`, sets an option too, `-maxmempool` at every
+start of Core's own file, which its `fill_mempool` needs, and is ported,
+its own row's paragraph below naming what of it is kept.
+`mempool_truc.py` is read this round too and stays open, as
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s.
+It needs no second node and no option at its own base
 `set_test_params` (`self.extra_args = [[]]`), but several of its own
 subtests restart with one in turn
 (`-limitclustercount`/`-limitclustersize`/`-acceptnonstdtxn`/`-minrelaytxfee`/`-persistmempool`),
@@ -2778,10 +2772,10 @@ the count, are refused `too-large-cluster`, where a replacement keeping
 the cluster's count or size and a spend of each cluster apart are
 taken; and a merger or a package that replaces transactions forms a
 cluster without them. The row asks for
-`Capability.LIMIT_CLUSTER_SIZE`, `LIMIT_CLUSTER_COUNT` and
-`CLUSTER_LINEARIZATION` (`capability.py`), the last naming
-`getmempoolcluster`, `getmempoolfeeratediagram` and `getmempoolinfo`'s
-own `optimal`, ahead of `MINE`.
+`Capability.LIMIT_CLUSTER_SIZE` and `LIMIT_CLUSTER_COUNT`, then
+`CLUSTER_LINEARIZATION` (`capability.py`), naming `getmempoolcluster`,
+`getmempoolfeeratediagram` and `getmempoolinfo`'s own `optimal`, then
+`PACKAGE_ACCEPTANCE`, naming `submitpackage`, ahead of `MINE`.
 `tests/integration/mempool_cluster_test.py`'s own docstring has what
 differs from Core's file. The `bitcoind` cell is one verdict for the
 pinned release and for Core's `master`. `btclib-node`'s cell is a
@@ -2790,7 +2784,9 @@ registering no `-limitclustersize` at the released build or at `main`,
 and its mempool bounding no cluster
 ([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383));
 past that, neither build serves `getmempoolcluster`
-([ISS btclib-node#1499](https://github.com/btclib-org/btclib-node/issues/1499)).
+([ISS btclib-node#1499](https://github.com/btclib-org/btclib-node/issues/1499))
+or `submitpackage`
+([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)).
 
 `feature_minchainwork.py` is ISS 14's too, an option and the clock
 beside node-linking, its test taking its nodes from the cluster fixture.
@@ -2866,6 +2862,42 @@ has what else differs from Core's file. The `btclib-node` cell is a
 counted skip on `Capability.ALERT_NOTIFY`, asked for first: no source
 file names `alertnotify` on either build
 ([ISS btclib-node#1475](https://github.com/btclib-org/btclib-node/issues/1475)).
+
+`mempool_package_rbf.py` is ISS 14's too, MiniWallet and the
+`-maxmempool` option together, beside node-linking. Its row keeps every
+check of Core's own, each of Core's subtests a body over a fresh node of
+its own, in Core's order. A child pays for its parent to replace a
+package, `testmempoolaccept` refusing the replacement it takes over
+`submitpackage`, and a peer comes to hold the replacement too, which it
+can only take as a package, its parent alone paying less than what it
+would evict; a child pays for its parent to replace one lone
+transaction. A replacement is refused where it pays less in all than
+what it replaces, or more by less than the incremental relay fee of its
+own size, and where its package's fee rate does not exceed its parent's
+own. One conflicting with more clusters than Core's
+`MAX_REPLACEMENT_CANDIDATES` is refused. A package of a child and a pair
+of its parents replaces nothing: where only the first parent conflicts,
+the second enters alone and the replacement is refused, the child then
+having an ancestor in the mempool, and where each conflicts, the package
+is refused for being more than a parent and its child. One whose parent
+pays less than the parent it conflicts with is refused, not improving
+the feerate diagram, and a zero-fee TRUC parent and a child paying for
+both replace a package. With the mempool full, a child double-spending
+its parent's own mempool parent is refused. Each body asks for
+`Capability.PACKAGE_ACCEPTANCE` (`capability.py`) first, naming
+`submitpackage` and a `testmempoolaccept` handed a package, then the
+basic body for `CONNECT` and the last for `MAXMEMPOOL`, then `MINE`.
+`tests/integration/mempool_package_rbf_test.py`'s own docstring has what
+differs from Core's file. The `bitcoind` cell is one verdict for the
+pinned release and for Core's `master`. `btclib-node`'s cell is a
+counted skip on `PACKAGE_ACCEPTANCE` on either build, no file under its
+`src/` naming `submitpackage` at the released build or at `main`
+([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494));
+past that, replacing a conflict at all is
+[ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)'s,
+and a package a peer relays, how the basic body's peer takes the
+replacement,
+[ISS btclib-node#1473](https://github.com/btclib-org/btclib-node/issues/1473)'s.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 
@@ -3797,8 +3829,9 @@ the node the session shares.
 The `wallet_*.py` rows above are ported, every assertion of Core's own
 kept. A row whose `btclib-node` cell is `skip (node_wallet)` asks one
 node for its wallet and for nothing more than an option set at start,
-`Capability.GENERATE`, `Capability.INVALIDATE_BLOCK`, `Capability.CLOCK`
-and `Capability.MINE`, and its file is the same at the pinned release.
+`Capability.GENERATE`, `Capability.INVALIDATE_BLOCK`, `Capability.CLOCK`,
+`Capability.PACKAGE_ACCEPTANCE` and `Capability.MINE`, and its file is
+the same at the pinned release.
 Each body module's own docstring (`tests/integration/<file>_test.py`)
 has what of Core's harness it stands in for: where Core's harness pays
 its coinbase to the deterministic key it imports into `default_wallet`,

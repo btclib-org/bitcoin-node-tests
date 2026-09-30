@@ -15,9 +15,12 @@ copied from it.
 
 `MiniWallet` (`Capability.MINE`) mines the block Core's framework mines
 before the first proposal, and builds the transaction the later
-proposals carry. It needs a mature coin, so it first mines
-`COINBASE_MATURITY` blocks, where Core's own node starts on a chain its
-framework already mined.
+proposals carry. `testmempoolaccept` handed that transaction twice as
+one package refuses it as a duplicate
+(`Capability.PACKAGE_ACCEPTANCE`), as Core's file checks before the
+block carrying both is proposed. `MiniWallet` needs a mature coin, so it
+first mines `COINBASE_MATURITY` blocks, where Core's own node starts on a
+chain its framework already mined.
 
 The blocks under test are built here with btclib, the way Core's
 `create_block` and `add_witness_commitment` (`blocktools.py`) build
@@ -271,6 +274,7 @@ def a_proposed_block_is_checked_and_not_stored(
     """
     (node,) = cluster(1)
     require(Capability.BLOCK_PROPOSAL, node.capabilities, skip_counts)
+    require(Capability.PACKAGE_ACCEPTANCE, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)
     rpc = node.rpc
     wallet = MiniWallet(node)

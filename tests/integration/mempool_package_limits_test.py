@@ -12,7 +12,8 @@ together
 transactions one mempool cluster may hold, in-mempool and in-package
 together, and `MiniWallet.send_self_transfer_chain` /
 `create_self_transfer_multi` build the two shapes Core's own file checks
-that boundary with.
+that boundary with, each package handed to `testmempoolaccept` to
+evaluate as one (`Capability.PACKAGE_ACCEPTANCE`).
 
 A smaller claim than Core's own file: kept is one ancestor-side case
 (24 in-mempool ancestors, a 2-tx package extending them, both counted
@@ -93,6 +94,7 @@ def _start(
     """
     (node,) = cluster(1)
     require(Capability.LIMIT_CLUSTER_COUNT, node.capabilities, skip_counts)
+    require(Capability.PACKAGE_ACCEPTANCE, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)
     node.restart([f"-limitclustercount={_LIMIT_CLUSTER_COUNT}"])
     return node

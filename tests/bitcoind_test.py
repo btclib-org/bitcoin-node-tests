@@ -93,6 +93,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.MINIMUM_CHAIN_WORK,
             Capability.MEMPOOL_GRAPH,
             Capability.ALERT_NOTIFY,
+            Capability.PACKAGE_ACCEPTANCE,
         }
     )
 

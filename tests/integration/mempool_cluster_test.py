@@ -41,7 +41,9 @@ every assertion of Core's own is kept:
 
 `getmempoolcluster`, `getmempoolfeeratediagram` and `getmempoolinfo`'s
 `optimal` are `Capability.CLUSTER_LINEARIZATION`'s, asked for after
-both options' own capabilities and ahead of `Capability.MINE`.
+both options' own capabilities, and `submitpackage` is
+`Capability.PACKAGE_ACCEPTANCE`'s, asked for after it and ahead of
+`Capability.MINE`.
 
 What differs from Core's file:
 
@@ -697,6 +699,7 @@ def mempool_limits_clusters_and_reports_their_chunks(
     require(Capability.LIMIT_CLUSTER_SIZE, node.capabilities, skip_counts)
     require(Capability.LIMIT_CLUSTER_COUNT, node.capabilities, skip_counts)
     require(Capability.CLUSTER_LINEARIZATION, node.capabilities, skip_counts)
+    require(Capability.PACKAGE_ACCEPTANCE, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)
     wallet = MiniWallet(node)
     wallet.generate(_CHAIN_HEIGHT)

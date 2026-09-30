@@ -14,24 +14,22 @@ of the mempool's own relay-policy knobs, and `MiniWallet.create_self_transfer`
 (`Capability.MINE`) funds the transaction whose extra output is measured
 against them.
 
-A smaller claim than Core's own file: kept is that a value clearly under
-the dust threshold is refused and one clearly over it is allowed, for
-every output shape Core's own list names that `ScriptPubKey` builds --
-P2PK uncompressed and compressed, P2PKH, P2SH, P2WPKH, P2WSH, P2TR and
-the largest standard bare multisig -- and that `-dustrelayfee=0` waives
-the check entirely. Dropped is Core's own file's exact per-byte
-threshold arithmetic (`GetDustThreshold`'s own formula, reproduced by
-the test rather than read off the node), its future-witness-version
-rows, `ScriptPubKey` having no generic future-witness-version output of
-its own, its null data row, whose threshold is zero and so sits on
-neither side of a boundary, and its full sweep of nine `-dustrelayfee`
-values, none of which exercises a mechanism the coarser boundary below
-does not already cover.
-Its ephemeral-dust two-transaction scenario is deferred rather than
-covered: ephemeral dust is its own acceptance rule
-(`CheckEphemeralSpends`, `src/policy/ephemeral_policy.cpp`), exempting a
-dust output its package spends, and the subject of Core's own
-`mempool_ephemeral_dust.py`, not yet ported.
+A smaller claim than Core's own file: kept is that a value clearly under the
+dust threshold is refused and one clearly over it is allowed, for every output
+shape Core's own list names that `ScriptPubKey` builds -- P2PK uncompressed and
+compressed, P2PKH, P2SH, P2WPKH, P2WSH, P2TR and the largest standard bare
+multisig -- and that `-dustrelayfee=0` waives the check entirely. Dropped is
+Core's own file's exact per-byte threshold arithmetic (`GetDustThreshold`'s own
+formula, reproduced by the test rather than read off the node), its
+future-witness-version rows, `ScriptPubKey` having no generic
+future-witness-version output of its own, its null data row, whose threshold is
+zero and so sits on neither side of a boundary, and its full sweep of
+`-dustrelayfee` values, none of which exercises a mechanism the coarser boundary
+below does not already cover. Its ephemeral-dust two-transaction scenario is
+deferred rather than covered: ephemeral dust is its own acceptance rule
+(`CheckEphemeralSpends`, `src/policy/ephemeral_policy.cpp`), exempting a dust
+output its package spends, and the subject of Core's own
+`mempool_ephemeral_dust.py` (`mempool_ephemeral_dust_test.py`).
 
 The public key every script below pays is secp256k1's own generator
 point: none of these outputs is ever spent, only measured for its own

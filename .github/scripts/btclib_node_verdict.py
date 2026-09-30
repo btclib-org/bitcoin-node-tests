@@ -795,6 +795,13 @@ _ROWS: dict[str, str] = {
     "p2p_headers_sync_with_minchainwork": "`p2p_headers_sync_with_minchainwork.py`",
     "p2p_unrequested_blocks": "`p2p_unrequested_blocks.py`",
     "p2p_1p1c_network": "`p2p_1p1c_network.py`",
+    "mempool_ephemeral_dust": "`mempool_ephemeral_dust.py`",
+    "mempool_ephemeral_dust::test_any_single_dust_output_is_allowed_alone": (
+        "`mempool_ephemeral_dust.py` (nonzero dust)"
+    ),
+    "mempool_ephemeral_dust::test_a_reorg_returns_dust_to_the_mempool_unchecked": (
+        "`mempool_ephemeral_dust.py` (reorg)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

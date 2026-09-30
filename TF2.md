@@ -1076,6 +1076,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_headers_sync_with_minchainwork.py` | [`ff3e2e4ebdce`](https://github.com/bitcoin/bitcoin/commit/ff3e2e4ebdce) | 2026-08-19 | pass | skip (minimum_chain_work) |
 | `p2p_unrequested_blocks.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (minimum_chain_work) |
 | `p2p_1p1c_network.py` | [`95ef0fc5e781`](https://github.com/bitcoin/bitcoin/commit/95ef0fc5e781) | 2025-12-29 | pass | skip (orphanage) |
+| `mempool_ephemeral_dust.py` | [`7c8030143925`](https://github.com/bitcoin/bitcoin/commit/7c8030143925) | 2026-02-25 | pass | skip (package_acceptance) |
+| `mempool_ephemeral_dust.py` (nonzero dust) | same | same | pass | skip (min_relay_tx_fee) on the build; pass on a build past [ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332) |
+| `mempool_ephemeral_dust.py` (reorg) | same | same | pass | skip (disconnect) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3001,6 +3004,54 @@ or registers `-whitelist`
 ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)),
 which each node restarts with, as Core's `noban_tx_relay` starts it.
 
+`mempool_ephemeral_dust.py` is ISS 14's too, MiniWallet and the `-minrelaytxfee`
+option beside node-linking, which
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags it with. Its rows keep every check of Core's own, each of Core's subtests a
+body over a fresh pair of nodes of its own, in Core's order. A TRUC parent
+paying no fee, with a dust output of no value, is refused alone for paying too
+little, and as dust once a fee delta takes it past that; it enters with a child
+spending the dust, as a package the peer comes to hold too, and takes no fee
+delta once in the mempool. A parent with dust is refused where it pays a fee,
+even with a delta taking its fee to zero, where it pays none and is given a
+delta, and where it carries a second dust output. A block does not take a parent
+left childless by a replacement of its child, and a new child spending its dust
+enters alone. A restart of both nodes drops a package from both mempools. With
+no relay floor, a parent is allowed alone with one output of a satoshi, of the
+P2TR dust threshold, or of a satoshi less. A non-TRUC parent enters with its
+child too. A child leaving a parent's dust unspent is refused, alone, beside its
+parent, and as the sweep of a batch of parents. A reorg returns to the mempool,
+unchecked, a parent with dust and a child leaving that dust unspent, and keeps a
+returned parent's descendants in the mempool; a parent paying a fee, or with a
+second dust output, does not come back. The bodies ask for
+`Capability.PACKAGE_ACCEPTANCE` first where they submit a package, then
+`ORPHANAGE` where a package reaches the second node only as Core's 1p1c relay
+takes it, `MIN_RELAY_TX_FEE`, `CONNECT`, `DISCONNECT` for the reorg body,
+`GENERATE` where Core's `generate` mines from the node's own mempool, and
+`MINE`. `tests/integration/mempool_ephemeral_dust_test.py`'s own docstring has
+what differs from Core's file. The `bitcoind` cells are one verdict for the
+pinned release and for Core's `master`. `btclib-node`'s cells are counted skips
+on either build: on `PACKAGE_ACCEPTANCE`, no file under its `src/` naming
+`submitpackage` at the released build or at `main`
+([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494));
+for the reorg body on `DISCONNECT`, which `BtclibNodeAdapter` declares on
+neither build, `disconnectnode` naming no callback at the released build
+([ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193))
+and served at `main`
+([ISS 297](https://github.com/btclib-org/bitcoin-node-tests/issues/297)); and
+for the nonzero-dust row's body on `MIN_RELAY_TX_FEE` at the released build
+alone. Past
+[ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332)
+that body passes, read from btclib-node's own source at `ef61ba33` rather than
+run: `verify_mempool_acceptance` (`main.py`) applies no dust rule, and no fee
+floor where `-minrelaytxfee` sets the relay floor to zero. Past
+`PACKAGE_ACCEPTANCE`, neither build serves `prioritisetransaction`
+([ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502))
+or `generatetoaddress`
+([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)),
+nor keeps an orphan
+([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
+
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 
 [ISS 43](https://github.com/btclib-org/bitcoin-node-tests/issues/43):
@@ -3199,22 +3250,20 @@ option. Dropped is Core's own extra node, a further custom
 payloads across every node, neither reaching a boundary the kept
 configurations do not already cover.
 
-`mempool_dust.py`'s own row is a smaller claim than Core's own file too:
-kept is that a value clearly under the dust threshold is refused and one
-clearly over it is allowed, for every output shape Core's own list
-names that `ScriptPubKey` builds -- P2PK uncompressed and compressed,
-P2PKH, P2SH, P2WPKH, P2WSH, P2TR and the largest standard bare multisig
--- and that `-dustrelayfee` disabled waives the check entirely. Dropped
-is Core's own file's exact per-byte threshold arithmetic
-(`GetDustThreshold`'s own formula), its future-witness-version rows,
-`ScriptPubKey` having no generic future-witness-version output of its
-own, its null data row, whose threshold is zero and so sits on neither
-side of a boundary, its own sweep of several
-other `-dustrelayfee` values, and its own ephemeral-dust scenario.
-Ephemeral dust is not the dust threshold at a coarser grain but its own
-acceptance rule, `src/policy/ephemeral_policy.cpp`'s
-`CheckEphemeralSpends`, exempting a dust output its package spends. It
-is the subject of Core's own `mempool_ephemeral_dust.py`, not yet ported.
+`mempool_dust.py`'s own row is a smaller claim than Core's own file too: kept is
+that a value clearly under the dust threshold is refused and one clearly over it
+is allowed, for every output shape Core's own list names that `ScriptPubKey`
+builds -- P2PK uncompressed and compressed, P2PKH, P2SH, P2WPKH, P2WSH, P2TR and
+the largest standard bare multisig -- and that `-dustrelayfee` disabled waives
+the check entirely. Dropped is Core's own file's exact per-byte threshold
+arithmetic (`GetDustThreshold`'s own formula), its future-witness-version rows,
+`ScriptPubKey` having no generic future-witness-version output of its own, its
+null data row, whose threshold is zero and so sits on neither side of a
+boundary, its own sweep of several other `-dustrelayfee` values, and its own
+ephemeral-dust scenario. Ephemeral dust is not the dust threshold at a coarser
+grain but its own acceptance rule, `src/policy/ephemeral_policy.cpp`'s
+`CheckEphemeralSpends`, exempting a dust output its package spends. It is the
+subject of Core's own `mempool_ephemeral_dust.py`, which has rows of its own.
 
 `mempool_sigoplimit.py`'s own row is a smaller claim than Core's own
 file: kept is `testmempoolaccept`'s own `vsize` floor, `max` of the

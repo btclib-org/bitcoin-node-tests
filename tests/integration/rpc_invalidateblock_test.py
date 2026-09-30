@@ -37,9 +37,9 @@ What differs from Core's file:
 - the header is built with btclib in the shape of Core's own
   `create_block` (`blocktools.py`), its coinbase paying `OP_TRUE`;
 - the check that a reconsidered block's ancestors become tip candidates
-  runs where the running build's `getnetworkinfo` `version` is `v30.0`
-  or later, the first release carrying Core's change and Core's own file
-  gaining the check with it. A build before it, `v29.4` among them,
+  runs on every node but a bitcoind whose `getnetworkinfo` `version` is
+  below `v30.0`, the first release carrying Core's change and Core's own
+  file gaining the check with it. A release before it, `v29.4` among them,
   keeps its tip below the header's ancestors and later aborts on its own
   `CheckBlockIndex`; Core's own file at `v29.4` leaves the check out, as
   this body does there. The threshold leaves the check out where it
@@ -68,13 +68,13 @@ from btclib.block.mining import mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
 
+from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import connect_nodes, wait_until, wait_until_tips_agree
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
@@ -172,13 +172,21 @@ def _heights(node: NodeAdapter) -> tuple[int, int]:
     return info["blocks"], info["headers"]
 
 
-def _version(node: NodeAdapter) -> int:
-    """Return `getnetworkinfo`'s own `version`."""
+def _reconsiders_ancestors(node: NodeAdapter) -> bool:
+    """Whether a block `node` reconsiders makes its ancestors tip candidates.
+
+    Core's own claim for every node, bitcoind before
+    `_ANCESTORS_RECONSIDERED_VERSION` excepted, read off its own
+    `getnetworkinfo` `version`
+    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    """
+    if not isinstance(node, BitcoindAdapter):
+        return True
     info = node.rpc.call("getnetworkinfo")
     assert isinstance(info, dict)
     version = info["version"]
     assert isinstance(version, int)
-    return version
+    return version >= _ANCESTORS_RECONSIDERED_VERSION
 
 
 def _invalidate(node: NodeAdapter, block_hash: str) -> None:
@@ -292,7 +300,7 @@ def invalidateblock_and_reconsiderblock_move_the_tip(
     wait_until(lambda: _count(node0) == 4, timeout=_HEIGHT_TIMEOUT)
     wait_until(lambda: _count(node1) == 4, timeout=_HEIGHT_TIMEOUT)
 
-    if _version(node0) >= _ANCESTORS_RECONSIDERED_VERSION:
+    if _reconsiders_ancestors(node0):
         _ancestors_become_tip_candidates(node0, tip, header_hash)
 
     # every ancestor is reconsidered too

@@ -540,7 +540,8 @@ class Capability(Enum):
     `SIGN_MESSAGE_WITH_PRIVKEY` -- sign a message with a private key the
     caller hands it, and verify a message's signature under a P2PKH
     address: Core's own `signmessagewithprivkey` and `verifymessage`,
-    which need no wallet (`rpc_signmessagewithprivkey.py`). Named for the
+    which need no wallet (`rpc_signmessagewithprivkey.py`,
+    `wallet_signmessagewithaddress.py`). Named for the
     first RPC, as `BLOCK_STATS` is, and one member for the pair, as
     `SIGN_RAW_TRANSACTION` is.
     `ESTIMATE_SMART_FEE` -- answer a fee rate estimate for a confirmation
@@ -548,6 +549,11 @@ class Capability(Enum):
     and messages: Core's own `estimatesmartfee` and `estimaterawfee`
     (`rpc_estimatefee.py`). Named for the first RPC, as `BLOCK_STATS` is,
     and one member for the pair, as `SIGN_RAW_TRANSACTION` is.
+    `CHAIN_TIPS` -- report every tip of the blocks and headers it knows,
+    each with its height, how far it branches off the active chain and a
+    status, `active`, `valid-fork`, `headers-only` or `invalid` among
+    them: Core's own `getchaintips` (`rpc_getchaintips.py`). Named for the
+    RPC, as `BLOCK_STATS` is.
     """
 
     MINE = "mine"
@@ -626,6 +632,7 @@ class Capability(Enum):
     PRECIOUS_BLOCK = "precious_block"
     SIGN_MESSAGE_WITH_PRIVKEY = "sign_message_with_privkey"
     ESTIMATE_SMART_FEE = "estimate_smart_fee"
+    CHAIN_TIPS = "chain_tips"
 
 
 class SkipCounts:

@@ -12,7 +12,8 @@ signature under one address does not verify under another, and which
 refuses `signmessage` given the wrong number of arguments or an address
 it cannot decode. Every assertion of Core's own is kept.
 
-`Capability.NODE_WALLET` (`capability.py`) is asked for first, of a
+`Capability.NODE_WALLET` (`capability.py`) is asked for first, then
+`Capability.SIGN_MESSAGE_WITH_PRIVKEY`, which names `verifymessage`, of a
 fresh node of the body's own, which it restarts under
 `-addresstype=legacy`: Core's `extra_args` start the node with the
 option, and `bitcoind_cluster` (`tests/integration/conftest.py`) starts
@@ -94,6 +95,7 @@ def signmessage_signs_for_the_address_it_names(
     """
     (node,) = cluster(1)
     require(Capability.NODE_WALLET, node.capabilities, skip_counts)
+    require(Capability.SIGN_MESSAGE_WITH_PRIVKEY, node.capabilities, skip_counts)
     node.restart(["-addresstype=legacy"])
     node.rpc.call("createwallet", {"wallet_name": _WALLET})
     wallet = node.rpc.for_wallet(_WALLET)

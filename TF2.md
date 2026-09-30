@@ -1090,7 +1090,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_chain_tiebreaks.py` | [`20ae9b98eab2`](https://github.com/bitcoin/bitcoin/commit/20ae9b98eab2) | 2026-03-04 | pass, the restart's tip check run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (invalidate_block) |
 | `p2p_sendheaders.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (generate) |
 | `p2p_fingerprint.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
-| `rpc_estimatefee.py` | [`4056908f0fea`](https://github.com/bitcoin/bitcoin/commit/4056908f0fea) | 2026-09-29 | pass, the `options` checks run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (estimate_smart_fee) |
+| `rpc_estimatefee.py` | [`4056908f0fea`](https://github.com/bitcoin/bitcoin/commit/4056908f0fea) | 2026-09-29 | pass, the `options` checks and the estimator refusal run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (estimate_smart_fee) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3143,22 +3143,26 @@ the file's subject, and `NodeAdapter` has no wait for it
 running, so a port ending in it cannot tell the RPC's shutdown from the
 signal's.
 
-`rpc_getchaintips.py`'s row is Core's own claim in full. Nodes linked in a line,
-as Core's `setup_network` links them, each report one active tip. With the
-network split between the second and the third node, each half mines a chain of
-its own, the second half's longer, and reports its own tip alone. Once joined,
-the first node reports the long tip as active and the short one as a
-`valid-fork`. Isolated again, the first node is given the headers of a block
-whose coinbase pays too much and of a child of it: that chain is its
+`rpc_getchaintips.py`'s row is Core's own claim in full. Nodes are linked in a
+line, as Core's `setup_network` links them, and the first reports its active tip
+alone. With the network split between the second and the third node, each half
+mines a chain of its own, the second half's longer, and reports its own tip
+alone. Once joined, the first node reports the long tip as active and the short
+one as a `valid-fork`. Isolated again, the first node is given the headers of a
+block whose coinbase pays too much and of a child of it: that chain is its
 `headers-only` tip, and the block itself, once submitted, turns it `invalid`.
-The test asks for `Capability.CONNECT`, then `GENERATE`, then `DISCONNECT`.
-`tests/integration/rpc_getchaintips_test.py`'s own docstring has what differs
-from Core's file, the cached chain Core starts on being mined by the first node
-here. The `bitcoind` cell is one verdict for the pinned release and for Core's
-`master`, whose copy of the file is the pin's. `btclib-node`'s cell is a counted
-skip on `GENERATE` on either build, `generatetoaddress` naming no callback in
-`src/btclib_node/rpc/callbacks.py`'s dispatch table at the released build or at
-`main`; neither build names `submitheader` there either.
+The test asks for `Capability.CONNECT`, then `GENERATE`, then `DISCONNECT`,
+then `CHAIN_TIPS`. `tests/integration/rpc_getchaintips_test.py`'s own docstring
+has what differs from Core's file, the cached chain Core starts on being mined
+by the first node here. The `bitcoind` cell is one verdict for the pinned
+release and for Core's `master`, whose copy of the file is the pin's.
+`btclib-node`'s cell is a counted skip on `GENERATE` on either build,
+`generatetoaddress` naming no callback in `src/btclib_node/rpc/callbacks.py`'s
+dispatch table at the released build or at `main`
+([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404));
+neither build names `submitheader` there either
+([ISS btclib-node#1533](https://github.com/btclib-org/btclib-node/issues/1533)),
+and the released build names no `getchaintips`.
 
 `rpc_preciousblock.py`'s row is Core's own claim in full. The nodes start
 unlinked on a clean chain, and each mines blocks of its own. Handed each other's

@@ -72,8 +72,10 @@ class Peer:
     :param magic: the four octets of the message start,
         `btclib.p2p.magic_from_chain("regtest")` for every node this
         step drives.
-    :param timeout: the default wait, on `handshake` and on `wait_for`,
-        before `--timeout-factor`'s own scaling (`timeout_factor.scaled`).
+    :param timeout: the wait of the dial, and of every call on this peer
+        given no `timeout` of its own, `send` and a bare `receive`
+        included, before `--timeout-factor`'s own scaling
+        (`timeout_factor.scaled`).
 
     `message_count` is Core's `P2PInterface.message_count`: how many
     messages of each command `receive` has returned, those `wait_for`

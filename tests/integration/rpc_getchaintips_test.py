@@ -8,7 +8,8 @@ Read from Core's `test/functional/rpc_getchaintips.py` (`fa16bc53d79c`,
 2026-04-16), a file needing no mechanism the adapter lacks
 ([ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)):
 four nodes linked in a line, as Core's `setup_network` links them
-(`Capability.CONNECT`), each reporting one active tip. The network is
+(`Capability.CONNECT`), the first reporting its active tip alone
+(`Capability.CHAIN_TIPS`). The network is
 split between the second and the third node (`Capability.DISCONNECT`),
 and each half mines a chain of its own (`Capability.GENERATE`), the
 second half's longer. Each half
@@ -182,6 +183,8 @@ def chain_tips_are_reported(
     require(Capability.GENERATE, node2.capabilities, skip_counts)
     require(Capability.DISCONNECT, node2.capabilities, skip_counts)
     require(Capability.DISCONNECT, node1.capabilities, skip_counts)
+    for node in (node0, node1, node3):
+        require(Capability.CHAIN_TIPS, node.capabilities, skip_counts)
 
     # Core's own `setup_network`: each node dials the one before it, on
     # Core's cached chain

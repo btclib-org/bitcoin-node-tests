@@ -1296,3 +1296,9 @@ unfinished (issue btclib-org/.github#1470).
 The released build skips it too, like every other body of the file; only past
 btclib-org/btclib-node#1332 does it pass, tested alone under
 `-minrelaytxfee=0` (closes #316).
+
+### `rpc_getchaintips` asks for `Capability.CHAIN_TIPS`
+
+`Capability.CHAIN_TIPS` is new, declared by a btclib-node build serving it;
+`wallet_signmessagewithaddress` asks for `SIGN_MESSAGE_WITH_PRIVKEY` too, and
+`rpc_invalidateblock` reads a version off bitcoind alone (closes #339).

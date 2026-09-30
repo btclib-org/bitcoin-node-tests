@@ -1064,6 +1064,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `interface_rpc.py` (work queue) | same | same | pass | skip (rpc_work_queue) |
 | `p2p_ibd_txrelay.py` (wire) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_ibd_txrelay.py` (log) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (mine) on the build; skip (test_activation_height) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2708,6 +2709,32 @@ Past the skips, the top bucket such a build rounds to follows
 `-minrelaytxfee`, where Core's follows `DEFAULT_MIN_RELAY_TX_FEE`
 ([ISS btclib-node#1374](https://github.com/btclib-org/btclib-node/issues/1374)).
 
+`feature_bip68_sequence.py` is ISS 14's too, MiniWallet and the option
+together, and its row is Core's own claim in full, one body over a pair
+of nodes started with Core's own `-testactivationheight`, on a chain
+mined to the height Core's framework caches. The mempool refuses a
+version-2 spend `non-BIP68-final` while a relative lock time on one of
+its inputs is not met, by height or by time, and takes it once every
+one is, or where the disable flag is set, or as a version-1 spend;
+`invalidateblock` and a longer fork each return a spend to the mempool,
+evicting the child whose lock that leaves unmet; a block carrying a
+spend the mempool refuses becomes the tip while the deployment is
+inactive; `getdeploymentinfo` reports it active one block before the
+configured height; and the second node takes a version-2 spend. The
+blocks Core's node mines under `setmocktime` are built here carrying
+the times it gives them, so no `Capability.CLOCK` is asked for; the row
+asks for `Capability.TEST_ACTIVATION_HEIGHT` and `INVALIDATE_BLOCK`
+beside `MINE` and `CONNECT`.
+`tests/integration/feature_bip68_sequence_test.py`'s own docstring has
+what differs from Core's file. The `bitcoind` cell is one
+verdict for the pinned release and for Core's `master`. `btclib-node`'s
+cell is a counted skip on `MINE` on the released build, and on
+`TEST_ACTIVATION_HEIGHT` on a build past
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071),
+its `cli.py` registering no `-testactivationheight` at the released
+build or at `main`; past that, no build serves `invalidateblock`
+([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480)).
+
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 
 [ISS 43](https://github.com/btclib-org/bitcoin-node-tests/issues/43):
@@ -2855,10 +2882,12 @@ go as follows.
   `mining_getblocktemplate_longpoll.py` (log, MiniWallet): ISS 14's.
 - `feature_fee_estimation.py` (MiniWallet, log, `-blockmaxweight`),
   `mining_basic.py` (MiniWallet, `setmocktime`, `-blockmaxweight`,
-  `-prune`), `p2p_segwit.py` (MiniWallet, log, `-testactivationheight`),
-  `feature_bip68_sequence.py` (MiniWallet, `setmocktime`,
-  `-testactivationheight`) and `rpc_rawtransaction.py` (MiniWallet,
-  `-txindex`, `-prune`): ISS 14's.
+  `-prune`), `p2p_segwit.py` (MiniWallet, log, `-testactivationheight`)
+  and `rpc_rawtransaction.py` (MiniWallet, `-txindex`, `-prune`):
+  ISS 14's.
+- `feature_bip68_sequence.py` (MiniWallet, `setmocktime`,
+  `-testactivationheight`): ISS 14's, ported, its row in the table
+  above.
 - `rpc_txoutproof.py` (MiniWallet, `-txindex`): ISS 14's, and it also
   needs `sync_txindex`, Core's own wait for a `-txindex` to catch up,
   which is a different primitive from

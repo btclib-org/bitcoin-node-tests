@@ -1131,3 +1131,9 @@ btclib-node skips, and `Capability.MIN_RELAY_TX_FEE` is new (issue #14).
 An issue carrying the label is small and self-contained: *The issue
 tracker* says so, and links the organization-wide search for the open
 ones (issue btclib-org/.github#1362).
+
+### `feature_bip68_sequence` is ported
+
+The mempool is checked to hold spends to BIP68's relative lock times, across a
+reorg too, where a block before the deployment activates is not held to them;
+btclib-node skips (issue #14).

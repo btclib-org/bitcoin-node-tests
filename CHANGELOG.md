@@ -1119,3 +1119,9 @@ announced; btclib-node skips (issue #14).
 Raw JSON-RPC batches and statuses, notifications, `getrpcinfo` and a full work
 queue's 503 are checked; btclib-node skips the last three, and its release
 fails the first two (btclib-org/btclib-node#1109) (issue #14).
+
+### `p2p_ibd_txrelay` is ported
+
+A node in initial block download is checked to send the top `feefilter` and
+ignore transactions and their announcements, and not once out of it;
+btclib-node skips, and `Capability.MIN_RELAY_TX_FEE` is new (issue #14).

@@ -783,6 +783,8 @@ _ROWS: dict[str, str] = {
     "interface_rpc::test_a_full_work_queue_refuses_the_request_beyond_it": (
         "`interface_rpc.py` (work queue)"
     ),
+    "p2p_ibd_txrelay::test_ibd_tx_relay_is_withheld": "`p2p_ibd_txrelay.py` (wire)",
+    "p2p_ibd_txrelay::test_ibd_tx_relay_is_logged": "`p2p_ibd_txrelay.py` (log)",
 }
 
 # the modules whose tests are this repository's own harness rather than

@@ -345,6 +345,8 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.RPC_INFO` is unconditional too: `getrpcinfo` is this
     binary's own RPC (`src/rpc/server.cpp`), its `logpath` naming
     `debug_log_path` below.
+    `Capability.MIN_RELAY_TX_FEE` is unconditional too: `-minrelaytxfee`
+    is this binary's own flag (`src/init.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -418,6 +420,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.MAX_TIP_AGE,
             Capability.PEER_BLOCK_FILTERS,
             Capability.RPC_INFO,
+            Capability.MIN_RELAY_TX_FEE,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

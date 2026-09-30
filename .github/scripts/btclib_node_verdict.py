@@ -802,6 +802,15 @@ _ROWS: dict[str, str] = {
     "mempool_ephemeral_dust::test_a_reorg_returns_dust_to_the_mempool_unchecked": (
         "`mempool_ephemeral_dust.py` (reorg)"
     ),
+    "feature_notifications::test_every_new_tip_is_notified": (
+        "`feature_notifications.py` (`-blocknotify`)"
+    ),
+    "feature_notifications::test_a_large_work_invalid_chain_is_alerted": (
+        "`feature_notifications.py` (`-alertnotify`)"
+    ),
+    "feature_notifications::test_the_shutdown_is_notified": (
+        "`feature_notifications.py` (`-shutdownnotify`)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

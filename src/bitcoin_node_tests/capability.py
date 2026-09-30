@@ -514,6 +514,13 @@ class Capability(Enum):
     a `package-error` for the whole (`mempool_package_rbf.py`). A package
     a peer relays, Core's 1p1c, is not this capability's. Named for what
     it takes rather than for an RPC's own spelling, as `ORPHANAGE` is.
+    `BLOCK_NOTIFY` -- run a shell command a caller names whenever its tip
+    changes outside initial block download, the new tip's hash in place of
+    the command's `%s`, the way Core's own `-blocknotify` does
+    (`feature_notifications.py`).
+    `SHUTDOWN_NOTIFY` -- run a shell command a caller names once it
+    begins shutting down, the way Core's own `-shutdownnotify` does
+    (`feature_notifications.py`).
     """
 
     MINE = "mine"
@@ -586,6 +593,8 @@ class Capability(Enum):
     MEMPOOL_GRAPH = "mempool_graph"
     ALERT_NOTIFY = "alert_notify"
     PACKAGE_ACCEPTANCE = "package_acceptance"
+    BLOCK_NOTIFY = "block_notify"
+    SHUTDOWN_NOTIFY = "shutdown_notify"
 
 
 class SkipCounts:

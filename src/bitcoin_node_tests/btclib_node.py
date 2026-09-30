@@ -338,6 +338,12 @@ it does not gain the capability.
 names `alertnotify`, measured at the released `2026.9.24` (`422d2640`)
 and at `main` (`93c1d066`) alike
 ([ISS btclib-node#1475](https://github.com/btclib-org/btclib-node/issues/1475)).
+
+`Capability.BLOCK_NOTIFY` and `Capability.SHUTDOWN_NOTIFY` are never
+declared either: no file names `blocknotify` or `shutdownnotify`,
+measured at the released `2026.9.24` (`422d2640`) and at `main`
+(`84677942`) alike
+([ISS btclib-node#1519](https://github.com/btclib-org/btclib-node/issues/1519)).
 """
 
 from __future__ import annotations

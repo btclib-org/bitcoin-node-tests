@@ -358,6 +358,11 @@ names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
 table, measured at the released `2026.9.24` (`422d2640`) and at `main`
 (`d0943a37`) alike
 ([ISS btclib-node#1534](https://github.com/btclib-org/btclib-node/issues/1534)).
+
+`Capability.SIGN_MESSAGE_WITH_PRIVKEY` is never declared either: no
+file names `signmessagewithprivkey` or `verifymessage`, measured at the
+released `2026.9.24` (`422d2640`) and at `main` (`59618462`) alike
+([ISS btclib-node#1538](https://github.com/btclib-org/btclib-node/issues/1538)).
 """
 
 from __future__ import annotations

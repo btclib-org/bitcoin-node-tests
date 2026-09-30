@@ -537,6 +537,12 @@ class Capability(Enum):
     that block where the two tie, until a later call names another or the
     node restarts: Core's own `preciousblock` (`rpc_preciousblock.py`).
     Named for the RPC, as `BLOCK_STATS` is.
+    `SIGN_MESSAGE_WITH_PRIVKEY` -- sign a message with a private key the
+    caller hands it, and verify a message's signature under a P2PKH
+    address: Core's own `signmessagewithprivkey` and `verifymessage`,
+    which need no wallet (`rpc_signmessagewithprivkey.py`). Named for the
+    first RPC, as `BLOCK_STATS` is, and one member for the pair, as
+    `SIGN_RAW_TRANSACTION` is.
     """
 
     MINE = "mine"
@@ -613,6 +619,7 @@ class Capability(Enum):
     SHUTDOWN_NOTIFY = "shutdown_notify"
     SETTINGS_FILE = "settings_file"
     PRECIOUS_BLOCK = "precious_block"
+    SIGN_MESSAGE_WITH_PRIVKEY = "sign_message_with_privkey"
 
 
 class SkipCounts:

@@ -815,6 +815,7 @@ _ROWS: dict[str, str] = {
     "rpc_getchaintips": "`rpc_getchaintips.py`",
     "rpc_preciousblock": "`rpc_preciousblock.py`",
     "rpc_invalidateblock": "`rpc_invalidateblock.py`",
+    "rpc_signmessagewithprivkey": "`rpc_signmessagewithprivkey.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

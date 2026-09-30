@@ -1202,3 +1202,9 @@ the child as an orphan or refused the parent; btclib-node skips (issue #14).
 A zero-fee parent with one dust output is checked to enter only with a child
 spending that dust, and a reorg to return it with the dust unspent; btclib-node
 skips, but for a parent tested alone under `-minrelaytxfee=0` (issue #14).
+
+### `feature_notifications` is ported
+
+A node's `-blocknotify`, `-alertnotify` and `-shutdownnotify` commands are
+checked to run, `-walletnotify` left unported; btclib-node skips, and
+`Capability.BLOCK_NOTIFY` and `Capability.SHUTDOWN_NOTIFY` are new (issue #14).

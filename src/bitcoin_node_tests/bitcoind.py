@@ -364,6 +364,9 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.PACKAGE_ACCEPTANCE` is unconditional too: `submitpackage`
     and `testmempoolaccept`, each taking a package, are this binary's own
     RPCs (`src/rpc/mempool.cpp`), on every chain.
+    `Capability.BLOCK_NOTIFY` and `Capability.SHUTDOWN_NOTIFY` are
+    unconditional too: `-blocknotify` and `-shutdownnotify` are this
+    binary's own flags (`src/init.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -443,6 +446,8 @@ class BitcoindAdapter(NodeAdapter):
             Capability.MEMPOOL_GRAPH,
             Capability.ALERT_NOTIFY,
             Capability.PACKAGE_ACCEPTANCE,
+            Capability.BLOCK_NOTIFY,
+            Capability.SHUTDOWN_NOTIFY,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

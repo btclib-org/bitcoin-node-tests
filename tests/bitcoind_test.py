@@ -94,6 +94,8 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.MEMPOOL_GRAPH,
             Capability.ALERT_NOTIFY,
             Capability.PACKAGE_ACCEPTANCE,
+            Capability.BLOCK_NOTIFY,
+            Capability.SHUTDOWN_NOTIFY,
         }
     )
 

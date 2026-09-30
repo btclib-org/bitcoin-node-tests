@@ -1079,6 +1079,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_ephemeral_dust.py` | [`7c8030143925`](https://github.com/bitcoin/bitcoin/commit/7c8030143925) | 2026-02-25 | pass | skip (package_acceptance) |
 | `mempool_ephemeral_dust.py` (nonzero dust) | same | same | pass | skip (min_relay_tx_fee) on the build; pass on a build past [ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332) |
 | `mempool_ephemeral_dust.py` (reorg) | same | same | pass | skip (disconnect) |
+| `feature_notifications.py` (`-blocknotify`) | [`469b0e59a29a`](https://github.com/bitcoin/bitcoin/commit/469b0e59a29a) | 2026-09-01 | pass | skip (block_notify) |
+| `feature_notifications.py` (`-alertnotify`) | same | same | pass, the warning's wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
+| `feature_notifications.py` (`-shutdownnotify`) | same | same | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3051,6 +3054,38 @@ or `generatetoaddress`
 ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)),
 nor keeps an orphan
 ([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
+
+`feature_notifications.py` is ISS 14's too, though
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+does not name it: the step-5 mechanisms it asks for are an option and the
+disk, the file each command writes. Its rows are Core's own claims about its
+first node, each over a node of its own started with one option.
+`-blocknotify` runs its command for each block the node mines, the file it
+writes named for the block's hash. `-alertnotify` runs its command with the
+warning raised by a chain of invalid blocks with more work than the node's
+own, their headers submitted first and then the blocks, tip first.
+`-shutdownnotify` runs its command once the node is stopped. Each asks first
+for the capability naming its option, `Capability.BLOCK_NOTIFY`,
+`ALERT_NOTIFY` or `SHUTDOWN_NOTIFY`, then for `MINE` where it mines. The
+warning's wording is read from the running build: a release from Core's
+`v31.0rc1` on names the invalid chain, as the pin's file expects, and an
+earlier one says it does not fully agree with its peers;
+`tests/integration/feature_notifications_bitcoind_test.py`'s own
+`_names_the_invalid_chain` has where `master` changed.
+`tests/integration/feature_notifications_test.py`'s own docstring has what
+differs from Core's file. The step not ported is `-walletnotify`, on the
+file's second node, whose wallet shares the first node's descriptors, built
+from an extended private key the client generates: *The node wallet* below
+lists both among what a port of Core's wallet tests waits on. The `bitcoind`
+cells are one verdict for the pinned release and for Core's `master`, the
+pinned release's own copy of the file differing from the pin in its wallet
+steps, in leaving each command's path unquoted and in handing `create_block`
+a coinbase of its own `create_coinbase` rather than a height. `btclib-node`'s
+cells are counted skips on each capability on either build, no file naming
+`blocknotify` or `shutdownnotify`
+([ISS btclib-node#1519](https://github.com/btclib-org/btclib-node/issues/1519)),
+nor `alertnotify`
+([ISS btclib-node#1475](https://github.com/btclib-org/btclib-node/issues/1475)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

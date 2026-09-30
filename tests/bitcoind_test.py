@@ -98,6 +98,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.SHUTDOWN_NOTIFY,
             Capability.SETTINGS_FILE,
             Capability.PRECIOUS_BLOCK,
+            Capability.SIGN_MESSAGE_WITH_PRIVKEY,
         }
     )
 

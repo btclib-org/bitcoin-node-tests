@@ -1086,6 +1086,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_getchaintips.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (generate) |
 | `rpc_preciousblock.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (precious_block) |
 | `rpc_invalidateblock.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass, the ancestors' check run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (generate) |
+| `rpc_signmessagewithprivkey.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (sign_message_with_privkey) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3118,8 +3119,9 @@ adapter lacks, outside ISS 14's own scope: `feature_shutdown.py`,
 `rpc_signmessagewithprivkey.py`, `rpc_estimatefee.py`, `rpc_getchaintips.py`,
 `rpc_preciousblock.py`, `rpc_invalidateblock.py`,
 `feature_chain_tiebreaks.py`, `p2p_sendheaders.py` and `p2p_fingerprint.py`.
-`rpc_getchaintips.py`, `rpc_preciousblock.py` and `rpc_invalidateblock.py`
-are ported, their rows in the table above.
+`rpc_getchaintips.py`, `rpc_preciousblock.py`, `rpc_invalidateblock.py`
+and `rpc_signmessagewithprivkey.py` are ported, their rows in the table
+above.
 
 `rpc_getchaintips.py`'s row is Core's own claim in full. Nodes linked in a line,
 as Core's `setup_network` links them, each report one active tip. With the
@@ -3186,6 +3188,22 @@ neither build names `submitheader`
 or `reconsiderblock`
 ([ISS btclib-node#1536](https://github.com/btclib-org/btclib-node/issues/1536))
 there either.
+
+`rpc_signmessagewithprivkey.py`'s row is Core's own claim in full. One node
+signs a message with Core's own regtest key, and the signature is the one Core's
+file names. It verifies under the key's P2PKH address and is refused under its
+P2SH-P2WPKH and P2WPKH ones. Either call given the wrong number of arguments is
+refused, and so are a key, an address and a signature the node cannot decode,
+each with Core's own error code and message. The test asks for
+`Capability.SIGN_MESSAGE_WITH_PRIVKEY` alone.
+`tests/integration/rpc_signmessagewithprivkey_test.py`'s own docstring has what
+differs from Core's file, btclib deriving the key's addresses where Core asks
+the node's `deriveaddresses`. The `bitcoind` cell is one verdict for the pinned
+release and for Core's `master`, whose copy of the file is the pin's.
+`btclib-node`'s cell is a counted skip on `SIGN_MESSAGE_WITH_PRIVKEY` on either
+build, no file naming `signmessagewithprivkey` or `verifymessage` at the
+released build or at `main`
+([ISS btclib-node#1538](https://github.com/btclib-org/btclib-node/issues/1538)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

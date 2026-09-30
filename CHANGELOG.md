@@ -1232,3 +1232,9 @@ skips (issue #317).
 `invalidateblock` and `reconsiderblock` are checked to move a node off a chain
 and back, ancestors and descendants included; `Capability.INVALIDATE_BLOCK`
 names both; btclib-node skips (issue #317).
+
+### `rpc_signmessagewithprivkey` is ported
+
+`signmessagewithprivkey` and `verifymessage` are checked against Core's own key,
+signature and refusals; `Capability.SIGN_MESSAGE_WITH_PRIVKEY` is new;
+btclib-node skips (issue #317).

@@ -373,6 +373,9 @@ class BitcoindAdapter(NodeAdapter):
     `ArgsManager` (`src/common/args.cpp`).
     `Capability.PRECIOUS_BLOCK` is unconditional too: `preciousblock` is
     this binary's own RPC (`src/rpc/blockchain.cpp`).
+    `Capability.SIGN_MESSAGE_WITH_PRIVKEY` is unconditional too:
+    `signmessagewithprivkey` and `verifymessage` are this binary's own
+    RPCs (`src/rpc/signmessage.cpp`), with no wallet behind them.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -456,6 +459,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.SHUTDOWN_NOTIFY,
             Capability.SETTINGS_FILE,
             Capability.PRECIOUS_BLOCK,
+            Capability.SIGN_MESSAGE_WITH_PRIVKEY,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

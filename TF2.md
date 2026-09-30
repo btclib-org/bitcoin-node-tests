@@ -1069,6 +1069,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass | skip (limit_cluster_size) |
 | `feature_minchainwork.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (minimum_chain_work) |
 | `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass | skip (limit_cluster_count) |
+| `feature_versionbits_warning.py` | [`5bd990a3ddb1`](https://github.com/bitcoin/bitcoin/commit/5bd990a3ddb1) | 2026-06-03 | pass, the reserved bit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1926,12 +1927,10 @@ Rule 3's oracle is not authoritative on this one file until the pin
 names a release carrying that fix --
 [ISS 62](https://github.com/btclib-org/bitcoin-node-tests/issues/62).
 
-`feature_versionbits_warning.py` (`-alertnotify=<cmd>`) and
-`rpc_signer.py` (`-signer=<cmd>`) each start a node that execs an
-external command -- a shell one-liner writing to a file, a bundled mock
-signer script -- and assert on what that process did. No adapter here
-runs, tracks or verifies an external process a node itself spawns; both
-are
+`rpc_signer.py` (`-signer=<cmd>`) starts nodes that exec Core's own
+mock signer, `test/functional/mocks/signer.py`, a script of Core's
+source tree that the release does not ship, and asserts on what it
+answered:
 [ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)'s
 own subject, "drives another binary", rather than this issue's.
 
@@ -2849,6 +2848,24 @@ past that, neither build serves `getmempoolancestors`,
 ([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501)),
 nor `prioritisetransaction`
 ([ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502)).
+
+`feature_versionbits_warning.py` is ISS 14's too, the option and the
+disk together; its test builds its node through `make_adapter`, under
+`-alertnotify` from the first start. It is Core's own claim: blocks a
+`Peer` sends signalling a version bit no deployment uses raise no
+warning over a period in which fewer than the threshold signal it, and
+after a period reaching the threshold and one more, then a restart, the
+node reports "Unknown new rules activated" in `getmininginfo`'s and
+`getnetworkinfo`'s `warnings`, and its command appends that warning to
+a file. In between, blocks reaching the threshold on a bit BIP323
+reserves raise no warning, which the test asserts only where the running
+build carries BIP323, read from its own version: Core's `master` does
+and the pinned release does not.
+`tests/integration/feature_versionbits_warning_test.py`'s own docstring
+has what else differs from Core's file. The `btclib-node` cell is a
+counted skip on `Capability.ALERT_NOTIFY`, asked for first: no source
+file names `alertnotify` on either build
+([ISS btclib-node#1475](https://github.com/btclib-org/btclib-node/issues/1475)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

@@ -1161,3 +1161,9 @@ btclib-node skips, and `Capability.MINIMUM_CHAIN_WORK` is new (issue #14).
 A mempool transaction's ancestors and descendants, and the transaction spending
 each output, are checked, a prioritisation and a reorg included; btclib-node
 skips, and `Capability.MEMPOOL_GRAPH` is new (issue #14).
+
+### `feature_versionbits_warning` is ported
+
+A node is checked to warn, and to run its `-alertnotify` command, once blocks
+signalling an unknown version bit activate unknown rules; btclib-node skips on
+the new `Capability.ALERT_NOTIFY` (issue #14).

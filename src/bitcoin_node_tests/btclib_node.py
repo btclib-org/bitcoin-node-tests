@@ -328,6 +328,11 @@ option [ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1
 asked for. The released `2026.9.24` (`422d2640`) registers none, its
 `Config.min_relay_feerate` taking no flag, so an instance built against
 it does not gain the capability.
+
+`Capability.ALERT_NOTIFY` is never declared either: no source file
+names `alertnotify`, measured at the released `2026.9.24` (`422d2640`)
+and at `main` (`93c1d066`) alike
+([ISS btclib-node#1475](https://github.com/btclib-org/btclib-node/issues/1475)).
 """
 
 from __future__ import annotations

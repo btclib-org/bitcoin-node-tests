@@ -761,6 +761,7 @@ _ROWS: dict[str, str] = {
     ),
     "feature_maxtipage": "`feature_maxtipage.py`",
     "p2p_blockfilters": "`p2p_blockfilters.py`",
+    "p2p_getaddr_caching": "`p2p_getaddr_caching.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

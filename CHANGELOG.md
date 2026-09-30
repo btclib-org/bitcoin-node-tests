@@ -1101,3 +1101,9 @@ at the first tip exactly that old; btclib-node skips on the new
 A node under `-peerblockfilters` is checked to serve BIP157 filters for its
 active and stale blocks and to drop each invalid request; btclib-node skips on
 the new `Capability.PEER_BLOCK_FILTERS` (issue #14).
+
+### `p2p_getaddr_caching` is ported
+
+A node listening on a loopback and two onion binds is checked to answer every
+`getaddr` through one bind with the same addresses, through each a different
+answer, and a new one once the cache expires; btclib-node skips (issue #14).

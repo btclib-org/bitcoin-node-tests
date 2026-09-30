@@ -1190,3 +1190,9 @@ parent is unknown, drops the peer; btclib-node skips (issue #14).
 
 `mempool_cluster` checks a chain's ancestors and descendants, so it asks for the
 capability serving them too, and skips on a node not declaring it (issue #14).
+
+### `p2p_1p1c_network` is ported
+
+Packages submitted to one node are checked to reach a line of nodes over p2p,
+each parent paying no fee relayed with its child, though some nodes already kept
+the child as an orphan or refused the parent; btclib-node skips (issue #14).

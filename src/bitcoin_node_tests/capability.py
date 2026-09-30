@@ -485,7 +485,8 @@ class Capability(Enum):
     stays in initial block download and answers `getheaders` empty, it
     downloads no block from a peer whose best known block is below it,
     and a value that is not hex refuses the start
-    (`feature_minchainwork.py`).
+    (`feature_minchainwork.py`); it stores no header of a block a peer
+    sends unasked on a chain below it (`p2p_unrequested_blocks.py`).
     `MEMPOOL_GRAPH` -- walk the spends connecting its mempool's
     transactions and report them: every mempool transaction a given one
     descends from and every one descending from it, bare or with each

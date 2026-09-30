@@ -1179,3 +1179,9 @@ every ported test handing a node a package over RPC now asks for it (issue #14).
 Nodes are checked to ignore a chain with less work than `-minimumchainwork`
 until it has it, the headers of a `noban` peer still taken, and to report a
 peer's low-work headers as presynced; btclib-node skips (issue #14).
+
+### `p2p_unrequested_blocks` is ported
+
+An unrequested block is checked to be stored only with at least the tip's work,
+its header not at all below `-minimumchainwork`; an invalid block, or one whose
+parent is unknown, drops the peer; btclib-node skips (issue #14).

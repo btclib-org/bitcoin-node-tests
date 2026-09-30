@@ -544,6 +544,19 @@ class BitcoindAdapter(NodeAdapter):
         `DummyWalletInit::AddWalletOptions` (`src/dummywallet.cpp`) hides it
         rather than leaving it unknown.
 
+        `-rpcservertimeout=99000` is Core's own `write_config` (`util.py`)
+        line too, written there to "disable server-side timeouts to avoid
+        intermittent issues". bitcoind closes an RPC connection idle for
+        `-rpcservertimeout` seconds, 30 by default
+        (`DEFAULT_HTTP_SERVER_TIMEOUT`, `src/httpserver.h`), while
+        `NodeAdapter` keeps its connections open across calls
+        (`_ThreadSessions`, `node.py`). `SessionTransport` probes a kept
+        connection before reusing it and does not retry a
+        `ConnectionResetError` its read raises, so a close landing between
+        that probe and the request can reach the caller as a `FetchError`
+        raised from one (measured against the pinned `31.1`,
+        [ISS 336](https://github.com/btclib-org/bitcoin-node-tests/issues/336)).
+
         `-rpcallowip=127.0.0.1` is what makes `-rpcbind` bind at all:
         Core's `HTTPBindAddresses` (`src/httpserver.cpp`) ignores
         `-rpcbind` unless `-rpcallowip` is also given, binds `::1` and
@@ -595,6 +608,7 @@ class BitcoindAdapter(NodeAdapter):
             "-fallbackfee=0.0002",
             "-printtoconsole=0",
             "-unsafesqlitesync",
+            "-rpcservertimeout=99000",
             "-debug=net",
             "-debug=addrman",
             "-debug=txreconciliation",

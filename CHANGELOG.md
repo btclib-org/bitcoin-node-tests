@@ -1266,3 +1266,9 @@ btclib-node skips (issue #317).
 `estimatesmartfee` and `estimaterawfee` are checked against Core's own refusals
 and valid calls; `Capability.ESTIMATE_SMART_FEE` is new; btclib-node skips
 (closes #317).
+
+### bitcoind runs with Core's own `-rpcservertimeout=99000`
+
+bitcoind closes an idle RPC connection after 99000 s, not 30 s, a close a reused
+connection could report as `ConnectionResetError`; a thread's kept connection
+closes with the thread, freeing a `-rpcmaxconnections` slot (closes #336).

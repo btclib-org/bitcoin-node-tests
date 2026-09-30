@@ -386,6 +386,8 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.INCREMENTAL_RELAY_FEE` is unconditional too:
     `-incrementalrelayfee` is this binary's own flag
     (`src/node/mempool_args.cpp`).
+    `Capability.PEER_PERMISSIONS` is unconditional too: `-whitelist` and
+    `-whitebind` are this binary's own flags (`src/init.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -474,6 +476,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.CHAIN_TIPS,
             Capability.ASSUME_VALID,
             Capability.INCREMENTAL_RELAY_FEE,
+            Capability.PEER_PERMISSIONS,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

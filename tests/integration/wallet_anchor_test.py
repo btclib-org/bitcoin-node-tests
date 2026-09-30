@@ -17,9 +17,10 @@ is kept.
 `Capability.NODE_WALLET` (`capability.py`) is asked for first, then
 `Capability.MINE`, the `MiniWallet` (`mini_wallet.py`) that builds the
 anchor and its spend, `Capability.GENERATE`, the `generateblock` and
-`generatetoaddress` the body mines with, and `Capability.CLOCK`, the
+`generatetoaddress` the body mines with, `Capability.CLOCK`, the
 `setmocktime` that keeps the import's own rescan off the anchor's
-blocks, of a fresh node of the body's own.
+blocks, and `Capability.PACKAGE_ACCEPTANCE`, the `submitpackage` taking
+the anchor and its spend together, of a fresh node of the body's own.
 
 Core runs on its harness's cached chain, whose coinbases
 pay, among others, `MiniWallet` and the deterministic key its harness
@@ -274,6 +275,7 @@ def a_wallet_sees_an_anchor_it_cannot_spend(
     require(Capability.MINE, node.capabilities, skip_counts)
     require(Capability.GENERATE, node.capabilities, skip_counts)
     require(Capability.CLOCK, node.capabilities, skip_counts)
+    require(Capability.PACKAGE_ACCEPTANCE, node.capabilities, skip_counts)
     node.rpc.call("createwallet", {"wallet_name": _WALLET})
     default_wallet = node.rpc.for_wallet(_WALLET)
     node.rpc.call("generatetoaddress", [1, default_wallet.call("getnewaddress")])

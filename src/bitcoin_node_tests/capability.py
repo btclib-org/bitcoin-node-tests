@@ -498,6 +498,16 @@ class Capability(Enum):
     raises an alert, the alert's message in place of the command's `%s`,
     the way Core's own `-alertnotify` does
     (`feature_versionbits_warning.py`).
+    `PACKAGE_ACCEPTANCE` -- evaluate a package a client hands it, a child
+    with its unconfirmed parents, as one against its mempool and take it
+    in: a parent paying too little alone entering with the child paying
+    for it, and a package replacing what its parent conflicts with where
+    it pays for that under package RBF's own rules, each refusal answered
+    with Core's own reason. Core's own `submitpackage`, and its
+    `testmempoolaccept` handed a package it evaluates as one, answering
+    a `package-error` for the whole (`mempool_package_rbf.py`). A package
+    a peer relays, Core's 1p1c, is not this capability's. Named for what
+    it takes rather than for an RPC's own spelling, as `ORPHANAGE` is.
     """
 
     MINE = "mine"
@@ -569,6 +579,7 @@ class Capability(Enum):
     MINIMUM_CHAIN_WORK = "minimum_chain_work"
     MEMPOOL_GRAPH = "mempool_graph"
     ALERT_NOTIFY = "alert_notify"
+    PACKAGE_ACCEPTANCE = "package_acceptance"
 
 
 class SkipCounts:

@@ -361,6 +361,9 @@ class BitcoindAdapter(NodeAdapter):
     `-txospenderindex` is given.
     `Capability.ALERT_NOTIFY` is unconditional too: `-alertnotify` is
     this binary's own flag (`src/init.cpp`).
+    `Capability.PACKAGE_ACCEPTANCE` is unconditional too: `submitpackage`
+    and `testmempoolaccept`, each taking a package, are this binary's own
+    RPCs (`src/rpc/mempool.cpp`), on every chain.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -439,6 +442,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.MINIMUM_CHAIN_WORK,
             Capability.MEMPOOL_GRAPH,
             Capability.ALERT_NOTIFY,
+            Capability.PACKAGE_ACCEPTANCE,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

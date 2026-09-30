@@ -1167,3 +1167,9 @@ skips, and `Capability.MEMPOOL_GRAPH` is new (issue #14).
 A node is checked to warn, and to run its `-alertnotify` command, once blocks
 signalling an unknown version bit activate unknown rules; btclib-node skips on
 the new `Capability.ALERT_NOTIFY` (issue #14).
+
+### `mempool_package_rbf` is ported
+
+A package replacing its parent's conflicts is checked, and each refusal to carry
+Core's reason; btclib-node skips. `Capability.PACKAGE_ACCEPTANCE` is new, and
+every ported test handing a node a package over RPC now asks for it (issue #14).

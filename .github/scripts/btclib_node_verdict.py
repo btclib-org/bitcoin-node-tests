@@ -791,6 +791,7 @@ _ROWS: dict[str, str] = {
     "feature_minchainwork": "`feature_minchainwork.py`",
     "mempool_packages": "`mempool_packages.py`",
     "feature_versionbits_warning": "`feature_versionbits_warning.py`",
+    "mempool_package_rbf": "`mempool_package_rbf.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

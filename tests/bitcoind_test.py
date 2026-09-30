@@ -101,6 +101,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.SIGN_MESSAGE_WITH_PRIVKEY,
             Capability.ESTIMATE_SMART_FEE,
             Capability.CHAIN_TIPS,
+            Capability.ASSUME_VALID,
         }
     )
 

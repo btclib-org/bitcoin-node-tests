@@ -1091,6 +1091,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_sendheaders.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (generate) |
 | `p2p_fingerprint.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `rpc_estimatefee.py` | [`4056908f0fea`](https://github.com/bitcoin/bitcoin/commit/4056908f0fea) | 2026-09-29 | pass, the `options` checks and the estimator refusal run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (estimate_smart_fee) |
+| `feature_assumevalid.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass, its log lines read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (assume_valid) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1503,9 +1504,6 @@ step of that shape and none ported yet:
 - `p2p_invalid_messages.py`'s `test_noncontinuous_headers_msg`, which
   also needs `Capability.MINE`, an adapter's own fact rather than a step-5
   mechanism;
-- `feature_assumevalid.py`'s first node, started without `-assumevalid`
-  and fed a chain whose invalid signature it refuses, every other node of
-  the file being given the option;
 - `p2p_nobloomfilter_messages.py`'s filtered-block request, the
   `-peerbloomfilters` value its node is given restating Core's own
   default, and
@@ -1514,8 +1512,8 @@ step of that shape and none ported yet:
 
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
 every log step of each reaching another of the mechanisms above:
-`feature_abortnode.py`, `feature_addrman.py`, `feature_asmap.py`, the rest
-of `feature_assumevalid.py`, `feature_block.py`, `feature_config_args.py`,
+`feature_abortnode.py`, `feature_addrman.py`, `feature_asmap.py`,
+`feature_assumevalid.py`, `feature_block.py`, `feature_config_args.py`,
 `feature_fee_estimation.py`, `feature_index_prune.py`, `feature_init.py`,
 `feature_logging.py`, `feature_maxuploadtarget.py`, `feature_port.py`,
 `feature_pruning.py`, `feature_reindex.py`, `feature_reindex_readonly.py`,
@@ -1544,8 +1542,9 @@ node restarts with `-txindex` and the other indexes; the file's other
 section below names. `feature_reindex.py`, `feature_reindex_readonly.py`,
 `p2p_blockfilters.py`, `p2p_compactblocks.py`,
 `p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
-`p2p_invalid_block.py`, `p2p_unrequested_blocks.py` and
-`feature_settings.py` are ported, their rows in the table above.
+`p2p_invalid_block.py`, `p2p_unrequested_blocks.py`,
+`feature_settings.py` and `feature_assumevalid.py` are ported, their rows
+in the table above.
 
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
@@ -3120,6 +3119,39 @@ are the pin's. `btclib-node`'s cell is a counted skip on `SETTINGS_FILE` on
 either build, `cli.py` registering no `-settings` and no file under `src/`
 reading or writing a `settings.json` at the released build or at `main`
 ([ISS btclib-node#1523](https://github.com/btclib-org/btclib-node/issues/1523)).
+
+`feature_assumevalid.py` is one of ISS 14's files in the log family's
+census above, an option beside the log. Its row is Core's own claim in
+full, over several nodes, none of them linked to another. A chain buries
+a coinbase spend carrying an invalid signature deep enough that a node
+given `-assumevalid` at the spending block's own hash may skip checking
+it. A node given no such option checks every block, catches the spend,
+drops the peer sending it, and reports the chain past it invalid; one
+given the option and the whole chain takes it whole, the log naming
+where the skip starts and where it ends. A node fed only part of the
+chain's headers is not buried deep enough yet for the skip and rejects
+the spend the same way the first node does. One fed a competing,
+higher-work header chain ahead of the real one leaves the real chain's
+first block off its own best header chain, so that block is checked and
+accepted regardless, carrying no spend of its own; one fed a block at
+the same height outside the option's own chain entirely is checked and
+accepted the same way. A last node, synced to the chain's first block,
+is restarted under a chainstate reindex, once naming a hash absent from
+its own headers and once naming the real hash under a chain-work floor
+no chain this short reaches,
+hitting each check without a race against its own header download. The
+row asks for `Capability.ASSUME_VALID` first, then `DEBUG_LOG`, then
+`CHAIN_TIPS`, then `MINIMUM_CHAIN_WORK` and `REINDEX` for the reindexed
+node alone. `tests/integration/feature_assumevalid_test.py`'s own
+docstring has what differs from Core's file, among it the log lines an
+older release leaves out or names differently. The `bitcoind` cell is
+one verdict for the pinned release and for Core's `master`, the pinned
+release's own copy of the file differing from the pin only in handing
+each `create_block` a coinbase of its own `create_coinbase` rather than
+a height. `btclib-node`'s cell is a counted skip on `ASSUME_VALID` on
+either build, no file naming `assumevalid` at the released build or at
+`main`
+([ISS btclib-node#1576](https://github.com/btclib-org/btclib-node/issues/1576)).
 
 [ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)'s
 files are those a planning pass for ISS 14 found to need no mechanism the

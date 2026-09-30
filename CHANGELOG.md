@@ -1308,3 +1308,9 @@ btclib-org/btclib-node#1332 does it pass, tested alone under
 `test_a_kept_connection_outlives_the_default_server_timeout` checks that the
 probe of a connection idle past bitcoind's default server timeout finds it
 open, not only that the call after the idle is answered (closes #341).
+
+### `feature_assumevalid` is ported
+
+A node given `-assumevalid` at a buried spend's own hash skips checking it, one
+given none catches it and marks the chain past it invalid.
+`Capability.ASSUME_VALID` is new; btclib-node skips (issue #14).

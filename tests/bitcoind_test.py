@@ -90,6 +90,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.RPC_INFO,
             Capability.MIN_RELAY_TX_FEE,
             Capability.CLUSTER_LINEARIZATION,
+            Capability.MINIMUM_CHAIN_WORK,
         }
     )
 

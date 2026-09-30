@@ -1067,6 +1067,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (mine) on the build; skip (test_activation_height) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (permit_bare_multisig) |
 | `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass | skip (limit_cluster_size) |
+| `feature_minchainwork.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (minimum_chain_work) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2790,6 +2791,27 @@ and its mempool bounding no cluster
 ([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383));
 past that, neither build serves `getmempoolcluster`
 ([ISS btclib-node#1499](https://github.com/btclib-org/btclib-node/issues/1499)).
+
+`feature_minchainwork.py` is ISS 14's too, an option and the clock
+beside node-linking, its test taking its nodes from the cluster fixture.
+It is Core's own claim in full, over a line of nodes each dialling the
+one before it, the second and the third under `-minimumchainwork`. While
+the chain the first node mines has less work than the option names, no
+block passes the second node: the third keeps the genesis block as its
+only chain tip, the second's best block is not the first's, and the
+third answers a peer's `getheaders` with no header. One block more takes
+the work past it, every node syncs, and the third answers the same
+request while its clock, set ahead, keeps it in initial block download.
+A value that is not hex refuses the start in Core's own words. It asks
+for `Capability.MINIMUM_CHAIN_WORK` beside `CLOCK`, `PEER_TIMEOUT`,
+`MINE` and `CONNECT`.
+`tests/integration/feature_minchainwork_test.py`'s own docstring has
+what differs from Core's file. The `bitcoind` cell is one verdict for
+the pinned release and for Core's `master`. `btclib-node`'s cell is a
+counted skip on `MINIMUM_CHAIN_WORK` on every build, `cli.py`
+registering no `-minimumchainwork` at the released build or at `main`,
+the floor being the chain's own `minimum_chain_work`
+([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

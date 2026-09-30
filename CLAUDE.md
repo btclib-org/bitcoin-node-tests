@@ -206,7 +206,7 @@ Do not use Fable unless explicitly instructed.
 - **The prose style -- tone, comments, docstrings, no history -- is
   section 9 of the organization standard**, which `CONTRIBUTING.md`'s
   *Documentation and comments* is the pointer to.
-- **CHANGELOG.md gets an entry for anything a user would notice.** No
+- **CHANGELOG.md gets an entry for anything a reader would notice.** No
   `RELEASE_NOTES.md` yet: section 2 of the organization standard gives
   that file to a tier-1 tree, and this one publishes nothing.
 - **Never state how many of anything a file holds** -- `TF2.md`'s own

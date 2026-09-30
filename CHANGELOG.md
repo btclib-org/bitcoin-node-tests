@@ -1185,3 +1185,8 @@ peer's low-work headers as presynced; btclib-node skips (issue #14).
 An unrequested block is checked to be stored only with at least the tip's work,
 its header not at all below `-minimumchainwork`; an invalid block, or one whose
 parent is unknown, drops the peer; btclib-node skips (issue #14).
+
+### `mempool_cluster` asks for `Capability.MEMPOOL_GRAPH`
+
+`mempool_cluster` checks a chain's ancestors and descendants, so it asks for the
+capability serving them too, and skips on a node not declaring it (issue #14).

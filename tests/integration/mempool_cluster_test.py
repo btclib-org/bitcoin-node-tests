@@ -39,11 +39,13 @@ every assertion of Core's own is kept:
   `getmempoolfeeratediagram` point pays no more per weight than the one
   before it.
 
-`getmempoolcluster`, `getmempoolfeeratediagram` and `getmempoolinfo`'s
-`optimal` are `Capability.CLUSTER_LINEARIZATION`'s, asked for after
-both options' own capabilities, and `submitpackage` is
-`Capability.PACKAGE_ACCEPTANCE`'s, asked for after it and ahead of
-`Capability.MINE`.
+`getmempoolancestors` and `getmempooldescendants`, which the chains
+building a cluster are checked with, are `Capability.MEMPOOL_GRAPH`'s,
+asked for after both options' own capabilities. `getmempoolcluster`,
+`getmempoolfeeratediagram` and `getmempoolinfo`'s `optimal` are
+`Capability.CLUSTER_LINEARIZATION`'s, asked for next, and
+`submitpackage` is `Capability.PACKAGE_ACCEPTANCE`'s, asked for after it
+and ahead of `Capability.MINE`.
 
 What differs from Core's file:
 
@@ -698,6 +700,7 @@ def mempool_limits_clusters_and_reports_their_chunks(
     (node,) = cluster(1)
     require(Capability.LIMIT_CLUSTER_SIZE, node.capabilities, skip_counts)
     require(Capability.LIMIT_CLUSTER_COUNT, node.capabilities, skip_counts)
+    require(Capability.MEMPOOL_GRAPH, node.capabilities, skip_counts)
     require(Capability.CLUSTER_LINEARIZATION, node.capabilities, skip_counts)
     require(Capability.PACKAGE_ACCEPTANCE, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)

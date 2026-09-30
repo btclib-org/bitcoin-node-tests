@@ -48,8 +48,8 @@ def _txids(adapter: NodeAdapter, block_hash: bytes) -> list[str]:
     """Return the ids of `block_hash`'s own transactions, coinbase first.
 
     Read off `getblock`'s verbosity 0, the raw block: btclib-node serves
-    that verbosity alone, refusing the JSON one Core's own file reads `tx`
-    from.
+    that verbosity alone at the released build, refusing the JSON one
+    Core's own file reads `tx` from.
     """
     block_hex = adapter.rpc.call("getblock", [block_hash.hex(), 0])
     block = Block.parse(bytes.fromhex(block_hex), check_validity=False)

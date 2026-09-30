@@ -43,7 +43,7 @@ pytestmark = pytest.mark.integration
 # `49d5e835a87a1475329176290f53ddd6f2c2d2ec` was merged (`378e17f703`,
 # 2026-04-19), `v32.0rc1` being the first tag carrying it and the pinned
 # `31.1` lacking it. A known limit: a `master` build from the version's
-# move to `31.99` (`48b952cbb6`, 2026-03-06) until that merge reports
+# move to `31.99` (`b97abdcdf1`, 2026-03-10) until that merge reports
 # `319900` and refuses all the same, so this test fails against such a
 # build
 _ROLLS_BACK_PAST_A_FORK_VERSION = 319900

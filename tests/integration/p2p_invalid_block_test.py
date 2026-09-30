@@ -68,7 +68,7 @@ from btclib.consensus import CONSENSUS_PARAMS
 from btclib.p2p import BlockPayload, GetData, Headers
 from btclib.p2p.magic import magic_from_chain
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
-from btclib.tx.limits import COINBASE_MATURITY
+from btclib.tx.limits import COINBASE_MATURITY, SEQUENCE_FINAL
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
@@ -101,10 +101,6 @@ _COIN = 100_000_000
 # `OP_TRUE`: what Core's own `create_coinbase` pays, and the scriptSig of
 # each of its `create_tx_with_script` spends
 _OP_TRUE = b"\x51"
-
-# Core's own `SEQUENCE_FINAL` (`test_framework/messages.py`), which
-# `create_tx_with_script` gives its input
-_SEQUENCE_FINAL = 0xFFFFFFFF
 
 # what Core's own `noban_tx_relay` adds to every node's start
 _NOBAN = "-whitelist=noban,in,out@127.0.0.1"
@@ -180,7 +176,7 @@ def _spend(previous: Tx, *, duplicate_input: bool = False) -> Tx:
     :param duplicate_input: the input appended a second time, Core's own
         `tx.vin.append(tx.vin[0])`.
     """
-    tx_in = TxIn(OutPoint(previous.id, 0), _OP_TRUE, _SEQUENCE_FINAL)
+    tx_in = TxIn(OutPoint(previous.id, 0), _OP_TRUE, SEQUENCE_FINAL)
     return Tx(
         2,
         0,

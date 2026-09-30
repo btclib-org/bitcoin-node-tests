@@ -482,9 +482,11 @@ class Capability(Enum):
     RPC's own spelling, as `ORPHANAGE` is.
     `MINIMUM_CHAIN_WORK` -- recognise `-minimumchainwork`, Core's own
     debug-only floor, in hex, on chain work: a node whose tip is below it
-    stays in initial block download and answers `getheaders` empty, it
-    downloads no block from a peer whose best known block is below it,
-    and a value that is not hex refuses the start
+    stays in initial block download and answers `getheaders` empty to a
+    peer not holding the `download` permission, which `noban` implies,
+    it downloads no block from a peer whose best known block is below it,
+    and a value that is not hex, or that runs past 64 hex digits once an
+    optional `0x` is dropped, refuses the start
     (`feature_minchainwork.py`); it stores no header of a block a peer
     sends unasked on a chain below it (`p2p_unrequested_blocks.py`).
     `MEMPOOL_GRAPH` -- walk the spends connecting its mempool's

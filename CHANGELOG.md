@@ -1278,3 +1278,9 @@ closes with the thread, freeing a `-rpcmaxconnections` slot (closes #336).
 `Peer.receive`'s `timeout` holds for that call alone, so a later `receive`
 without one, and `send`, wait the peer's default rather than what an earlier
 `receive` or `wait_for` left on the socket (closes #326).
+
+### `tests/socks5_test.py` reads a reply whole on Linux
+
+The client of `tests/socks5_test.py` loops on `recv` until it has every octet it
+asked for, where `MSG_WAITALL` on a socket with a timeout returned only what
+had arrived on Linux, failing `test.yml`'s coverage job there (closes #334).

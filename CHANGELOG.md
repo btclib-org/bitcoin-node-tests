@@ -1078,3 +1078,8 @@ btclib-node skips (issue #44).
 A node is checked to record when a peer first announces a block extending its
 tip, and to drop an outbound peer that does not catch up with its tip in time
 unless it is protected; btclib-node skips (issue #44).
+
+### `p2p_tx_privacy` is ported
+
+A node is checked to announce a transaction only to a peer whose handshake was
+complete when the node received it; btclib-node's release skips (issue #14).

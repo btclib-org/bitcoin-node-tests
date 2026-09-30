@@ -1049,6 +1049,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_outbound_eviction.py` (protected) | same | same | pass | skip |
 | `p2p_outbound_eviction.py` (mixed) | same | same | pass | skip |
 | `p2p_outbound_eviction.py` (block-relay-only) | same | same | pass | skip |
+| `p2p_tx_privacy.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2108,14 +2109,20 @@ now built as `mempool_util.fill_mempool`
 `mempool_sigoplimit.py`, named alongside them for the same reason, is
 ported below, its own paragraph naming what of it is kept.
 
-`p2p_tx_privacy.py` (also pinned `fa5f29774872`) asks for MiniWallet
-alone too, driving a second p2p connection of its own alongside the
-first -- one held back from completing its handshake while the other
-already sends a transaction -- to assert a `wtxid` announcement is
-withheld from the second until its own handshake completes. `peer.py`'s
-own `handshake` is one blocking call from open to `verack`, with no step
-in between for a caller to hold a second connection at; unported for
-that reason, and left to ISS 14 once step 5 gives it one. Every other
+`p2p_tx_privacy.py` asks for MiniWallet alone too, and is ported, its
+own row above: a second p2p connection holds its handshake open while
+the first sends a transaction, and a `wtxid` announcement is withheld
+from the second until its own handshake completes. Its spy is a `Peer`
+(`peer.py`) sending `version` and `wtxidrelay` by hand and holding back
+its `verack`, the way `tests/integration/p2p_timeouts_test.py` holds a
+handshake open rather than calling `Peer.handshake`; what the port adds
+to Core's own file is in `tests/integration/p2p_tx_privacy_test.py`'s
+docstring. Its `btclib-node` cell is `Capability.MINE`'s skip on the
+released build. The `main` half is read from btclib-node's own source
+at `9ae620c2` rather than run: `P2pManager.promote_connection`, called
+from `callbacks.verack` alone, is what moves a connection into the
+`connections` table `DownloadManager` queues each announcement against,
+so a connection still in its handshake is queued none. Every other
 MiniWallet-touching file asks for a wallet (`createwallet`, out for good,
 rule 3's own exclusion), the log, the disk or the clock alongside
 MiniWallet, or an option -- ISS 14's once every step-5 mechanism lands,

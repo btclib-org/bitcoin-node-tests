@@ -752,6 +752,7 @@ _ROWS: dict[str, str] = {
     "p2p_outbound_eviction::test_block_relay_only_peer_is_not_protected": (
         "`p2p_outbound_eviction.py` (block-relay-only)"
     ),
+    "p2p_tx_privacy": "`p2p_tx_privacy.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

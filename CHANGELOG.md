@@ -1260,3 +1260,9 @@ for a node that exits on its own (issue #318) (issue #317).
 A node is checked to withhold from a peer a block off its active chain, and its
 header, once the block is a month or more older than its best header;
 btclib-node skips (issue #317).
+
+### `rpc_estimatefee` is ported
+
+`estimatesmartfee` and `estimaterawfee` are checked against Core's own refusals
+and valid calls; `Capability.ESTIMATE_SMART_FEE` is new; btclib-node skips
+(closes #317).

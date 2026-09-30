@@ -1090,6 +1090,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_chain_tiebreaks.py` | [`20ae9b98eab2`](https://github.com/bitcoin/bitcoin/commit/20ae9b98eab2) | 2026-03-04 | pass, the restart's tip check run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (invalidate_block) |
 | `p2p_sendheaders.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (generate) |
 | `p2p_fingerprint.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `rpc_estimatefee.py` | [`4056908f0fea`](https://github.com/bitcoin/bitcoin/commit/4056908f0fea) | 2026-09-29 | pass, the `options` checks run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (estimate_smart_fee) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3125,8 +3126,8 @@ adapter lacks, outside ISS 14's own scope: `feature_shutdown.py`,
 `feature_chain_tiebreaks.py`, `p2p_sendheaders.py` and `p2p_fingerprint.py`.
 `rpc_getchaintips.py`, `rpc_preciousblock.py`, `rpc_invalidateblock.py`,
 `rpc_signmessagewithprivkey.py`, `feature_chain_tiebreaks.py`,
-`p2p_sendheaders.py` and `p2p_fingerprint.py` are ported, their rows in the
-table above.
+`p2p_sendheaders.py`, `p2p_fingerprint.py` and `rpc_estimatefee.py` are
+ported, their rows in the table above.
 
 `feature_shutdown.py` is not ported: it needs a wait the adapter lacks. Its
 node is asked to `stop` over RPC while a `waitfornewblock` call on a second
@@ -3285,6 +3286,23 @@ release and for Core's `master`, whose copy of the file is the pin's.
 [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071),
 no file under its `src/` naming `setmocktime` at the released build or at
 `main`.
+
+`rpc_estimatefee.py`'s row is Core's own claim in full. One node refuses
+`estimatesmartfee` and `estimaterawfee` given too few or too many arguments, an
+argument of the wrong type, an unknown estimate mode, fee rate estimator, named
+parameter or option key, or a confirmation target past the estimator's maximum,
+each with Core's own error code and message, and answers each valid call. The
+test asks for `Capability.ESTIMATE_SMART_FEE` alone, which names
+`estimaterawfee` too. `tests/integration/rpc_estimatefee_test.py`'s own
+docstring has the steps a node is asked only where its own `help` says it
+carries them: `estimatesmartfee`'s `options` argument, which the pinned release
+does not take, and the refusal of an unknown fee rate estimator. The `bitcoind`
+cell is one verdict for the pinned release and for Core's `master`, whose copy
+of the file is the pin's.
+`btclib-node`'s cell is a counted skip on `ESTIMATE_SMART_FEE` on either build,
+no file naming `estimatesmartfee` or `estimaterawfee` at the released build or
+at `main`
+([ISS btclib-node#1543](https://github.com/btclib-org/btclib-node/issues/1543)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

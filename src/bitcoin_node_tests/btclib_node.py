@@ -363,6 +363,11 @@ table, measured at the released `2026.9.24` (`422d2640`) and at `main`
 file names `signmessagewithprivkey` or `verifymessage`, measured at the
 released `2026.9.24` (`422d2640`) and at `main` (`59618462`) alike
 ([ISS btclib-node#1538](https://github.com/btclib-org/btclib-node/issues/1538)).
+
+`Capability.ESTIMATE_SMART_FEE` is never declared either: no file names
+`estimatesmartfee` or `estimaterawfee`, measured at the released
+`2026.9.24` (`422d2640`) and at `main` (`02b2ed6e`) alike
+([ISS btclib-node#1543](https://github.com/btclib-org/btclib-node/issues/1543)).
 """
 
 from __future__ import annotations

@@ -1290,3 +1290,9 @@ had arrived on Linux, failing `test.yml`'s coverage job there (closes #334).
 The aggregate's step runs `check_run_jobs.py`, which reads the run's jobs
 listing again up to a deadline while a row of `changes` or `coverage` is
 unfinished (issue btclib-org/.github#1470).
+
+### `mempool_ephemeral_dust`'s nonzero-dust body needs a newer btclib-node
+
+The released build skips it too, like every other body of the file; only past
+btclib-org/btclib-node#1332 does it pass, tested alone under
+`-minrelaytxfee=0` (closes #316).

@@ -3063,7 +3063,10 @@ floor where `-minrelaytxfee` sets the relay floor to zero. Past
 or `generatetoaddress`
 ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)),
 nor keeps an orphan
-([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
+([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)),
+nor registers `-whitelist`
+([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)),
+which the first bodies restart with.
 
 `feature_notifications.py` is ISS 14's too, though
 [ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)

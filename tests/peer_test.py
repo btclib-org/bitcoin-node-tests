@@ -17,6 +17,7 @@ connection to a `Listener`.
 from __future__ import annotations
 
 import io
+import itertools
 import math
 import secrets
 import select
@@ -24,6 +25,7 @@ import socket
 import struct
 import threading
 import time
+import types
 from collections import Counter
 from collections.abc import Iterator
 
@@ -435,6 +437,39 @@ def test_receive_raises_on_a_closed_connection(fake_node: _FakeNode) -> None:
         peer.close()
 
 
+def test_receive_leaves_the_socket_at_the_default_wait_once_it_times_out(
+    fake_node: _FakeNode,
+) -> None:
+    """A `timeout` given to one `receive` is not the next one's."""
+    peer = _handshaken(fake_node)
+    try:
+        with pytest.raises(TimeoutError):
+            peer.receive(timeout=0.05)
+        assert peer._socket.gettimeout() == 5.0
+    finally:
+        peer.close()
+
+
+def test_handshake_leaves_the_socket_at_the_default_wait(
+    fake_node: _FakeNode, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """What `wait_for` had left of its deadline is not the next read's wait.
+
+    `peer.py`'s own clock advances a second a call, so each `wait_for`
+    hands `receive` a second less than the default wait.
+    """
+    ticks = itertools.count()
+    monkeypatch.setattr(
+        "bitcoin_node_tests.peer.time",
+        types.SimpleNamespace(monotonic=lambda: float(next(ticks))),
+    )
+    peer = _handshaken(fake_node)
+    try:
+        assert peer._socket.gettimeout() == 5.0
+    finally:
+        peer.close()
+
+
 def test_fake_node_close_before_any_peer_ever_dialled_in() -> None:
     """`_FakeNode.close` before `accept` closes the listener alone."""
     node = _FakeNode()
@@ -619,7 +654,7 @@ def test_is_connected_answers_at_once_while_the_node_stays_up(
         start = time.monotonic()
         assert peer.is_connected
         assert time.monotonic() - start < 1.0
-        assert peer._socket.gettimeout() == pytest.approx(5.0)
+        assert peer._socket.gettimeout() == 5.0
     finally:
         peer.close()
 

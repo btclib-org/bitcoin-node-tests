@@ -176,15 +176,22 @@ class Peer:
         """Return the next whole message, reading more off the socket as needed.
 
         :param timeout: applied to the underlying socket for every read
-            this call makes; the socket's own last setting where `None`,
-            which is `wait_for`'s way of holding the *overall* wait to
-            its own deadline rather than resetting it on every message
-            read along the way.
+            this call makes, and for this call only: the socket is back
+            at this peer's own default wait when it returns or raises.
+            That default wait where `None`.
         :raises ConnectionError: the peer closed the connection.
         :raises TimeoutError: no octet arrived within `timeout`.
         """
-        if timeout is not None:
-            self._socket.settimeout(timeout)
+        if timeout is None:
+            return self._receive()
+        self._socket.settimeout(timeout)
+        try:
+            return self._receive()
+        finally:
+            self._socket.settimeout(self._timeout)
+
+    def _receive(self) -> Message:
+        """Return the next whole message, at the socket's current timeout."""
         while True:
             stream = io.BytesIO(self._buffer)
             try:

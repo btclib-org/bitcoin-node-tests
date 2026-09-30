@@ -543,6 +543,11 @@ class Capability(Enum):
     which need no wallet (`rpc_signmessagewithprivkey.py`). Named for the
     first RPC, as `BLOCK_STATS` is, and one member for the pair, as
     `SIGN_RAW_TRANSACTION` is.
+    `ESTIMATE_SMART_FEE` -- answer a fee rate estimate for a confirmation
+    target, and refuse a malformed request for one with Core's own codes
+    and messages: Core's own `estimatesmartfee` and `estimaterawfee`
+    (`rpc_estimatefee.py`). Named for the first RPC, as `BLOCK_STATS` is,
+    and one member for the pair, as `SIGN_RAW_TRANSACTION` is.
     """
 
     MINE = "mine"
@@ -620,6 +625,7 @@ class Capability(Enum):
     SETTINGS_FILE = "settings_file"
     PRECIOUS_BLOCK = "precious_block"
     SIGN_MESSAGE_WITH_PRIVKEY = "sign_message_with_privkey"
+    ESTIMATE_SMART_FEE = "estimate_smart_fee"
 
 
 class SkipCounts:

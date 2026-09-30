@@ -376,6 +376,9 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.SIGN_MESSAGE_WITH_PRIVKEY` is unconditional too:
     `signmessagewithprivkey` and `verifymessage` are this binary's own
     RPCs (`src/rpc/signmessage.cpp`), with no wallet behind them.
+    `Capability.ESTIMATE_SMART_FEE` is unconditional too:
+    `estimatesmartfee` and `estimaterawfee` are this binary's own RPCs
+    (`src/rpc/fees.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -460,6 +463,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.SETTINGS_FILE,
             Capability.PRECIOUS_BLOCK,
             Capability.SIGN_MESSAGE_WITH_PRIVKEY,
+            Capability.ESTIMATE_SMART_FEE,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

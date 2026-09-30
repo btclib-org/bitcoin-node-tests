@@ -472,6 +472,9 @@ class Capability(Enum):
     is running, each with how long it has run, and the full path of its
     debug log (`interface_rpc.py`). Named for the RPC, as `BLOCK_STATS`
     is.
+    `MIN_RELAY_TX_FEE` -- recognise `-minrelaytxfee`, Core's own rate, in
+    BTC/kvB, under which a fee counts as zero for relay, and the floor of
+    every `feefilter` the node sends a peer (`p2p_ibd_txrelay.py`).
     """
 
     MINE = "mine"
@@ -538,6 +541,7 @@ class Capability(Enum):
     MAX_TIP_AGE = "max_tip_age"
     PEER_BLOCK_FILTERS = "peer_block_filters"
     RPC_INFO = "rpc_info"
+    MIN_RELAY_TX_FEE = "min_relay_tx_fee"
 
 
 class SkipCounts:

@@ -1062,6 +1062,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `interface_rpc.py` (status codes) | same | same | pass | fail ([ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109)) on the build; pass on a build past [ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109) |
 | `interface_rpc.py` (notifications) | same | same | pass | skip (generate) |
 | `interface_rpc.py` (work queue) | same | same | pass | skip (rpc_work_queue) |
+| `p2p_ibd_txrelay.py` (wire) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_ibd_txrelay.py` (log) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1513,8 +1515,8 @@ node restarts with `-txindex` and the other indexes; the file's other
 `logging` checks read the RPC's own answer and no log.
 `feature_assumeutxo.py` stays behind the disqualifier the node-linking
 section below names. `feature_reindex.py`, `feature_reindex_readonly.py`,
-`p2p_blockfilters.py`, `p2p_compactblocks.py` and `p2p_invalid_block.py`
-are ported, their rows in the table above.
+`p2p_blockfilters.py`, `p2p_compactblocks.py`, `p2p_ibd_txrelay.py` and
+`p2p_invalid_block.py` are ported, their rows in the table above.
 
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
@@ -2676,6 +2678,35 @@ refuses a request with no `id`; a build past
 [ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109)
 parses each request as Core's `JSONRPCRequest` does (`rpc/jsonrpc.py`,
 read at `main`).
+
+`p2p_ibd_txrelay.py` is ISS 14's too, an option, the log and the clock,
+as
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+tags it, and node-linking besides: the census reads its nodes as never
+connected, where Core's own `setup_network` links them, and each of its
+tests takes the pair from the cluster fixture. It is Core's own claim in
+full. Both nodes, started with `-minrelaytxfee`, send each other a
+`feefilter` of `MAX_MONEY` rounded down to `FeeFilterRounder`'s top
+bucket in initial block download, and of the minimum relay fee once out
+of it, read off `getpeerinfo`. While a block older than the maximum tip
+age keeps it there, the node under test asks for no transaction a peer
+announces and processes none a peer sends unasked; once out, it asks for
+the old block's coinbase by its wtxid and processes that transaction.
+The (log) row reads the processing in the node's own log, in Core's own
+words; the (wire) row sends the same transactions and reads nothing of
+them past a ping round trip. Each asks for `Capability.MIN_RELAY_TX_FEE`
+beside `MINE`, `CLOCK` and `CONNECT`, and the (log) row for `DEBUG_LOG`
+too. `tests/integration/p2p_ibd_txrelay_test.py`'s own docstring has
+what differs from Core's file. Each `bitcoind` cell is one verdict for
+the pinned release and for Core's `master`. `btclib-node`'s cell on each
+row is a counted skip on `MINE` on the released build, and on
+`CLOCK` on a build past
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071),
+`setmocktime` naming no callback in its dispatch table
+([ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479)).
+Past the skips, the top bucket such a build rounds to follows
+`-minrelaytxfee`, where Core's follows `DEFAULT_MIN_RELAY_TX_FEE`
+([ISS btclib-node#1374](https://github.com/btclib-org/btclib-node/issues/1374)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

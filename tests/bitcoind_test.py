@@ -88,6 +88,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.MAX_TIP_AGE,
             Capability.PEER_BLOCK_FILTERS,
             Capability.RPC_INFO,
+            Capability.MIN_RELAY_TX_FEE,
         }
     )
 

@@ -301,6 +301,14 @@ callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch table,
 measured at the released `2026.9.24` (`422d2640`) and at `main`
 (`76d7daa4`) alike
 ([ISS btclib-node#1486](https://github.com/btclib-org/btclib-node/issues/1486)).
+
+`Capability.MIN_RELAY_TX_FEE` is declared per instance, by
+`_sets_min_relay_fee`'s own probe: a build whose `cli.py` registers
+`-minrelaytxfee` -- `main` from btclib-node PR 1452 (`88f5c894`) on, the
+option [ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332)
+asked for. The released `2026.9.24` (`422d2640`) registers none, its
+`Config.min_relay_feerate` taking no flag, so an instance built against
+it does not gain the capability.
 """
 
 from __future__ import annotations
@@ -505,6 +513,36 @@ def _serves_ban_list(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# exits 0 only where `-minrelaytxfee`, in Core's BTC/kvB, sets the floor
+# `Config.min_relay_feerate` holds in sat/kvB; a build registering no such
+# flag refuses it and exits nonzero. `-noconf` keeps any `bitcoin.conf` out
+_MIN_RELAY_FEE_PROBE = """\
+from btclib_node.cli import build_config
+config = build_config(["-regtest", "-noconf", "-minrelaytxfee=0.00000010"])
+raise SystemExit(0 if config.min_relay_feerate.sats_per_kvbyte == 10 else 1)
+"""
+
+
+@lru_cache
+def _sets_min_relay_fee(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node reads `-minrelaytxfee`.
+
+    Asks the build's own `cli.build_config`, as `_negates_rpcauth` above
+    does, to read the flag, and answers whether the resulting config's
+    `min_relay_feerate` is the rate it names: `_MIN_RELAY_FEE_PROBE`
+    above. Otherwise in the standing of `_writes_auth_cookie` above: no
+    node started, no port bound, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _MIN_RELAY_FEE_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 class BtclibNodeAdapter(NodeAdapter):
     """A `btclib-node`, run as `python -m btclib_node`.
 
@@ -547,8 +585,9 @@ class BtclibNodeAdapter(NodeAdapter):
         `Capability.RPC_AUTH_CONFIG` is why one probe answers both,
         `_negates_rpcauth` answers `Capability.RPC_AUTH_NEGATION`,
         `_evicts_inbound` answers `Capability.INBOUND_EVICTION`,
-        `_connects_alone` answers `Capability.MINE`, and
-        `_serves_ban_list` answers `Capability.BAN`. The
+        `_connects_alone` answers `Capability.MINE`,
+        `_serves_ban_list` answers `Capability.BAN`, and
+        `_sets_min_relay_fee` answers `Capability.MIN_RELAY_TX_FEE`. The
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
         is left untouched where every probe answers `False`. A `chain`
         other than regtest drops `Capability.MINE` whatever its probe
@@ -575,6 +614,8 @@ class BtclibNodeAdapter(NodeAdapter):
             probed.add(Capability.MINE)
         if _serves_ban_list(executable):
             probed.add(Capability.BAN)
+        if _sets_min_relay_fee(executable):
+            probed.add(Capability.MIN_RELAY_TX_FEE)
         if probed:
             self.capabilities = type(self).capabilities | probed
 

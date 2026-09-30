@@ -1089,6 +1089,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_signmessagewithprivkey.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (sign_message_with_privkey) |
 | `feature_chain_tiebreaks.py` | [`20ae9b98eab2`](https://github.com/bitcoin/bitcoin/commit/20ae9b98eab2) | 2026-03-04 | pass, the restart's tip check run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (invalidate_block) |
 | `p2p_sendheaders.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (generate) |
+| `p2p_fingerprint.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2357,12 +2358,13 @@ submitted, `p2p_invalid_block.py` a legacy `OP_TRUE` bare coinbase and
 scriptSig distinct from `MiniWallet`'s own P2TR shape, plus merkle-root
 malleability and a `getdata`-driven send/reject cycle matched against
 `Capability.DEBUG_LOG`'s own wording. Neither mechanism is this batch's
-to build. `p2p_fingerprint.py` asks step 5 for the clock alone, and ISS 6's
-own comment has it ported citing that issue, which stays closed on its
-mechanism. `p2p_invalid_block.py` asks for more: the log for every refusal
-it checks, through `send_blocks_and_test`'s own `reject_reason`, and the
-`noban` permission Core's own `noban_tx_relay` grants, which keeps its
-peer connected through the refusals -- so it is
+to build. `p2p_fingerprint.py` asks step 5 for the clock alone, and is
+ported under
+[ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317),
+its paragraph below. `p2p_invalid_block.py` asks for more: the log for
+every refusal it checks, through `send_blocks_and_test`'s own
+`reject_reason`, and the `noban` permission Core's own `noban_tx_relay`
+grants, which keeps its peer connected through the refusals -- so it is
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
 the log family's census above.
 
@@ -3122,8 +3124,9 @@ adapter lacks, outside ISS 14's own scope: `feature_shutdown.py`,
 `rpc_preciousblock.py`, `rpc_invalidateblock.py`,
 `feature_chain_tiebreaks.py`, `p2p_sendheaders.py` and `p2p_fingerprint.py`.
 `rpc_getchaintips.py`, `rpc_preciousblock.py`, `rpc_invalidateblock.py`,
-`rpc_signmessagewithprivkey.py`, `feature_chain_tiebreaks.py` and
-`p2p_sendheaders.py` are ported, their rows in the table above.
+`rpc_signmessagewithprivkey.py`, `feature_chain_tiebreaks.py`,
+`p2p_sendheaders.py` and `p2p_fingerprint.py` are ported, their rows in the
+table above.
 
 `feature_shutdown.py` is not ported: it needs a wait the adapter lacks. Its
 node is asked to `stop` over RPC while a `waitfornewblock` call on a second
@@ -3264,6 +3267,24 @@ under its `src/` naming `generatetoaddress`
 or `invalidateblock`
 ([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480))
 at the released build or at `main`.
+
+`p2p_fingerprint.py`'s row is Core's own claim in full. A node withholds a
+block off its active chain, and its header, from a peer asking for either once
+the block is a month or more older than the node's best header. With the
+node's clock set back, the node mines a chain and a peer announces by their
+headers a longer fork built from below the tip, sending each block once the
+node asks for it. The stale tip the node leaves is served, block and header,
+while the best header is as old as it; once the clock is released and the node
+mines a block of the present, neither is. A block of the active chain as old as
+the stale one is still served. The test asks for `Capability.MINE`, then
+`CLOCK`. `tests/integration/p2p_fingerprint_test.py`'s own docstring has what
+differs from Core's file. The `bitcoind` cell is one verdict for the pinned
+release and for Core's `master`, whose copy of the file is the pin's.
+`btclib-node`'s cell is a counted skip on `MINE` on the released build, and on
+`CLOCK` on a build past
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071),
+no file under its `src/` naming `setmocktime` at the released build or at
+`main`.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

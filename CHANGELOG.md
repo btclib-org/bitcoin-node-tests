@@ -1254,3 +1254,9 @@ by their headers after it, and to fetch announced headers; btclib-node skips
 
 `TF2.md` names `feature_shutdown.py` as not ported until `NodeAdapter` can wait
 for a node that exits on its own (issue #318) (issue #317).
+
+### `p2p_fingerprint` is ported
+
+A node is checked to withhold from a peer a block off its active chain, and its
+header, once the block is a month or more older than its best header;
+btclib-node skips (issue #317).

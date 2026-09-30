@@ -818,6 +818,7 @@ _ROWS: dict[str, str] = {
     "rpc_signmessagewithprivkey": "`rpc_signmessagewithprivkey.py`",
     "feature_chain_tiebreaks": "`feature_chain_tiebreaks.py`",
     "p2p_sendheaders": "`p2p_sendheaders.py`",
+    "p2p_fingerprint": "`p2p_fingerprint.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

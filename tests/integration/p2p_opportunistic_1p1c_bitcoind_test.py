@@ -26,6 +26,8 @@ from tests.integration.p2p_opportunistic_1p1c_test import (
     an_invalid_parent_from_another_peer_leaves_the_orphan,
     an_orphan_is_taken_in_with_its_low_fee_parent,
     an_orphan_is_taken_in_with_one_parent_beside_another_in_the_mempool,
+    an_orphan_outlives_large_orphans_from_other_peers,
+    an_orphan_outlives_many_orphans_from_other_peers,
     no_rejected_parent_of_a_two_parent_orphan_is_requested,
     parent_and_child_are_evaluated_together_only_from_one_peer,
 )
@@ -109,6 +111,22 @@ def test_an_orphan_is_taken_in_with_one_parent_beside_another_in_the_mempool(
     an_orphan_is_taken_in_with_one_parent_beside_another_in_the_mempool(
         bitcoind_cluster, skip_counts
     )
+
+
+def test_an_orphan_outlives_large_orphans_from_other_peers(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: the body this module's docstring names, over bitcoind."""
+    an_orphan_outlives_large_orphans_from_other_peers(bitcoind_cluster, skip_counts)
+
+
+def test_an_orphan_outlives_many_orphans_from_other_peers(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: the body this module's docstring names, over bitcoind."""
+    an_orphan_outlives_many_orphans_from_other_peers(bitcoind_cluster, skip_counts)
 
 
 def test_no_rejected_parent_of_a_two_parent_orphan_is_requested(

@@ -1066,3 +1066,9 @@ other peers fill its orphanage; btclib-node skips (issue #44).
 A node is checked to take a parent refused for its fee into the mempool with a
 child paying for it, the pair sent by one peer, and to ask for no parent of a
 child whose parents are each refused; btclib-node skips (issue #44).
+
+### `p2p_opportunistic_1p1c` is fully ported
+
+A node is checked to take a parent and the child it keeps as an orphan in
+together while other peers send it large orphans, or many small ones;
+btclib-node skips (issue #44).

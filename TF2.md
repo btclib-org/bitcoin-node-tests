@@ -1042,6 +1042,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_opportunistic_1p1c.py` (multiple parents) | same | same | pass | skip |
 | `p2p_opportunistic_1p1c.py` (parent in mempool) | same | same | pass | skip |
 | `p2p_opportunistic_1p1c.py` (1p1c on 1p1c) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (DoS, large orphans) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (DoS, many orphans) | same | same | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3248,7 +3250,7 @@ build, the node keeping a peer Core's `master` drops
 ([ISS btclib-node#1451](https://github.com/btclib-org/btclib-node/issues/1451) and
 [ISS btclib-node#1450](https://github.com/btclib-org/btclib-node/issues/1450)).
 
-`p2p_opportunistic_1p1c.py` is ported on it in part, its rows above each
+`p2p_opportunistic_1p1c.py` is ported on it, its rows above each
 one of Core's checks as a body over a fresh node in
 `tests/integration/p2p_opportunistic_1p1c_test.py`, whose module
 docstring has what differs from Core's file. Every body asks for
@@ -3263,8 +3265,12 @@ no witness, Core's `RAW_P2PK` wallet. Each `bitcoind` cell is one
 verdict for the pinned release and for Core's `master`. `btclib-node`'s
 cell on each row is a counted skip on `ORPHANAGE`
 ([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
-Core's orphanage checks, `test_orphanage_dos_large` and
-`test_orphanage_dos_many`, are not ported yet.
+Core's node starts with `-inboundrelaypercent` besides, an option the
+pinned release refuses as unknown: the orphanage check sending many
+orphans passes Core's own value only to a bitcoind whose
+`getnetworkinfo` `version` reads at or past the first release carrying
+the option, and asserts the same without it, the module docstring having
+why.
 
 The rest of the issue's own census is its later batches.
 

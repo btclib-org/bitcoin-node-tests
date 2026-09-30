@@ -1284,3 +1284,9 @@ without one, and `send`, wait the peer's default rather than what an earlier
 The client of `tests/socks5_test.py` loops on `recv` until it has every octet it
 asked for, where `MSG_WAITALL` on a socket with a timeout returned only what
 had arrived on Linux, failing `test.yml`'s coverage job there (closes #334).
+
+### `test.yml`'s aggregate runs `check_run_jobs.py`
+
+The aggregate's step runs `check_run_jobs.py`, which reads the run's jobs
+listing again up to a deadline while a row of `changes` or `coverage` is
+unfinished (issue btclib-org/.github#1470).

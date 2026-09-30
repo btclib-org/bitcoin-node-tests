@@ -1054,3 +1054,9 @@ one per call, each of which left a socket in `TIME_WAIT` on the node's port
 The test server holds the in-flight call for twice the client's timeout rather
 than exactly as long, so a `stop` closing the connections before terminating the
 node fails the test every time instead of as a rule (closes #286).
+
+### `p2p_orphan_handling` is fully ported
+
+A node is checked to ask for a parent confirmed ahead of a block taken off its
+tip, and to keep an ancestor package of the largest size as an orphan while
+other peers fill its orphanage; btclib-node skips (issue #44).

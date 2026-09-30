@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tests.integration.p2p_orphan_handling_test import (
+    a_maximal_ancestor_package_is_protected_in_the_orphanage,
     a_parent_gone_missing_is_requested,
     a_parent_kept_as_an_orphan_is_not_requested,
     a_parent_of_the_same_txid_is_requested_again,
@@ -30,6 +31,7 @@ from tests.integration.p2p_orphan_handling_test import (
     every_announcer_is_asked_for_parents,
     parents_already_requested_are_not_requested_again,
     parents_arriving_during_the_delay_are_not_requested,
+    parents_not_recently_confirmed_are_requested,
 )
 
 if TYPE_CHECKING:
@@ -39,6 +41,16 @@ if TYPE_CHECKING:
     from bitcoin_node_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
+
+
+def test_a_maximal_ancestor_package_is_protected_in_the_orphanage(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: the body this module's docstring names, over bitcoind."""
+    a_maximal_ancestor_package_is_protected_in_the_orphanage(
+        bitcoind_cluster, skip_counts
+    )
 
 
 def test_a_parent_gone_missing_is_requested(
@@ -137,3 +149,11 @@ def test_parents_arriving_during_the_delay_are_not_requested(
 ) -> None:
     """The oracle: the body this module's docstring names, over bitcoind."""
     parents_arriving_during_the_delay_are_not_requested(bitcoind_cluster, skip_counts)
+
+
+def test_parents_not_recently_confirmed_are_requested(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: the body this module's docstring names, over bitcoind."""
+    parents_not_recently_confirmed_are_requested(bitcoind_cluster, skip_counts)

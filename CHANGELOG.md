@@ -1072,3 +1072,9 @@ child whose parents are each refused; btclib-node skips (issue #44).
 A node is checked to take a parent and the child it keeps as an orphan in
 together while other peers send it large orphans, or many small ones;
 btclib-node skips (issue #44).
+
+### `p2p_block_times` and `p2p_outbound_eviction` are ported
+
+A node is checked to record when a peer first announces a block extending its
+tip, and to drop an outbound peer that does not catch up with its tip in time
+unless it is protected; btclib-node skips (issue #44).

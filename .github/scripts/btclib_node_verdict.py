@@ -739,6 +739,19 @@ _ROWS: dict[str, str] = {
     "p2p_opportunistic_1p1c::test_an_orphan_outlives_many_orphans_from_other_peers": (
         "`p2p_opportunistic_1p1c.py` (DoS, many orphans)"
     ),
+    "p2p_block_times": "`p2p_block_times.py`",
+    "p2p_outbound_eviction::test_lagging_unprotected_peers_are_evicted": (
+        "`p2p_outbound_eviction.py` (unprotected)"
+    ),
+    "p2p_outbound_eviction::test_protected_peer_is_not_evicted": (
+        "`p2p_outbound_eviction.py` (protected)"
+    ),
+    "p2p_outbound_eviction::test_only_misbehaving_unprotected_peers_are_evicted": (
+        "`p2p_outbound_eviction.py` (mixed)"
+    ),
+    "p2p_outbound_eviction::test_block_relay_only_peer_is_not_protected": (
+        "`p2p_outbound_eviction.py` (block-relay-only)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

@@ -1044,6 +1044,11 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_opportunistic_1p1c.py` (1p1c on 1p1c) | same | same | pass | skip |
 | `p2p_opportunistic_1p1c.py` (DoS, large orphans) | same | same | pass | skip |
 | `p2p_opportunistic_1p1c.py` (DoS, many orphans) | same | same | pass | skip |
+| `p2p_block_times.py` | [`5d5397d84108`](https://github.com/bitcoin/bitcoin/commit/5d5397d84108) | 2026-07-25 | pass, `last_block_announcement` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
+| `p2p_outbound_eviction.py` (unprotected) | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip |
+| `p2p_outbound_eviction.py` (protected) | same | same | pass | skip |
+| `p2p_outbound_eviction.py` (mixed) | same | same | pass | skip |
+| `p2p_outbound_eviction.py` (block-relay-only) | same | same | pass | skip |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3271,6 +3276,30 @@ orphans passes Core's own value only to a bitcoind whose
 `getnetworkinfo` `version` reads at or past the first release carrying
 the option, and asserts the same without it, the module docstring having
 why.
+
+`p2p_block_times.py` is ported on it, its row above, in
+`tests/integration/p2p_block_times_test.py`, whose module docstring has
+what differs from Core's file. Its body has the node dial an outbound
+full-relay peer, so it asks for `TYPED_OUTBOUND`, and for `CLOCK` and
+`MINE`, for Core's own mock time and the block Core's own mines to leave
+initial block download. Its `bitcoind` cell is read per-build:
+`getpeerinfo` reports `last_block_announcement` only on a build carrying
+bitcoin/bitcoin#27052, which the pinned release does not, so the body
+reads the build's own `getnetworkinfo` `version` and asserts, on an older
+build, that the field is absent. `btclib-node`'s cell is a counted skip on
+`TYPED_OUTBOUND`
+([ISS btclib-node#1465](https://github.com/btclib-org/btclib-node/issues/1465)).
+
+`p2p_outbound_eviction.py` is ported on it too, its rows above each one
+of Core's checks as a body over a fresh node in
+`tests/integration/p2p_outbound_eviction_test.py`, whose module docstring
+has what differs from Core's file. Every body asks for `TYPED_OUTBOUND`,
+`CLOCK` and `MINE`, and for `PEER_TIMEOUT`: its node restarts with
+settings Core's own harness gives every node, a `-peertimeout` under
+which the moved clock drops no peer as inactive, and automatic
+connections off. Each `bitcoind` cell is one verdict for the pinned
+release and for Core's `master`. `btclib-node`'s cell on each row is a
+counted skip on `TYPED_OUTBOUND`.
 
 The rest of the issue's own census is its later batches.
 

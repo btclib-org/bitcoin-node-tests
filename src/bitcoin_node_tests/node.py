@@ -26,6 +26,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import weakref
 from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Sequence
@@ -214,6 +215,12 @@ def traced_transport(transport: HttpTransport) -> HttpTransport:
     return _traced
 
 
+class _ThreadEnd:
+    """Held by one thread's `threading.local` alone, freed as it ends."""
+
+    __slots__ = ("__weakref__",)
+
+
 class _ThreadSessions:
     """An `HttpTransport` keeping one `SessionTransport` per calling thread.
 
@@ -230,6 +237,19 @@ class _ThreadSessions:
     the node's own work queue. Which thread's is looked up on each call,
     not when a client is built, so a client built in one thread and
     called from another still uses the caller's.
+
+    A thread's `SessionTransport` is closed and dropped when the thread
+    ends: a `_ThreadEnd` only that thread's `threading.local` holds is
+    released then, and its finalizer is what closes it. bitcoind keeps an
+    idle connection open for its `-rpcservertimeout`, which `bitcoind.py`
+    sets past any test's length, and a build of Core's `master` accepts no
+    connection past `-rpcmaxconnections`, `DEFAULT_MAX_HTTP_CONNECTIONS`
+    (`src/httpserver.h`) by default: a connection kept for a thread that
+    no longer runs would hold one of those for the node's whole life.
+    `p2p_private_broadcast_test.py` is the test that needs this, its
+    SOCKS5 proxy calling the node from a thread of its own per proxied
+    connection
+    ([ISS 336](https://github.com/btclib-org/bitcoin-node-tests/issues/336)).
 
     `close` closes every connection each of them holds, and leaves each
     usable: the next call opens a connection afresh.
@@ -252,9 +272,17 @@ class _ThreadSessions:
         if session is None:
             session = self._factory()
             self._local.session = session
+            self._local.end = end = _ThreadEnd()
             with self._lock:
                 self._sessions.append(session)
+            weakref.finalize(end, self._retire, session)
         return session(request, timeout)
+
+    def _retire(self, session: SessionTransport) -> None:
+        """Close and drop the `SessionTransport` of a thread that ended."""
+        with self._lock:
+            self._sessions.remove(session)
+        session.close()
 
     def close(self) -> None:
         """Close every connection any thread's `SessionTransport` holds."""

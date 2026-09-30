@@ -245,12 +245,39 @@ def test_each_thread_keeps_a_connection_of_its_own(
     """One client, called from two threads, rides two connections."""
     client = adapter.rpc
     assert client.call("getblockcount") == "getblockcount"
+    called = threading.Event()
+    done = threading.Event()
+
+    def call_and_wait() -> None:
+        client.call("getblockcount")
+        called.set()
+        done.wait(_WAIT)
+
+    worker = threading.Thread(target=call_and_wait)
+    worker.start()
+    try:
+        assert called.wait(_WAIT)
+        assert (server.accepted, server.ended) == (2, 0)
+    finally:
+        done.set()
+        worker.join()
+    adapter.stop()
+    server.wait_ended(2)
+
+
+def test_a_thread_that_ends_closes_its_connection(
+    server: _Server, adapter: _HttpAdapter
+) -> None:
+    """A thread's kept connection ends with the thread, not with `stop`."""
+    client = adapter.rpc
+    assert client.call("getblockcount") == "getblockcount"
     worker = threading.Thread(target=client.call, args=("getblockcount",))
     worker.start()
     worker.join()
-    assert (server.accepted, server.ended) == (2, 0)
-    adapter.stop()
-    server.wait_ended(2)
+    server.wait_ended(1)
+    assert (server.accepted, server.ended) == (2, 1)
+    assert client.call("getblockcount") == "getblockcount"
+    assert server.accepted == 2
 
 
 def test_trace_rpc_prints_over_the_kept_connection(

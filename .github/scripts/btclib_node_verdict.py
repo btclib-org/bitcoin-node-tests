@@ -794,6 +794,7 @@ _ROWS: dict[str, str] = {
     "mempool_package_rbf": "`mempool_package_rbf.py`",
     "p2p_headers_sync_with_minchainwork": "`p2p_headers_sync_with_minchainwork.py`",
     "p2p_unrequested_blocks": "`p2p_unrequested_blocks.py`",
+    "p2p_1p1c_network": "`p2p_1p1c_network.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

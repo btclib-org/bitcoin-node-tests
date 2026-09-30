@@ -1075,6 +1075,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (package_acceptance) |
 | `p2p_headers_sync_with_minchainwork.py` | [`ff3e2e4ebdce`](https://github.com/bitcoin/bitcoin/commit/ff3e2e4ebdce) | 2026-08-19 | pass | skip (minimum_chain_work) |
 | `p2p_unrequested_blocks.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (minimum_chain_work) |
+| `p2p_1p1c_network.py` | [`95ef0fc5e781`](https://github.com/bitcoin/bitcoin/commit/95ef0fc5e781) | 2025-12-29 | pass | skip (orphanage) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2967,6 +2968,38 @@ registering no `-minimumchainwork` at the released build or at `main`
 ([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500));
 past it, neither build serves `generatetoaddress`
 ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)).
+
+`p2p_1p1c_network.py` is ISS 14's too, though
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+does not name it: the step-5 mechanism it asks for is MiniWallet, beside
+node-linking. Its row is Core's own claim in full, one body over a line of
+nodes, each dialling the one before it. A peer of each node but the first
+sends it part of Core's packages: one node the children and a parent paying
+enough, the next that parent, the last that parent and the parents paying no
+fee. Every node's mempool then holds that parent alone, and the node sent the
+children keeps them as orphans, where no other node keeps any. Once the peers
+disconnect no node keeps an orphan, and `submitpackage` takes each package on
+the first node: a parent paying no fee and a child paying for both, with a
+witness and without; a pair of parents and a child of both; and a parent paying
+no fee into a pair of outputs and a child spending each. Every node's mempool
+comes to agree with the first's, each parent paying no fee relayed with its
+child. It asks for `Capability.ORPHANAGE` first, as
+`p2p_opportunistic_1p1c.py`'s relay of a parent with its child does, then
+`PACKAGE_ACCEPTANCE`, naming `submitpackage`, then `CONNECT` and `MINE`.
+`tests/integration/p2p_1p1c_network_test.py`'s own docstring has what differs
+from Core's file. The `bitcoind` cell is one verdict for the pinned release and
+for Core's `master`, the pinned release's own copy of the file being the pin's.
+`btclib-node`'s cell is a counted skip on `ORPHANAGE` on either build,
+`getorphantxs` naming no callback in its dispatch table at the released build
+or at `main`
+([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420));
+past that, neither build serves `submitpackage`
+([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)),
+takes a parent paying too little with a child paying for it
+([ISS btclib-node#1473](https://github.com/btclib-org/btclib-node/issues/1473)),
+or registers `-whitelist`
+([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)),
+which each node restarts with, as Core's `noban_tx_relay` starts it.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

@@ -398,10 +398,13 @@ class Capability(Enum):
     holds, and refuse a start disabling it where the stored key is not
     all zeros (`feature_blocksxor.py`).
     `ORPHANAGE` -- keep a transaction a peer sent whose inputs it cannot
-    find yet, admit it to the mempool once its parent arrives, and report
-    what it keeps, with the peers that announced each, over Core's own
-    `getorphantxs` (`rpc_orphans.py`). Named for what it keeps rather
-    than for the RPC's own spelling, as `SCAN_UTXO_SET` is.
+    find yet, admit it to the mempool once its parent arrives, with that
+    parent where the parent pays too little alone and the two pay enough
+    together, Core's 1p1c (`p2p_opportunistic_1p1c.py`,
+    `p2p_1p1c_network.py`), and report what it keeps, with the peers that
+    announced each, over Core's own `getorphantxs` (`rpc_orphans.py`).
+    Named for what it keeps rather than for the RPC's own spelling, as
+    `SCAN_UTXO_SET` is.
     `BLOCK_PROPOSAL` -- check a block a client proposes on top of its own
     tip without storing it or asking for its proof-of-work, and answer
     `null` where it is valid or BIP22's reason for the first rule it

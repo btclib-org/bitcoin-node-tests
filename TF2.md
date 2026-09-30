@@ -1050,6 +1050,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_outbound_eviction.py` (mixed) | same | same | pass | skip |
 | `p2p_outbound_eviction.py` (block-relay-only) | same | same | pass | skip |
 | `p2p_tx_privacy.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_invalid_block.py` (wire) | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_invalid_block.py` (log) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1500,8 +1502,9 @@ deprecation warning, is a step of Core's `master` alone, run after its
 node restarts with `-txindex` and the other indexes; the file's other
 `logging` checks read the RPC's own answer and no log.
 `feature_assumeutxo.py` stays behind the disqualifier the node-linking
-section below names. `feature_reindex.py`, `feature_reindex_readonly.py`
-and `p2p_compactblocks.py` are ported, their rows in the table above.
+section below names. `feature_reindex.py`, `feature_reindex_readonly.py`,
+`p2p_compactblocks.py` and `p2p_invalid_block.py` are ported, their rows
+in the table above.
 
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
@@ -2333,6 +2336,21 @@ it checks, through `send_blocks_and_test`'s own `reject_reason`, and the
 peer connected through the refusals -- so it is
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
 the log family's census above.
+
+`p2p_invalid_block.py` is ported, its rows above each Core's whole run
+as a body over a fresh node in
+`tests/integration/p2p_invalid_block_test.py`, whose module docstring has
+what differs from Core's file. The (wire) row reads each block's
+acceptance or refusal off `getbestblockhash`, and the (log) row asserts
+besides each refusal's own reject reason in the node's log, over
+`DEBUG_LOG`. Both ask for `MINE`, the node mining the blocks that mature
+the coinbase the run spends, and `CLOCK`, for the block ahead of the
+node's clock; the node restarts with the `noban` permission, which asks
+for no capability. Each `bitcoind` cell is one verdict for the pinned
+release and for Core's `master`. `btclib-node`'s cell on each row is a
+counted skip on `MINE` on the released build, and on `CLOCK`, which no
+build declares, on a build past
+[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071).
 
 `p2p_timeouts.py`, `p2p_ping.py` and `mempool_expiry.py` are
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,

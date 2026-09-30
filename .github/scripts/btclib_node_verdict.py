@@ -753,6 +753,12 @@ _ROWS: dict[str, str] = {
         "`p2p_outbound_eviction.py` (block-relay-only)"
     ),
     "p2p_tx_privacy": "`p2p_tx_privacy.py`",
+    "p2p_invalid_block::test_invalid_blocks_are_refused": (
+        "`p2p_invalid_block.py` (wire)"
+    ),
+    "p2p_invalid_block::test_invalid_blocks_are_logged": (
+        "`p2p_invalid_block.py` (log)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

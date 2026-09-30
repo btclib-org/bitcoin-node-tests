@@ -1220,3 +1220,9 @@ malformed or with a non-string `wallet`, and set aside by `-nosettings` or
 `getchaintips` is checked to report the active tip, a `valid-fork` once a split
 network rejoins, and a `headers-only` chain turning `invalid`; btclib-node skips
 (issue #317).
+
+### `rpc_preciousblock` is ported
+
+`preciousblock` is checked to switch a node between tips of equal work and back,
+and to leave it on a longer one; `Capability.PRECIOUS_BLOCK` is new; btclib-node
+skips (issue #317).

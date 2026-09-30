@@ -1068,6 +1068,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (permit_bare_multisig) |
 | `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass | skip (limit_cluster_size) |
 | `feature_minchainwork.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (minimum_chain_work) |
+| `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass | skip (limit_cluster_count) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2812,6 +2813,42 @@ counted skip on `MINIMUM_CHAIN_WORK` on every build, `cli.py`
 registering no `-minimumchainwork` at the released build or at `main`,
 the floor being the chain's own `minimum_chain_work`
 ([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)).
+
+`mempool_packages.py` is ISS 14's too, though
+[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
+does not name it: the step-5 mechanisms it asks for are MiniWallet and
+the `-limitclustercount` option together, beside node-linking. Its row
+is Core's own claim in full, one body over a pair of nodes, the second
+under Core's own smaller `-limitclustercount`, on a chain mined to the
+height Core's framework caches. A chain of transactions spending one
+coin is checked transaction by transaction, once each has been announced
+to a peer: `getrawmempool` and `getmempoolentry` agree on the count, size
+and fees of its ancestors and of its descendants, and on the transaction
+it spends and the one spending it; `gettxspendingprevout` names it as the
+spender of each of its inputs; and `getmempoolancestors` and
+`getmempooldescendants`, bare and verbose, list the rest of the chain.
+`prioritisetransaction`'s delta is in the ancestor or descendant fees of
+every relative, and in a mined transaction's modified fee once
+`invalidateblock` returns it to the mempool. The second node holds the
+parent of a family the first node holds whole, each entry it holds
+within its own count and agreeing with the first node's. A longer fork
+returns a block's transactions to the mempool in the order they had
+before. The row asks for `Capability.LIMIT_CLUSTER_COUNT`, then
+`MEMPOOL_GRAPH` (`capability.py`), naming `getmempoolancestors`,
+`getmempooldescendants` and `gettxspendingprevout`, then
+`INVALIDATE_BLOCK`, `CONNECT` and `MINE`.
+`tests/integration/mempool_packages_test.py`'s own docstring has what
+differs from Core's file. The `bitcoind` cell is one verdict for the
+pinned release and for Core's `master`. `btclib-node`'s cell is a
+counted skip on `LIMIT_CLUSTER_COUNT` on either build, its `cli.py`
+registering no `-limitclustercount` at the released build or at `main`,
+and its mempool bounding no cluster
+([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383));
+past that, neither build serves `getmempoolancestors`,
+`getmempooldescendants` or `gettxspendingprevout`
+([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501)),
+nor `prioritisetransaction`
+([ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

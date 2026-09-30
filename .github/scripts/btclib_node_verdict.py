@@ -789,6 +789,7 @@ _ROWS: dict[str, str] = {
     "mempool_accept": "`mempool_accept.py`",
     "mempool_cluster": "`mempool_cluster.py`",
     "feature_minchainwork": "`feature_minchainwork.py`",
+    "mempool_packages": "`mempool_packages.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

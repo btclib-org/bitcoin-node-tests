@@ -354,6 +354,11 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.MINIMUM_CHAIN_WORK` is unconditional too:
     `-minimumchainwork` is this binary's own debug-only flag
     (`src/init.cpp`).
+    `Capability.MEMPOOL_GRAPH` is unconditional too:
+    `getmempoolancestors`, `getmempooldescendants` and
+    `gettxspendingprevout` are this binary's own RPCs
+    (`src/rpc/mempool.cpp`), the last reading the mempool where no
+    `-txospenderindex` is given.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -430,6 +435,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.MIN_RELAY_TX_FEE,
             Capability.CLUSTER_LINEARIZATION,
             Capability.MINIMUM_CHAIN_WORK,
+            Capability.MEMPOOL_GRAPH,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

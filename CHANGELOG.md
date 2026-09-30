@@ -1155,3 +1155,9 @@ and `Capability.CLUSTER_LINEARIZATION` is new (issue #14).
 A node under `-minimumchainwork` is checked to relay no block, and to answer
 `getheaders` with no header, until its chain has the work the option names;
 btclib-node skips, and `Capability.MINIMUM_CHAIN_WORK` is new (issue #14).
+
+### `mempool_packages` is ported
+
+A mempool transaction's ancestors and descendants, and the transaction spending
+each output, are checked, a prioritisation and a reorg included; btclib-node
+skips, and `Capability.MEMPOOL_GRAPH` is new (issue #14).

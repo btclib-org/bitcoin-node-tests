@@ -26,10 +26,10 @@ future-witness-version output of its own, its null data row, whose threshold is
 zero and so sits on neither side of a boundary, and its full sweep of
 `-dustrelayfee` values, none of which exercises a mechanism the coarser boundary
 below does not already cover. Its ephemeral-dust two-transaction scenario is
-deferred rather than covered: ephemeral dust is its own acceptance rule
+dropped: ephemeral dust is its own acceptance rule
 (`CheckEphemeralSpends`, `src/policy/ephemeral_policy.cpp`), exempting a dust
 output its package spends, and the subject of Core's own
-`mempool_ephemeral_dust.py` (`mempool_ephemeral_dust_test.py`).
+`mempool_ephemeral_dust.py`.
 
 The public key every script below pays is secp256k1's own generator
 point: none of these outputs is ever spent, only measured for its own

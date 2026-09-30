@@ -281,6 +281,12 @@ out by decision, the node taking the same blocks over p2p
 measured at the released `2026.9.24` (`422d2640`) and at `main`
 (`ecb9b190`) alike
 ([ISS btclib-node#1257](https://github.com/btclib-org/btclib-node/issues/1257)).
+
+`Capability.MAX_TIP_AGE` is never declared either: `cli.py` registers
+no `-maxtipage`, the age being `constants.py`'s own `MAX_TIP_AGE` of a
+day, measured at the released `2026.9.24` (`422d2640`) and at `main`
+(`9ae620c2`) alike
+([ISS btclib-node#1474](https://github.com/btclib-org/btclib-node/issues/1474)).
 """
 
 from __future__ import annotations

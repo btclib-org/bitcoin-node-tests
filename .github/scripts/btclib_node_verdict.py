@@ -759,6 +759,7 @@ _ROWS: dict[str, str] = {
     "p2p_invalid_block::test_invalid_blocks_are_logged": (
         "`p2p_invalid_block.py` (log)"
     ),
+    "feature_maxtipage": "`feature_maxtipage.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

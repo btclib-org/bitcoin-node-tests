@@ -458,6 +458,9 @@ class Capability(Enum):
     is given, a bind naming no port taking `-port`'s, or the port after
     it where the bind is an onion one; and refusing to start on a
     `-port` outside 1 to 65535 (`feature_port.py`).
+    `MAX_TIP_AGE` -- recognise `-maxtipage`, Core's own bound, in seconds,
+    on how old its tip may be, by its own clock, for the node to leave
+    initial block download (`feature_maxtipage.py`).
     """
 
     MINE = "mine"
@@ -521,6 +524,7 @@ class Capability(Enum):
     DUMP_UTXO_SET = "dump_utxo_set"
     LOAD_BLOCK = "load_block"
     LISTEN_ADDRESS = "listen_address"
+    MAX_TIP_AGE = "max_tip_age"
 
 
 class SkipCounts:

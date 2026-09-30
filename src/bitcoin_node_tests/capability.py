@@ -318,7 +318,11 @@ class Capability(Enum):
     `INVALIDATE_BLOCK` -- mark a block invalid on request, and go back to
     the best chain not holding it, Core's own `invalidateblock`
     (`feature_csv_activation.py`, which takes each accepted block back
-    off). Named for the RPC, as `BLOCK_STATS` is.
+    off); and take that mark off a block, its ancestors and its
+    descendants on request, going back to the best chain again, Core's
+    own `reconsiderblock` (`rpc_invalidateblock.py`). Named for the
+    first RPC, as `BLOCK_STATS` is, and one member for the pair, as
+    `SIGN_RAW_TRANSACTION` is.
     `REINDEX_AFTER_FAILURE` -- refuse to start over a block index missing
     from `blocks/index`, advising a reindex, and reindex from its block
     files instead on a start given Core's own debug-only

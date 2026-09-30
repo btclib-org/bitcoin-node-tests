@@ -1226,3 +1226,9 @@ network rejoins, and a `headers-only` chain turning `invalid`; btclib-node skips
 `preciousblock` is checked to switch a node between tips of equal work and back,
 and to leave it on a longer one; `Capability.PRECIOUS_BLOCK` is new; btclib-node
 skips (issue #317).
+
+### `rpc_invalidateblock` is ported
+
+`invalidateblock` and `reconsiderblock` are checked to move a node off a chain
+and back, ancestors and descendants included; `Capability.INVALIDATE_BLOCK`
+names both; btclib-node skips (issue #317).

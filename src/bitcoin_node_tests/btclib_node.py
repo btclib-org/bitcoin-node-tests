@@ -168,10 +168,12 @@ in `src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at
 the released `2026.9.24` (`422d2640`) and at `main` (`4e155386`) alike
 ([ISS btclib-node#1400](https://github.com/btclib-org/btclib-node/issues/1400)).
 
-`Capability.INVALIDATE_BLOCK` is never declared either: `invalidateblock`
-names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
-table, measured at the released `2026.9.24` and at `main` (`4e155386`)
-alike.
+`Capability.INVALIDATE_BLOCK` is never declared either: neither
+`invalidateblock` nor `reconsiderblock` names a callback in
+`src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at the
+released `2026.9.24` (`422d2640`) and at `main` (`59618462`) alike
+([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480),
+[ISS btclib-node#1536](https://github.com/btclib-org/btclib-node/issues/1536)).
 
 `Capability.GENERATE` and `Capability.SCAN_UTXO_SET` are never declared
 either: none of `generatetoaddress`, `generateblock`, `help` and

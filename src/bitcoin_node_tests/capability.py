@@ -230,8 +230,7 @@ class Capability(Enum):
     mempool cluster may hold
     ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
     own `mempool_package_limits.py`). Checked apart from
-    `LIMIT_CLUSTER_SIZE`: a test can ask for either alone, and each
-    ported file so far does.
+    `LIMIT_CLUSTER_SIZE`: a test can ask for either alone.
     `LIMIT_CLUSTER_SIZE` -- recognise `-limitclustersize`, Core's own cap
     on one cluster's own total virtual size
     (`mempool_updatefromblock.py`).
@@ -475,6 +474,12 @@ class Capability(Enum):
     `MIN_RELAY_TX_FEE` -- recognise `-minrelaytxfee`, Core's own rate, in
     BTC/kvB, under which a fee counts as zero for relay, and the floor of
     every `feefilter` the node sends a peer (`p2p_ibd_txrelay.py`).
+    `CLUSTER_LINEARIZATION` -- keep its mempool grouped into clusters, the
+    transactions its spends connect, each ordered into chunks of falling
+    fee rate, and report them: Core's own `getmempoolcluster`, its hidden
+    `getmempoolfeeratediagram` and `getmempoolinfo`'s own `optimal`
+    (`mempool_cluster.py`). Named for what it keeps rather than for an
+    RPC's own spelling, as `ORPHANAGE` is.
     """
 
     MINE = "mine"
@@ -542,6 +547,7 @@ class Capability(Enum):
     PEER_BLOCK_FILTERS = "peer_block_filters"
     RPC_INFO = "rpc_info"
     MIN_RELAY_TX_FEE = "min_relay_tx_fee"
+    CLUSTER_LINEARIZATION = "cluster_linearization"
 
 
 class SkipCounts:

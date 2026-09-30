@@ -1066,6 +1066,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_ibd_txrelay.py` (log) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (mine) on the build; skip (test_activation_height) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (permit_bare_multisig) |
+| `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass | skip (limit_cluster_size) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -2114,17 +2115,18 @@ child the mempool holds and the one sharing its txid, where bitcoind
 refuses each
 ([ISS btclib-node#1422](https://github.com/btclib-org/btclib-node/issues/1422)).
 
-`mempool_cluster.py` and `rpc_packages.py` also drive MiniWallet alone at
-first read, but each also restarts its node with an option --
-`-limitclustersize`/`-limitclustercount` and
-`-maxmempool`/`-persistmempool` in turn -- that `btclib-node`'s own
-`cli.py` does not register, so the option family's own exclusion reaches
-them too: ISS 14's, same as the wallet, log, disk and clock files below.
-`rpc_packages.py` alone also calls `test_framework.mempool_util.fill_mempool`,
-now built as `mempool_util.fill_mempool`
+`rpc_packages.py` also drives MiniWallet alone at first read, but it
+also restarts its node with options -- `-maxmempool` and
+`-persistmempool` -- that `btclib-node`'s own `cli.py` does not
+register, so the option family's own exclusion reaches it too: ISS 14's,
+same as the wallet, log, disk and clock files below. It also calls
+`test_framework.mempool_util.fill_mempool`, now built as
+`mempool_util.fill_mempool`
 ([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
-`mempool_sigoplimit.py`, named alongside them for the same reason, is
-ported below, its own paragraph naming what of it is kept.
+`mempool_cluster.py`, which restarts its node under `-limitclustersize`
+and `-limitclustercount` in turn, and `mempool_sigoplimit.py`, named
+alongside it for the same reason, are ported, each row's own paragraph
+naming what of it is kept.
 
 `p2p_tx_privacy.py` asks for MiniWallet alone too, and is ported, its
 own row above: a second p2p connection holds its handshake open while
@@ -2761,6 +2763,33 @@ released build or at `main`
 Past it, the file's standardness refusals are the rules
 [ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382)
 is about.
+
+`mempool_cluster.py` is ISS 14's too, MiniWallet and both cluster
+options together, and its row is Core's own claim in full, one body over
+one node restarted under each of Core's own `-limitclustersize` values
+and then each of its `-limitclustercount` values. `getmempoolcluster`
+refuses a transaction the mempool does not hold, and reports a cluster's
+weight, its transaction count and its chunks, a child paying more than
+its parent sharing its chunk, as a prioritised one does, and one paying
+less taking a chunk of its own; a transaction, a replacement and a
+merger that would take a cluster past either limit, and a package past
+the count, are refused `too-large-cluster`, where a replacement keeping
+the cluster's count or size and a spend of each cluster apart are
+taken; and a merger or a package that replaces transactions forms a
+cluster without them. The row asks for
+`Capability.LIMIT_CLUSTER_SIZE`, `LIMIT_CLUSTER_COUNT` and
+`CLUSTER_LINEARIZATION` (`capability.py`), the last naming
+`getmempoolcluster`, `getmempoolfeeratediagram` and `getmempoolinfo`'s
+own `optimal`, ahead of `MINE`.
+`tests/integration/mempool_cluster_test.py`'s own docstring has what
+differs from Core's file. The `bitcoind` cell is one verdict for the
+pinned release and for Core's `master`. `btclib-node`'s cell is a
+counted skip on `LIMIT_CLUSTER_SIZE` on either build, its `cli.py`
+registering no `-limitclustersize` at the released build or at `main`,
+and its mempool bounding no cluster
+([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383));
+past that, neither build serves `getmempoolcluster`
+([ISS btclib-node#1499](https://github.com/btclib-org/btclib-node/issues/1499)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

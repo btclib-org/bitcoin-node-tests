@@ -787,6 +787,7 @@ _ROWS: dict[str, str] = {
     "p2p_ibd_txrelay::test_ibd_tx_relay_is_logged": "`p2p_ibd_txrelay.py` (log)",
     "feature_bip68_sequence": "`feature_bip68_sequence.py`",
     "mempool_accept": "`mempool_accept.py`",
+    "mempool_cluster": "`mempool_cluster.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

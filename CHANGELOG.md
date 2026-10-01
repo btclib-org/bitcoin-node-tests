@@ -1418,3 +1418,9 @@ that branch on them assert the older limits there (issue #354).
 Core's `feature_config_args` is checked for `-proxy` given no value, `-connect`
 beside a proxy, and `-privatebroadcast` without a proxy; btclib-node skips. A
 build's own wording of the `-proxyrandomize` warning is asserted (issue #47).
+
+### A `Signed-off-by:` trailer on every commit of a pull request
+
+- **`CONTRIBUTING.md`'s shared half asks every commit for the trailer, which
+  `reusable-lint.yml`'s `Sign-off` job checks** (issue
+  btclib-org/.github#1467).

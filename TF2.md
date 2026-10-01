@@ -1095,6 +1095,12 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_rbf.py` | [`1a85ca1dff1f`](https://github.com/bitcoin/bitcoin/commit/1a85ca1dff1f) | 2026-04-24 | pass, the replacement rules' wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (incremental_relay_fee) |
 | `p2p_permissions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (peer_permissions) |
 | `p2p_private_broadcast_retry_v1.py` | [`4e8c4bc794c0`](https://github.com/bitcoin/bitcoin/commit/4e8c4bc794c0) | 2026-08-04 | pass | skip (private_broadcast) |
+| `rpc_net.py` (`addnode`) | [`71c30b608382`](https://github.com/bitcoin/bitcoin/commit/71c30b608382) | 2026-09-22 | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
+| `rpc_net.py` (service flags) | same | same | pass | skip (proxy) |
+| `rpc_net.py` (`getnodeaddresses`) | same | same | pass | skip (proxy) |
+| `rpc_net.py` (`addpeeraddress`) | same | same | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (known_addresses) |
+| `rpc_net.py` (`getaddrmaninfo`) | same | same | pass | skip (cjdns) |
+| `rpc_net.py` (`getrawaddrman`) | same | same | pass | skip (cjdns) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1536,7 +1542,7 @@ of `p2p_addrv2_relay.py`, the rest of `p2p_bip434_feature.py`,
 `p2p_permissions.py`,
 `p2p_segwit.py`,
 `p2p_unrequested_blocks.py`, `p2p_v2_misbehaving.py`,
-`p2p_v2_transport.py`, `rpc_misc.py` and `rpc_net.py`. Of these,
+`p2p_v2_transport.py`, `rpc_misc.py` and the rest of `rpc_net.py`. Of these,
 `p2p_addr_relay.py` and `p2p_compactblocks.py` also dial out of the node
 under test in some step,
 [ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
@@ -1575,8 +1581,9 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_mutated_blocks.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`,
 `p2p_dns_seeds.py`, `feature_anchors.py`,
 `p2p_addr_selfannouncement.py`, `p2p_seednode.py`, `p2p_ibd_stalling.py`,
-`p2p_private_broadcast.py`, `p2p_tx_download.py`, `p2p_blocksonly.py` and
-`p2p_orphan_handling.py`.
+`p2p_private_broadcast.py`, `p2p_tx_download.py`, `p2p_blocksonly.py`,
+`p2p_orphan_handling.py` and `rpc_net.py` but for the steps that connect
+its nodes.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -4348,10 +4355,23 @@ build's `-help` lists `-privatebroadcast` (`bitcoind.py`'s own
 `_has_private_broadcast`), so the private broadcast files are a counted
 skip on a release whose `-help` lists none. `btclib-node`'s cell is a
 counted skip on `Capability.PRIVATE_BROADCAST`.
+`rpc_net.py`'s steps that need one node (`addnode`, a peer's service names,
+`getnodeaddresses`, `addpeeraddress`, `getaddrmaninfo` and `getrawaddrman`) are
+ported in `tests/integration/rpc_net_test.py`, each its own row. Its module
+docstring has what differs from Core's file. Core gives its nodes a `-proxy`
+nothing listens at, so that no step dials a public address; no step reads what
+the node asks of it, so no proxy runs, and a step given the argument asks for
+`Capability.PROXY`. The steps Core restarts with `-cjdnsreachable` ask for
+`Capability.CJDNS`. A blank `addnode` address is refused only past the pinned
+release, and a blank `addpeeraddress` address from `v31.0rc1` on. The body asks
+the build a call that changes nothing and asserts that build's own answer. The
+steps that connect Core's nodes are
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s.
+`btclib-node`'s cells are a counted skip on each row's own capability.
 The rest of
 [ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47) is
-the proxy steps of `feature_config_args.py` and `rpc_net.py`, which
-ISS 14's list above holds for their log steps.
+the proxy steps of `feature_config_args.py`, which ISS 14's list above
+holds for its log steps.
 
 ## The node wallet: `Capability.NODE_WALLET`
 

@@ -2567,8 +2567,8 @@ last port given and on the loopback address at the port after it, a
 `-port`'s, an onion bind naming none takes the port after it, and a
 `-port` out of range stops the start with Core's own error.
 `BitcoindAdapter` passes a `-bind` of its own, so the bitcoind test
-builds a subclass leaving it out, as Core's own test keeps its
-framework's off.
+runs on `UnboundBitcoindAdapter` (`tests/integration/bitcoind_adapters_test.py`),
+which leaves it out, as Core's own test keeps its framework's off.
 `tests/integration/feature_port_test.py`'s own docstring has what else
 differs from Core's file. The `btclib-node` cell is a counted skip on
 `Capability.LISTEN_ADDRESS`: `cli.py` registers no `-bind` on either
@@ -2625,8 +2625,9 @@ it, its address table filled over `addpeeraddress`, answers every
 while its clock moves by minutes, through each bind a different answer,
 and through each a new answer once the clock has moved past the cache's
 lifetime. `BitcoindAdapter` passes a `-bind` of its own, so the bitcoind
-test builds a subclass leaving it out, as `feature_port.py`'s own
-bitcoind test does, and names the loopback bind beside the onion ones.
+test runs on `UnboundBitcoindAdapter`, which leaves it out, as
+`feature_port.py`'s own bitcoind test does. The test names the loopback
+bind beside the onion ones.
 `tests/integration/p2p_getaddr_caching_test.py`'s own docstring has what
 else differs from Core's file. The `btclib-node` cell is a counted skip
 on `Capability.LISTEN_ADDRESS`, and the test asks for

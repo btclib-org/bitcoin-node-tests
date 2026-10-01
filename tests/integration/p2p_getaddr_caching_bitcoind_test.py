@@ -13,11 +13,11 @@ against bitcoind, which declares every capability it asks for.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from tests.integration.bitcoind_adapters_test import UnboundBitcoindAdapter
 from tests.integration.p2p_getaddr_caching_test import (
     getaddr_answers_are_cached_per_bind,
 )
@@ -31,22 +31,6 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.integration
 
 
-class _UnboundBitcoindAdapter(BitcoindAdapter):
-    """`BitcoindAdapter` without the `-bind` its `_command` names.
-
-    Core's node listens on the onion binds its test names beside its
-    framework's loopback one. An `extra_args` entry cannot add a
-    `-bind` beside the adapter's own, `NodeAdapter` refusing one naming an
-    option `_command()` already sets, so the entry is left out where it is
-    set.
-    """
-
-    @override
-    def _command(self) -> list[str]:
-        """Return the base command without its `-bind`."""
-        return [arg for arg in super()._command() if not arg.startswith("-bind=")]
-
-
 def test_getaddr_answers_are_cached_per_bind(
     make_adapter: AdapterFactory,
     bitcoind_path: str,
@@ -55,5 +39,5 @@ def test_getaddr_answers_are_cached_per_bind(
 ) -> None:
     """The oracle: one cached `getaddr` answer per bind, over bitcoind."""
     getaddr_answers_are_cached_per_bind(
-        make_adapter, _UnboundBitcoindAdapter, bitcoind_path, tmp_path, skip_counts
+        make_adapter, UnboundBitcoindAdapter, bitcoind_path, tmp_path, skip_counts
     )

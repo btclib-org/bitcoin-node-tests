@@ -502,9 +502,7 @@ class Capability(Enum):
     one's own entry, Core's own `getmempoolancestors` and
     `getmempooldescendants`, and the mempool transaction spending a given
     output, its `gettxspendingprevout` with no index behind it
-    (`mempool_packages.py`), and the count and size of each entry's own
-    ancestors and descendants in `getmempoolentry`
-    (`mempool_updatefromblock.py`). Named for what it walks rather than for an
+    (`mempool_packages.py`). Named for what it walks rather than for an
     RPC's own spelling, as `SCAN_UTXO_SET` is.
     `ALERT_NOTIFY` -- run a shell command a caller names whenever it
     raises an alert, the alert's message in place of the command's `%s`,

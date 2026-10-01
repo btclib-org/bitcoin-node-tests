@@ -50,7 +50,7 @@ descendants, as Core's file of that build does: the chain and the family
 are the default 25, the second node is started with
 `-limitancestorcount=5` and `-limitdescendantcount=10`, it holds the
 first 5 of the chain and then the parent with the first 10 of the family,
-and a transaction one past the family is refused as
+and a transaction one past the chain or the family is refused as
 `too-long-mempool-chain`.
 
 What differs from Core's file:
@@ -406,6 +406,15 @@ def _assert_second_node_agrees(
         assert entry1["depends"] == entry0["depends"]
 
 
+def _check_chain_limit(node: NodeAdapter, wallet: MiniWallet, chain: Sequence[Tx]) -> None:
+    """Core's refusal of one more transaction on a full chain, pre-cluster."""
+    one_more = wallet.create_self_transfer(
+        utxo_to_spend=wallet.new_utxos(chain[-1])[0]
+    )
+    with pytest.raises(RpcError, match="too-long-mempool-chain"):
+        node.rpc.call("sendrawtransaction", [_hex(one_more)])
+
+
 def _check_ancestor_limit(nodes: Sequence[NodeAdapter], chain: Sequence[str]) -> None:
     """Core's check of the second node under its ancestor limit, pre-cluster."""
     node0, node1 = nodes
@@ -596,6 +605,8 @@ def mempool_tracks_ancestors_and_descendants(
         _wait_for_broadcast(peer_inv_store, {tx.hash for tx in chain})
 
         _check_chain(node0, chain, fees)
+        if not clustered:
+            _check_chain_limit(node0, wallet, chain)
         chain_ids = [tx.id.hex() for tx in chain]
         _check_prioritisation(nodes, wallet, chain_ids)
         if not clustered:

@@ -185,7 +185,7 @@ def _has_private_broadcast(executable: str) -> bool:
 def _has_cluster_mempool(executable: str) -> bool:
     """Return whether `executable` runs the cluster mempool.
 
-    The cluster mempool arrives in `v31.0`, with `-limitclustercount`,
+    The cluster mempool arrives in `v31.0` (bitcoin/bitcoin#33629), with `-limitclustercount`,
     `-limitclustersize` and `getmempoolcluster`. The two options are
     debug-only, so `-help-debug` lists them and `-help` does not; an older
     build lists neither. Probed off the binary as `_has_wallet` is, with

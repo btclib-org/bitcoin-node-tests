@@ -214,7 +214,7 @@ def test_has_private_broadcast_is_false_where_help_lists_no_option() -> None:
 def test_capabilities_drop_the_cluster_ones_where_help_lists_no_cluster_option(
     tmp_path: Path,
 ) -> None:
-    """A build with no cluster mempool loses the three that rest on it alone."""
+    """A build with no cluster mempool loses the capabilities that rest on it."""
     with (
         patch.object(bitcoind_module, "_has_wallet", return_value=True),
         patch.object(bitcoind_module, "_has_cluster_mempool", return_value=False),

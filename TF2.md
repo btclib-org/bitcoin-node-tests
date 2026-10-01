@@ -2859,7 +2859,7 @@ no such option, and the body there is Core's own file of that build in
 the limits alone: the chain and the family are as long as the default
 ancestor and descendant limits, the second node is under smaller
 `-limitancestorcount` and `-limitdescendantcount`, and a transaction
-past the family is refused `too-long-mempool-chain`. A chain of
+past the chain or the family is refused `too-long-mempool-chain`. A chain of
 transactions spending one coin is checked transaction by transaction,
 once each has been announced to a peer: `getrawmempool` and
 `getmempoolentry` agree on the count, size
@@ -3716,10 +3716,14 @@ at the default ancestor limit, refused `too-long-mempool-chain`.
 
 `mempool_package_limits.py`'s `btclib-node` cells are a counted skip on
 `Capability.PACKAGE_ACCEPTANCE`, ahead of `Capability.MINE`.
-`mempool_updatefromblock.py`'s are a counted skip on
-`Capability.MEMPOOL_GRAPH` for the tournament, and on
-`Capability.GENERATE`, for its own `generateblock`, for the chain-length
-case, each ahead of `Capability.MINE`.
+`mempool_updatefromblock.py`'s chain-length case is a counted skip on
+`Capability.GENERATE`, for its own `generateblock`, ahead of
+`Capability.MINE`. Its tournament asks for `Capability.MINE` alone, and
+its `btclib-node` verdict is a prediction, read from btclib-node at
+`b62eef6f`: `getmempoolentry` answers the ancestor and descendant counts
+and sizes the tournament reads (`get_mempool_entry` in
+`rpc/callbacks.py`), so the row's cell stays a skip, the chain's. CI's
+`btclib-node` job measures it.
 
 `p2p_leak_tx.py`'s own rows are the clock and MiniWallet families
 together, each subject its own pytest function over `Peer` and

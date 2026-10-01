@@ -116,7 +116,7 @@ def in_package_ancestors_count_toward_the_mempool_ancestor_limit(
     cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
-    """Check 24 in-mempool ancestors and a 2-tx package exceed cluster count 25.
+    """Check 24 in-mempool ancestors and a 2-tx package exceed the limit of 25.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.

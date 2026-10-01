@@ -2933,7 +2933,7 @@ replacement,
 
 `p2p_headers_sync_with_minchainwork.py` is ISS 14's too, an option, the
 log and the clock beside node-linking, its test taking its nodes from the
-cluster fixture. Its row is Core's own claim but for its last step: every
+cluster fixture. Its row is Core's own claim in full: every
 node is restarted under Core's own options, each but the first under a
 `-minimumchainwork` floor and the last also giving the first `noban`, and
 the first node dials each of the others. While the chain the first node
@@ -2945,17 +2945,18 @@ once the chain has the work its floor names. The first and the second
 node, disconnected, each mine a chain of their own past the next locator
 entry, and once reconnected, their clocks held, every node syncs. A
 peer's headers forking from genesis, with less work than the chain, are
-reported by `getpeerinfo` as presynced. It asks for
-`Capability.MINIMUM_CHAIN_WORK` first, then `GENERATE`, `DEBUG_LOG`,
-`CLOCK`, `CONNECT` and `DISCONNECT`.
+reported by `getpeerinfo` as presynced. With the first node's clock set
+more than `MAX_FUTURE_BLOCK_TIME` behind the genesis block's median
+time, the same headers from a new peer make it abort and say why on
+stderr, which `NodeAdapter.wait_until_stopped` reads
+([ISS 318](https://github.com/btclib-org/bitcoin-node-tests/issues/318)).
+It asks for `Capability.MINIMUM_CHAIN_WORK` first, then `GENERATE`,
+`DEBUG_LOG`, `CLOCK`, `CONNECT` and `DISCONNECT`.
 `tests/integration/p2p_headers_sync_with_minchainwork_test.py`'s own
-docstring has what differs from Core's file. The step not ported is a
-lagging clock aborting the presync, which the pinned release's own copy
-of the file does not carry and Core's `master` does: it waits for the
-node's process to exit on its own and reads the exit code and stderr it
-exits with (`TestNode.wait_until_stopped`), a wait `NodeAdapter` does not
-have. The `bitcoind` cell is one verdict for the pinned release and for
-Core's `master`. `btclib-node`'s cell is a counted skip on
+docstring has what differs from Core's file. The abort is a step of
+Core's `master` alone: the pinned release keeps presyncing instead, and
+the test checks that there. The `bitcoind` cell is one verdict for the
+pinned release and for Core's `master`. `btclib-node`'s cell is a counted skip on
 `MINIMUM_CHAIN_WORK` on every build, `cli.py` registering no
 `-minimumchainwork` at the released build or at `main`
 ([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500));
@@ -3209,16 +3210,16 @@ adapter lacks, outside ISS 14's own scope: `feature_shutdown.py`,
 `p2p_sendheaders.py`, `p2p_fingerprint.py` and `rpc_estimatefee.py` are
 ported, their rows in the table above.
 
-`feature_shutdown.py` is not ported: it needs a wait the adapter lacks. Its
-node is asked to `stop` over RPC while a `waitfornewblock` call on a second
-connection is still pending, and `TestNode.stop_node` then waits for the
-process to exit on its own, with a success exit code and nothing on stderr
-(`TestNode.wait_until_stopped`, `test_framework/test_node.py`). That exit is
-the file's subject, and `NodeAdapter` has no wait for it
-([ISS 318](https://github.com/btclib-org/bitcoin-node-tests/issues/318)):
-`NodeAdapter.stop` sends the process `SIGTERM`, which ends a node the RPC left
-running, so a port ending in it cannot tell the RPC's shutdown from the
-signal's.
+`feature_shutdown.py` is not ported. Its node is asked to `stop` over RPC
+while a `waitfornewblock` call on a second connection is still pending, and
+`TestNode.stop_node` then waits for the process to exit on its own, with a
+success exit code and nothing on stderr (`TestNode.wait_until_stopped`,
+`test_framework/test_node.py`). That exit is the file's subject, and
+`NodeAdapter.wait_until_stopped` is the wait that reads it
+([ISS 318](https://github.com/btclib-org/bitcoin-node-tests/issues/318)).
+`NodeAdapter.stop` would not do: it sends the process `SIGTERM`, which ends a
+node the RPC left running, so a port ending in it cannot tell the RPC's
+shutdown from the signal's.
 
 `rpc_getchaintips.py`'s row is Core's own claim in full. Nodes are linked in a
 line, as Core's `setup_network` links them, and the first reports its active tip

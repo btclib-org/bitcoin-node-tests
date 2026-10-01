@@ -22,7 +22,10 @@ under it syncs. The first and the second node, disconnected
 locator entry, and once reconnected, their clocks held
 (`Capability.CLOCK`), every node syncs. A peer sending the first node
 headers forking from genesis, with less work than its chain, is
-reported by `getpeerinfo` with every one of them presynced.
+reported by `getpeerinfo` with every one of them presynced. With the
+first node's clock set more than `MAX_FUTURE_BLOCK_TIME` behind the
+genesis block's median time, the same headers from a new peer make it
+abort and say why on stderr.
 
 What differs from Core's file:
 
@@ -38,13 +41,17 @@ What differs from Core's file:
   one past its `getblockchaininfo` `mediantime` or the wall clock,
   whichever is later, and their version btclib's own
   (`btclib.block.build.build_block`);
-- Core's last step, a lagging clock aborting the headers presync, is
-  not ported: it waits for the node's process to exit on its own and
-  reads the exit code and stderr it exits with
-  (`TestNode.wait_until_stopped`, `test_framework/test_node.py`), and
-  `NodeAdapter` (`node.py`) has no wait for a process it did not end.
-  Core's file at `v31.1`, the release `bitcoind.py` pins, has no such
-  step, so every step ported here is the same for either build.
+- Core's last step, a lagging clock aborting the headers presync, runs
+  where the running build's `getnetworkinfo` `version` is `v32.0` or
+  later, the first release carrying Core's change
+  (bitcoin/bitcoin#35351). A release before it keeps presyncing and
+  asks the peer for the headers after the last one sent, which is what
+  Core's first commit of that change checks, and what is checked here.
+  The threshold misreads a `master` build reporting `31.99` taken after
+  the change's merge, bitcoin/bitcoin@58dfcf29f6da5af5e26a4a927df401baed766d5c,
+  and before the move to `32.99`,
+  bitcoin/bitcoin@f3fec67c3eeb27d5be1bc9d57ca737b74fcd762d: such a build
+  aborts, and this test fails against it.
 
 `p2p_headers_sync_with_minchainwork_bitcoind_test.py` and
 `p2p_headers_sync_with_minchainwork_btclib_node_test.py` run it,
@@ -60,10 +67,11 @@ from typing import TYPE_CHECKING
 
 from btclib.block.block import Block
 from btclib.block.build import build_block, build_coinbase
+from btclib.block.limits import MAX_FUTURE_BLOCK_TIME
 from btclib.block.mining import mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
-from btclib.p2p import Headers
+from btclib.p2p import GetHeaders, Headers
 from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
@@ -73,6 +81,7 @@ from bitcoin_node_tests.node import (
     connect_nodes,
     disconnect_nodes,
     sync_all,
+    wait_until,
     wait_until_tips_agree,
 )
 from bitcoin_node_tests.peer import Peer
@@ -150,6 +159,20 @@ _GENESIS_TIP = {
 
 # what Core's own `create_coinbase` pays
 _OP_TRUE = b"\x51"
+
+# the `CLIENT_VERSION` (`src/clientversion.h`) of `v32.0`, the first
+# release aborting a headers presync its clock lags (bitcoin/bitcoin#35351)
+_ABORT_VERSION = 320000
+
+# Core's own `expected_ret_code` for that abort: Unix, Windows native,
+# Windows cross builds
+_ABORT_EXIT_CODES = (-6, 3, 0xC0000409)
+
+# Core's own `expected_stderr` for that abort
+_ABORT_STDERR = "Failure when attempting to initiate headers sync: System clock"
+
+# Core's own `wait_for_getheaders` timeout on a release before it
+_GETHEADERS_TIMEOUT = 30.0
 
 
 def _debug_log(node: _Node) -> Path:
@@ -302,12 +325,21 @@ def _header(previous: bytes, height: int, block_time: int) -> Block:
     return Block(solved, candidate.transactions, check_validity=False)
 
 
-def _peerinfo_includes_headers_presync_height(nodes: Sequence[_Node]) -> None:
-    """Core's own `test_peerinfo_includes_headers_presync_height`, but its end.
+def _aborts_on_a_lagging_clock(node: NodeAdapter) -> bool:
+    """Whether `node` aborts a headers presync its clock lags.
 
-    The lagging-clock step at its end is not ported: this module's own
-    docstring has why.
+    Core's own claim for every node, bitcoind before `_ABORT_VERSION`
+    excepted, read off its own `getnetworkinfo` `version`.
     """
+    if not isinstance(node, BitcoindAdapter):
+        return True
+    info = node.rpc.call("getnetworkinfo")
+    assert isinstance(info, dict)
+    return bool(info["version"] >= _ABORT_VERSION)
+
+
+def _peerinfo_includes_headers_presync_height(nodes: Sequence[_Node]) -> None:
+    """Core's own `test_peerinfo_includes_headers_presync_height`."""
     _disconnect_all(nodes)
     node = nodes[0]
 
@@ -340,6 +372,28 @@ def _peerinfo_includes_headers_presync_height(nodes: Sequence[_Node]) -> None:
         peers = node.rpc.call("getpeerinfo")
         assert isinstance(peers, list)
         assert peers[0]["presynced_headers"] == _PRESYNC_HEADERS
+
+    # the same headers from a new peer, the clock lagging the genesis
+    # block's median time by more than `MAX_FUTURE_BLOCK_TIME`
+    aborts = _aborts_on_a_lagging_clock(node)
+    wait_until(lambda: node.rpc.call("getpeerinfo") == [])
+    genesis = node.rpc.call("getblockheader", [genesis_hash])
+    assert isinstance(genesis, dict)
+    node.set_mock_time(genesis["mediantime"] - MAX_FUTURE_BLOCK_TIME - 1)
+    with Peer(node.p2p_address, _MAGIC) as peer:
+        peer.handshake()
+        peer.sync_with_ping()
+        peer.send(Headers(new_blocks))
+        if aborts:
+            exit_code, stderr = node.wait_until_stopped()
+            assert exit_code in _ABORT_EXIT_CODES
+            assert _ABORT_STDERR in stderr
+        else:
+            peer.wait_for(
+                "getheaders",
+                predicate=lambda m: GetHeaders.parse(m.payload).locator[0] == previous,
+                timeout=_GETHEADERS_TIMEOUT,
+            )
 
 
 def low_work_headers_are_ignored_until_the_chain_has_the_work(

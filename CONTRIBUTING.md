@@ -522,8 +522,9 @@ and `tests/tracerpc_reach_test.py` fails on a construction that goes
 around it without naming a `trace_rpc` of its own.
 
 `--timeout-factor`: scales every wait this suite's own adapters and
-`Peer` make by default -- `NodeAdapter.start`'s own startup wait and
-`NodeAdapter.stop`'s own wait for the process to exit, `connect_nodes`,
+`Peer` make by default -- `NodeAdapter.start`'s own startup wait,
+`NodeAdapter.stop`'s own wait for the process to exit,
+`NodeAdapter.wait_until_stopped`, `connect_nodes`,
 `wait_until`, `wait_until_disconnected`, `wait_until_tips_agree`,
 `wait_until_mempools_agree` and `assert_debug_log` in `node.py` and
 `debug_log.py` (`disconnect_nodes` and `sync_all` through the waits they

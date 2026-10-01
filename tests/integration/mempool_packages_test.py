@@ -406,11 +406,11 @@ def _assert_second_node_agrees(
         assert entry1["depends"] == entry0["depends"]
 
 
-def _check_chain_limit(node: NodeAdapter, wallet: MiniWallet, chain: Sequence[Tx]) -> None:
+def _check_chain_limit(
+    node: NodeAdapter, wallet: MiniWallet, chain: Sequence[Tx]
+) -> None:
     """Core's refusal of one more transaction on a full chain, pre-cluster."""
-    one_more = wallet.create_self_transfer(
-        utxo_to_spend=wallet.new_utxos(chain[-1])[0]
-    )
+    one_more = wallet.create_self_transfer(utxo_to_spend=wallet.new_utxos(chain[-1])[0])
     with pytest.raises(RpcError, match="too-long-mempool-chain"):
         node.rpc.call("sendrawtransaction", [_hex(one_more)])
 

@@ -1366,3 +1366,9 @@ bound use it, so a stalled wait fails with its own message (closes #309).
 `tests/integration/p2pk_coins_test.py` holds what `p2p_orphan_handling`,
 `p2p_opportunistic_1p1c` and `p2p_1p1c_network` kept as private copies
 (issue #321).
+
+### The test peers and the mock clock live in one module
+
+`tests/integration/p2p_conns_test.py` holds the test peers, their
+connection factories and the mock clock that p2p tests kept as
+private copies (issue #321).

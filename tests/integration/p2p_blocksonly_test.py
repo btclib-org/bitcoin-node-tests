@@ -31,11 +31,11 @@ Every body mines a coin to spend first (`Capability.MINE`,
 
 Core's `P2PInterface` asks for whatever a node announces, and its
 `P2PTxInvStore` records the announced transactions, from its framework's
-network thread. Here `_Conn` does both on the test's own thread, where a
-wait reads the peer's connection: a check that a peer was not announced
-a transaction reads it up to the `pong` answering the second of two
-`ping`s, the node running its own send loop for the peer in between
-(`Peer.sync_with_ping`).
+network thread. Here `RelayConn` (`p2p_conns_test.py`) does both on the
+test's own thread, where a wait reads the peer's connection: a check
+that a peer was not announced a transaction reads it up to the `pong`
+answering the second of two `ping`s, the node running its own send loop
+for the peer in between (`Peer.sync_with_ping`).
 
 What differs from Core's file besides:
 
@@ -58,7 +58,6 @@ having how.
 
 from __future__ import annotations
 
-import secrets
 import time
 from contextlib import ExitStack, nullcontext
 from typing import TYPE_CHECKING
@@ -68,11 +67,8 @@ from btclib.p2p import (
     Inv,
     Inventory,
     InventoryType,
-    Ping,
-    Pong,
     TxPayload,
 )
-from btclib.p2p.magic import magic_from_chain
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
@@ -80,15 +76,13 @@ from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.mini_wallet import MiniWallet
 from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Listener, Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from tests.integration.p2p_conns_test import RelayConn
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from btclib.p2p import Message, Payload, Version
     from btclib.tx.tx import Tx
 
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
@@ -104,8 +98,6 @@ __all__ = [
 
 type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
 
-_MAGIC = magic_from_chain("regtest")
-
 # Core's own default wait, `P2PInterface`'s and `wait_until`'s
 _WAIT = 60.0
 
@@ -113,109 +105,10 @@ _WAIT = 60.0
 _INV_HASH = 0x1234
 _GETDATA_HASH = 0x12345
 
-_TX_TYPES = (InventoryType.MSG_TX, InventoryType.MSG_WTX)
-
 
 def _hash(value: int) -> bytes:
     """Core's own `CInv(h=value)` hash, in the order a block explorer prints."""
     return value.to_bytes(32, "big")
-
-
-class _Conn:
-    """Core's own `P2PInterface`, and `P2PTxInvStore`'s record of `inv`s.
-
-    `Peer.wait_for` drops what it does not wait for, and Core's peer asks
-    for whatever the node announces, so every wait here reads the
-    connection itself and hands each message to `_handle` first.
-    `tx_invs` is the hash of every transaction an `inv` announced, Core's
-    own `P2PTxInvStore.get_invs`.
-
-    :param peer: the connection, its handshake done.
-    :param version: the node's own `version`, which `Peer.handshake` returns.
-    """
-
-    def __init__(self, peer: Peer, version: Version) -> None:
-        self.peer = peer
-        self.version = version
-        self.tx_invs: list[bytes] = []
-
-    def send(self, payload: Payload) -> None:
-        """Core's own `send_without_ping`."""
-        self.peer.send(payload)
-
-    def _handle(self, message: Message) -> None:
-        """Core's `on_inv`, `P2PTxInvStore`'s own, and `on_ping`."""
-        if message.command == "ping":
-            self.send(Pong(Ping.parse(message.payload).nonce))
-        elif message.command == "inv":
-            items = Inv.parse(message.payload).items
-            self.tx_invs += [item.hash for item in items if item.type_code in _TX_TYPES]
-            wanted = [item for item in items if item.type_code]
-            if wanted:
-                self.send(GetData(wanted))
-
-    def _receive(self, deadline: float) -> Message:
-        """Return the next message once `_handle` has answered it.
-
-        :param deadline: a `time.monotonic()` value, not a duration.
-        :raises ConnectionError: the node closed the connection.
-        :raises TimeoutError: no message arrived before `deadline`.
-        """
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            err_msg = "no message within the wait"
-            raise TimeoutError(err_msg)
-        message = self.peer.receive(timeout=remaining)
-        self._handle(message)
-        return message
-
-    def sync_with_ping(self) -> None:
-        """`Peer.sync_with_ping`'s barrier, every message read answered.
-
-        :raises ConnectionError: the node closed the connection.
-        :raises TimeoutError: no matching `pong` arrived within the wait.
-        """
-        nonce = secrets.randbelow(2**64 - 1) + 1
-        self.send(Ping(0))
-        self.send(Ping(nonce))
-        deadline = time.monotonic() + scaled(_WAIT)
-        while True:
-            message = self._receive(deadline)
-            if message.command == "pong" and Pong.parse(message.payload).nonce == nonce:
-                return
-
-    def send_and_ping(self, payload: Payload) -> None:
-        """Core's own `send_and_ping`: `send`, then `sync_with_ping`."""
-        self.send(payload)
-        self.sync_with_ping()
-
-    def wait_for_tx(self, txid: bytes) -> None:
-        """Core's own `wait_for_tx`: read until a `tx` of `txid` arrives.
-
-        :raises ConnectionError: the node closed the connection.
-        :raises TimeoutError: no such `tx` arrived within the wait.
-        """
-        deadline = time.monotonic() + scaled(_WAIT)
-        while True:
-            message = self._receive(deadline)
-            if (
-                message.command == "tx"
-                and TxPayload.parse(message.payload).tx.id == txid
-            ):
-                return
-
-    def wait_for_disconnect(self) -> None:
-        """Read and answer until the node closes the connection.
-
-        :raises TimeoutError: the connection was still open at the wait's
-            end.
-        """
-        deadline = time.monotonic() + scaled(_WAIT)
-        try:
-            while True:
-                self._receive(deadline)
-        except ConnectionError:
-            return
 
 
 def _peer_info(node: NodeAdapter) -> list[dict[str, object]]:
@@ -228,24 +121,6 @@ def _peer_info(node: NodeAdapter) -> list[dict[str, object]]:
 def _mempool_size(node: NodeAdapter) -> object:
     """Return the node's own `getmempoolinfo` `size`."""
     return node.rpc.call("getmempoolinfo")["size"]
-
-
-def _inbound(stack: ExitStack, node: NodeAdapter) -> _Conn:
-    """Core's own `add_p2p_connection(P2PInterface())`."""
-    peer = stack.enter_context(Peer(node.p2p_address, _MAGIC))
-    conn = _Conn(peer, peer.handshake())
-    conn.sync_with_ping()
-    return conn
-
-
-def _block_relay_only(stack: ExitStack, node: NodeAdapter) -> _Conn:
-    """Core's own `add_outbound_p2p_connection(..., "block-relay-only")`."""
-    with Listener(_MAGIC) as listener:
-        node.add_outbound_connection(listener.address, "block-relay-only")
-        peer = stack.enter_context(listener.accept())
-    conn = _Conn(peer, peer.handshake())
-    conn.sync_with_ping()
-    return conn
 
 
 def _disconnect_p2ps(node: NodeAdapter, stack: ExitStack) -> None:
@@ -301,7 +176,7 @@ def _node(
 
 
 def _tx_violation(
-    node: NodeAdapter, conn: _Conn, wallet: MiniWallet, log_path: Path | None
+    node: NodeAdapter, conn: RelayConn, wallet: MiniWallet, log_path: Path | None
 ) -> Tx:
     """Core's own `check_p2p_tx_violation`, over the node's first peer.
 
@@ -317,7 +192,7 @@ def _tx_violation(
     return tx
 
 
-def _inv_violation(conn: _Conn, log_path: Path | None, expected: str) -> None:
+def _inv_violation(conn: RelayConn, log_path: Path | None, expected: str) -> None:
     """Core's own `inv` of a wtxid the node drops the peer for sending."""
     with _expecting(log_path, [expected]):
         conn.send(Inv([Inventory(InventoryType.MSG_WTX, _hash(_INV_HASH))]))
@@ -335,21 +210,21 @@ def _blocksonly_mode(
     assert node.rpc.call("getnetworkinfo")["localrelay"] is False
 
     with ExitStack() as stack:
-        tx = _tx_violation(node, _inbound(stack, node), wallet, log_path)
+        tx = _tx_violation(node, RelayConn.inbound(stack, node), wallet, log_path)
         _disconnect_p2ps(node, stack)
     tx_hex = tx.serialize(True).hex()
 
     # a transaction `inv` violates the protocol too
     with ExitStack() as stack:
         _inv_violation(
-            _inbound(stack, node),
+            RelayConn.inbound(stack, node),
             log_path,
             f"transaction ({_INV_HASH:064x}) inv sent in violation of protocol,"
             " disconnecting peer",
         )
 
         # a transaction submitted over RPC is taken and relayed
-        tx_relay_peer = _inbound(stack, node)
+        tx_relay_peer = RelayConn.inbound(stack, node)
         assert _peer_info(node)[0]["relaytxes"] is True
         accept = node.rpc.call("testmempoolaccept", [[tx_hex]])
         assert accept[0]["allowed"] is True
@@ -362,8 +237,8 @@ def _blocksonly_mode(
     node.restart(["-persistmempool=0", "-whitelist=relay@127.0.0.1", "-blocksonly"])
     assert node.rpc.call("getrawmempool") == []
     with ExitStack() as stack:
-        first_peer = _inbound(stack, node)
-        second_peer = _inbound(stack, node)
+        first_peer = RelayConn.inbound(stack, node)
+        second_peer = RelayConn.inbound(stack, node)
         peer_1_info, peer_2_info = _peer_info(node)
         assert peer_1_info["permissions"] == ["relay"]
         assert first_peer.version.relay is True
@@ -390,14 +265,14 @@ def _block_relay_conn(
 
     # a block-relay-only peer sending a transaction is dropped
     with ExitStack() as stack:
-        conn = _block_relay_only(stack, node)
+        conn = RelayConn.outbound(stack, node, connection_type="block-relay-only")
         assert _peer_info(node)[0]["relaytxes"] is False
         tx = _tx_violation(node, conn, wallet, log_path)
         _disconnect_p2ps(node, stack)
 
     # and one announcing a transaction
     with ExitStack() as stack:
-        conn = _block_relay_only(stack, node)
+        conn = RelayConn.outbound(stack, node, connection_type="block-relay-only")
         assert _peer_info(node)[0]["relaytxes"] is False
         _inv_violation(
             conn, log_path, "inv sent in violation of protocol, disconnecting peer"
@@ -406,7 +281,7 @@ def _block_relay_conn(
 
     # a block-relay-only peer's `getdata` for a transaction is ignored
     with ExitStack() as stack:
-        conn = _block_relay_only(stack, node)
+        conn = RelayConn.outbound(stack, node, connection_type="block-relay-only")
         conn.send_and_ping(
             GetData([Inventory(InventoryType.MSG_WTX, _hash(_GETDATA_HASH))])
         )
@@ -414,7 +289,7 @@ def _block_relay_conn(
         assert "notfound" not in conn.peer.last_message
 
         # a transaction submitted over RPC is announced to no such peer
-        conn = _block_relay_only(stack, node)
+        conn = RelayConn.outbound(stack, node, connection_type="block-relay-only")
         node.rpc.call("sendrawtransaction", [tx.serialize(True).hex()])
         # Core's own minute, for an announcement timer to have fired
         node.set_mock_time(int(time.time()) + 60)

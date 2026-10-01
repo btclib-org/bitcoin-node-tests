@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""`BitcoindAdapter` variants that `_bitcoind_test.py` wrappers pass on.
+"""`BitcoindAdapter` subclasses that `*_bitcoind_test.py` modules hand to a test body.
 
 This module holds no test: its name ends `_test` for the repository's
 `name-tests-test` hook.
@@ -23,7 +23,7 @@ class UnboundBitcoindAdapter(BitcoindAdapter):
     A test that names where the node listens needs the node without the
     adapter's own `-bind`. An `extra_args` entry cannot replace it,
     `NodeAdapter` refusing one naming an option `_command()` already sets,
-    so the entry is left out where it is set.
+    so `_command` drops it.
     """
 
     @override

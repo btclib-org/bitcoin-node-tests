@@ -1373,8 +1373,8 @@ bound use it, so a stalled wait fails with its own message (closes #309).
 connection factories and the mock clock that p2p tests kept as
 private copies (issue #321).
 
-### The adapter without its `-bind` lives in one module
+### The bitcoind adapter that drops its own `-bind` lives in one module
 
 `tests/integration/bitcoind_adapters_test.py` holds `UnboundBitcoindAdapter`,
 which `feature_port` and `p2p_getaddr_caching` kept as private copies
-(issue #321).
+(closes #321).

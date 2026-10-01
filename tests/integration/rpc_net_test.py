@@ -28,8 +28,11 @@ node has at that step, where Core runs the steps in turn on two nodes.
 Core's `write_config` (`test_framework/util.py`) also writes `connect=0`
 and `dnsseed=0` into every node's `bitcoin.conf`, so both join every
 start here. `-minrelaytxfee`, which Core gives its nodes, is not passed:
-no step ported reads it. The steps that read an address table, Core's
-first node's after earlier steps, read a table no other step touched.
+no step ported reads it.
+
+Core's `test_getrawaddrman` sets the node's clock to the time it then
+asserts, so it passes with the clock left alone. Here the clock is set a
+day back, and a time read off the wall clock fails.
 
 Core's `test_addpeeraddress` makes its argument checks on its first node
 and the rest on its second; here one node answers all of them. Its
@@ -132,6 +135,9 @@ _ADDRESS_COUNT = 10000
 
 # how many calls one batch carries
 _BATCH = 1000
+
+# the seconds of a day
+_A_DAY = 86400
 
 # `1st June 2018`, the earliest time `getnodeaddresses` may report
 _JUNE_2018 = 1527811200
@@ -655,7 +661,7 @@ def getrawaddrman_lists_the_address_tables(
         _CJDNS_ADDRMAN,
         capabilities,
     ) as node:
-        addr_time = int(time.time())
+        addr_time = int(time.time()) - _A_DAY
         node.set_mock_time(addr_time)
         _seed_addrman(node)
         _is_hidden(node, "getrawaddrman")

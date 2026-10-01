@@ -34,12 +34,12 @@ Core's `test_getrawaddrman` sets the node's clock to the time it then
 asserts, so it passes with the clock left alone. Here the clock is set a
 day back, and a time read off the wall clock fails.
 
-Core's `test_addpeeraddress` makes its argument checks on its first node
-and the rest on its second; here one node answers all of them. Its
+Core's `test_addpeeraddress` makes its type and range checks on its first
+node and the rest on its second; here one node answers all of them. Its
 `test_service_flags` is a `v1` connection here, `Peer` speaking no other,
 so it asserts the names of a `v1` peer's services.
 
-Two of Core's checks are past the pinned release. In each the step asks
+Core's blank-address checks differ between builds. In each the step asks
 the build a call that changes nothing and asserts what that build answers:
 
 - `addnode` refuses a blank node address with `Node address cannot be
@@ -51,7 +51,7 @@ the build a call that changes nothing and asserts what that build answers:
   address` and code `-30` (bitcoin/bitcoin@316a0c513278, 2025-09-18,
   first in `v31.0rc1`). A build without it answers `{"success": False}`
   to the blank address, which the step asserts, as Core's file does at
-  the pinned release; that file makes no check of a non-IP name.
+  `v30.3`, which makes no check of a non-IP name.
 
 `p2p_port(2)` (`test_framework/util.py`), the address `addnode` adds, is
 a port of `node.free_ports` here, and Core's `P2P_SERVICES`
@@ -117,8 +117,8 @@ _BLANK_ADDRESS_REFUSED = "Node address cannot be empty"
 _BLANK_REMOVE_REFUSED = "Node could not be removed"
 _INVALID_IP = "Invalid IP address"
 
-# the RPC's `RPC_CLIENT_NODE_ALREADY_ADDED`, `RPC_CLIENT_NODE_NOT_ADDED`
-# and `RPC_CLIENT_NODE_NOT_CONNECTED` (`src/rpc/protocol.h`)
+# the RPC's `RPC_CLIENT_NODE_ALREADY_ADDED` and
+# `RPC_CLIENT_NODE_NOT_ADDED` (`src/rpc/protocol.h`)
 _NODE_ALREADY_ADDED = -23
 _NODE_NOT_ADDED = -24
 
@@ -129,8 +129,7 @@ _MISC_ERROR = -1
 _TYPE_ERROR = -3
 _INVALID_IP_OR_SUBNET = -30
 
-# the number of addresses Core's `test_getnodeaddresses` adds, the most
-# an address table holds
+# the number of addresses Core's `test_getnodeaddresses` adds
 _ADDRESS_COUNT = 10000
 
 # how many calls one batch carries

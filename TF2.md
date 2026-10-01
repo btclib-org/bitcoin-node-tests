@@ -1095,7 +1095,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_rbf.py` | [`1a85ca1dff1f`](https://github.com/bitcoin/bitcoin/commit/1a85ca1dff1f) | 2026-04-24 | pass, the replacement rules' wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (incremental_relay_fee) |
 | `p2p_permissions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (peer_permissions) |
 | `p2p_private_broadcast_retry_v1.py` | [`4e8c4bc794c0`](https://github.com/bitcoin/bitcoin/commit/4e8c4bc794c0) | 2026-08-04 | pass | skip (private_broadcast) |
-| `rpc_net.py` (addnode) | [`71c30b608382`](https://github.com/bitcoin/bitcoin/commit/71c30b608382) | 2026-09-22 | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
+| `rpc_net.py` (`addnode`) | [`71c30b608382`](https://github.com/bitcoin/bitcoin/commit/71c30b608382) | 2026-09-22 | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
 | `rpc_net.py` (service flags) | same | same | pass | skip (proxy) |
 | `rpc_net.py` (`getnodeaddresses`) | same | same | pass | skip (proxy) |
 | `rpc_net.py` (`addpeeraddress`) | same | same | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (known_addresses) |
@@ -4339,18 +4339,17 @@ build's `-help` lists `-privatebroadcast` (`bitcoind.py`'s own
 `_has_private_broadcast`), so the private broadcast files are a counted
 skip on a release whose `-help` lists none. `btclib-node`'s cell is a
 counted skip on `Capability.PRIVATE_BROADCAST`.
-`rpc_net.py`'s steps that need one node are ported, each its own row, in
-`tests/integration/rpc_net_test.py`, whose module docstring has what
-differs from Core's file: `addnode`, a peer's service names,
-`getnodeaddresses`, `addpeeraddress`, `getaddrmaninfo` and
-`getrawaddrman`. Core gives its nodes a `-proxy` nothing listens at, so
+`rpc_net.py`'s steps that need one node (`addnode`, a peer's service
+names, `getnodeaddresses`, `addpeeraddress`, `getaddrmaninfo` and
+`getrawaddrman`) are ported in `tests/integration/rpc_net_test.py`, each
+its own row. Its module docstring has what differs from Core's file. Core gives its nodes a `-proxy` nothing listens at, so
 that no step dials a public address; no step reads what the node asks
 of it, so no proxy runs, and a step given the argument asks for
 `Capability.PROXY`. The steps Core restarts with
-`-cjdnsreachable` ask for `Capability.CJDNS`. The refusal of a blank
-`addnode` address and that of a blank `addpeeraddress` address are past
-the pinned release's own binary, and the body asks the build a call that
-changes nothing and asserts that build's own answer. The steps that
+`-cjdnsreachable` ask for `Capability.CJDNS`. A blank `addnode`
+address is refused only past the pinned release, and a blank
+`addpeeraddress` address only from `v31.0`. The body asks the build a
+call that changes nothing and asserts that build's own answer. The steps that
 connect Core's nodes are
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s.
 `btclib-node`'s cells are a counted skip on each row's own capability.

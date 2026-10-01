@@ -1095,6 +1095,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_rbf.py` | [`1a85ca1dff1f`](https://github.com/bitcoin/bitcoin/commit/1a85ca1dff1f) | 2026-04-24 | pass, the replacement rules' wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (incremental_relay_fee) |
 | `p2p_permissions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (peer_permissions) |
 | `p2p_private_broadcast_retry_v1.py` | [`4e8c4bc794c0`](https://github.com/bitcoin/bitcoin/commit/4e8c4bc794c0) | 2026-08-04 | pass | skip (private_broadcast) |
+| `p2p_private_broadcast_cap.py` | [`82a02a2a2208`](https://github.com/bitcoin/bitcoin/commit/82a02a2a2208) | 2026-07-07 | pass, the cap asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (private_broadcast) |
 | `rpc_net.py` (`addnode`) | [`71c30b608382`](https://github.com/bitcoin/bitcoin/commit/71c30b608382) | 2026-09-22 | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
 | `rpc_net.py` (service flags) | same | same | pass | skip (proxy) |
 | `rpc_net.py` (`getnodeaddresses`) | same | same | pass | skip (proxy) |
@@ -4344,10 +4345,17 @@ binary answers neither way, so the body reads the build's own
 build answers instead. `btclib-node`'s cell is a counted skip on
 `Capability.PRIVATE_BROADCAST`.
 
-`p2p_private_broadcast_cap.py` is not ported: the file is past the
-pinned release, whose binary puts no cap on its private broadcast queue,
-the file's whole subject, and the `-proxy` its node is given names a
-port nothing listens at, so it needs no listening proxy.
+`p2p_private_broadcast_cap.py` is ported in
+`tests/integration/p2p_private_broadcast_cap_test.py`, whose module
+docstring has what differs from Core's file. Its node's `-proxy` and
+`-i2psam` name a port nothing listens at, so no proxy runs. It asks for
+`Capability.PRIVATE_BROADCAST`, `Capability.PROXY`,
+`Capability.I2P_SAM` and `Capability.MINE`, and keeps every step of Core's
+file in its order. A build before the cap puts none on the queue, the
+file's whole subject, so the body reads `sendrawtransaction`'s `help` for
+the sentence saying the queue is bounded, and asserts that the first
+submission past the cap is refused exactly where the help carries the
+sentence.
 `p2p_private_broadcast_retry_v1.py` is ported on a forwarding proxy for
 `-proxy` and another for `-onion`, in
 `tests/integration/p2p_private_broadcast_retry_v1_test.py`, whose module

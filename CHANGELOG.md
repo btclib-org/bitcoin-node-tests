@@ -1430,3 +1430,9 @@ build's own wording of the `-proxyrandomize` warning is asserted (issue #47).
 `feature_nulldummy`, `_dersig`, `_cltv` and `_csv_activation` expect
 `mandatory-script-verify-flag-failed` from a bitcoind before `v30.0`,
 `block-script-verify-flag-failed` from it (bitcoin/bitcoin#33183, issue #354).
+
+### `p2p_private_broadcast_cap` is ported
+
+A build with no cap on the queue must take every submission.
+`MiniWallet.new_utxos` hashes a transaction once, not once per output
+(closes #47).

@@ -819,9 +819,10 @@ class MiniWallet:
 
         :param tx: the transaction, sent or not.
         """
+        txid = tx.id
         return [
             Utxo(
-                outpoint=OutPoint(tx.id, vout),
+                outpoint=OutPoint(txid, vout),
                 value=tx_out.value,
                 height=0,
                 coinbase=False,

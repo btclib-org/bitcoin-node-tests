@@ -1338,3 +1338,8 @@ a lagging clock's abort, on builds that carry it (closes #318).
 `-whitelist` and `-whitebind` grant the permissions they name, read off
 `getpeerinfo`, and a `forcerelay` peer has a mempool transaction relayed on.
 `Capability.PEER_PERMISSIONS` is new; btclib-node skips (issue #14).
+
+### `TF2.md`'s btclib-node `main` cells match a measured run
+
+Rows a `main` now passes read `pass`, and the rows still failing cite an open
+btclib-node issue; `feature_utxo_set_hash.py` cites a new one (closes #312).

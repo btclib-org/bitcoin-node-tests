@@ -1355,3 +1355,8 @@ at the standard where it restated it (issue btclib-org/.github#1494).
 `pytest.mark.scaled_timeout(seconds)` gives a test a `timeout` scaled by
 `--timeout-factor` like the ini one. Tests with a Core wait at or past the
 bound use it, so a stalled wait fails with its own message (closes #309).
+
+### `Dependency review` is a required check
+
+- **`REPOSITORY.md` reads `lint / Dependency review` back with the other
+  required checks** (issue btclib-org/.github#1465).

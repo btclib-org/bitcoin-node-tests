@@ -841,6 +841,72 @@ def test_stop_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
     process.wait.assert_called_once_with(timeout=3.0 * startup_timeout)
 
 
+class _ScriptAdapter(_FakeAdapter):
+    """A `_FakeAdapter` whose process is a real interpreter running `script`."""
+
+    def __init__(self, tmp_path: Path, script: str) -> None:
+        self._script = script
+        super().__init__(sys.executable, tmp_path / "node", 0, 0, rpc=_FakeRpc())
+
+    @override
+    def _command(self) -> list[str]:
+        return [sys.executable, "-c", self._script]
+
+
+def test_wait_until_stopped_returns_the_exit_code_and_stderr(tmp_path: Path) -> None:
+    """A process exiting on its own is waited for, then forgotten."""
+    script = "import sys, time; time.sleep(0.5); sys.exit('Failure: clock')"
+    adapter = _ScriptAdapter(tmp_path, script)
+    adapter.start()
+    sessions = adapter._sessions = MagicMock()
+    assert adapter.wait_until_stopped() == (1, "Failure: clock")
+    sessions.close.assert_called_once()
+    adapter.stop()  # a no-op: the exit code 1 would raise here otherwise
+
+
+def test_wait_until_stopped_reads_a_process_already_exited(tmp_path: Path) -> None:
+    """A process that exited before the call is answered at once."""
+    adapter = _ScriptAdapter(tmp_path, "import time; time.sleep(0.5)")
+    adapter.start()
+    running = adapter._running
+    assert running is not None
+    running.process.wait()
+    assert adapter.wait_until_stopped(timeout=0.0) == (0, "")
+
+
+def test_wait_until_stopped_raises_on_a_process_that_does_not_exit(
+    tmp_path: Path,
+) -> None:
+    """A process still running at the deadline is raised on, and kept."""
+    process = MagicMock()
+    process.poll.return_value = None
+    process.wait.side_effect = [subprocess.TimeoutExpired("fake-node", 3.0), 0]
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", return_value=process):
+        adapter.start()
+    _stderr_path(adapter).write_bytes(b"still running\n")
+    set_factor(3.0)
+    try:
+        with pytest.raises(
+            TimeoutError,
+            match=r"^node process did not exit within 3.0 s -- stderr: still running$",
+        ):
+            adapter.wait_until_stopped(timeout=1.0)
+    finally:
+        set_factor(1.0)
+    process.wait.assert_called_once_with(timeout=3.0)
+    process.terminate.assert_not_called()
+    adapter.stop()  # the process is still held, and `stop` ends it
+    process.terminate.assert_called_once()
+
+
+def test_wait_until_stopped_raises_where_no_process_is_held(tmp_path: Path) -> None:
+    """Nothing started, nothing to wait for."""
+    adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
+    with pytest.raises(RuntimeError, match="^no node process to wait for"):
+        adapter.wait_until_stopped()
+
+
 def test_restart_stops_then_starts(tmp_path: Path) -> None:
     """`restart` is `stop` then `start`, over the same data directory."""
     process = MagicMock()

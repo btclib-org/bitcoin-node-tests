@@ -65,6 +65,10 @@ __all__ = [
 # machine that can run this suite, so this bounds the failure case
 _STARTUP_TIMEOUT = 30.0
 
+# how long `wait_until_stopped` waits by default: Core's own
+# `BITCOIND_PROC_WAIT_TIMEOUT` (`test_framework/test_node.py`)
+_PROC_WAIT_TIMEOUT = 60.0
+
 # the directory inside a datadir where each `start` creates a file of its
 # own for the process's stderr: Core's own `stderr_dir`
 # (`TestNode.__init__`), which `initialize_datadir` (`util.py`) creates
@@ -799,6 +803,45 @@ class NodeAdapter(ABC):
                 f"stderr: {_read_output(stderr_path)}"
             )
             raise RuntimeError(err_msg)
+
+    def wait_until_stopped(
+        self, *, timeout: float = _PROC_WAIT_TIMEOUT
+    ) -> tuple[int, str]:
+        """Wait for the process to exit on its own, and return how it did.
+
+        Core's own `TestNode.wait_until_stopped`
+        (`test_framework/test_node.py`), for a node that something other
+        than `stop` ends: an RPC `stop`, or a fault a test provokes. Core
+        checks the exit code and stderr itself; here the caller does.
+
+        The process is forgotten once it has exited, and the adapter's RPC
+        connections closed, so a later `stop` is a no-op. A process that
+        does not exit in time is left running, and `stop` still ends it.
+
+        :param timeout: how long to wait, before `--timeout-factor`'s own
+            scaling (`timeout_factor.scaled`).
+        :returns: the exit code, negative for a signal as `subprocess`
+            reports it, and what the process wrote to stderr, stripped.
+        :raises RuntimeError: this adapter holds no process.
+        :raises TimeoutError: the process did not exit within `timeout`;
+            the message carries what it wrote to stderr.
+        """
+        if self._running is None:
+            err_msg = "no node process to wait for: start it first"
+            raise RuntimeError(err_msg)
+        process, stderr_path = self._running
+        timeout = scaled(timeout)
+        try:
+            exit_code = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            err_msg = (
+                f"node process did not exit within {timeout} s -- "
+                f"stderr: {_read_output(stderr_path)}"
+            )
+            raise TimeoutError(err_msg) from None
+        self._running = None
+        self._sessions.close()
+        return exit_code, _read_output(stderr_path)
 
     @staticmethod
     def _terminate(

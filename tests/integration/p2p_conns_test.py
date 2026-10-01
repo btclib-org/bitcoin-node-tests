@@ -124,11 +124,14 @@ class Conn:
         :raises ConnectionError: the node closed the connection.
         :raises TimeoutError: no message arrived before `deadline`.
         """
+        err_msg = "the wait ran out"
         remaining = deadline - time.monotonic()
         if remaining <= 0:
-            err_msg = "the wait ran out"
             raise TimeoutError(err_msg)
-        message = self.peer.receive(timeout=remaining)
+        try:
+            message = self.peer.receive(timeout=remaining)
+        except TimeoutError:
+            raise TimeoutError(err_msg) from None
         self._handle(message)
         return message
 
@@ -162,6 +165,19 @@ class Conn:
             return predicate()
 
         wait_until(_served, timeout=timeout)
+
+    def wait_for_disconnect(self) -> None:
+        """Read and answer until the node closes the connection.
+
+        :raises TimeoutError: the connection was still open at the wait's
+            end.
+        """
+        deadline = time.monotonic() + scaled(_WAIT)
+        try:
+            while True:
+                self._receive(deadline)
+        except ConnectionError:
+            return
 
 
 class RelayConn(Conn):
@@ -235,19 +251,6 @@ class RelayConn(Conn):
                 and TxPayload.parse(message.payload).tx.id == txid
             ):
                 return
-
-    def wait_for_disconnect(self) -> None:
-        """Read and answer until the node closes the connection.
-
-        :raises TimeoutError: the connection was still open at the wait's
-            end.
-        """
-        deadline = time.monotonic() + scaled(_WAIT)
-        try:
-            while True:
-                self._receive(deadline)
-        except ConnectionError:
-            return
 
     def was_asked(self) -> bool:
         """Whether any `getdata` came, Core's `"getdata" in last_message`."""

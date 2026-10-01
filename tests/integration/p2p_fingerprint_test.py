@@ -53,11 +53,10 @@ run it, `tests/integration/conftest.py`'s own module docstring having how.
 
 from __future__ import annotations
 
-import secrets
 import time
 from contextlib import ExitStack
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from btclib.block.block import Block
 from btclib.block.build import build_block, build_coinbase
@@ -72,14 +71,11 @@ from btclib.p2p import (
     Inv,
     Inventory,
     InventoryType,
-    Ping,
-    Pong,
 )
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.peer import Peer
 from bitcoin_node_tests.timeout_factor import scaled
+from tests.integration.p2p_conns_test import Conn
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -94,8 +90,6 @@ if TYPE_CHECKING:
 __all__ = ["stale_blocks_are_withheld"]
 
 type _Node = BitcoindAdapter | BtclibNodeAdapter
-
-_MAGIC = magic_from_chain("regtest")
 
 _HALVING_INTERVAL = CONSENSUS_PARAMS["regtest"].subsidy_halving_interval
 
@@ -115,29 +109,25 @@ _SERVED_WAIT = 3.0
 _CLOCK_BACK = 60 * 24 * 60 * 60
 
 
-class _Conn:
+class _Conn(Conn):
     """Core's own `P2PInterface`, as much of it as the file reads.
 
-    `Peer.wait_for` drops what it does not wait for, so every wait here
-    reads the connection itself and hands each message to `_handle`
-    first. What the node sent last of each command is
-    `Peer.last_message`, Core's `last_message`.
-
-    :param peer: the connection, its handshake done.
+    What the node sent last of each command is `Peer.last_message`, Core's
+    `last_message`. A message is sent without `check_validity`, and a wait
+    reads the connection until its condition holds, without `Conn`'s ping
+    between reads.
     """
 
-    def __init__(self, peer: Peer) -> None:
-        self.peer = peer
-
+    @override
     def send(self, payload: Payload) -> None:
         """Core's own `send_without_ping`."""
         self.peer.send(payload, check_validity=False)
 
+    @override
     def _handle(self, message: Message) -> None:
-        """Core's `P2PInterface.on_inv` and `on_ping`."""
-        if message.command == "ping":
-            self.send(Pong(Ping.parse(message.payload).nonce))
-        elif message.command == "inv":
+        """Core's `P2PInterface.on_inv`, and `Conn`'s `on_ping`."""
+        super()._handle(message)
+        if message.command == "inv":
             items = Inv.parse(message.payload).items
             wanted = [
                 item for item in items if item.type_code != InventoryType.UNDEFINED
@@ -145,37 +135,18 @@ class _Conn:
             if wanted:
                 self.send(GetData(wanted))
 
+    @override
     def wait_until(
         self, predicate: Callable[[], bool], *, timeout: float = _WAIT
     ) -> None:
         """Core's own `P2PInterface.wait_until`: read until `predicate` holds.
 
         :raises ConnectionError: the node closed the connection.
-        :raises TimeoutError: `predicate` still failed at the wait's end.
+        :raises TimeoutError: the wait ran out before `predicate` held.
         """
-        err_msg = "condition not met within the wait"
         deadline = time.monotonic() + scaled(timeout)
         while not predicate():
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise TimeoutError(err_msg)
-            try:
-                message = self.peer.receive(timeout=remaining)
-            except TimeoutError:
-                raise TimeoutError(err_msg) from None
-            self._handle(message)
-
-    def sync_with_ping(self) -> None:
-        """`Peer.sync_with_ping`'s barrier, every message read handled."""
-        nonce = secrets.randbelow(2**64 - 1) + 1
-        self.send(Ping(0))
-        self.send(Ping(nonce))
-        self.wait_until(
-            lambda: (
-                "pong" in self.peer.last_message
-                and Pong.parse(self.peer.last_message["pong"].payload).nonce == nonce
-            )
-        )
+            self._receive(deadline)
 
     def has(self, command: str) -> bool:
         """Whether `command` is in Core's own `last_message`."""
@@ -242,15 +213,6 @@ class _Conn:
         self.wait_for_header(block_hash)
 
 
-def _connect(stack: ExitStack, node: NodeAdapter) -> _Conn:
-    """Core's own `add_p2p_connection(P2PInterface())`."""
-    peer = stack.enter_context(Peer(node.p2p_address, _MAGIC))
-    peer.handshake()
-    conn = _Conn(peer)
-    conn.sync_with_ping()
-    return conn
-
-
 def _block(previous: bytes, height: int, block_time: int) -> Block:
     """Core's own `create_block(previous, height=, ntime=)`, solved."""
     coinbase = build_coinbase(height, _OP_TRUE, halving_interval=_HALVING_INTERVAL)
@@ -315,7 +277,7 @@ def stale_blocks_are_withheld(
     require(Capability.CLOCK, node.capabilities, skip_counts)
 
     with ExitStack() as stack:
-        node0 = _connect(stack, node)
+        node0 = _Conn.inbound(stack, node)
 
         node.set_mock_time(int(time.time()) - _CLOCK_BACK)
 

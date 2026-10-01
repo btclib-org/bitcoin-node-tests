@@ -1378,3 +1378,8 @@ private copies (issue #321).
 `tests/integration/bitcoind_adapters_test.py` holds `UnboundBitcoindAdapter`,
 which `feature_port` and `p2p_getaddr_caching` kept as private copies
 (closes #321).
+
+### The leftover test peers are `Conn`s
+
+A p2p test peer that copied the receive and ping helpers of `Conn`
+(`tests/integration/p2p_conns_test.py`) subclasses it instead (closes #362).

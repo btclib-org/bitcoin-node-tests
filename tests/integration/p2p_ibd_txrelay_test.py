@@ -37,8 +37,8 @@ What differs from Core's file:
   has, its coinbase paying `RAW_P2PK_SCRIPT_PUB_KEY`, and each is
   submitted over `submitblock`;
 - Core's `P2PDataStore` records every `getdata` from its framework's
-  network thread, and here the peer records those it reads during each
-  ping round trip;
+  network thread, and here the peer records those it reads in a ping
+  round trip after its connection;
 - Core's `disconnect_p2ps` waits for the node to count no test peer, and
   here the wait is for the node's own `getpeerinfo` to name the other
   node alone.
@@ -50,14 +50,13 @@ What differs from Core's file:
 
 from __future__ import annotations
 
-import secrets
 import time
 from contextlib import nullcontext
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from btclib.amount import btc_from_sats, sats_from_btc
-from btclib.p2p import GetData, Inv, Inventory, InventoryType, Ping, Pong, TxPayload
+from btclib.p2p import GetData, Inv, Inventory, InventoryType, TxPayload
 from btclib.p2p.magic import magic_from_chain
 from btclib.tx import Tx
 
@@ -67,14 +66,14 @@ from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.mini_wallet import RAW_P2PK_SCRIPT_PUB_KEY, build_next_block
 from bitcoin_node_tests.node import connect_nodes, sync_all, wait_until
 from bitcoin_node_tests.peer import Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from tests.integration.p2p_conns_test import Conn
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from btclib.p2p import Message
+    from btclib.p2p import Message, Version
 
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
@@ -192,16 +191,40 @@ def _submit_block(node: NodeAdapter, block_time: int) -> bytes:
     return block.header.hash
 
 
-def _connect(node: NodeAdapter) -> Peer:
-    """Core's own `add_p2p_connection`: a handshake, then a ping round trip."""
+class _DataStore(Conn):
+    """Core's own `P2PDataStore`, as far as the `getdata` it records.
+
+    `requests` is every hash a `getdata` read named.
+    """
+
+    def __init__(self, peer: Peer, version: Version) -> None:
+        super().__init__(peer, version)
+        self.requests: set[bytes] = set()
+
+    @override
+    def _handle(self, message: Message) -> None:
+        """Core's `P2PDataStore.on_getdata`, and `Conn`'s `on_ping`."""
+        super()._handle(message)
+        if message.command == "getdata":
+            self.requests.update(
+                item.hash for item in GetData.parse(message.payload).items
+            )
+
+
+def _connect(node: NodeAdapter) -> _DataStore:
+    """Core's own `add_p2p_connection`: a handshake, then a ping round trip.
+
+    The round trip is `Peer.sync_with_ping`'s, which answers no `ping`
+    and records no `getdata`.
+    """
     peer = Peer(node.p2p_address, _MAGIC)
     try:
-        peer.handshake()
+        store = _DataStore(peer, peer.handshake())
         peer.sync_with_ping()
     except BaseException:
         peer.close()
         raise
-    return peer
+    return store
 
 
 def _disconnect_p2ps(node: NodeAdapter, peer: Peer) -> None:
@@ -211,34 +234,6 @@ def _disconnect_p2ps(node: NodeAdapter, peer: Peer) -> None:
     """
     peer.close()
     wait_until(lambda: len(_peer_info(node)) == 1, timeout=_WAIT)
-
-
-def _getdata_requests(peer: Peer) -> set[bytes]:
-    """Core's own `sync_with_ping`, returning what each `getdata` read named.
-
-    `Peer.sync_with_ping`'s barrier, reading the connection itself so that
-    no `getdata` read on the way is dropped: Core's `P2PDataStore` records
-    each in `getdata_requests`.
-
-    :raises TimeoutError: no matching `pong` arrived within the wait.
-    """
-    requests: set[bytes] = set()
-    nonce = secrets.randbelow(2**64 - 1) + 1
-    peer.send(Ping(0))
-    peer.send(Ping(nonce))
-    deadline = time.monotonic() + scaled(_WAIT)
-    while True:
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            err_msg = "no pong within the wait"
-            raise TimeoutError(err_msg)
-        message = peer.receive(timeout=remaining)
-        if message.command == "ping":
-            peer.send(Pong(Ping.parse(message.payload).nonce))
-        elif message.command == "getdata":
-            requests.update(item.hash for item in GetData.parse(message.payload).items)
-        elif message.command == "pong" and Pong.parse(message.payload).nonce == nonce:
-            return requests
 
 
 def _asks_for(wtxid: bytes) -> Callable[[Message], bool]:
@@ -284,20 +279,21 @@ def _run(node: NodeAdapter, other: NodeAdapter, log_path: Path | None) -> None:
 
     # an announced transaction asked for by no `getdata`
     txid = _TXID.to_bytes(32, "big")
-    peer = _connect(node)
+    store = _connect(node)
+    peer = store.peer
     peer.send(_wtx_inv(txid))
-    requests = _getdata_requests(peer)
+    store.sync_with_ping()
     # were the node to ask, it would ask after this delay first
     mock_time += _NONPREF_PEER_TX_DELAY
     node.set_mock_time(mock_time)
-    requests |= _getdata_requests(peer)
-    assert txid not in requests
+    store.sync_with_ping()
+    assert txid not in store.requests
     _disconnect_p2ps(node, peer)
 
     # a transaction sent unasked, and left unprocessed
     assert isinstance(other.rpc.call("decoderawtransaction", [_RAW_TX_HEX]), dict)
     tx = Tx.parse(bytes.fromhex(_RAW_TX_HEX), check_validity=False)
-    peer = _connect(node)
+    peer = _connect(node).peer
     with _expecting(log_path, ["received: tx"], ["was not accepted"]):
         _send_tx(peer, tx)
     _disconnect_p2ps(node, peer)
@@ -310,7 +306,7 @@ def _run(node: NodeAdapter, other: NodeAdapter, log_path: Path | None) -> None:
         _wait_for_fee_filters(each, _NORMAL_FEE_FILTER)
 
     # the coinbase confirmed during initial block download is asked for
-    peer = _connect(node)
+    peer = _connect(node).peer
     peer.send(_wtx_inv(ibd_wtxid))
     peer.sync_with_ping()
     mock_time += _NONPREF_PEER_TX_DELAY
@@ -319,7 +315,7 @@ def _run(node: NodeAdapter, other: NodeAdapter, log_path: Path | None) -> None:
     _disconnect_p2ps(node, peer)
 
     # the same transaction, sent unasked, now processed
-    with _connect(node) as peer, _expecting(log_path, ["was not accepted"]):
+    with _connect(node).peer as peer, _expecting(log_path, ["was not accepted"]):
         _send_tx(peer, tx)
 
 

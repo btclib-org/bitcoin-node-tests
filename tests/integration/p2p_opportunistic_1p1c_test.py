@@ -52,9 +52,10 @@ from the wall clock at its start; that one, as Core's own, waits out the
 node's delays on the wall clock.
 
 Core builds a transaction with no witness, whose txid is its wtxid,
-with a `MiniWalletMode.RAW_P2PK` wallet: here `_p2pk_coins` mines
-coinbases paying `RAW_P2PK_SCRIPT_PUB_KEY` ahead of the wallet's own,
-and `raw_p2pk_script_sig` (`mini_wallet.py`) signs every spend of one.
+with a `MiniWalletMode.RAW_P2PK` wallet: here `mine_p2pk_coins`
+(`p2pk_coins_test.py`) mines coinbases paying `RAW_P2PK_SCRIPT_PUB_KEY`
+ahead of the wallet's own, and `raw_p2pk_script_sig` (`mini_wallet.py`)
+signs every spend of one.
 
 Core's `P2PInterface` records the latest `getdata` from its framework's
 network thread, and asks for whatever the node announces. Here `_Conn`
@@ -127,16 +128,19 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mempool_util import fill_mempool
 from bitcoin_node_tests.mini_wallet import (
-    RAW_P2PK_SCRIPT_PUB_KEY,
     MiniWallet,
     Utxo,
-    build_next_block,
-    raw_p2pk_script_sig,
 )
 from bitcoin_node_tests.node import wait_until
 from bitcoin_node_tests.peer import Listener, Peer
 from bitcoin_node_tests.timeout_factor import scaled
 from tests.integration.p2p_private_broadcast_test import malleated_to_invalid_witness
+from tests.integration.p2pk_coins_test import (
+    mine_p2pk_coins,
+    p2pk_new_utxo,
+    p2pk_self_transfer,
+    p2pk_tx,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -183,10 +187,6 @@ _FEERATE_1SAT_VB = 1000
 # Core's own `DEFAULT_MIN_RELAY_TX_FEE` (`test_framework/mempool_util.py`),
 # in satoshis per 1000 virtual bytes
 _DEFAULT_MIN_RELAY_TX_FEE = 100
-
-# Core's own virtual size of a `RAW_P2PK` self-transfer, which its
-# `create_self_transfer` (`wallet.py`) prices the fee at
-_P2PK_VSIZE = 168
 
 # how far short of its coin Core's own invalid child pays, in satoshis:
 # its `coin["value"] - Decimal("0.0001")`
@@ -366,66 +366,6 @@ def _outbound(stack: ExitStack, node: NodeAdapter) -> _Conn:
     return conn
 
 
-def _p2pk_coins(node: NodeAdapter, count: int) -> list[Utxo]:
-    """Return `count` coins spent with no witness, mined on the node's tip.
-
-    Core's own `generate(self.wallet_nonsegwit, count)`: `count` blocks,
-    each built by `build_next_block` and submitted, whose coinbase pays
-    `RAW_P2PK_SCRIPT_PUB_KEY`. Each coin is that coinbase's own output, a
-    `Utxo` that `raw_p2pk_script_sig` spends rather than `MiniWallet`,
-    immature until `fill_mempool` mines past it.
-
-    :raises TypeError: `submitblock` answered anything but acceptance.
-    """
-    coins = []
-    for _ in range(count):
-        block = build_next_block(node, RAW_P2PK_SCRIPT_PUB_KEY)
-        answer = node.rpc.call(
-            "submitblock", [block.serialize(check_validity=False).hex()]
-        )
-        if answer is not None:
-            err_msg = f"submitblock refused a coinbase paying P2PK: {answer!r}"
-            raise TypeError(err_msg)
-        coinbase = block.transactions[0]
-        height = node.rpc.call("getblockcount")
-        coins.append(
-            Utxo(OutPoint(coinbase.id, 0), coinbase.vout[0].value, height, True)
-        )
-    return coins
-
-
-def _p2pk_tx(coins: Sequence[Utxo], fee: int) -> Tx:
-    """Return a signed tx spending `coins` into one `RAW_P2PK` output.
-
-    Core's own `create_self_transfer_multi` in `RAW_P2PK` mode
-    (`wallet.py`), paying `fee`.
-    """
-    tx = Tx(
-        version=2,
-        lock_time=0,
-        vin=[TxIn(coin.outpoint) for coin in coins],
-        vout=[TxOut(sum(coin.value for coin in coins) - fee, RAW_P2PK_SCRIPT_PUB_KEY)],
-        check_validity=False,
-    )
-    for vin_i, tx_in in enumerate(tx.vin):
-        tx_in.script_sig = raw_p2pk_script_sig(tx, vin_i)
-    return tx
-
-
-def _p2pk_self_transfer(coin: Utxo, fee_rate: int) -> Tx:
-    """Core's own `create_self_transfer` of its `RAW_P2PK` wallet.
-
-    Its fee: `fee_rate`, in satoshis per 1000 virtual bytes, over Core's
-    own `RAW_P2PK` virtual size, rounded up.
-    """
-    return _p2pk_tx([coin], -(-fee_rate * _P2PK_VSIZE // 1000))
-
-
-def _p2pk_new_utxo(tx: Tx) -> Utxo:
-    """Core's own `new_utxo` of a `RAW_P2PK` transfer: its first output."""
-    return Utxo(OutPoint(tx.id, 0), tx.vout[0].value, 0, False)
-
-
 def _new_utxo(wallet: MiniWallet, tx: Tx) -> Utxo:
     """Core's own `new_utxo`: the first coin `tx` pays the wallet."""
     return wallet.new_utxos(tx)[0]
@@ -533,7 +473,7 @@ def _node(
         node.restart([_MAXMEMPOOL, _INBOUND_RELAY_PERCENT])
     else:
         node.restart([_MAXMEMPOOL])
-    p2pk = _p2pk_coins(node, p2pk_coins)
+    p2pk = mine_p2pk_coins(node, p2pk_coins)
     wallet = MiniWallet(node)
     wallet.generate(coins)
     fill_mempool(node)
@@ -561,7 +501,7 @@ def _below_mempoolminfee(
 def _p2pk_below_mempoolminfee(node: NodeAdapter, coin: Utxo) -> Tx:
     """Core's own `create_tx_below_mempoolminfee`, of its `RAW_P2PK` wallet."""
     assert _mempoolminfee(node) > _DEFAULT_MIN_RELAY_TX_FEE
-    return _p2pk_self_transfer(coin, _DEFAULT_MIN_RELAY_TX_FEE)
+    return p2pk_self_transfer(coin, _DEFAULT_MIN_RELAY_TX_FEE)
 
 
 def _low_fee_parent(node: NodeAdapter, wallet: MiniWallet, p2pk: list[Utxo]) -> Tx:
@@ -584,7 +524,7 @@ def _child(wallet: MiniWallet, parent: Tx, fee_rate: int, *, witness: bool) -> T
         return wallet.create_self_transfer(
             utxo_to_spend=_new_utxo(wallet, parent), fee_rate=fee_rate
         )
-    return _p2pk_self_transfer(_p2pk_new_utxo(parent), fee_rate)
+    return p2pk_self_transfer(p2pk_new_utxo(parent), fee_rate)
 
 
 def _parent_then_child(
@@ -899,8 +839,8 @@ def no_rejected_parent_of_a_two_parent_orphan_is_requested(
     # two parents with no witness, each under the mempool's minimum fee rate
     parent_low_1 = _p2pk_below_mempoolminfee(node, p2pk[0])
     parent_low_2 = _p2pk_below_mempoolminfee(node, p2pk[1])
-    child_bumping = _p2pk_tx(
-        [_p2pk_new_utxo(parent_low_1), _p2pk_new_utxo(parent_low_2)],
+    child_bumping = p2pk_tx(
+        [p2pk_new_utxo(parent_low_1), p2pk_new_utxo(parent_low_2)],
         999 * parent_low_1.vsize,
     )
     with ExitStack() as stack:

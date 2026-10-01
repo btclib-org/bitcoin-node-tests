@@ -43,11 +43,11 @@ Core's own waits bound it, scaled by `--timeout-factor`.
 What differs from Core's file:
 
 - Core's second wallet is a `MiniWalletMode.RAW_P2PK` one on the third
-  node: here `_p2pk_coins` mines, on that node, coinbases paying
-  `RAW_P2PK_SCRIPT_PUB_KEY`, and `raw_p2pk_script_sig`
-  (`mini_wallet.py`) signs every spend of one, every input signed under
-  btclib's deterministic nonce where Core's draws signatures until the
-  scriptSig is of one fixed length;
+  node: here `mine_p2pk_coins` (`p2pk_coins_test.py`) mines, on that
+  node, coinbases paying `RAW_P2PK_SCRIPT_PUB_KEY`, and
+  `raw_p2pk_script_sig` (`mini_wallet.py`) signs every spend of one,
+  every input signed under btclib's deterministic nonce where Core's
+  draws signatures until the scriptSig is of one fixed length;
 - Core's `rescan_utxos` reads its wallet's coins off the chain; the
   `MiniWallet` (`mini_wallet.py`) here caches the coins it mines;
 - Core's `P2PInterface` asks for whatever the node announces; `Peer`
@@ -70,15 +70,12 @@ from typing import TYPE_CHECKING
 
 from btclib.p2p import TxPayload
 from btclib.p2p.magic import magic_from_chain
-from btclib.tx import OutPoint, Tx, TxIn, TxOut
+from btclib.tx import Tx
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import (
-    RAW_P2PK_SCRIPT_PUB_KEY,
     MiniWallet,
     Utxo,
-    build_next_block,
-    raw_p2pk_script_sig,
 )
 from bitcoin_node_tests.node import (
     connect_nodes,
@@ -87,6 +84,11 @@ from bitcoin_node_tests.node import (
     wait_until_mempools_agree,
 )
 from bitcoin_node_tests.peer import Peer
+from tests.integration.p2pk_coins_test import (
+    mine_p2pk_coins,
+    p2pk_new_utxo,
+    p2pk_self_transfer,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -118,10 +120,6 @@ _DEFAULT_MIN_RELAY_TX_FEE = 100
 
 # Core's own child fee rate: `999 * DEFAULT_MIN_RELAY_TX_FEE`
 _HIGH_FEE_RATE = 999 * _DEFAULT_MIN_RELAY_TX_FEE
-
-# Core's own virtual size of a `RAW_P2PK` self-transfer, which its
-# `create_self_transfer` (`wallet.py`) prices the fee at
-_P2PK_VSIZE = 168
 
 # Core's own `fee_per_output` of the child spending both outputs, in
 # satoshis
@@ -169,53 +167,6 @@ def _peer_count(node: NodeAdapter) -> int:
     return len(peers)
 
 
-def _p2pk_coins(node: NodeAdapter, count: int) -> list[Utxo]:
-    """Return `count` coins spent with no witness, mined on the node's tip.
-
-    Core's own `generate(self.wallet_nonsegwit, count)`: `count` blocks,
-    each built by `build_next_block` and submitted, whose coinbase pays
-    `RAW_P2PK_SCRIPT_PUB_KEY`. Each coin is that coinbase's own output, a
-    `Utxo` that `raw_p2pk_script_sig` spends rather than `MiniWallet`.
-
-    :raises TypeError: `submitblock` answered anything but acceptance.
-    """
-    coins = []
-    for _ in range(count):
-        block = build_next_block(node, RAW_P2PK_SCRIPT_PUB_KEY)
-        answer = node.rpc.call(
-            "submitblock", [block.serialize(check_validity=False).hex()]
-        )
-        if answer is not None:
-            err_msg = f"submitblock refused a coinbase paying P2PK: {answer!r}"
-            raise TypeError(err_msg)
-        coinbase = block.transactions[0]
-        height = node.rpc.call("getblockcount")
-        coins.append(
-            Utxo(OutPoint(coinbase.id, 0), coinbase.vout[0].value, height, True)
-        )
-    return coins
-
-
-def _p2pk_self_transfer(coin: Utxo, fee_rate: int) -> Tx:
-    """Core's own `create_self_transfer` of its `RAW_P2PK` wallet.
-
-    One input spending `coin`, signed, and one output paying
-    `RAW_P2PK_SCRIPT_PUB_KEY`; its fee is `fee_rate`, in satoshis per
-    1000 virtual bytes, over Core's own `RAW_P2PK` virtual size, rounded
-    up.
-    """
-    fee = -(-fee_rate * _P2PK_VSIZE // 1000)
-    tx = Tx(
-        version=2,
-        lock_time=0,
-        vin=[TxIn(coin.outpoint)],
-        vout=[TxOut(coin.value - fee, RAW_P2PK_SCRIPT_PUB_KEY)],
-        check_validity=False,
-    )
-    tx.vin[0].script_sig = raw_p2pk_script_sig(tx, 0)
-    return tx
-
-
 def _basic_1p1c(wallet: MiniWallet) -> list[Tx]:
     """Core's own `create_basic_1p1c`, of its default wallet.
 
@@ -231,9 +182,8 @@ def _basic_1p1c(wallet: MiniWallet) -> list[Tx]:
 
 def _p2pk_basic_1p1c(coin: Utxo) -> list[Tx]:
     """Core's own `create_basic_1p1c`, of its `RAW_P2PK` wallet."""
-    parent = _p2pk_self_transfer(coin, 0)
-    new_utxo = Utxo(OutPoint(parent.id, 0), parent.vout[0].value, 0, False)
-    return [parent, _p2pk_self_transfer(new_utxo, _HIGH_FEE_RATE)]
+    parent = p2pk_self_transfer(coin, 0)
+    return [parent, p2pk_self_transfer(p2pk_new_utxo(parent), _HIGH_FEE_RATE)]
 
 
 def _package_2p1c(wallet: MiniWallet) -> list[Tx]:
@@ -333,7 +283,7 @@ def every_node_takes_the_packages_one_node_is_given(
     for first, second in zip(nodes[1:], nodes, strict=False):
         connect_nodes(first, second)
 
-    p2pk = _p2pk_coins(nodes[2], _P2PK_BLOCKS)
+    p2pk = mine_p2pk_coins(nodes[2], _P2PK_BLOCKS)
     sync_all(nodes)
     wallet = MiniWallet(nodes[1])
     wallet.generate(_WALLET_BLOCKS)

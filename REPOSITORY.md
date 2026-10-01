@@ -17,10 +17,9 @@ The topics and `.homepage` have a second form in the tree —
 `pyproject.toml`'s `keywords` and its `[project.urls] homepage` — so each
 is read back here for comparison rather than as the only place the
 answer lives, which is what *Topics* and *What this file passes over*
-say of them. This tree publishes nothing yet (issue
-btclib-org/btclib#2220, step 2 of 5): *Publishing* below says what is
-deferred and to what. A Read the Docs project exists ahead of that, and
-builds — *Read the Docs* below records it.
+say of them. This tree publishes nothing: *Publishing* below says what
+is absent. A Read the Docs project exists, and builds — *Read the Docs*
+below records it.
 
 Each section carries the command that sets its setting and the command
 that reads it back, and the `#` lines under a read-back are what it
@@ -53,8 +52,8 @@ git push git@github.com:btclib-org/bitcoin-node-tests.git main
 Then the switches section 11 turns off or on at the repository level, in
 one call — the projects board and the wiki off, the tracker on, squash as
 the only merge method with auto-merge, the head branch deleted on merge,
-and the squash commit's title and body. No `homepage`: this tree ships no
-documentation site yet.
+and the squash commit's title and body. `homepage` is set apart, under *A
+field the standard scopes to a releasing tree* below.
 
 ```shell
 gh api -X PATCH repos/btclib-org/bitcoin-node-tests \
@@ -265,7 +264,7 @@ gh api repos/btclib-org/bitcoin-node-tests/branches/main/protection \
 
 `tag-integrity`, `target: tag`, `refs/tags/v*`: required signatures, and
 nothing else, matching every other repository of the organization even
-though nothing has tagged a release here yet:
+though no release is tagged here:
 
 ```shell
 gh api -X POST repos/btclib-org/bitcoin-node-tests/rulesets --input - <<'JSON'
@@ -375,10 +374,9 @@ fields](https://github.com/btclib-org/.github/blob/main/README.md#tokens-publish
 
 ## Publishing
 
-**Nothing is published yet.** No `release.yml`, no `pypi-install.yml`:
-this tree is tier 2 (section 2 of the organization standard), owing what
-step 4 of [ISS 2220](https://github.com/btclib-org/btclib/issues/2220)
-brings.
+**Nothing is published.** No `release.yml`, no `pypi-install.yml`:
+section 2 of the organization standard does not ask them of a tier-2
+tree, which this is.
 
 **No `pypi` or `testpypi` environment exists on this repository.**
 Section 11's own rule is that each is named by a job of the release
@@ -392,8 +390,8 @@ gh api repos/btclib-org/bitcoin-node-tests/environments --jq .total_count
 # 0
 ```
 
-The two arrive together with `release.yml`, at step 4 of the same issue,
-the same pull request that adds the job each environment is named by.
+Each would arrive with `release.yml`, in the pull request that adds the
+job naming it.
 
 ## Read the Docs
 
@@ -417,9 +415,9 @@ gh api repos/btclib-org/bitcoin-node-tests/hooks --jq length
 ```
 
 `stable` is absent from the active versions for the reason
-`btclib-wallet`'s section gives: no `v*` tag exists yet, this tree
+`btclib-wallet`'s section gives: no `v*` tag exists, this tree
 having published nothing (*Publishing*, above). Whether an automation
-rule is set for the tag it will eventually gain is Admin-only and
+rule is set for a tag it may gain is Admin-only and
 answered by no public endpoint; it was not checked here.
 
 **One build failed, and it was this tree's own bug, already fixed.**

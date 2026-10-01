@@ -11,9 +11,8 @@ build-backend = "uv_build"
 [project]
 name = "bitcoin-node-tests"
 # a placeholder, and the reason is CONTRIBUTING.md's "A version, and no
-# release": nothing here is released yet (issue btclib-org/btclib#2220,
-# step 2 of 5). Section 12's calendar versioning applies to what a
-# release publishes, from step 4 on
+# release": nothing here is released. Section 12's calendar versioning
+# applies to what a release publishes
 version = "0"
 description = "Bitcoin Core's functional test suite, rewritten on btclib, run against any node that speaks bitcoin's RPC and p2p"
 readme = "README.md"
@@ -70,12 +69,12 @@ classifiers = [
 ]
 
 [project.urls]
-# no `documentation` and no `changelog`: this tree publishes nothing yet,
-# no site stands behind it, and `changelog` is the name a publisher here
-# gives `RELEASE_NOTES.md`, which section 2 gives a tier-1 tree alone
-# (section 3). `homepage` and `download` have a referent regardless: a
-# releasing tree's `homepage` is its own documentation site, and this
-# tree has none of its own, so its home is the organization's own site,
+# no `documentation` and no `changelog`: this tree publishes nothing,
+# and `changelog` is the name a publisher here gives `RELEASE_NOTES.md`,
+# which section 2 gives a tier-1 tree alone (section 3). `homepage` and
+# `download` have a referent regardless: a releasing tree's `homepage`
+# is its own documentation site, and this tree releases nothing, so its
+# home is the organization's own site,
 # the same choice btclib-benchmarks makes for the same reason -- and
 # `repository` below already carries this repository's own page, which a
 # reader following the *About* link is already looking at

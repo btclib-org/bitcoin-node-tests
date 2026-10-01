@@ -7,8 +7,8 @@
 The release is `31.1`, fetched from bitcoincore.org and verified against
 its published sha256, the same one
 [btclib's `integration-bitcoind.yml`](https://github.com/btclib-org/btclib/blob/main/.github/workflows/integration-bitcoind.yml)
-pins -- a build of `master` is a later issue of its own
-([ISS 2220](https://github.com/btclib-org/btclib/issues/2220)'s step 5).
+pins -- `node-integration.yml`'s `core-master` job builds Core's
+`master` from source.
 This module holds none of that fetch: it is handed the daemon's own path,
 already installed -- `btclib-org/.github`'s `install_bitcoind.py` is what
 installs it in CI, and `tests/integration/conftest.py` is what hands it

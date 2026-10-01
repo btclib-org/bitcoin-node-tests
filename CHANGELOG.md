@@ -1406,3 +1406,9 @@ The port runs a `Socks5Proxy` for `-proxy` and one for `-onion`. Where
 
 Core's `rpc_net` is checked for the steps that need one node, its dead
 `-proxy` needing no mock; btclib-node skips (issue #47).
+
+### `BitcoindAdapter` probes the cluster mempool
+
+Where `-help-debug` lists no `-limitclustercount`, `BitcoindAdapter` lacks
+the cluster capabilities and `mempool_cluster` skips; the mempool files
+that branch on them assert the older limits there (issue #354).

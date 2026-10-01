@@ -6,11 +6,9 @@ r"""Core's `mempool_package_limits`, rewritten on this harness: btclib-node.
 
 `mempool_package_limits_test.py` beside this module holds each body, run
 here against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `Capability.LIMIT_CLUSTER_COUNT` is not
-declared: measured against `cli.py`'s registered options,
-`_build_parser` on the released build and `_OPTIONS` on `main`,
-`-limitclustercount` is not one of its registered flags -- a counted
-skip on that capability alone, before the node is restarted with it.
+btclib-org/btclib#2220). `Capability.PACKAGE_ACCEPTANCE` is not
+declared, `btclib_node.py`'s own module docstring having the measurement
+-- a counted skip on that capability alone, before the node is restarted.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \

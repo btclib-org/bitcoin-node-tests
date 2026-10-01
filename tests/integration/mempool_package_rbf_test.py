@@ -96,7 +96,8 @@ _DEFAULT_CHILD_FEE = _DEFAULT_FEE * 4
 # Core's own (`messages.py`): opts into BIP125 and out of BIP68
 _MAX_BIP125_RBF_SEQUENCE = 0xFFFFFFFD
 
-# Core's own: how many clusters one replacement may conflict with
+# Core's own: how many clusters one replacement may conflict with, and
+# before the cluster mempool (`v31.0`) how many transactions it may replace
 _MAX_REPLACEMENT_CANDIDATES = 100
 
 # Core's own `-incrementalrelayfee` default in sat/vB, the float its file
@@ -383,27 +384,35 @@ def a_package_replaces_no_more_clusters_than_the_limit(
     is refused, and so is one reaching that many chains and a lone
     transaction besides; one reaching exactly that many chains is taken.
 
+    A build before the cluster mempool counts the transactions replaced
+    instead, as Core's file of that build does: its chains are two
+    transactions long, one more than half the limit of them are replaced
+    by the first package, and the refusal is the package's own message,
+    naming the child.
+
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
     """
-    num_coins = _MAX_REPLACEMENT_CANDIDATES + 1
-    node, packages = _node(cluster, skip_counts, coins=num_coins + 1)
+    # the cluster mempool's own count is the larger one, so the coins it
+    # needs are mined whichever build this is
+    node, packages = _node(cluster, skip_counts, coins=_MAX_REPLACEMENT_CANDIDATES + 2)
+    clustered = Capability.CLUSTER_LINEARIZATION in node.capabilities
+    chain_length = 3 if clustered else 2
+    num_coins = (
+        _MAX_REPLACEMENT_CANDIDATES + 1
+        if clustered
+        else _MAX_REPLACEMENT_CANDIDATES // chain_length + 1
+    )
     wallet = packages.wallet
     parent_coins = [wallet.get_utxo() for _ in range(num_coins)]
 
-    size_three_clusters = [
-        wallet.send_self_transfer_chain(chain_length=3, utxo_to_spend=coin)
+    chains = [
+        wallet.send_self_transfer_chain(chain_length=chain_length, utxo_to_spend=coin)
         for coin in parent_coins
     ]
-    expected_txns = [tx for chain in size_three_clusters for tx in chain]
-    assert len(expected_txns) == num_coins * 3
+    expected_txns = [tx for chain in chains for tx in chain]
+    assert len(expected_txns) == num_coins * chain_length
     _assert_mempool_contents(node, expected_txns)
-
-    too_many = (
-        "too many potential replacements, rejecting replacement {}; "
-        f"too many conflicting clusters ({num_coins} > "
-        f"{_MAX_REPLACEMENT_CANDIDATES})"
-    )
 
     def package_over(coins: list[Utxo]) -> list[Tx]:
         parent = wallet.create_self_transfer_multi(
@@ -414,29 +423,41 @@ def a_package_replaces_no_more_clusters_than_the_limit(
         )
         return [parent, child]
 
-    package = package_over(parent_coins)
-    pkg_results = _submit(node, package, maxfeerate=0)
-    assert pkg_results["package_msg"] == "transaction failed", pkg_results
-    tx_result = pkg_results["tx-results"][package[0].hash.hex()]
-    assert tx_result["error"] == too_many.format(_txid(package[0])), tx_result
-    _assert_mempool_contents(node, expected_txns)
+    def assert_refused(package: list[Tx], replaced: int) -> None:
+        """Assert `package` is refused for reaching `replaced` conflicts."""
+        pkg_results = _submit(node, package, maxfeerate=0)
+        if clustered:
+            assert pkg_results["package_msg"] == "transaction failed", pkg_results
+            tx_result = pkg_results["tx-results"][package[0].hash.hex()]
+            assert tx_result["error"] == (
+                f"too many potential replacements, rejecting replacement "
+                f"{_txid(package[0])}; too many conflicting clusters "
+                f"({num_coins} > {_MAX_REPLACEMENT_CANDIDATES})"
+            ), tx_result
+        else:
+            assert pkg_results["package_msg"] == (
+                "package RBF failed: too many potential replacements, rejecting "
+                f"replacement {_txid(package[1])}; too many potential "
+                f"replacements ({replaced} > {_MAX_REPLACEMENT_CANDIDATES})"
+            ), pkg_results
+        _assert_mempool_contents(node, expected_txns)
+
+    assert_refused(package_over(parent_coins), num_coins * chain_length)
 
     singleton_coin = wallet.get_utxo()
     singleton_tx = wallet.create_self_transfer(utxo_to_spend=singleton_coin)
     node.rpc.call("sendrawtransaction", [_hex(singleton_tx)])
     expected_txns.append(singleton_tx)
 
-    package = package_over([*parent_coins[:-1], singleton_coin])
-    pkg_results = _submit(node, package, maxfeerate=0)
-    assert pkg_results["package_msg"] == "transaction failed", pkg_results
-    tx_result = pkg_results["tx-results"][package[0].hash.hex()]
-    assert tx_result["error"] == too_many.format(_txid(package[0])), tx_result
-    _assert_mempool_contents(node, expected_txns)
+    assert_refused(
+        package_over([*parent_coins[:-1], singleton_coin]),
+        (num_coins - 1) * chain_length + 1,
+    )
 
     package = package_over(parent_coins[:-1])
     pkg_results = _submit(node, package, maxfeerate=0)
     assert pkg_results["package_msg"] == "success", pkg_results
-    _assert_mempool_contents(node, [singleton_tx, *size_three_clusters[-1], *package])
+    _assert_mempool_contents(node, [singleton_tx, *chains[-1], *package])
 
 
 def a_package_with_mempool_ancestors_replaces_nothing(

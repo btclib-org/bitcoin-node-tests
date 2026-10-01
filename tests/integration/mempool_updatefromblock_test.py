@@ -19,17 +19,22 @@ own `DEFAULT_CLUSTER_LIMIT`-sized one, the mechanism -- every
 mempool-entry's own ancestor/descendant count and size recomputed after
 a reorg re-adds every transaction a mined block once carried -- needing
 no particular size to hold) and the chain-length case
-(`test_chainlimits_exceeded`, unchanged: it is the node's own *default*
-cluster count, not an option this file configures, that the chain has
-to exceed). Dropped is Core's own `test_max_disconnect_pool_bytes`:
+(`test_chainlimits_exceeded`: it is the node's own *default* chain
+limit, not an option this file configures, that the chain has to
+exceed). Dropped is Core's own `test_max_disconnect_pool_bytes`:
 `MAX_DISCONNECTED_TX_POOL_BYTES` is a fixed 20-megabyte bound in
 bitcoind's own C++, not a configurable option, so exercising it means
 actually building, mining and reorging some twenty megabytes of
 transactions -- disproportionate for a boundary neither kept subtest
 needs to also cover.
 
-Each body starts its node without `-limitclustersize` and restarts it
-with the option before any block is mined.
+Each body starts its node without `-limitclustersize` and, where the
+node declares the capability, restarts it with the option before any
+block is mined. A build before the cluster mempool (`v31.0`) has no such
+option and limits a chain by its ancestors instead: the tournament runs
+there as it is, within the default ancestor and descendant limits, and
+the chain is the default of 25 and two more, refused as
+`too-long-mempool-chain`.
 
 `mempool_updatefromblock_bitcoind_test.py` and
 `mempool_updatefromblock_btclib_node_test.py` run each body,
@@ -38,6 +43,7 @@ with the option before any block is mined.
 
 from __future__ import annotations
 
+import re
 from math import ceil
 from typing import TYPE_CHECKING
 
@@ -73,26 +79,34 @@ _TOURNAMENT_SIZE = 6
 # default -- not the configured size -- is what the chain has to exceed
 _DEFAULT_CLUSTER_LIMIT = 64
 
+# the build before the cluster mempool's own compiled-in default
+# -limitancestorcount, which a chain has to exceed there instead
+_DEFAULT_ANCESTOR_LIMIT = 25
+
 
 def _start(
     cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
     skip_counts: SkipCounts,
     *needs: Capability,
-) -> BitcoindAdapter | BtclibNodeAdapter:
-    """Return one node, restarted with `-limitclustersize=1000`.
+) -> tuple[BitcoindAdapter | BtclibNodeAdapter, bool]:
+    """Return one node and whether it runs the cluster mempool.
+
+    A node declaring `Capability.LIMIT_CLUSTER_SIZE` is restarted with
+    `-limitclustersize=1000`.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
-    :param needs: what the body asks for beyond the option and
-        `Capability.MINE`, each asked for ahead of `Capability.MINE`.
+    :param needs: what the body asks for beyond `Capability.MINE`, each
+        asked for ahead of it.
     """
     (node,) = cluster(1)
-    require(Capability.LIMIT_CLUSTER_SIZE, node.capabilities, skip_counts)
     for capability in needs:
         require(capability, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)
-    node.restart(["-limitclustersize=1000"])
-    return node
+    clustered = Capability.LIMIT_CLUSTER_SIZE in node.capabilities
+    if clustered:
+        node.restart(["-limitclustersize=1000"])
+    return node, clustered
 
 
 def reorg_recomputes_every_entry_s_own_ancestors_and_descendants(
@@ -110,7 +124,7 @@ def reorg_recomputes_every_entry_s_own_ancestors_and_descendants(
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
     """
-    node = _start(cluster, skip_counts)
+    node, _ = _start(cluster, skip_counts)
     wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + 1)
     # built before any tournament transaction exists, and longer than
@@ -161,30 +175,38 @@ def a_chain_over_the_default_cluster_limit_needs_a_reorg_to_fit(
     cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
-    """Check a chain longer than the default cluster count is refused entry.
+    """Check a chain over the node's default chain limit is refused entry.
 
-    `-limitclustersize=1000` leaves the *count* default in force: a
-    chain two longer than it is refused by `sendrawtransaction` one
-    short of the limit, accepted into one block by `generateblock`
-    naming the raw transactions directly (bypassing mempool admission
-    entirely), and every transaction but the block's own last two is
-    resurrected into the mempool once a longer fork reorgs that block
-    away, back under the count the chain never fit unconfirmed.
+    The node's default chain limit is in force, the cluster count where
+    the node has one. Of a chain two longer than it, the first `limit`
+    transactions enter the mempool and the next one is refused by
+    `sendrawtransaction`. All but the last are accepted into one block by
+    `generateblock` naming the raw transactions directly (bypassing
+    mempool admission entirely). Every transaction but the chain's last
+    two is resurrected into the mempool once a longer fork reorgs that
+    block away, back under the limit the chain never fit unconfirmed.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
     """
-    node = _start(cluster, skip_counts, Capability.GENERATE)
+    node, clustered = _start(cluster, skip_counts, Capability.GENERATE)
     wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + 1)
     fork_blocks = build_fork(node, wallet.script_pub_key, 10)
 
-    chain = wallet.create_self_transfer_chain(chain_length=_DEFAULT_CLUSTER_LIMIT + 2)
+    limit = _DEFAULT_CLUSTER_LIMIT if clustered else _DEFAULT_ANCESTOR_LIMIT
+    refusal = (
+        "too-large-cluster"
+        if clustered
+        else "too-long-mempool-chain, too many unconfirmed ancestors "
+        f"[limit: {_DEFAULT_ANCESTOR_LIMIT}]"
+    )
+    chain = wallet.create_self_transfer_chain(chain_length=limit + 2)
     for tx in chain[:-2]:
         node.rpc.call(
             "sendrawtransaction", [tx.serialize(True, check_validity=False).hex()]
         )
-    with pytest.raises(RpcError, match="too-large-cluster"):
+    with pytest.raises(RpcError, match=re.escape(refusal)):
         node.rpc.call(
             "sendrawtransaction",
             [chain[-2].serialize(True, check_validity=False).hex()],

@@ -30,8 +30,13 @@ descendant-size case (`test_desc_size_limits`), which needs
 boundary this file's other two cases already establish on the ancestor
 and descendant *count* sides.
 
-Each body starts its node without `-limitclustercount` and restarts it
-with the option before any block is mined.
+Each body starts its node without `-limitclustercount` and, where the
+node declares the capability, restarts it with the option before any
+block is mined. A build before the cluster mempool (`v31.0`) has no such
+option: it limits the same shapes at its defaults of 25 in-mempool
+ancestors and 25 descendants, and refuses a package over them with
+`package-mempool-limits`, so the body runs there at those defaults and
+matches that reason.
 
 `mempool_package_limits_bitcoind_test.py` and
 `mempool_package_limits_btclib_node_test.py` run each body,
@@ -69,12 +74,15 @@ def _package_hex(txs: list[Tx]) -> list[str]:
     return [tx.serialize(True, check_validity=False).hex() for tx in txs]
 
 
-def _assert_all_too_large_cluster(node: NodeAdapter, package: list[Tx]) -> None:
+def _assert_all_refused(
+    node: NodeAdapter, package: list[Tx], *, clustered: bool
+) -> None:
+    refusal = "too-large-cluster" if clustered else "package-mempool-limits"
     results = node.rpc.call("testmempoolaccept", [_package_hex(package)])
     assert isinstance(results, list)
     assert len(results) == len(package)
     for result in results:
-        assert "too-large-cluster" in result["package-error"], result
+        assert refusal in result["package-error"], result
 
 
 def _assert_all_allowed(node: NodeAdapter, package: list[Tx]) -> None:
@@ -86,30 +94,34 @@ def _assert_all_allowed(node: NodeAdapter, package: list[Tx]) -> None:
 def _start(
     cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
     skip_counts: SkipCounts,
-) -> BitcoindAdapter | BtclibNodeAdapter:
-    """Return one node, restarted with `-limitclustercount`.
+) -> tuple[BitcoindAdapter | BtclibNodeAdapter, bool]:
+    """Return one node and whether it runs the cluster mempool.
+
+    A node declaring `Capability.LIMIT_CLUSTER_COUNT` is restarted with
+    `-limitclustercount`.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
-    require(Capability.LIMIT_CLUSTER_COUNT, node.capabilities, skip_counts)
     require(Capability.PACKAGE_ACCEPTANCE, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)
-    node.restart([f"-limitclustercount={_LIMIT_CLUSTER_COUNT}"])
-    return node
+    clustered = Capability.LIMIT_CLUSTER_COUNT in node.capabilities
+    if clustered:
+        node.restart([f"-limitclustercount={_LIMIT_CLUSTER_COUNT}"])
+    return node, clustered
 
 
 def in_package_ancestors_count_toward_the_mempool_ancestor_limit(
     cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
-    """Check 24 in-mempool ancestors and a 2-tx package exceed cluster count 25.
+    """Check 24 in-mempool ancestors and a 2-tx package exceed the limit of 25.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
     """
-    node = _start(cluster, skip_counts)
+    node, clustered = _start(cluster, skip_counts)
     wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + 1)
     assert node.rpc.call("getmempoolinfo")["size"] == 0
@@ -122,7 +134,7 @@ def in_package_ancestors_count_toward_the_mempool_ancestor_limit(
     child = wallet.create_self_transfer(utxo_to_spend=parent_utxo)
     package = [parent, child]
 
-    _assert_all_too_large_cluster(node, package)
+    _assert_all_refused(node, package, clustered=clustered)
 
     node.mine(1)
     assert node.rpc.call("getmempoolinfo")["size"] == 0
@@ -144,7 +156,7 @@ def in_package_descendants_count_toward_the_mempool_descendant_limit(
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
     """
-    node = _start(cluster, skip_counts)
+    node, clustered = _start(cluster, skip_counts)
     wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + 1)
 
@@ -162,7 +174,7 @@ def in_package_descendants_count_toward_the_mempool_descendant_limit(
         wallet.create_self_transfer(utxo_to_spend=chain_b_tip),
     ]
 
-    _assert_all_too_large_cluster(node, package)
+    _assert_all_refused(node, package, clustered=clustered)
 
     node.mine(1)
     assert node.rpc.call("getmempoolinfo")["size"] == 0

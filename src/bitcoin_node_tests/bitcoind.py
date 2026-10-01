@@ -91,6 +91,16 @@ _TEST_CHAIN_ONLY = frozenset({Capability.ACCEPT_NON_STANDARD})
 # `NODE_WALLET` is the wallet itself
 _WALLET_ONLY = frozenset({Capability.MINE, Capability.NODE_WALLET})
 
+# the capabilities a build without the cluster mempool lacks,
+# `_has_cluster_mempool` being what says so
+_CLUSTER_MEMPOOL_ONLY = frozenset(
+    {
+        Capability.CLUSTER_LINEARIZATION,
+        Capability.LIMIT_CLUSTER_COUNT,
+        Capability.LIMIT_CLUSTER_SIZE,
+    }
+)
+
 # the log category `_start` adds for a node given `-privatebroadcast`
 _PRIVATE_BROADCAST_LOG = "-debug=privatebroadcast"
 
@@ -169,6 +179,24 @@ def _has_private_broadcast(executable: str) -> bool:
         [executable, "-help", "-nosettings"], check=False, capture_output=True
     )
     return b"\n  -privatebroadcast\n" in probe.stdout
+
+
+@lru_cache
+def _has_cluster_mempool(executable: str) -> bool:
+    """Return whether `executable` runs the cluster mempool.
+
+    The cluster mempool arrives in `v31.0`, with `-limitclustercount`,
+    `-limitclustersize` and `getmempoolcluster`. The two options are
+    debug-only, so `-help-debug` lists them and `-help` does not; an older
+    build lists neither. Probed off the binary as `_has_wallet` is, with
+    `-nosettings` for the same reason.
+
+    :param executable: the `bitcoind` binary to probe.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-help-debug", "-nosettings"], check=False, capture_output=True
+    )
+    return b"\n  -limitclustercount=<n>\n" in probe.stdout
 
 
 class BitcoindAdapter(NodeAdapter):
@@ -252,13 +280,12 @@ class BitcoindAdapter(NodeAdapter):
     regardless of `-v2transport`, BIP324's own detection accepting a v1
     handshake from either side.
     `Capability.DATACARRIER`, `Capability.PERMIT_BARE_MULTISIG`,
-    `Capability.DUST_RELAY_FEE`, `Capability.BYTES_PER_SIGOP`,
-    `Capability.LIMIT_CLUSTER_COUNT`, `Capability.LIMIT_CLUSTER_SIZE` and
+    `Capability.DUST_RELAY_FEE`, `Capability.BYTES_PER_SIGOP` and
     `Capability.MAXMEMPOOL` are unconditional too: `-datacarrier`,
     `-datacarriersize`, `-permitbaremultisig`, `-dustrelayfee`,
-    `-bytespersigop`, `-limitclustercount`, `-limitclustersize` and
-    `-maxmempool` are all ordinary mempool/relay-policy flags of this
-    binary's own, recognised regardless of what a caller sets them to
+    `-bytespersigop` and `-maxmempool` are all ordinary mempool/relay-policy
+    flags of this binary's own, recognised regardless of what a caller sets
+    them to
     ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
     `Capability.DESCRIPTOR_ACTIVITY` and `Capability.BLOCK_STATS` are
     unconditional too: `getdescriptoractivity` and `getblockstats` are
@@ -365,10 +392,14 @@ class BitcoindAdapter(NodeAdapter):
     `debug_log_path` below.
     `Capability.MIN_RELAY_TX_FEE` is unconditional too: `-minrelaytxfee`
     is this binary's own flag (`src/init.cpp`).
-    `Capability.CLUSTER_LINEARIZATION` is unconditional too:
-    `getmempoolcluster` and `getmempoolfeeratediagram` are this binary's
-    own RPCs, and `optimal` a field of its own `getmempoolinfo`
-    (`src/rpc/mempool.cpp`).
+    `Capability.CLUSTER_LINEARIZATION`, `Capability.LIMIT_CLUSTER_COUNT`
+    and `Capability.LIMIT_CLUSTER_SIZE` are the cluster mempool's:
+    `getmempoolcluster` and `getmempoolfeeratediagram` are RPCs
+    (`src/rpc/mempool.cpp`), `optimal` a field of `getmempoolinfo`, and
+    `-limitclustercount` and `-limitclustersize` flags
+    (`src/init.cpp`). They are declared only by a build
+    whose `-help-debug` lists `-limitclustercount`,
+    `_has_cluster_mempool` being the probe.
     `Capability.MINIMUM_CHAIN_WORK` is unconditional too:
     `-minimumchainwork` is this binary's own debug-only flag
     (`src/init.cpp`).
@@ -516,9 +547,9 @@ class BitcoindAdapter(NodeAdapter):
         `BtclibNodeAdapter.__init__` (`btclib_node.py`) uses and for the
         same reason: `_check_extra_args(self._command(), extra_args)`
         needs `self._executable` set before `_command` can be called.
-        `_has_wallet` and `_has_private_broadcast` are then this class's
-        own per-build probes, read once per instance rather than once per
-        `mine` call,
+        `_has_wallet`, `_has_private_broadcast` and `_has_cluster_mempool`
+        are then this class's own per-build probes, read once per instance
+        rather than once per `mine` call,
         `_REGTEST_ONLY` is what any other `chain` drops, and
         `_TEST_CHAIN_ONLY` what main drops besides.
         """
@@ -536,6 +567,8 @@ class BitcoindAdapter(NodeAdapter):
             self.capabilities = self.capabilities - _WALLET_ONLY
         if not _has_private_broadcast(executable):
             self.capabilities = self.capabilities - {Capability.PRIVATE_BROADCAST}
+        if not _has_cluster_mempool(executable):
+            self.capabilities = self.capabilities - _CLUSTER_MEMPOOL_ONLY
         if chain != "regtest":
             self.capabilities = self.capabilities - _REGTEST_ONLY
         if chain == "main":

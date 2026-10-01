@@ -20,14 +20,18 @@ from bitcoin_node_tests.capability import Capability
 from bitcoin_node_tests.node import NodeAdapter
 from bitcoin_node_tests.timeout_factor import set_factor
 
-# the probe itself, for its own tests: `_any_build` patches the name
+# the probes themselves, for their own tests: `_any_build` patches the names
 _has_private_broadcast = bitcoind_module._has_private_broadcast
+_has_cluster_mempool = bitcoind_module._has_cluster_mempool
 
 
 @pytest.fixture(autouse=True)
 def _any_build() -> Iterator[None]:
-    """Answer `_has_private_broadcast` without running a binary."""
-    with patch.object(bitcoind_module, "_has_private_broadcast", return_value=True):
+    """Answer the build probes of `-help` without running a binary."""
+    with (
+        patch.object(bitcoind_module, "_has_private_broadcast", return_value=True),
+        patch.object(bitcoind_module, "_has_cluster_mempool", return_value=True),
+    ):
         yield
 
 
@@ -205,6 +209,43 @@ def test_has_private_broadcast_is_false_where_help_lists_no_option() -> None:
     stdout = b"...\n  -proxy=<ip:port|path>\n..."
     with patch("subprocess.run", return_value=SimpleNamespace(stdout=stdout)):
         assert _has_private_broadcast("fake-bitcoind-30") is False
+
+
+def test_capabilities_drop_the_cluster_ones_where_help_lists_no_cluster_option(
+    tmp_path: Path,
+) -> None:
+    """A build with no cluster mempool loses the three that rest on it alone."""
+    with (
+        patch.object(bitcoind_module, "_has_wallet", return_value=True),
+        patch.object(bitcoind_module, "_has_cluster_mempool", return_value=False),
+    ):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
+    assert adapter.capabilities == BitcoindAdapter.capabilities - {
+        Capability.CLUSTER_LINEARIZATION,
+        Capability.LIMIT_CLUSTER_COUNT,
+        Capability.LIMIT_CLUSTER_SIZE,
+    }
+
+
+def test_has_cluster_mempool_reads_the_probe_s_own_stdout() -> None:
+    """`_has_cluster_mempool` is `-help-debug` listing `-limitclustercount`."""
+    _has_cluster_mempool.cache_clear()
+    stdout = b"...\n  -limitclustercount=<n>\n       Do not accept...\n"
+    with patch("subprocess.run", return_value=SimpleNamespace(stdout=stdout)) as run:
+        assert _has_cluster_mempool("fake-bitcoind-31") is True
+    run.assert_called_once_with(
+        ["fake-bitcoind-31", "-help-debug", "-nosettings"],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_has_cluster_mempool_is_false_where_help_lists_no_cluster_option() -> None:
+    """A build before `v31.0` lists the ancestor and descendant limits alone."""
+    _has_cluster_mempool.cache_clear()
+    stdout = b"...\n  -limitancestorcount=<n>\n  -limitdescendantcount=<n>\n"
+    with patch("subprocess.run", return_value=SimpleNamespace(stdout=stdout)):
+        assert _has_cluster_mempool("fake-bitcoind-30") is False
 
 
 def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:

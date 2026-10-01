@@ -867,8 +867,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
-| `mempool_package_limits.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
-| `mempool_updatefromblock.py` | `fa6b05c96ffb` | 2026-03-12 | pass | skip |
+| `mempool_package_limits.py` | `fa5f29774872` | 2025-12-16 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
+| `mempool_updatefromblock.py` | `fa6b05c96ffb` | 2026-03-12 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 | `p2p_leak_tx.py` (in block) | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `p2p_leak_tx.py` (replaced) | same | same | pass | skip |
 | `p2p_leak_tx.py` (unannounced) | same | same | pass | skip |
@@ -1068,11 +1068,11 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_ibd_txrelay.py` (log) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (mine) on the build; skip (test_activation_height) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (permit_bare_multisig) |
-| `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass | skip (limit_cluster_size) |
+| `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass; skip (limit_cluster_size) on a build before `v31.0` | skip (limit_cluster_size) |
 | `feature_minchainwork.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (minimum_chain_work) |
-| `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass | skip (limit_cluster_count) |
+| `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mempool_graph) |
 | `feature_versionbits_warning.py` | [`5bd990a3ddb1`](https://github.com/bitcoin/bitcoin/commit/5bd990a3ddb1) | 2026-06-03 | pass, the reserved bit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
-| `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (package_acceptance) |
+| `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass, the replacement limit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (package_acceptance) |
 | `p2p_headers_sync_with_minchainwork.py` | [`ff3e2e4ebdce`](https://github.com/bitcoin/bitcoin/commit/ff3e2e4ebdce) | 2026-08-19 | pass | skip (minimum_chain_work) |
 | `p2p_unrequested_blocks.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (minimum_chain_work) |
 | `p2p_1p1c_network.py` | [`95ef0fc5e781`](https://github.com/bitcoin/bitcoin/commit/95ef0fc5e781) | 2025-12-29 | pass | skip (orphanage) |
@@ -2803,7 +2803,12 @@ naming `getmempoolancestors` and `getmempooldescendants`, then
 `PACKAGE_ACCEPTANCE`, naming `submitpackage`, ahead of `MINE`.
 `tests/integration/mempool_cluster_test.py`'s own docstring has what
 differs from Core's file. The `bitcoind` cell is one verdict for the
-pinned release and for Core's `master`. `btclib-node`'s cell is a
+pinned release and for Core's `master`. `BitcoindAdapter` declares
+`LIMIT_CLUSTER_SIZE`, `LIMIT_CLUSTER_COUNT` and `CLUSTER_LINEARIZATION`
+only where the build's `-help-debug` lists `-limitclustercount`
+(`bitcoind.py`'s own `_has_cluster_mempool`), so the file is a counted
+skip on `LIMIT_CLUSTER_SIZE` on a release before `v31.0`.
+`btclib-node`'s cell is a
 counted skip on `LIMIT_CLUSTER_SIZE` on either build, its `cli.py`
 registering no `-limitclustersize` at the released build or at `main`,
 and its mempool bounding no cluster
@@ -2842,7 +2847,12 @@ does not name it: the step-5 mechanisms it asks for are MiniWallet and
 the `-limitclustercount` option together, beside node-linking. Its row
 is Core's own claim in full, one body over a pair of nodes, the second
 under Core's own smaller `-limitclustercount`, on a chain mined to the
-height Core's framework caches. A chain of transactions spending one
+height Core's framework caches. A build before the cluster mempool has
+no such option, and the body there is Core's own file of that build in
+the limits alone: the chain and the family are the default 25, the
+second node is under `-limitancestorcount=5` and
+`-limitdescendantcount=10`, and a transaction past the family is refused
+`too-long-mempool-chain`. A chain of transactions spending one
 coin is checked transaction by transaction, once each has been announced
 to a peer: `getrawmempool` and `getmempoolentry` agree on the count, size
 and fees of its ancestors and of its descendants, and on the transaction
@@ -2855,21 +2865,17 @@ every relative, and in a mined transaction's modified fee once
 parent of a family the first node holds whole, each entry it holds
 within its own count and agreeing with the first node's. A longer fork
 returns a block's transactions to the mempool in the order they had
-before. The row asks for `Capability.LIMIT_CLUSTER_COUNT`, then
-`MEMPOOL_GRAPH` (`capability.py`), naming `getmempoolancestors`,
-`getmempooldescendants` and `gettxspendingprevout`, then
-`INVALIDATE_BLOCK`, `CONNECT` and `MINE`.
+before. The row asks for `MEMPOOL_GRAPH` (`capability.py`), naming
+`getmempoolancestors`, `getmempooldescendants` and `gettxspendingprevout`,
+then `INVALIDATE_BLOCK`, `CONNECT` and `MINE`; it reads
+`LIMIT_CLUSTER_COUNT` to choose the limits, and asks for nothing more.
 `tests/integration/mempool_packages_test.py`'s own docstring has what
 differs from Core's file. The `bitcoind` cell is one verdict for the
 pinned release and for Core's `master`. `btclib-node`'s cell is a
-counted skip on `LIMIT_CLUSTER_COUNT` on either build, its `cli.py`
-registering no `-limitclustercount` at the released build or at `main`,
-and its mempool bounding no cluster
-([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383));
-past that, neither build serves `getmempoolancestors`,
-`getmempooldescendants` or `gettxspendingprevout`
-([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501)),
-nor `prioritisetransaction`
+counted skip on `MEMPOOL_GRAPH` on either build, neither serving
+`getmempoolancestors`, `getmempooldescendants` or `gettxspendingprevout`
+([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501));
+past that, neither serves `prioritisetransaction`
 ([ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502)).
 
 `feature_versionbits_warning.py` is ISS 14's too, the option and the
@@ -2902,7 +2908,9 @@ transaction. A replacement is refused where it pays less in all than
 what it replaces, or more by less than the incremental relay fee of its
 own size, and where its package's fee rate does not exceed its parent's
 own. One conflicting with more clusters than Core's
-`MAX_REPLACEMENT_CANDIDATES` is refused. A package of a child and a pair
+`MAX_REPLACEMENT_CANDIDATES` is refused; before the cluster mempool, one
+replacing more transactions than that, with the package's own message
+and chains of two transactions, as Core's file of that build has it. A package of a child and a pair
 of its parents replaces nothing: where only the first parent conflicts,
 the second enters alone and the replacement is refused, the child then
 having an ancestor in the mempool, and where each conflicts, the package
@@ -3690,13 +3698,19 @@ own C++ rather than a configurable option, so exercising it means
 building, mining and reorging a disproportionate volume of transactions
 for a boundary neither kept case needs to also cover.
 
-Both files' own `btclib-node` cells are a counted skip on their own
-option capability alone, ahead of `Capability.MINE`: neither
-`-limitclustercount` nor `-limitclustersize` is one of `cli.py`'s
-registered flags, on the released build or on `main`.
-`mempool_updatefromblock.py`'s chain-length case asks for
-`Capability.GENERATE` after its option capability and ahead of
-`Capability.MINE`, for its own `generateblock`.
+Where a build has no cluster mempool, both files run at the default
+ancestor and descendant limits instead of the cluster options, and match
+the older refusals. `mempool_package_limits.py` refuses a package
+`package-mempool-limits` in place of `too-large-cluster`.
+`mempool_updatefromblock.py` runs its tournament unchanged and its chain
+at the default 25, refused `too-long-mempool-chain`.
+
+`mempool_package_limits.py`'s `btclib-node` cells are a counted skip on
+`Capability.PACKAGE_ACCEPTANCE`, ahead of `Capability.MINE`.
+`mempool_updatefromblock.py`'s are a counted skip on
+`Capability.MEMPOOL_GRAPH` for the tournament, and on
+`Capability.GENERATE`, for its own `generateblock`, for the chain-length
+case, each ahead of `Capability.MINE`.
 
 `p2p_leak_tx.py`'s own rows are the clock and MiniWallet families
 together, each subject its own pytest function over `Peer` and

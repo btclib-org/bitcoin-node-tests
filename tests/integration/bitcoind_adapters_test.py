@@ -2,7 +2,9 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""`BitcoindAdapter` subclasses that `*_bitcoind_test.py` modules hand to a test body.
+"""`BitcoindAdapter` subclasses for `*_bitcoind_test.py` modules.
+
+A module hands one to the test body it runs.
 
 This module holds no test: its name ends `_test` for the repository's
 `name-tests-test` hook.

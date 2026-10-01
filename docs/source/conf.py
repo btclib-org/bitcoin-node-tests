@@ -76,7 +76,7 @@ extensions = [
 # (`capability.py`'s own docstring has why), and nothing here spells a
 # pytest name as a cross-reference for an inventory to resolve
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", None),
+    "python": ("https://docs.python.org/3", (None, "_inventories/python.inv")),
     "btclib": ("https://btclib.readthedocs.io/en/latest/", None),
     "bitcoin_core_rpc": (
         "https://bitcoin-core-rpc.readthedocs.io/en/latest/",
@@ -89,6 +89,13 @@ intersphinx_mapping = {
 # would still resolve on a checkout and fail on a runner. Section 2 of the
 # organization's standard asks for 0 where a mapping names a sibling
 intersphinx_cache_limit = 0
+# `_inventories/python.inv` is a copy of Python 3.14's inventory and no
+# cache: sphinx reads it only when `docs.python.org` fails, so a live site
+# always wins. It is the Wayback Machine's capture of 2026-08-28,
+# https://web.archive.org/web/20260828181213id_/https://docs.python.org/3/objects.inv
+# To refresh it, run this from the repository root and rewrite the version
+# and source above:
+# curl -fsSL -o docs/source/_inventories/python.inv https://docs.python.org/3/objects.inv
 
 # What the mapping above does not answer for is two shapes, neither an
 # inventory can fix, and each entry below carries its own reason rather

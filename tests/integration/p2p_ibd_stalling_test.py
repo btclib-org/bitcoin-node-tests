@@ -68,11 +68,10 @@ the second check's bodies assert the refusal Core's
 
 from __future__ import annotations
 
-import secrets
 import time
 from contextlib import nullcontext
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 import pytest
 from bitcoin_core_rpc import RpcError
@@ -81,7 +80,7 @@ from btclib.block.build import build_block, build_coinbase
 from btclib.block.mining import mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
-from btclib.p2p import BlockPayload, GetData, Headers, Ping, Pong
+from btclib.p2p import BlockPayload, GetData, Headers
 from btclib.p2p.inventory import InventoryType
 from btclib.p2p.magic import magic_from_chain
 
@@ -90,15 +89,15 @@ from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.node import wait_until
 from bitcoin_node_tests.peer import Listener
-from bitcoin_node_tests.timeout_factor import scaled
 from tests.integration.p2p_add_connections_test import takes_manual
+from tests.integration.p2p_conns_test import Conn
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Mapping, Sequence
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from btclib.p2p import Message, Payload
+    from btclib.p2p import Message, Payload, Version
 
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
@@ -172,14 +171,15 @@ def _block_payload(block: Block) -> BlockPayload:
     return BlockPayload(block, include_witness=True, check_validity=False)
 
 
-class _Staller:
+class _Staller(Conn):
     """Core's own `P2PStaller`: every block asked for is sent, bar some.
 
-    `Peer.wait_for` drops what it does not wait for, and the node asks for
-    blocks whatever the test is waiting on, so `_receive` hands each
-    message it reads to `_handle` first.
+    The node asks for blocks whatever the test is waiting on, so `_handle`
+    answers each `getdata` the connection is read for. A message is sent
+    without `check_validity`.
 
     :param peer: the connection, its handshake done.
+    :param version: the node's own `version`.
     :param block_store: every block the peer can send, by its hash.
     :param stall_blocks: the hashes of the blocks it never sends.
     """
@@ -187,10 +187,11 @@ class _Staller:
     def __init__(
         self,
         peer: Peer,
+        version: Version,
         block_store: Mapping[bytes, Block],
         stall_blocks: Collection[bytes],
     ) -> None:
-        self.peer = peer
+        super().__init__(peer, version)
         self.block_store = block_store
         self.stall_blocks = stall_blocks
         self.getdata_requests: list[bytes] = []
@@ -200,6 +201,7 @@ class _Staller:
         """Core's own `P2PInterface.is_connected`, `Peer.is_connected`."""
         return self.peer.is_connected
 
+    @override
     def send(self, payload: Payload) -> None:
         """Send `payload`.
 
@@ -207,64 +209,16 @@ class _Staller:
         """
         self.peer.send(payload, check_validity=False)
 
+    @override
     def _handle(self, message: Message) -> None:
-        """Core's `on_getdata`, and `P2PInterface`'s own `on_ping`."""
-        if message.command == "ping":
-            self.send(Pong(Ping.parse(message.payload).nonce))
-        elif message.command == "getdata":
+        """Core's `on_getdata`, and `Conn`'s `on_ping`."""
+        super()._handle(message)
+        if message.command == "getdata":
             for item in GetData.parse(message.payload).items:
                 self.getdata_requests.append(item.hash)
                 is_block = item.type_code & _MSG_TYPE_MASK == InventoryType.MSG_BLOCK
                 if is_block and item.hash not in self.stall_blocks:
                     self.send(_block_payload(self.block_store[item.hash]))
-
-    def _receive(self, deadline: float) -> Message:
-        """Return the next message once `_handle` has answered it.
-
-        :param deadline: a `time.monotonic()` value, not a duration.
-        :raises ConnectionError: the node closed the connection.
-        :raises TimeoutError: no message arrived before `deadline`.
-        """
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            err_msg = "no message within the wait"
-            raise TimeoutError(err_msg)
-        message = self.peer.receive(timeout=remaining)
-        self._handle(message)
-        return message
-
-    def sync_with_ping(self) -> None:
-        """`Peer.sync_with_ping`'s barrier, every message read answered.
-
-        :raises ConnectionError: the node closed the connection.
-        :raises TimeoutError: no matching `pong` arrived within the wait.
-        """
-        nonce = secrets.randbelow(2**64 - 1) + 1
-        self.send(Ping(0))
-        self.send(Ping(nonce))
-        deadline = time.monotonic() + scaled(_WAIT)
-        while True:
-            message = self._receive(deadline)
-            if message.command == "pong" and Pong.parse(message.payload).nonce == nonce:
-                return
-
-    def send_and_ping(self, payload: Payload) -> None:
-        """Core's own `send_and_ping`: `send`, then `sync_with_ping`."""
-        self.send(payload)
-        self.sync_with_ping()
-
-    def wait_for_disconnect(self) -> None:
-        """Read and answer until the node closes the connection.
-
-        :raises TimeoutError: the connection was still open at the wait's
-            end.
-        """
-        deadline = time.monotonic() + scaled(_WAIT)
-        try:
-            while True:
-                self._receive(deadline)
-        except ConnectionError:
-            return
 
 
 def _all_sync_send_with_ping(stallers: Sequence[_Staller]) -> None:
@@ -362,9 +316,8 @@ def _add_outbound(
     with Listener(_MAGIC) as listener:
         node.add_outbound_connection(listener.address, connection_type)
         peer = listener.accept()
-    staller = _Staller(peer, block_store, stall_blocks)
     try:
-        peer.handshake()
+        staller = _Staller(peer, peer.handshake(), block_store, stall_blocks)
         staller.sync_with_ping()
     except BaseException:
         peer.close()

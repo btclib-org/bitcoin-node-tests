@@ -10,13 +10,13 @@ address goes through the Tor proxy, and where its v2 handshake fails, the
 v1 retry to the same address goes through the Tor proxy too.
 
 The node is given a `socks5.Socks5Proxy` for every network, `-proxy`,
-and another for Tor, `-onion`, as Core's is. The first forwards every
+and another for Tor, `-onion`, as Core's is. The first forwards each
 connection to a `_V2Peer`, a v1 peer whose `version` offers
-`NODE_P2P_V2`, so that the node's address manager marks each IPv4
-address as speaking v2. The second forwards the first IPv4 address it is
-asked for, and every later request for that address, to a `_Sniffer`,
-which reads the start of what the node sends and closes: v1's network
-magic, or the start of v2's key.
+`NODE_P2P_V2`, until the restart, so that the node's address manager
+marks each IPv4 address as speaking v2. The second forwards the first
+IPv4 address it is asked for, and every later request for that address,
+to a `_Sniffer`, which reads the start of what the node sends and
+closes: v1's network magic, or the start of v2's key.
 
 The body asks for `Capability.PRIVATE_BROADCAST`, and for the capability
 of every other option its node is given: `PROXY` for `-proxy` and
@@ -46,7 +46,7 @@ from __future__ import annotations
 
 import socket
 import threading
-from contextlib import ExitStack
+from contextlib import ExitStack, suppress
 from typing import TYPE_CHECKING
 
 from btclib.p2p import Ping, Pong, ServiceFlags
@@ -92,16 +92,28 @@ _V1 = 1
 _V2 = 2
 
 
-class _V2Peer:
-    """Core's `P2PInterface` offering `NODE_P2P_V2`, as `start_p2p_listener`.
+def _wake(address: tuple[str, int]) -> None:
+    """Connect to `address` and close, waking a thread blocked in `accept`.
 
-    A `Listener` accepting once on a thread of its own, answering the node's
-    `version` with its own and each `ping` with a `pong` until the node
-    closes the connection, in v1.
+    What `Socks5Proxy.close` (`socks5.py`) does, as Core's own
+    `Socks5Server.stop` does.
+    """
+    with suppress(OSError), socket.create_connection(address):
+        pass
+
+
+class _V2Peer:
+    """Core's `P2PInterface` offering `NODE_P2P_V2`.
+
+    Started as Core's `start_p2p_listener` starts it: a `Listener`
+    accepting once on a thread of its own, answering the node's `version`
+    with its own and each `ping` with a `pong` until the node closes the
+    connection, in v1.
     """
 
     def __init__(self) -> None:
         self._listener = Listener(_MAGIC)
+        self._address = self._listener.address
         self._peer: Peer | None = None
         self._closing = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
@@ -110,11 +122,16 @@ class _V2Peer:
     @property
     def address(self) -> tuple[str, int]:
         """Return the `(host, port)` the proxy forwards to."""
-        return self._listener.address
+        return self._address
 
     def close(self) -> None:
-        """Stop listening, close the connection, and join the thread."""
+        """Stop listening, close the connection, and join the thread.
+
+        A connection to the listener wakes a thread blocked in `accept`,
+        which closing the socket does not do on Linux.
+        """
         self._closing.set()
+        _wake(self.address)
         self._listener.close()
         if self._peer is not None:
             self._peer.close()
@@ -134,6 +151,7 @@ class _V2Peer:
         self._peer = peer
         if self._closing.is_set():
             peer.close()
+            return
         try:
             peer.handshake(services=_V2_SERVICES)
             while True:
@@ -157,18 +175,22 @@ class _Sniffer:
 
     def __init__(self) -> None:
         self.versions: list[int] = []
+        self._closing = threading.Event()
         self._socket = socket.create_server(("127.0.0.1", 0))
+        host, port = self._socket.getsockname()[:2]
+        self._address = str(host), int(port)
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
     @property
     def address(self) -> tuple[str, int]:
         """Return the `(host, port)` the proxy forwards to."""
-        host, port = self._socket.getsockname()[:2]
-        return str(host), int(port)
+        return self._address
 
     def close(self) -> None:
-        """Stop accepting, and join the thread."""
+        """Stop accepting, and join the thread, woken as `_V2Peer`'s is."""
+        self._closing.set()
+        _wake(self.address)
         self._socket.close()
         self._thread.join(scaled(_WAIT))
 
@@ -178,6 +200,9 @@ class _Sniffer:
             try:
                 connection, _ = self._socket.accept()
             except OSError:
+                return
+            if self._closing.is_set():
+                connection.close()
                 return
             with connection:
                 connection.settimeout(scaled(_WAIT))

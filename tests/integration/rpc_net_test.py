@@ -51,7 +51,7 @@ the build a call that changes nothing and asserts what that build answers:
   address` and code `-30` (bitcoin/bitcoin@316a0c513278, 2025-09-18,
   first in `v31.0rc1`). A build without it answers `{"success": False}`
   to the blank address, which the step asserts, as Core's file does at
-  `v30.3`, which makes no check of a non-IP name.
+  `v30.3`; that file checks no non-IP name.
 
 `p2p_port(2)` (`test_framework/util.py`), the address `addnode` adds, is
 a port of `node.free_ports` here, and Core's `P2P_SERVICES`

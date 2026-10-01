@@ -4347,9 +4347,8 @@ nothing listens at, so that no step dials a public address; no step reads what
 the node asks of it, so no proxy runs, and a step given the argument asks for
 `Capability.PROXY`. The steps Core restarts with `-cjdnsreachable` ask for
 `Capability.CJDNS`. A blank `addnode` address is refused only past the pinned
-release, and a blank `addpeeraddress` address only from the pinned release's
-own series. The body asks the build a call that changes nothing and asserts
-that build's own answer. The steps that connect Core's nodes are
+release, and a blank `addpeeraddress` address from `v31.0rc1` on. The body asks
+the build a call that changes nothing and asserts that build's own answer. The steps that connect Core's nodes are
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s.
 `btclib-node`'s cells are a counted skip on each row's own capability.
 The rest of

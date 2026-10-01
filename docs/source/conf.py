@@ -89,11 +89,11 @@ intersphinx_mapping = {
 # would still resolve on a checkout and fail on a runner. Section 2 of the
 # organization's standard asks for 0 where a mapping names a sibling
 intersphinx_cache_limit = 0
-# `_inventories/python.inv` is the one exception, and it is no cache: sphinx
-# reads it only when `docs.python.org` fails, so a live site always wins and
-# an outage of that site no longer fails the build. It is Python 3.14's
-# inventory, taken from the Wayback Machine's capture of 2026-08-28 while the
-# site answered 503. Refresh it, from the repository root, with
+# `_inventories/python.inv` is a copy of Python 3.14's inventory and no
+# cache: sphinx reads it only when `docs.python.org` fails, so a live site
+# always wins. It is the Wayback Machine's capture of 2026-08-28,
+# https://web.archive.org/web/20260828181213id_/https://docs.python.org/3/objects.inv
+# Refresh it from the repository root, and this date with it:
 # curl -fsSL -o docs/source/_inventories/python.inv https://docs.python.org/3/objects.inv
 
 # What the mapping above does not answer for is two shapes, neither an

@@ -1383,3 +1383,9 @@ which `feature_port` and `p2p_getaddr_caching` kept as private copies
 
 p2p test helpers that repeated the receive and ping of `Conn`
 (`tests/integration/p2p_conns_test.py`) now use it (closes #362).
+
+### `[tool.uv] required-version` is `>=0.12.18`
+
+- **`required-version` reads `>=0.12.18`, not `>=0.12.19`** (issue
+  btclib-org/.github#1482): the Dependabot service refused `0.12.19` with
+  `tool_version_not_supported`.

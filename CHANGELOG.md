@@ -1424,3 +1424,9 @@ build's own wording of the `-proxyrandomize` warning is asserted (issue #47).
 - **`CONTRIBUTING.md`'s shared half asks every commit for the trailer, which
   `reusable-lint.yml`'s `Sign-off` job checks** (issue
   btclib-org/.github#1467).
+
+### The script-verify-flag wording is read per build
+
+`feature_nulldummy`, `_dersig`, `_cltv` and `_csv_activation` expect
+`mandatory-script-verify-flag-failed` from a bitcoind before `v30.0`,
+`block-script-verify-flag-failed` from it (bitcoin/bitcoin#33183, issue #354).

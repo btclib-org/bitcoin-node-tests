@@ -64,6 +64,7 @@ from bitcoin_node_tests.mini_wallet import (
     build_next_block,
     raw_p2pk_script_sig,
 )
+from tests.integration.script_verify_flag_test import block_script_verify_flag_failed
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -277,7 +278,8 @@ def a_non_der_signature_is_refused_once_active(
     # and so does a block
     block = _block(node, RAW_P2PK_SCRIPT_PUB_KEY, transactions=(spend,))
     answer = _submit(node, block)
-    assert answer == "block-script-verify-flag-failed (Non-canonical DER signature)"
+    wording = block_script_verify_flag_failed(node)
+    assert answer == f"{wording} (Non-canonical DER signature)"
     assert node.rpc.call("getbestblockhash") == tip
 
     # while the same spend, DER-encoded, is accepted

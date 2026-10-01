@@ -72,6 +72,7 @@ from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
+from tests.integration.script_verify_flag_test import block_script_verify_flag_failed
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -92,9 +93,7 @@ _SEGWIT_HEIGHT = COINBASE_MATURITY + 5
 _NULLDUMMY_TX_ERROR = (
     "mempool-script-verify-flag-failed (Dummy CHECKMULTISIG argument must be zero)"
 )
-_NULLDUMMY_BLK_ERROR = (
-    "block-script-verify-flag-failed (Dummy CHECKMULTISIG argument must be zero)"
-)
+_NULLDUMMY_BLK_REASON = " (Dummy CHECKMULTISIG argument must be zero)"
 
 # RPC_VERIFY_REJECTED, `src/rpc/protocol.h`
 _RPC_VERIFY_REJECTED = -26
@@ -139,7 +138,9 @@ def _assert_block(node: NodeAdapter, transactions: list[Tx], *, accept: bool) ->
         assert answer is None
         assert node.rpc.call("getbestblockhash") == block.header.hash.hex()
     else:
-        assert answer == _NULLDUMMY_BLK_ERROR
+        assert answer == (
+            f"{block_script_verify_flag_failed(node)}{_NULLDUMMY_BLK_REASON}"
+        )
         assert node.rpc.call("getbestblockhash") == old_tip
 
 

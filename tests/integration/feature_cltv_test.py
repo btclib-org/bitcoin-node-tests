@@ -73,6 +73,7 @@ from bitcoin_node_tests.mini_wallet import (
     build_fork,
     build_next_block,
 )
+from tests.integration.script_verify_flag_test import block_script_verify_flag_failed
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -122,7 +123,7 @@ _INVALIDATE: tuple[tuple[list[int | str], int | None, int | None], ...] = (
 )
 
 # the reason bitcoind names for each row of `_INVALIDATE`, after the
-# `mempool-`/`block-script-verify-flag-failed` prefix
+# `*-script-verify-flag-failed` prefix
 _REASONS = (
     " (Operation not valid with the current stack size)",
     " (Negative locktime)",
@@ -328,7 +329,7 @@ def cltv_failures_are_mined_until_the_configured_height(
     for i, reason in enumerate(_REASONS):
         spend = _cltv_invalidate(coinbases[len(_INVALIDATE) + i], i)
         answer = _submit(node, _block(node, transactions=[spend]))
-        assert answer == f"block-script-verify-flag-failed{reason}"
+        assert answer == f"{block_script_verify_flag_failed(node)}{reason}"
         assert node.rpc.call("getbestblockhash") == tip
 
 
@@ -387,7 +388,7 @@ def cltv_failures_are_refused_in_a_block(
     for i, reason in enumerate(_REASONS):
         spend = _cltv_invalidate(coinbases[i], i)
         answer = _submit(node, _block(node, transactions=[spend]))
-        assert answer == f"block-script-verify-flag-failed{reason}"
+        assert answer == f"{block_script_verify_flag_failed(node)}{reason}"
         assert node.rpc.call("getbestblockhash") == tip
 
     # the last one again, with a CLTV its own nLockTime satisfies prepended

@@ -175,15 +175,16 @@ def a_chain_over_the_default_cluster_limit_needs_a_reorg_to_fit(
     cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
-    """Check a chain longer than the node's default chain limit is refused entry.
+    """Check a chain over the node's default chain limit is refused entry.
 
     The node's default chain limit is in force, the cluster count where
     the node has one: a chain two longer than it is refused by
-    `sendrawtransaction` one short of the limit, accepted into one block by `generateblock`
-    naming the raw transactions directly (bypassing mempool admission
-    entirely), and every transaction but the block's own last two is
-    resurrected into the mempool once a longer fork reorgs that block
-    away, back under the limit the chain never fit unconfirmed.
+    `sendrawtransaction` one short of the limit, accepted into one block
+    by `generateblock` naming the raw transactions directly (bypassing
+    mempool admission entirely), and every transaction but the block's
+    own last two is resurrected into the mempool once a longer fork
+    reorgs that block away, back under the limit the chain never fit
+    unconfirmed.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.

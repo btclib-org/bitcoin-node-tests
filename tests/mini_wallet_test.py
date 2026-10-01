@@ -17,7 +17,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from itertools import pairwise
 from typing import TYPE_CHECKING, override
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
 from btclib.block.block import Block, bip34_commitment
@@ -1498,6 +1498,22 @@ def test_new_utxos_lists_the_outputs_paying_this_wallet() -> None:
         for vout in (0, 1)
     ]
     assert wallet.get_balance() == balance
+
+
+def test_new_utxos_hashes_the_transaction_once() -> None:
+    """The txid is computed once, not once per output."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+    tx = wallet.create_self_transfer_multi(num_outputs=5)
+
+    with patch.object(
+        Tx, "id", new_callable=PropertyMock, return_value=b"\x07" * 32
+    ) as txid:
+        utxos = wallet.new_utxos(tx)
+
+    assert len(utxos) == 5
+    assert txid.call_count == 1
 
 
 def test_send_to_this_wallets_own_script_caches_both_outputs() -> None:

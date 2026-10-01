@@ -93,7 +93,7 @@ intersphinx_cache_limit = 0
 # cache: sphinx reads it only when `docs.python.org` fails, so a live site
 # always wins. It is the Wayback Machine's capture of 2026-08-28,
 # https://web.archive.org/web/20260828181213id_/https://docs.python.org/3/objects.inv
-# Refresh it from the repository root, and this date with it:
+# Refresh it from the repository root, and rewrite its source above:
 # curl -fsSL -o docs/source/_inventories/python.inv https://docs.python.org/3/objects.inv
 
 # What the mapping above does not answer for is two shapes, neither an

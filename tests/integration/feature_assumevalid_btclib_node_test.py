@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tests.integration.feature_assumevalid_test import (
+    TEST_TIMEOUT,
     script_verification_depends_on_assumevalid_and_its_conditions,
 )
 
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.integration
 
 
+@pytest.mark.scaled_timeout(TEST_TIMEOUT)
 def test_script_verification_depends_on_assumevalid_and_its_conditions(
     btclib_node_cluster: Callable[[int], list[BtclibNodeAdapter]],
     skip_counts: SkipCounts,

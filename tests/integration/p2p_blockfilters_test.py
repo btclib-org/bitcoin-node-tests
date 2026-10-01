@@ -94,7 +94,7 @@ if TYPE_CHECKING:
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
-__all__ = ["block_filters_are_served_to_peers"]
+__all__ = ["TEST_TIMEOUT", "block_filters_are_served_to_peers"]
 
 type _Node = BitcoindAdapter | BtclibNodeAdapter
 
@@ -102,6 +102,11 @@ _MAGIC = magic_from_chain("regtest")
 
 # Core's own `sync_blocks(timeout=600)` over the reorg
 _REORG_WAIT = 600.0
+
+# the test's own bound, through `scaled_timeout`: `_REORG_WAIT` is at or
+# past `pyproject.toml`'s `timeout`, so the test gets that wait plus the
+# ordinary `timeout` for the rest of what it does
+TEST_TIMEOUT = _REORG_WAIT + 300.0
 
 # how long the peer waits for each message of a `cfilter` answer
 _WAIT = 60.0

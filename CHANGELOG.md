@@ -1349,3 +1349,9 @@ btclib-node issue; `feature_utxo_set_hash.py` cites a new one (closes #312).
 The section is the organization's, word for word. Prose that named the
 closed charter's steps as pending says what holds, and CLAUDE.md points
 at the standard where it restated it (issue btclib-org/.github#1494).
+
+### A test with a Core wait at or past the per-test bound has its own timeout
+
+`pytest.mark.scaled_timeout(seconds)` gives a test a `timeout` scaled by
+`--timeout-factor` like the ini one. Tests with a Core wait at or past the
+bound use it, so a stalled wait fails with its own message (closes #309).

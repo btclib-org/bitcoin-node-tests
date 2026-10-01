@@ -86,6 +86,10 @@ if TYPE_CHECKING:
 # rule 4 asks for.
 _skip_counts = SkipCounts()
 
+# whether `--timeout` or `PYTEST_TIMEOUT` named a bound, read before
+# `pytest_configure` writes its own into `config.option.timeout`
+_CALLER_BOUND = pytest.StashKey[bool]()
+
 
 @pytest.fixture(scope="session")
 def skip_counts() -> SkipCounts:
@@ -189,13 +193,36 @@ def pytest_configure(config: pytest.Config) -> None:
     :param config: the pytest session configuration.
     """
     set_factor(config.getoption("--timeout-factor"))
+    caller_bound = config.getoption("timeout") is not None or (
+        "PYTEST_TIMEOUT" in os.environ
+    )
+    config.stash[_CALLER_BOUND] = caller_bound
     ini_timeout = config.getini("timeout")
-    if (
-        config.getoption("timeout") is None
-        and "PYTEST_TIMEOUT" not in os.environ
-        and ini_timeout
-    ):
+    if not caller_bound and ini_timeout:
         config.option.timeout = scaled(float(ini_timeout))
+
+
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    """Give a `scaled_timeout` test its own `timeout`, scaled like the ini one.
+
+    A test carrying a Core wait at or past the ini `timeout` marks itself
+    `pytest.mark.scaled_timeout(seconds)` and gets
+    `pytest.mark.timeout(scaled(seconds))`: the wait's own `TimeoutError`
+    can fire first, and the ratio between the two bounds is the same at
+    every `--timeout-factor`. A bound of the caller's own is left to apply
+    to every test, as `pytest_configure` leaves it.
+
+    :param config: the pytest session configuration.
+    :param items: the collected tests, marked in place.
+    """
+    if config.stash[_CALLER_BOUND]:
+        return
+    for item in items:
+        marker = item.get_closest_marker("scaled_timeout")
+        if marker is not None:
+            item.add_marker(pytest.mark.timeout(scaled(float(marker.args[0]))))
 
 
 @pytest.fixture(scope="session")

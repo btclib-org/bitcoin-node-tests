@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tests.integration.p2p_headers_sync_with_minchainwork_test import (
+    TEST_TIMEOUT,
     low_work_headers_are_ignored_until_the_chain_has_the_work,
 )
 
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.integration
 
 
+@pytest.mark.scaled_timeout(TEST_TIMEOUT)
 def test_low_work_headers_are_ignored_until_the_chain_has_the_work(
     bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
     skip_counts: SkipCounts,

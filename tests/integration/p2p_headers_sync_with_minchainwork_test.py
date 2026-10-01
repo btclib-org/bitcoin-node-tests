@@ -94,7 +94,10 @@ if TYPE_CHECKING:
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
-__all__ = ["low_work_headers_are_ignored_until_the_chain_has_the_work"]
+__all__ = [
+    "TEST_TIMEOUT",
+    "low_work_headers_are_ignored_until_the_chain_has_the_work",
+]
 
 type _Node = BitcoindAdapter | BtclibNodeAdapter
 
@@ -147,6 +150,11 @@ _LOG_TIMEOUT = 2.0
 # reorg
 _SYNC_TIMEOUT = 60.0
 _REORG_SYNC_TIMEOUT = 300.0
+
+# the test's own bound, through `scaled_timeout`: `_REORG_SYNC_TIMEOUT` is at or
+# past `pyproject.toml`'s `timeout`, so the test gets that wait plus the
+# ordinary `timeout` for the rest of what it does
+TEST_TIMEOUT = _REORG_SYNC_TIMEOUT + 300.0
 
 # regtest's genesis block, as Core's own test spells its hash
 _GENESIS_HASH = "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"

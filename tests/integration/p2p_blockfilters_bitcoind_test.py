@@ -17,7 +17,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.integration.p2p_blockfilters_test import block_filters_are_served_to_peers
+from tests.integration.p2p_blockfilters_test import (
+    TEST_TIMEOUT,
+    block_filters_are_served_to_peers,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -28,6 +31,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.integration
 
 
+@pytest.mark.scaled_timeout(TEST_TIMEOUT)
 def test_block_filters_are_served_to_peers(
     bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
     skip_counts: SkipCounts,

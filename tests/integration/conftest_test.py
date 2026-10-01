@@ -235,6 +235,127 @@ def test_timeout_factor_option_leaves_pytest_timeout_env_as_given(
     result.stdout.fnmatch_lines(["timeout: 9.0s"])
 
 
+# `pytest_collection_modifyitems` is imported with the rest, so the nested
+# session marks tests as the real one does. The bound is read off the
+# `timeout` marker pytest-timeout enforces, inside the test, so under
+# `-n 2` it is a worker's own
+_SCALED_CONFTEST = """
+    from tests.integration.conftest import (
+        pytest_addoption,
+        pytest_collection_modifyitems,
+        pytest_configure,
+    )
+"""
+
+_SCALED_INI = """
+    [pytest]
+    timeout = 40
+    markers = scaled_timeout(seconds)
+"""
+
+_SCALED_TESTS = """
+    import pytest
+
+    @pytest.mark.scaled_timeout(100)
+    def test_marked(request):
+        assert request.node.get_closest_marker("timeout").args == ({expected!r},)
+
+    def test_unmarked(request):
+        assert request.node.get_closest_marker("timeout") is None
+"""
+
+
+@pytest.mark.parametrize(
+    "args, expected",
+    [
+        ((), 100.0),
+        (("--timeout-factor", "2.5"), 250.0),
+        (("--timeout-factor", "2.5", "-p", "xdist", "-n", "2"), 250.0),
+        (("--timeout-factor", "0"), 99900.0),
+    ],
+)
+def test_scaled_timeout_marker_scales_like_the_ini_timeout(
+    pytester: pytest.Pytester,
+    monkeypatch: pytest.MonkeyPatch,
+    args: tuple[str, ...],
+    expected: float,
+) -> None:
+    """The marker's seconds grow with `--timeout-factor`, like the ini bound."""
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    monkeypatch.delenv("PYTEST_TIMEOUT", raising=False)
+    pytester.makeini(_SCALED_INI)
+    pytester.makeconftest(_SCALED_CONFTEST)
+    pytester.makepyfile(_SCALED_TESTS.format(expected=expected))
+    result = pytester.runpytest_subprocess(*args)
+    result.assert_outcomes(passed=2)
+
+
+@pytest.mark.parametrize("caller", ["option", "environment"])
+def test_scaled_timeout_marker_leaves_a_callers_own_bound_alone(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch, caller: str
+) -> None:
+    """`--timeout` and `PYTEST_TIMEOUT` apply to a marked test too."""
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    monkeypatch.delenv("PYTEST_TIMEOUT", raising=False)
+    args: tuple[str, ...] = ()
+    if caller == "option":
+        args = ("--timeout", "9")
+    else:
+        monkeypatch.setenv("PYTEST_TIMEOUT", "9")
+    pytester.makeini(_SCALED_INI)
+    pytester.makeconftest(_SCALED_CONFTEST)
+    pytester.makepyfile("""
+        import pytest
+
+        @pytest.mark.scaled_timeout(100)
+        def test_marked(request):
+            assert request.node.get_closest_marker("timeout") is None
+    """)
+    result = pytester.runpytest_subprocess(*args)
+    result.assert_outcomes(passed=1)
+    result.stdout.fnmatch_lines(["timeout: 9.0s"])
+
+
+# a wait that stalls past the ini bound: marked, it fails with its own
+# message; unmarked, as a bare pytest-timeout
+_STALLED_TEST = """
+    import pytest
+    from bitcoin_node_tests.node import wait_until
+
+    {mark}
+    def test_stalled():
+        wait_until(lambda: False, timeout=2.5)
+"""
+
+
+@pytest.mark.parametrize(
+    "mark, message",
+    [
+        ("@pytest.mark.scaled_timeout(10)", "condition not met within 2.5 s"),
+        ("", "Failed: Timeout (>1.0s) from pytest-timeout."),
+    ],
+)
+def test_a_marked_stalled_wait_fails_with_its_own_message(
+    pytester: pytest.Pytester,
+    monkeypatch: pytest.MonkeyPatch,
+    mark: str,
+    message: str,
+) -> None:
+    """Past the ini bound, only the marked test reaches its wait's own error."""
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    monkeypatch.delenv("PYTEST_TIMEOUT", raising=False)
+    pytester.makeini("""
+        [pytest]
+        timeout = 1
+        markers = scaled_timeout(seconds)
+    """)
+    pytester.makeconftest(_SCALED_CONFTEST)
+    pytester.makepyfile(_STALLED_TEST.format(mark=mark))
+    result = pytester.runpytest_subprocess()
+    result.assert_outcomes(failed=1)
+    result.stdout.fnmatch_lines([f"*{message}*"])
+
+
 def test_tracerpc_option_defaults_to_false(
     pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
 ) -> None:

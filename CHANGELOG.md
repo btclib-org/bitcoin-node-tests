@@ -1379,6 +1379,11 @@ private copies (issue #321).
 which `feature_port` and `p2p_getaddr_caching` kept as private copies
 (closes #321).
 
+### The leftover test peers are `Conn`s
+
+p2p test helpers that repeated the receive and ping of `Conn`
+(`tests/integration/p2p_conns_test.py`) now use it (closes #362).
+
 ### The docs build survives an outage of `docs.python.org`
 
 `docs/source/_inventories/python.inv` is Python 3.14's inventory, which

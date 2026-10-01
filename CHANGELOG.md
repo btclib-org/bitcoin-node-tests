@@ -1360,3 +1360,9 @@ bound use it, so a stalled wait fails with its own message (closes #309).
 
 - **`REPOSITORY.md` reads `lint / Dependency review` back with the other
   required checks** (issue btclib-org/.github#1465).
+
+### The P2PK coin helpers live in one module
+
+`tests/integration/p2pk_coins_test.py` holds what `p2p_orphan_handling`,
+`p2p_opportunistic_1p1c` and `p2p_1p1c_network` kept as private copies
+(issue #321).

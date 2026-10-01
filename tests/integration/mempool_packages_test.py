@@ -36,13 +36,22 @@ and every assertion of Core's own is kept:
   spend of two transactions a block holds reaches the second node before
   a fork disconnects that block, both nodes then taking the fork's tip.
 
-The second node's option is `Capability.LIMIT_CLUSTER_COUNT`, asked for
-first. `getmempoolancestors`, `getmempooldescendants` and
-`gettxspendingprevout` are `Capability.MEMPOOL_GRAPH`'s, asked for next,
+`getmempoolancestors`, `getmempooldescendants` and
+`gettxspendingprevout` are `Capability.MEMPOOL_GRAPH`'s, asked for first,
 then `Capability.INVALIDATE_BLOCK`, `Capability.CONNECT` and
 `Capability.MINE`. Both nodes restart with the
 `-whitelist=noban,in,out@127.0.0.1` Core's `noban_tx_relay` starts every
 node with, which asks for no capability.
+
+The second node's option is `-limitclustercount`
+(`Capability.LIMIT_CLUSTER_COUNT`), where the node declares it. A build
+before the cluster mempool (`v31.0`) has none and limits by ancestors and
+descendants, as Core's file of that build does: the chain and the family
+are the default 25, the second node is started with
+`-limitancestorcount=5` and `-limitdescendantcount=10`, it holds the
+first 5 of the chain and then the parent with the first 10 of the family,
+and a transaction one past the chain or the family is refused as
+`too-long-mempool-chain`.
 
 What differs from Core's file:
 
@@ -76,6 +85,8 @@ import time
 from contextlib import suppress
 from typing import TYPE_CHECKING
 
+import pytest
+from bitcoin_core_rpc import RpcError
 from btclib.amount import sats_from_btc
 from btclib.p2p import GetData, Inv, InventoryType, Ping, Pong
 from btclib.p2p.magic import magic_from_chain
@@ -121,6 +132,13 @@ _DEFAULT_CLUSTER_LIMIT = 64
 
 # Core's own `CUSTOM_CLUSTER_LIMIT`, the second node's own count
 _CUSTOM_CLUSTER_LIMIT = 10
+
+# the build before the cluster mempool: Core's own `DEFAULT_ANCESTOR_LIMIT`
+# and `DEFAULT_DESCENDANT_LIMIT`, which a chain and a family reach, and its
+# `CUSTOM_ANCESTOR_LIMIT` and `CUSTOM_DESCENDANT_LIMIT`, the second node's
+_DEFAULT_ANCESTOR_LIMIT = 25
+_CUSTOM_ANCESTOR_LIMIT = 5
+_CUSTOM_DESCENDANT_LIMIT = 10
 
 # Core's own `FORK_LENGTH` (`blocktools.py`), `create_empty_fork`'s default
 _FORK_LENGTH = 10
@@ -247,13 +265,13 @@ def _check_chain(
     :param fees: each transaction's own fee, in satoshis.
     """
     mempool = node.rpc.call("getrawmempool", [True])
-    assert len(mempool) == _DEFAULT_CLUSTER_LIMIT
+    assert len(mempool) == len(chain_txs)
     descendant_fees = 0
     descendant_vsize = 0
 
     ancestor_vsize = sum(tx.vsize for tx in chain_txs)
     assert ancestor_vsize == sum(entry["vsize"] for entry in mempool.values())
-    ancestor_count = _DEFAULT_CLUSTER_LIMIT
+    ancestor_count = len(chain_txs)
     ancestor_fees = sum(fees)
     assert ancestor_fees == sum(_fees(entry)["base"] for entry in mempool.values())
 
@@ -374,9 +392,83 @@ def _check_prioritisation(
         assert entry_fees["descendant"] == descendant_fees + _MINED_FEE_DELTA
 
 
-def _check_family(nodes: Sequence[NodeAdapter], wallet: MiniWallet) -> None:
-    """Core's descendant limit checks, on both nodes."""
+def _assert_second_node_agrees(
+    node0: NodeAdapter, node1: NodeAdapter, txids: Sequence[str]
+) -> None:
+    """Assert `node1` holds each of `txids` as `node0` does."""
+    for txid in txids:
+        entry0 = node0.rpc.call("getmempoolentry", [txid])
+        entry1 = node1.rpc.call("getmempoolentry", [txid])
+        assert not entry0["unbroadcast"]
+        assert not entry1["unbroadcast"]
+        assert entry1["fees"]["base"] == entry0["fees"]["base"]
+        assert entry1["vsize"] == entry0["vsize"]
+        assert entry1["depends"] == entry0["depends"]
+
+
+def _check_chain_limit(
+    node: NodeAdapter, wallet: MiniWallet, chain: Sequence[Tx]
+) -> None:
+    """Core's refusal of one more transaction on a full chain, pre-cluster."""
+    one_more = wallet.create_self_transfer(utxo_to_spend=wallet.new_utxos(chain[-1])[0])
+    with pytest.raises(RpcError, match="too-long-mempool-chain"):
+        node.rpc.call("sendrawtransaction", [_hex(one_more)])
+
+
+def _check_ancestor_limit(nodes: Sequence[NodeAdapter], chain: Sequence[str]) -> None:
+    """Core's check of the second node under its ancestor limit, pre-cluster."""
     node0, node1 = nodes
+    mempool1 = _mempool(node1)
+    assert len(mempool1) == _CUSTOM_ANCESTOR_LIMIT
+    assert set(mempool1) <= set(_mempool(node0))
+    held = chain[:_CUSTOM_ANCESTOR_LIMIT]
+    assert set(held) <= set(mempool1)
+    _assert_second_node_agrees(node0, node1, held)
+
+
+def _check_descendant_limit(
+    nodes: Sequence[NodeAdapter], parent: str, family: Sequence[str], next_hop: Tx
+) -> None:
+    """Core's check of the second node under its descendant limit, pre-cluster.
+
+    :param parent: the family's own parent.
+    :param family: the transactions chained off `parent`, in the order sent.
+    :param next_hop: a transaction one past the default descendant limit.
+    """
+    node0, node1 = nodes
+    with pytest.raises(RpcError, match="too-long-mempool-chain"):
+        node0.rpc.call("sendrawtransaction", [_hex(next_hop)])
+
+    wait_until(
+        lambda: (
+            len(_mempool(node1))
+            == _CUSTOM_ANCESTOR_LIMIT + 1 + _CUSTOM_DESCENDANT_LIMIT
+        ),
+        timeout=_SECOND_MEMPOOL_TIMEOUT,
+    )
+    mempool1 = _mempool(node1)
+    assert set(mempool1) <= set(_mempool(node0))
+    assert parent in mempool1
+    held = family[:_CUSTOM_DESCENDANT_LIMIT]
+    assert set(held) <= set(mempool1)
+    assert not set(family[_CUSTOM_DESCENDANT_LIMIT:]) & set(mempool1)
+    _assert_second_node_agrees(node0, node1, mempool1)
+
+
+def _hex(tx: Tx) -> str:
+    """Return `tx` serialized with its witness."""
+    return tx.serialize(True, check_validity=False).hex()
+
+
+def _check_family(
+    nodes: Sequence[NodeAdapter], wallet: MiniWallet, *, clustered: bool
+) -> None:
+    """Core's descendant limit checks, on both nodes.
+
+    :param clustered: whether the nodes run the cluster mempool.
+    """
+    node0, node1 = nodes
+    limit = _DEFAULT_CLUSTER_LIMIT if clustered else _DEFAULT_ANCESTOR_LIMIT
 
     # one parent, and its family up to the default count
     tx_with_children = wallet.send_self_transfer_multi(num_outputs=_FAMILY_OUTPUTS)
@@ -385,7 +477,7 @@ def _check_family(nodes: Sequence[NodeAdapter], wallet: MiniWallet) -> None:
 
     tx_children: list[str] = []
     family: list[str] = []
-    for _ in range(_DEFAULT_CLUSTER_LIMIT - 1):
+    for _ in range(limit - 1):
         utxo = transaction_package.pop(0)
         new_tx = wallet.send_self_transfer_multi(
             num_outputs=_FAMILY_OUTPUTS, utxos_to_spend=[utxo]
@@ -397,10 +489,15 @@ def _check_family(nodes: Sequence[NodeAdapter], wallet: MiniWallet) -> None:
         transaction_package.extend(wallet.new_utxos(new_tx))
 
     mempool = node0.rpc.call("getrawmempool", [True])
-    assert mempool[parent_transaction]["descendantcount"] == _DEFAULT_CLUSTER_LIMIT
+    assert mempool[parent_transaction]["descendantcount"] == limit
     assert sorted(mempool[parent_transaction]["spentby"]) == sorted(tx_children)
     for child in tx_children:
         assert mempool[child]["depends"] == [parent_transaction]
+
+    if not clustered:
+        next_hop = wallet.create_self_transfer(utxo_to_spend=transaction_package.pop(0))
+        _check_descendant_limit(nodes, parent_transaction, family, next_hop)
+        return
 
     # the second node holds the parent and as much of the family as its
     # own count lets it, beside as much of the chain
@@ -473,13 +570,21 @@ def mempool_tracks_ancestors_and_descendants(
     """
     nodes = cluster(2)
     node0, node1 = nodes
-    require(Capability.LIMIT_CLUSTER_COUNT, node0.capabilities, skip_counts)
     require(Capability.MEMPOOL_GRAPH, node0.capabilities, skip_counts)
     require(Capability.INVALIDATE_BLOCK, node0.capabilities, skip_counts)
     require(Capability.CONNECT, node0.capabilities, skip_counts)
     require(Capability.MINE, node0.capabilities, skip_counts)
+    clustered = Capability.LIMIT_CLUSTER_COUNT in node0.capabilities
+    limit = _DEFAULT_CLUSTER_LIMIT if clustered else _DEFAULT_ANCESTOR_LIMIT
     node0.restart([_NOBAN])
-    node1.restart([f"-limitclustercount={_CUSTOM_CLUSTER_LIMIT}", _NOBAN])
+    if clustered:
+        node1_limits = [f"-limitclustercount={_CUSTOM_CLUSTER_LIMIT}"]
+    else:
+        node1_limits = [
+            f"-limitancestorcount={_CUSTOM_ANCESTOR_LIMIT}",
+            f"-limitdescendantcount={_CUSTOM_DESCENDANT_LIMIT}",
+        ]
+    node1.restart([*node1_limits, _NOBAN])
     connect_nodes(node1, node0)
     wallet = MiniWallet(node0)
     wallet.generate(_CHAIN_HEIGHT)
@@ -491,9 +596,7 @@ def mempool_tracks_ancestors_and_descendants(
 
         # the default count of transactions off a confirmed coin
         first = wallet.get_utxo()
-        chain = wallet.send_self_transfer_chain(
-            chain_length=_DEFAULT_CLUSTER_LIMIT, utxo_to_spend=first
-        )
+        chain = wallet.send_self_transfer_chain(chain_length=limit, utxo_to_spend=first)
         spent = [first, *(wallet.new_utxos(tx)[0] for tx in chain[:-1])]
         fees = [_fee(tx, [utxo]) for tx, utxo in zip(chain, spent, strict=True)]
 
@@ -502,6 +605,11 @@ def mempool_tracks_ancestors_and_descendants(
         _wait_for_broadcast(peer_inv_store, {tx.hash for tx in chain})
 
         _check_chain(node0, chain, fees)
-        _check_prioritisation(nodes, wallet, [tx.id.hex() for tx in chain])
-        _check_family(nodes, wallet)
+        if not clustered:
+            _check_chain_limit(node0, wallet, chain)
+        chain_ids = [tx.id.hex() for tx in chain]
+        _check_prioritisation(nodes, wallet, chain_ids)
+        if not clustered:
+            _check_ancestor_limit(nodes, chain_ids)
+        _check_family(nodes, wallet, clustered=clustered)
         _check_reorgs(nodes, wallet)

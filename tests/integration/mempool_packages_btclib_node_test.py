@@ -7,11 +7,7 @@
 `mempool_packages_test.py` beside this module is the body, run here
 against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). The test is a counted skip on every build, on
-`Capability.LIMIT_CLUSTER_COUNT`: `-limitclustercount` is not one of
-`cli.py`'s registered options, on PyPI's `2026.9.24` or on `main`, and
-the mempool bounds no cluster
-([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383)).
-Neither build declares `Capability.MEMPOOL_GRAPH` either
+`Capability.MEMPOOL_GRAPH`, which neither build declares
 ([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501)).
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>

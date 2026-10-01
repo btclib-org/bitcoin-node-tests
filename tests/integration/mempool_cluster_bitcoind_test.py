@@ -6,7 +6,8 @@
 
 Read from Core's `test/functional/mempool_cluster.py`:
 `mempool_cluster_test.py` beside this module is the body, run here
-against bitcoind, which declares every capability it asks for.
+against bitcoind, which declares every capability it asks for from `v31.0`
+on, the cluster mempool's first release; an older build is a counted skip.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """

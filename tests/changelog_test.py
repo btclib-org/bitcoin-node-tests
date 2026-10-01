@@ -11,7 +11,7 @@ has to edit, so the file states none, and this module fails on a count.
 
 RELEASE_NOTES.md is not read here: section 2 of the organization
 standard gives it to a repository that publishes, and this tree is
-tier 2, owing no release yet (CONTRIBUTING.md's *A version, and no
+tier 2, owing no release (CONTRIBUTING.md's *A version, and no
 release*).
 
 A test rather than a reading because `.gitattributes` marks the file

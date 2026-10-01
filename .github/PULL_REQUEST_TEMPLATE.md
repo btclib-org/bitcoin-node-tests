@@ -20,7 +20,7 @@
       markdownlint, the copyright notice, `uv.lock`)
 - [ ] `uv run pytest` passes
 - [ ] `CHANGELOG.md` has an entry, if a reader would notice the change
-      (no `RELEASE_NOTES.md` yet: this tree publishes nothing, section 2
+      (no `RELEASE_NOTES.md`: this tree publishes nothing, section 2
       of the organization standard giving that file to a tier-1 tree)
 
 ## Anything the reviewer should know

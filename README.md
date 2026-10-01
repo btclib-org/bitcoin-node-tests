@@ -10,9 +10,8 @@ label.
 
 <!-- The badges are what the reader decides with, in three groups: what the
 software is and whether it can be used, whether it works, and what the
-OpenSSF makes of it. This tree publishes nothing yet (issue
-btclib-org/btclib#2220), so the first group and the licence badge, both
-tier 1's, are absent.
+OpenSSF makes of it. This tree publishes nothing, so the first group and
+the licence badge, both tier 1's, are absent.
 -->
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/btclib-org/bitcoin-node-tests/main.svg)](https://results.pre-commit.ci/latest/github/btclib-org/bitcoin-node-tests/main)
 [![lint workflow status](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/lint.yml?query=branch%3Amain)
@@ -47,7 +46,7 @@ Core developer against their own `master`, a btclib-node developer
 against their own `main`, each a clone beside this one -- for instance
 all three under one `upstream/` folder.
 
-This repository publishes nothing yet (issue btclib-org/btclib#2220):
+This repository publishes nothing:
 `git clone` and `uv sync` is how a checkout gets an environment, uv
 being the only tool that has to be installed.
 
@@ -92,5 +91,5 @@ what it intends to do, and what it deliberately does not, is its
 
 <!-- No "actively supported by" line: section 2 of the organization
 standard gives it to a tier-1 tree, an index rendering the README with
-no organization beside it -- this tree publishes nothing yet, and
+no organization beside it -- this tree publishes nothing, and
 below tier 1 `profile/README.md` says it once for all. -->

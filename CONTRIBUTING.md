@@ -284,7 +284,7 @@ btclib-org/bitcoin-node-tests](https://img.shields.io/badge/GitHub-btclib--org%2
 
 To get an overview of the project, read the [README](./README.md) and
 [ISS 2220](https://github.com/btclib-org/btclib/issues/2220), the charter
-this repository is step 2 of.
+this repository was created under.
 
 What a primitive does -- a curve operation, a signature scheme, a script
 -- is btclib's, not this package's: a finding that reproduces with
@@ -405,7 +405,8 @@ command) installs `dev`, which carries `pytest`; `--no-default-groups
 --group docs` alone only adds what `docs` needs to that same venv and
 prunes nothing, so a module importing `pytest` builds locally with no
 warning while CI's own job, a fresh venv per run, fails on it
-(`CLAUDE.md`'s own note on this has the case that happened).
+(`capability.py` once imported `pytest`: the local build passed and CI's
+`docs` job failed with `ModuleNotFoundError`).
 
 **Check exit codes, not filtered output.** `pre-commit run ... | grep -v
 Passed` hides a failure, and `grep` finding nothing exits 1, which is not
@@ -573,9 +574,8 @@ passing it to `subprocess.Popen`.
 
 Nothing here is released: `pyproject.toml`'s `version = "0"` is a
 placeholder, no tag has ever agreed with it, and no command derives it.
-Section 12's calendar versioning applies to what a release publishes,
-from step 4 of [ISS 2220](https://github.com/btclib-org/btclib/issues/2220)
-on. Until then this repository ships by being read.
+Section 12's calendar versioning applies to a release. This repository
+ships by being read.
 
 ### The editor
 

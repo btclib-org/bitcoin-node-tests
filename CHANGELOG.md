@@ -1343,3 +1343,9 @@ a lagging clock's abort, on builds that carry it (closes #318).
 
 Rows a `main` now passes read `pass`, and the rows still failing cite an open
 btclib-node issue; `feature_utxo_set_hash.py` cites a new one (closes #312).
+
+### CLAUDE.md carries the shared primary-checkout section
+
+The section is the organization's, word for word. Prose that named the
+closed charter's steps as pending says what holds, and CLAUDE.md points
+at the standard where it restated it (issue btclib-org/.github#1494).

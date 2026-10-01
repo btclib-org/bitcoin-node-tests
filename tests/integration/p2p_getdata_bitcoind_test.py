@@ -17,11 +17,10 @@ btclib's `tests/integration/` fixture).
 One deviation, declared rather than silent: Core's own
 `test_framework.py` seeds every node with 199 pre-mined blocks and
 mines a 200th before a test runs, so the "later valid one" Core asks
-for is that mined tip. `Capability.MINE` is not a fact this adapter can
-supply to every node yet -- mining is step 4's, not this one's -- so
-this asks for genesis instead, the one block every node this suite
-drives already has without mining. That is a smaller claim than
-Core's own, not the same one.
+for is that mined tip. Not every node declares `Capability.MINE`
+(`bitcoind.py` and `btclib_node.py` say when each does), so this asks for
+genesis instead, the one block every node this suite drives already has
+without mining. That is a smaller claim than Core's own, not the same one.
 
 bitcoind is the oracle (rule 3), so this is the half that has to pass,
 and it stands in a module of its own rather than beside btclib-node's:

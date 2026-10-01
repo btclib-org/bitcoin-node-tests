@@ -4,9 +4,8 @@ name: test
 # the suite under coverage: the question a pull request is gated on
 # beyond the hooks and the documentation build, which lint.yml and
 # docs.yml ask. No `dist` job: `check-wheel-contents` needs the package
-# named at a release this tree does not build yet (tier 2, section 2 of
-# the organization standard -- "no release before step 4", issue
-# btclib-org/btclib#2220), which is the only packaging check a job here
+# named at a release this tree does not build (tier 2, section 2 of the
+# organization standard), which is the only packaging check a job here
 # would add. `pyroma` and `check-sdist` are owed regardless -- section
 # 4's condition is a `[build-system]`, not a release -- and the lint
 # gate runs both as local hooks, not a job of this file.
@@ -71,7 +70,7 @@ jobs:
   test-passed:
     name: "test: every job passed"
     # nothing in this tree calls this workflow -- no release.yml exists
-    # yet (tier 2, section 2, issue btclib-org/btclib#2220) and this file
+    # (tier 2, section 2 of the organization standard) and this file
     # declares no workflow_call: trigger -- so section 10 of the
     # organization standard's "The aggregate job, and the required check"
     # is what decides the shape: the listing, asked of the API, rather

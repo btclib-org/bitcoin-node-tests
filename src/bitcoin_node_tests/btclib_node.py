@@ -384,6 +384,12 @@ not gain the capability.
 no `-incrementalrelayfee`, measured at the released `2026.9.24`
 (`422d2640`) and at `main` (`eb18985c`) alike
 ([ISS btclib-node#1596](https://github.com/btclib-org/btclib-node/issues/1596)).
+
+`Capability.PEER_PERMISSIONS` is never declared: `cli.py` registers no
+`-whitelist` and no `-whitebind`, measured at the released `2026.9.24`
+(`422d2640`) and at `main` (`f2b326d6`) alike, and `getpeerinfo` lists an
+empty `permissions` on `main` and none on the release
+([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)).
 """
 
 from __future__ import annotations

@@ -1093,6 +1093,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_estimatefee.py` | [`4056908f0fea`](https://github.com/bitcoin/bitcoin/commit/4056908f0fea) | 2026-09-29 | pass, the `options` checks and the estimator refusal run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (estimate_smart_fee) |
 | `feature_assumevalid.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass, its log lines read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (assume_valid) |
 | `feature_rbf.py` | [`1a85ca1dff1f`](https://github.com/bitcoin/bitcoin/commit/1a85ca1dff1f) | 2026-04-24 | pass, the replacement rules' wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (incremental_relay_fee) |
+| `p2p_permissions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (peer_permissions) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1547,8 +1548,8 @@ section below names. `feature_reindex.py`, `feature_reindex_readonly.py`,
 `p2p_blockfilters.py`, `p2p_compactblocks.py`,
 `p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
 `p2p_invalid_block.py`, `p2p_unrequested_blocks.py`,
-`feature_settings.py` and `feature_assumevalid.py` are ported, their rows
-in the table above.
+`feature_settings.py`, `feature_assumevalid.py` and `p2p_permissions.py`
+are ported, their rows in the table above.
 
 The rest go where the node wallet, another Core binary, an older release,
 a proxy or an external interface is the subject:
@@ -3198,6 +3199,35 @@ earlier rules' wording is asserted on a build before the cluster mempool.
 build, `cli.py` registering no `-incrementalrelayfee` at the released build or
 at `main`
 ([ISS btclib-node#1596](https://github.com/btclib-org/btclib-node/issues/1596)).
+
+`p2p_permissions.py` is one of ISS 14's files in the log family's census
+above, an option beside the wire and the log. Its rows keep every check of
+Core's own, each a body over nodes of its own, a second one only where the
+check links it. A node restarted with `-whitelist` grants a peer dialling it
+the permissions the value names, `getpeerinfo` listing them: a bare address
+grants the default set, a list replaces it, `all` grants every permission,
+`forcerelay` implies `relay`, and the legacy `-whitelistrelay` and
+`-whitelistforcerelay` change the default set and are ignored beside a list.
+A `-whitebind` grants its own flags, merged with a `-whitelist`'s, to a peer
+dialling its port. A whitelist's `out` direction grants a node's permissions
+to the peer it dials, and a list naming none grants them to an inbound peer
+alone. A malformed value, an unknown permission, a netmask that is no
+netmask, an unresolvable `-whitebind` and a `-whitebind` beside `-listen`
+turned off each stop the start with Core's own message. A peer granted
+`forcerelay` sends a transaction the node's mempool holds already, and the
+node relays it to a node it is linked to; a transaction its policy rejects
+for dust is neither accepted nor relayed, the log naming both. Every row asks
+for `Capability.PEER_PERMISSIONS`; the `out` row and the relay row ask for
+`CONNECT` too, and the relay row for `MINE` and `DEBUG_LOG`.
+`tests/integration/p2p_permissions_test.py`'s own docstring has what differs
+from Core's file, among it the peer, which is a `Peer` where the permissions
+are read on an inbound connection. Every body passes on older releases
+too, so no row is read per-build. The `bitcoind` cells are one
+verdict for the pinned release and for Core's `master`, the pinned
+release's own copy of the file being the pin's. `btclib-node`'s cells are
+counted skips on `PEER_PERMISSIONS` on either build, `cli.py` registering
+no `-whitelist` and no `-whitebind`
+([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)).
 
 [ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)'s
 files are those a planning pass for ISS 14 found to need no mechanism the

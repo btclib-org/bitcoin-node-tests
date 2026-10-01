@@ -1332,3 +1332,9 @@ of the rules. `Capability.INCREMENTAL_RELAY_FEE` is new; btclib-node skips
 `NodeAdapter.wait_until_stopped` returns the exit code and stderr of a node
 that exits on its own; `p2p_headers_sync_with_minchainwork` waits with it for
 a lagging clock's abort, on builds that carry it (closes #318).
+
+### `p2p_permissions` is ported
+
+`-whitelist` and `-whitebind` grant the permissions they name, read off
+`getpeerinfo`, and a `forcerelay` peer has a mempool transaction relayed on.
+`Capability.PEER_PERMISSIONS` is new; btclib-node skips (issue #14).

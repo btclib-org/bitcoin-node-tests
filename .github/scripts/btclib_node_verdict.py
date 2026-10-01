@@ -822,6 +822,7 @@ _ROWS: dict[str, str] = {
     "rpc_estimatefee": "`rpc_estimatefee.py`",
     "feature_assumevalid": "`feature_assumevalid.py`",
     "feature_rbf": "`feature_rbf.py`",
+    "p2p_permissions": "`p2p_permissions.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

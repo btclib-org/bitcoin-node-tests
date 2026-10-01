@@ -103,6 +103,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.CHAIN_TIPS,
             Capability.ASSUME_VALID,
             Capability.INCREMENTAL_RELAY_FEE,
+            Capability.PEER_PERMISSIONS,
         }
     )
 

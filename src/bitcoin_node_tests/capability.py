@@ -569,6 +569,13 @@ class Capability(Enum):
     replaces, per virtual byte of its own size (`feature_rbf.py`). Where
     `-minrelaytxfee` is not given, Core raises the minimum relay fee rate
     to it.
+    `PEER_PERMISSIONS` -- grant the permissions Core's own `-whitelist` and
+    `-whitebind` name to the peers at an address or on a bind, and list
+    them under `permissions` in `getpeerinfo`: the defaults of a bare
+    address, the flags a bare permission list replaces them with, `all`,
+    the merge of a whitelisted address with a whitebind's own flags, the
+    `in` and `out` directions, and the start refused on a malformed
+    list (`p2p_permissions.py`).
     """
 
     MINE = "mine"
@@ -650,6 +657,7 @@ class Capability(Enum):
     CHAIN_TIPS = "chain_tips"
     ASSUME_VALID = "assume_valid"
     INCREMENTAL_RELAY_FEE = "incremental_relay_fee"
+    PEER_PERMISSIONS = "peer_permissions"
 
 
 class SkipCounts:

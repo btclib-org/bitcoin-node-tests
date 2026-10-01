@@ -407,7 +407,7 @@ def _assert_second_node_agrees(
 
 
 def _check_ancestor_limit(nodes: Sequence[NodeAdapter], chain: Sequence[str]) -> None:
-    """Core's check of the second node under its ancestor limit, before `v31.0`."""
+    """Core's check of the second node under its ancestor limit, pre-cluster."""
     node0, node1 = nodes
     mempool1 = _mempool(node1)
     assert len(mempool1) == _CUSTOM_ANCESTOR_LIMIT
@@ -420,7 +420,7 @@ def _check_ancestor_limit(nodes: Sequence[NodeAdapter], chain: Sequence[str]) ->
 def _check_descendant_limit(
     nodes: Sequence[NodeAdapter], parent: str, family: Sequence[str], next_hop: Tx
 ) -> None:
-    """Core's check of the second node under its descendant limit, before `v31.0`.
+    """Core's check of the second node under its descendant limit, pre-cluster.
 
     :param parent: the family's own parent.
     :param family: the transactions chained off `parent`, in the order sent.
@@ -431,8 +431,10 @@ def _check_descendant_limit(
         node0.rpc.call("sendrawtransaction", [_hex(next_hop)])
 
     wait_until(
-        lambda: len(_mempool(node1))
-        == _CUSTOM_ANCESTOR_LIMIT + 1 + _CUSTOM_DESCENDANT_LIMIT,
+        lambda: (
+            len(_mempool(node1))
+            == _CUSTOM_ANCESTOR_LIMIT + 1 + _CUSTOM_DESCENDANT_LIMIT
+        ),
         timeout=_SECOND_MEMPOOL_TIMEOUT,
     )
     mempool1 = _mempool(node1)
@@ -484,9 +486,7 @@ def _check_family(
         assert mempool[child]["depends"] == [parent_transaction]
 
     if not clustered:
-        next_hop = wallet.create_self_transfer(
-            utxo_to_spend=transaction_package.pop(0)
-        )
+        next_hop = wallet.create_self_transfer(utxo_to_spend=transaction_package.pop(0))
         _check_descendant_limit(nodes, parent_transaction, family, next_hop)
         return
 

@@ -1405,7 +1405,5 @@ The port runs a `Socks5Proxy` for `-proxy` and one for `-onion`. Where
 ### `BitcoindAdapter` probes the cluster mempool
 
 Where `-help-debug` lists no `-limitclustercount`, `BitcoindAdapter` lacks
-`CLUSTER_LINEARIZATION`, `LIMIT_CLUSTER_COUNT` and `LIMIT_CLUSTER_SIZE`, and
-`mempool_cluster` skips. `mempool_package_limits`, `mempool_updatefromblock`,
-`mempool_packages` and `mempool_package_rbf` run there at the ancestor and
-descendant limits (issue #354).
+the three cluster capabilities and `mempool_cluster` skips; four mempool
+files run there at the ancestor and descendant limits (issue #354).

@@ -93,15 +93,12 @@ constraints. Do not use Fable unless instructed.
   question, run separately and weekly, under a title distinct from the
   per-pin drift issue's own -- the two must never share one issue.
 - **A rebase over a `main` that gained its own `CHANGELOG.md` entry eats
-  the blank line above the branch's entry.** The `merge=union` driver
-  (`.gitattributes`) joins the two added blocks with no line between
-  them, and the rebase exits `0`. `check-changelog` names it (`has no
-  blank line above it`); the markdownlint fixer repairs it silently, so
-  read the first before the second. Prove the repair by rebuilding the
-  file as the new base's `CHANGELOG.md`, one blank line and the branch's
-  literal block, then `cmp` it with the committed file. Never build the
-  expected file from the rebased diff: that diff lacks the blank line
-  too, so the seam matches itself.
+  the blank line above the branch's entry.** `.gitattributes` says why,
+  and what names it. Prove the repair by rebuilding the file as the new
+  base's `CHANGELOG.md`, a blank line and the branch's entry as written,
+  then `cmp` it with the committed file; a copy with one byte changed
+  must differ. An expected file built from the rebased diff lacks the
+  blank line too, so it matches the broken file.
 
 ## Conventions to match
 

@@ -1404,8 +1404,5 @@ The port runs a `Socks5Proxy` for `-proxy` and one for `-onion`. Where
 
 ### `rpc_net`'s single-node steps are ported
 
-Core's `rpc_net` is checked for `addnode`, a peer's service names,
-`getnodeaddresses`, `addpeeraddress`, `getaddrmaninfo` and `getrawaddrman`,
-under `Capability.PROXY`, `Capability.CJDNS` and `Capability.KNOWN_ADDRESSES`;
-the dead `-proxy` Core gives its nodes needs no mock; btclib-node skips
-(issue #47).
+Core's `rpc_net` is checked for the steps that need one node, its dead
+`-proxy` needing no mock; btclib-node skips (issue #47).

@@ -1583,7 +1583,7 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_addr_selfannouncement.py`, `p2p_seednode.py`, `p2p_ibd_stalling.py`,
 `p2p_private_broadcast.py`, `p2p_tx_download.py`, `p2p_blocksonly.py`,
 `p2p_orphan_handling.py` and `rpc_net.py` but for the steps that connect
-its two nodes.
+its nodes.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -4343,15 +4343,15 @@ counted skip on `Capability.PRIVATE_BROADCAST`.
 `tests/integration/rpc_net_test.py`, whose module docstring has what
 differs from Core's file: `addnode`, a peer's service names,
 `getnodeaddresses`, `addpeeraddress`, `getaddrmaninfo` and
-`getrawaddrman`. Core gives its nodes `-proxy=127.0.0.1:1`, a proxy
-nothing listens at, so that no step dials a public address; no step
-reads what the node asks of it, so no proxy runs, and a step given the
-argument asks for `Capability.PROXY`. The two steps Core restarts with
-`-cjdnsreachable` ask for `Capability.CJDNS`. Two checks are past the
-pinned release's own binary, the refusal of a blank `addnode` address
-and of a blank `addpeeraddress` address, and the body asks the build a
-call that changes nothing and asserts that build's own answer. The steps
-that connect Core's two nodes are
+`getrawaddrman`. Core gives its nodes a `-proxy` nothing listens at, so
+that no step dials a public address; no step reads what the node asks
+of it, so no proxy runs, and a step given the argument asks for
+`Capability.PROXY`. The steps Core restarts with
+`-cjdnsreachable` ask for `Capability.CJDNS`. The refusal of a blank
+`addnode` address and that of a blank `addpeeraddress` address are past
+the pinned release's own binary, and the body asks the build a call that
+changes nothing and asserts that build's own answer. The steps that
+connect Core's nodes are
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s.
 `btclib-node`'s cells are a counted skip on each row's own capability.
 The rest of

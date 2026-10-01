@@ -54,7 +54,6 @@ a protected peer no other.
 
 from __future__ import annotations
 
-import time
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
@@ -64,6 +63,7 @@ from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.peer import Listener
+from tests.integration.p2p_conns_test import Clock
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -115,20 +115,7 @@ _UNPROTECTED_PEERS = 2
 _WAIT = 60.0
 
 
-class _Clock:
-    """Core's own `cur_mock_time`, moved and set on the node together."""
-
-    def __init__(self, node: NodeAdapter, now: int) -> None:
-        self._node = node
-        self.now = now
-
-    def advance(self, seconds: int) -> None:
-        """Move the node's clock `seconds` further on."""
-        self.now += seconds
-        self._node.set_mock_time(self.now)
-
-
-def _node(cluster: _Cluster, skip_counts: SkipCounts) -> tuple[_Node, _Clock]:
+def _node(cluster: _Cluster, skip_counts: SkipCounts) -> tuple[_Node, Clock]:
     """Return a fresh node on its own chain and clock, or skip."""
     (node,) = cluster(1)
     require(Capability.TYPED_OUTBOUND, node.capabilities, skip_counts)
@@ -136,8 +123,7 @@ def _node(cluster: _Cluster, skip_counts: SkipCounts) -> tuple[_Node, _Clock]:
     require(Capability.MINE, node.capabilities, skip_counts)
     require(Capability.PEER_TIMEOUT, node.capabilities, skip_counts)
     node.restart(_HARNESS_ARGS)
-    clock = _Clock(node, int(time.time()))
-    clock.advance(0)
+    clock = Clock(node)
     node.mine(_CHAIN_LENGTH)
     return node, clock
 
@@ -213,20 +199,20 @@ def lagging_unprotected_peers_are_evicted(
     with ExitStack() as stack:
         # a peer sending no headers is dropped: first sent a `getheaders`
         peer = _add_outbound(stack, node, "outbound-full-relay")
-        clock.advance(_CHAIN_SYNC_TIMEOUT + 1)
+        clock.bump(_CHAIN_SYNC_TIMEOUT + 1)
         peer.sync_with_ping(timeout=_WAIT)
         _wait_for_getheaders(peer, tip_header.previous_block_hash)
         # then dropped once it answers none in time
-        clock.advance(_HEADERS_RESPONSE_TIME + 1)
+        clock.bump(_HEADERS_RESPONSE_TIME + 1)
         peer.wait_for_disconnect(timeout=_WAIT)
 
         # a peer whose headers end at the tip's parent is dropped too
         peer = _add_outbound(stack, node, "outbound-full-relay")
         _send_headers_and_ping(peer, prev_header)
-        clock.advance(_CHAIN_SYNC_TIMEOUT + 1)
+        clock.bump(_CHAIN_SYNC_TIMEOUT + 1)
         peer.sync_with_ping(timeout=_WAIT)
         _wait_for_getheaders(peer, tip_header.previous_block_hash)
-        clock.advance(_HEADERS_RESPONSE_TIME + 1)
+        clock.bump(_HEADERS_RESPONSE_TIME + 1)
         peer.wait_for_disconnect(timeout=_WAIT)
 
         # a peer lagging behind, but catching up with the tip the timer
@@ -244,7 +230,7 @@ def lagging_unprotected_peers_are_evicted(
             peer.sync_with_ping(timeout=_WAIT)
 
             # not enough to drop the peer
-            clock.advance(_CHAIN_SYNC_TIMEOUT + 1)
+            clock.bump(_CHAIN_SYNC_TIMEOUT + 1)
             peer.sync_with_ping(timeout=_WAIT)
 
             # the node's last call
@@ -256,9 +242,9 @@ def lagging_unprotected_peers_are_evicted(
 
         # the same peer catching up with the tip in time is kept
         _send_headers_and_ping(peer, _header(node, best_block_hash))
-        clock.advance(_CHAIN_SYNC_TIMEOUT + 1)
+        clock.bump(_CHAIN_SYNC_TIMEOUT + 1)
         peer.sync_with_ping(timeout=_WAIT)
-        clock.advance(_HEADERS_RESPONSE_TIME + 1)
+        clock.bump(_HEADERS_RESPONSE_TIME + 1)
         peer.sync_with_ping(timeout=_WAIT)
 
 
@@ -280,10 +266,10 @@ def protected_peer_is_not_evicted(cluster: _Cluster, skip_counts: SkipCounts) ->
         peer.sync_with_ping(timeout=_WAIT)
 
         # both timeouts pass, and the peer is kept
-        clock.advance(_CHAIN_SYNC_TIMEOUT + 1)
+        clock.bump(_CHAIN_SYNC_TIMEOUT + 1)
         peer.sync_with_ping(timeout=_WAIT)
         _wait_for_getheaders(peer, tip_header.previous_block_hash)
-        clock.advance(_HEADERS_RESPONSE_TIME + 1)
+        clock.bump(_HEADERS_RESPONSE_TIME + 1)
         peer.sync_with_ping(timeout=_WAIT)
 
 
@@ -327,7 +313,7 @@ def only_misbehaving_unprotected_peers_are_evicted(
         tip_hash = _mine_block(node)
         tip_header = _header(node, tip_hash)
 
-        clock.advance(_CHAIN_SYNC_TIMEOUT + 1)
+        clock.bump(_CHAIN_SYNC_TIMEOUT + 1)
         for peer in protected_peers + misbehaving_unprotected_peers:
             peer.sync_with_ping(timeout=_WAIT)
             _wait_for_getheaders(peer, target_hash)
@@ -336,7 +322,7 @@ def only_misbehaving_unprotected_peers_are_evicted(
             _wait_for_getheaders(peer, target_hash)
 
         # the protected and the honest are kept, the misbehaving dropped
-        clock.advance(_HEADERS_RESPONSE_TIME + 1)
+        clock.bump(_HEADERS_RESPONSE_TIME + 1)
         for peer in protected_peers + honest_unprotected_peers:
             peer.sync_with_ping(timeout=_WAIT)
         for peer in misbehaving_unprotected_peers:
@@ -363,8 +349,8 @@ def block_relay_only_peer_is_not_protected(
         peer.sync_with_ping(timeout=_WAIT)
 
         # both timeouts pass, and the peer is dropped
-        clock.advance(_CHAIN_SYNC_TIMEOUT + 1)
+        clock.bump(_CHAIN_SYNC_TIMEOUT + 1)
         peer.sync_with_ping(timeout=_WAIT)
         _wait_for_getheaders(peer, tip_header.hash)
-        clock.advance(_HEADERS_RESPONSE_TIME + 1)
+        clock.bump(_HEADERS_RESPONSE_TIME + 1)
         peer.wait_for_disconnect(timeout=_WAIT)

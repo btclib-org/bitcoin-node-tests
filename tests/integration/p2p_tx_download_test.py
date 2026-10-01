@@ -45,14 +45,14 @@ mines a block first (`Capability.MINE`), and a body spending a coin mines
 it the same way (`mini_wallet.MiniWallet`).
 
 Core's `TestP2PConn` counts each `getdata` for a transaction from its
-framework's network thread. Here `_TxConn` counts it on the test's own
-thread, where the test reads the peer's connection: a wait for a request
-reads each peer it names up to the `pong` of a ping round trip ahead of
-every poll, the node sending that `pong` only once its own send loop for
-the peer has run. Where Core's check that a peer was not asked reads the
-count at once after the node's clock moves, this one reads it after a
-round trip. A peer announcing by txid is
-`Peer.handshake(wtxidrelay=False)`.
+framework's network thread. Here `_TxConn`, a `Conn` (`p2p_conns_test.py`),
+counts it on the test's own thread, where the test reads the peer's
+connection: a wait for a request reads each peer it names up to the
+`pong` of a ping round trip ahead of every poll, the node sending that
+`pong` only once its own send loop for the peer has run. Where Core's
+check that a peer was not asked reads the count at once after the node's
+clock moves, this one reads it after a round trip. A peer announcing by
+txid is `Peer.handshake(wtxidrelay=False)`.
 
 What differs from Core's file besides:
 
@@ -90,10 +90,9 @@ having how.
 
 from __future__ import annotations
 
-import secrets
 import time
 from contextlib import ExitStack
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from btclib.amount import sats_from_btc
 from btclib.p2p import (
@@ -102,11 +101,8 @@ from btclib.p2p import (
     Inventory,
     InventoryType,
     NotFound,
-    Ping,
-    Pong,
     TxPayload,
 )
-from btclib.p2p.magic import magic_from_chain
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
@@ -119,14 +115,14 @@ from bitcoin_node_tests.node import (
     wait_until_mempools_agree,
     wait_until_tips_agree,
 )
-from bitcoin_node_tests.peer import Listener, Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from bitcoin_node_tests.peer import Peer
+from tests.integration.p2p_conns_test import Conn
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
 
-    from btclib.p2p import Message, Payload
+    from btclib.p2p import Message, Version
 
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
@@ -153,8 +149,6 @@ __all__ = [
 ]
 
 type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
-
-_MAGIC = magic_from_chain("regtest")
 
 # Core's own constants (`test_framework/p2p.py`)
 _NONPREF_PEER_TX_DELAY = 2
@@ -201,32 +195,23 @@ def _inv(type_code: InventoryType, *values: int | bytes) -> Inv:
     )
 
 
-class _TxConn:
+class _TxConn(Conn):
     """Core's own `TestP2PConn`: a peer counting the transactions asked of it.
 
-    `Peer.wait_for` drops what it does not wait for, and the node asks for
-    transactions whatever the test is waiting on, so every wait here reads
-    the connection itself and hands each message to `_handle` first.
     `last_getdata` is the hashes of the latest `getdata`, Core's
-    `last_message["getdata"]`.
-
-    :param peer: the connection, its handshake done.
+    `last_message["getdata"]`. An `inv` is not asked for.
     """
 
-    def __init__(self, peer: Peer) -> None:
-        self.peer = peer
+    def __init__(self, peer: Peer, version: Version) -> None:
+        super().__init__(peer, version)
         self.tx_getdata_count = 0
         self.last_getdata: list[bytes] = []
 
-    def send(self, payload: Payload) -> None:
-        """Core's own `send_without_ping`."""
-        self.peer.send(payload)
-
+    @override
     def _handle(self, message: Message) -> None:
         """Core's `on_getdata`, and `P2PInterface`'s own `on_ping`."""
-        if message.command == "ping":
-            self.send(Pong(Ping.parse(message.payload).nonce))
-        elif message.command == "getdata":
+        super()._handle(message)
+        if message.command == "getdata":
             items = GetData.parse(message.payload).items
             self.last_getdata = [item.hash for item in items]
             for item in items:
@@ -235,31 +220,6 @@ class _TxConn:
                     InventoryType.MSG_WTX,
                 ):
                     self.tx_getdata_count += 1
-
-    def sync_with_ping(self) -> None:
-        """`Peer.sync_with_ping`'s barrier, every message read answered.
-
-        :raises ConnectionError: the node closed the connection.
-        :raises TimeoutError: no matching `pong` arrived within the wait.
-        """
-        nonce = secrets.randbelow(2**64 - 1) + 1
-        self.send(Ping(0))
-        self.send(Ping(nonce))
-        deadline = time.monotonic() + scaled(_WAIT)
-        while True:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                err_msg = "no pong within the wait"
-                raise TimeoutError(err_msg)
-            message = self.peer.receive(timeout=remaining)
-            self._handle(message)
-            if message.command == "pong" and Pong.parse(message.payload).nonce == nonce:
-                return
-
-    def send_and_ping(self, payload: Payload) -> None:
-        """Core's own `send_and_ping`: `send`, then `sync_with_ping`."""
-        self.send(payload)
-        self.sync_with_ping()
 
 
 def _serving_wait_until(
@@ -278,32 +238,6 @@ def _serving_wait_until(
 def _wait_for_getdata(conn: _TxConn, hashes: list[bytes]) -> None:
     """Core's own `wait_for_getdata`: the latest `getdata` names `hashes`."""
     _serving_wait_until([conn], lambda: conn.last_getdata == hashes)
-
-
-def _inbound(
-    stack: ExitStack, node: NodeAdapter, *, wtxidrelay: bool = True
-) -> _TxConn:
-    """Core's own `add_p2p_connection(TestP2PConn(wtxidrelay=wtxidrelay))`."""
-    peer = stack.enter_context(Peer(node.p2p_address, _MAGIC))
-    peer.handshake(wtxidrelay=wtxidrelay)
-    conn = _TxConn(peer)
-    conn.sync_with_ping()
-    return conn
-
-
-def _outbound(stack: ExitStack, node: NodeAdapter) -> _TxConn:
-    """Core's own `add_outbound_p2p_connection(TestP2PConn(), ...)`.
-
-    The connection type is `outbound-full-relay`, every one Core's file
-    makes.
-    """
-    with Listener(_MAGIC) as listener:
-        node.add_outbound_connection(listener.address, "outbound-full-relay")
-        peer = stack.enter_context(listener.accept())
-    peer.handshake()
-    conn = _TxConn(peer)
-    conn.sync_with_ping()
-    return conn
 
 
 def _peer_info(node: NodeAdapter) -> list[dict[str, object]]:
@@ -356,8 +290,8 @@ def _fallback(
     node, _ = _node(cluster, skip_counts, *capabilities)
     stack = ExitStack()
     try:
-        peer1 = _inbound(stack, node)
-        peer2 = _inbound(stack, node)
+        peer1 = _TxConn.inbound(stack, node)
+        peer2 = _TxConn.inbound(stack, node)
         for peer in (peer1, peer2):
             peer.send(_inv(InventoryType.MSG_WTX, wtxid))
         # one of the peers is asked for the transaction
@@ -443,9 +377,9 @@ def _preferred_inv(
     node.set_mock_time(mock_time)
     with ExitStack() as stack:
         peer = (
-            _outbound(stack, node)
+            _TxConn.outbound(stack, node)
             if connection_type == "outbound"
-            else _inbound(stack, node)
+            else _TxConn.inbound(stack, node)
         )
         peer.send_and_ping(_inv(InventoryType.MSG_WTX, 0xFF00FF00))
         if connection_type != "inbound":
@@ -502,7 +436,7 @@ def a_ready_preferred_peer_is_asked_first(
     with ExitStack() as stack:
         # a peer asked at once that never answers, leaving two requests
         # ready once it expires, one preferred and one not
-        unresponsive_peer = _outbound(stack, node)
+        unresponsive_peer = _TxConn.outbound(stack, node)
         unresponsive_peer.send_and_ping(inv)
         _serving_wait_until(
             [unresponsive_peer],
@@ -513,7 +447,7 @@ def a_ready_preferred_peer_is_asked_first(
         # inbound, non-preferred peers announcing the same transaction
         non_pref_peers = []
         for _ in range(_NUM_INBOUND):
-            non_pref_peers.append(_inbound(stack, node))
+            non_pref_peers.append(_TxConn.inbound(stack, node))
             non_pref_peers[-1].send_and_ping(inv)
 
         # none is asked while the request is in flight
@@ -524,7 +458,7 @@ def a_ready_preferred_peer_is_asked_first(
             assert peer.tx_getdata_count == 0
 
         # a preferred peer, ready once it announces
-        pref_peer = _outbound(stack, node)
+        pref_peer = _TxConn.outbound(stack, node)
         pref_peer.send_and_ping(inv)
 
         assert len(_peer_info(node)) == _NUM_INBOUND + 2
@@ -560,10 +494,10 @@ def _txid_inv_delay(
     mock_time = int(time.time() + 1)
     node.set_mock_time(mock_time)
     with ExitStack() as stack:
-        peer = _inbound(stack, node, wtxidrelay=False)
+        peer = _TxConn.inbound(stack, node, wtxidrelay=False)
         if glob_wtxid:
             # a wtxid peer, without which `TXID_RELAY_DELAY` is waived
-            _inbound(stack, node, wtxidrelay=True)
+            _TxConn.inbound(stack, node, wtxidrelay=True)
         peer.send_and_ping(_inv(InventoryType.MSG_TX, 0xFF11FF11))
         assert peer.tx_getdata_count == (0 if glob_wtxid else 1)
         node.set_mock_time(mock_time + _TXID_RELAY_DELAY)
@@ -606,7 +540,7 @@ def a_large_inv_is_capped_without_the_relay_permission(
     # with the relay permission
     node.restart(["-whitelist=relay@127.0.0.1"])
     with ExitStack() as stack:
-        peer = _inbound(stack, node)
+        peer = _TxConn.inbound(stack, node)
         peer.send(inv)
         _serving_wait_until(
             [peer], lambda: peer.tx_getdata_count == _MAX_PEER_TX_ANNOUNCEMENTS + 1
@@ -615,7 +549,7 @@ def a_large_inv_is_capped_without_the_relay_permission(
     # without it
     node.restart()
     with ExitStack() as stack:
-        peer = _inbound(stack, node)
+        peer = _TxConn.inbound(stack, node)
         peer.send(inv)
         _serving_wait_until(
             [peer], lambda: peer.tx_getdata_count == _MAX_PEER_TX_ANNOUNCEMENTS
@@ -669,7 +603,7 @@ def duplicate_inv_entries_are_processed_once(
             (False, tx, "tx", wtx, "wtx", 0xAABBCC, 0xDDEEFF),
             (True, wtx, "wtx", tx, "tx", 0x112233, 0x445566),
         ]:
-            conn = _inbound(stack, node, wtxidrelay=wtxidrelay)
+            conn = _TxConn.inbound(stack, node, wtxidrelay=wtxidrelay)
             inv_a_log = f"got inv: {inv_name} {a:064x}"
             inv_b_log = f"got inv: {inv_name} {b:064x}"
             mismatched_inv_log = f"got inv: {mismatched_name} {a:064x}"
@@ -696,7 +630,7 @@ def duplicate_inv_entries_are_processed_once(
             assert log.count(inv_b_log) == 0
 
         # `MSG_TX` and `MSG_WITNESS_TX` are deduplicated as txids
-        conn = _inbound(stack, node, wtxidrelay=False)
+        conn = _TxConn.inbound(stack, node, wtxidrelay=False)
         for first_type, first_name, second_type, second_name, a in [
             (tx, "tx", witness_tx, "witness-tx", 0x667788),
             (witness_tx, "witness-tx", tx, "tx", 0x778899),
@@ -709,7 +643,7 @@ def duplicate_inv_entries_are_processed_once(
             assert log.count(f"got inv: {second_name} {a:064x}") == repeats - 1
 
         # txids and wtxids are deduplicated separately
-        conn = _inbound(stack, node, wtxidrelay=True)
+        conn = _TxConn.inbound(stack, node, wtxidrelay=True)
         for first_type, second_type, a in [
             (witness_tx, wtx, 0x8899AA),
             (wtx, witness_tx, 0x99AABB),
@@ -730,7 +664,7 @@ def a_spurious_notfound_is_ignored(cluster: _Cluster, skip_counts: SkipCounts) -
     """
     node, _ = _node(cluster, skip_counts)
     with ExitStack() as stack:
-        conn = _inbound(stack, node)
+        conn = _TxConn.inbound(stack, node)
         conn.send_and_ping(NotFound([Inventory(InventoryType.MSG_TX, _hash(1))]))
 
 
@@ -743,7 +677,7 @@ def requests_in_flight_are_capped(cluster: _Cluster, skip_counts: SkipCounts) ->
     node, _ = _node(cluster, skip_counts, Capability.CLOCK)
     txids = range(_MAX_PEER_TX_REQUEST_IN_FLIGHT + 2)
     with ExitStack() as stack:
-        peer = _inbound(stack, node)
+        peer = _TxConn.inbound(stack, node)
         mock_time = int(time.time() + 1)
         node.set_mock_time(mock_time)
         for txid in txids[:_MAX_PEER_TX_REQUEST_IN_FLIGHT]:
@@ -791,7 +725,7 @@ def a_tx_reaches_a_node_past_unresponsive_peers(
 
     with ExitStack() as stack:
         peers = [
-            _inbound(stack, node)
+            _TxConn.inbound(stack, node)
             for node in (node0, node1)
             for _ in range(_NUM_INBOUND)
         ]
@@ -836,7 +770,7 @@ def every_announcing_peer_is_asked_in_turn(
     node, _ = _node(cluster, skip_counts, Capability.CLOCK)
     txid = _hash(0xDEADBEEF)
     with ExitStack() as stack:
-        peers = [_inbound(stack, node) for _ in range(_NUM_INBOUND)]
+        peers = [_TxConn.inbound(stack, node) for _ in range(_NUM_INBOUND)]
         for peer in peers:
             peer.send_and_ping(_inv(InventoryType.MSG_WTX, txid))
 
@@ -872,7 +806,7 @@ def a_rejected_tx_is_asked_for_again_after_a_block(
     wallet.resync()
     mempoolminfee = node.rpc.call("getmempoolinfo")["mempoolminfee"]
     with ExitStack() as stack:
-        peer = _inbound(stack, node)
+        peer = _TxConn.inbound(stack, node)
         low_fee_tx = wallet.create_self_transfer(
             fee_rate=sats_from_btc(mempoolminfee) * 9 // 10
         )
@@ -910,8 +844,8 @@ def an_inv_of_the_wrong_kind_is_ignored(
     node, wallet = _node(cluster, skip_counts, Capability.CLOCK)
     wallet.generate(COINBASE_MATURITY)
     with ExitStack() as stack:
-        wtxidrelay_on_peer = _inbound(stack, node, wtxidrelay=True)
-        wtxidrelay_off_peer = _inbound(stack, node, wtxidrelay=False)
+        wtxidrelay_on_peer = _TxConn.inbound(stack, node, wtxidrelay=True)
+        wtxidrelay_off_peer = _TxConn.inbound(stack, node, wtxidrelay=False)
         random_tx = wallet.create_self_transfer()
         by_txid = _inv(InventoryType.MSG_TX, random_tx.id)
         by_wtxid = _inv(InventoryType.MSG_WTX, random_tx.hash)

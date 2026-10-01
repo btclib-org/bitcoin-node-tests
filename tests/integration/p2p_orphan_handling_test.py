@@ -57,12 +57,12 @@ ahead of the wallet's own, so that they mature with its coins, and
 
 Core's `PeerTxRelayer` records each `getdata` from its framework's
 network thread, and its `P2PInterface` asks for whatever the node
-announces. Here `_Conn` does both on the test's own thread, where a
-wait reads the peer's connection: a wait for a request reads the peer
-up to the `pong` of a ping round trip ahead of every poll, and a check
-that a peer was not asked reads it up to that `pong` once, as Core's
-own `assert_never_requested` does. A peer announcing by txid is
-`Peer.handshake(wtxidrelay=False)`.
+announces. Here `RelayConn` (`p2p_conns_test.py`) does both on the test's
+own thread, where a wait reads the peer's connection: a wait for a
+request reads the peer up to the `pong` of a ping round trip ahead of
+every poll, and a check that a peer was not asked reads it up to that
+`pong` once, as Core's own `assert_never_requested` does. A peer
+announcing by txid is `Peer.handshake(wtxidrelay=False)`.
 
 What differs from Core's file besides:
 
@@ -114,7 +114,6 @@ the commits.
 from __future__ import annotations
 
 import secrets
-import time
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
@@ -124,11 +123,8 @@ from btclib.p2p import (
     Inventory,
     InventoryType,
     NotFound,
-    Ping,
-    Pong,
     TxPayload,
 )
-from btclib.p2p.magic import magic_from_chain
 from btclib.script.script import serialize
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.script.witness import Witness
@@ -143,8 +139,7 @@ from bitcoin_node_tests.mini_wallet import (
     Utxo,
 )
 from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Listener, Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from tests.integration.p2p_conns_test import Clock, RelayConn
 from tests.integration.p2p_private_broadcast_test import malleated_to_invalid_witness
 from tests.integration.p2pk_coins_test import (
     mine_p2pk_coins,
@@ -156,8 +151,6 @@ from tests.integration.rpc_orphans_test import in_orphanage
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
-
-    from btclib.p2p import Message, Payload
 
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
@@ -182,8 +175,6 @@ __all__ = [
 
 type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
 
-_MAGIC = magic_from_chain("regtest")
-
 # Core's own constants (`test_framework/p2p.py`)
 _NONPREF_PEER_TX_DELAY = 2
 _TXID_RELAY_DELAY = 2
@@ -195,10 +186,8 @@ _TXREQUEST_TIME_SKIP = (
     _NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY + _OVERLOADED_PEER_TX_DELAY + 1
 )
 
-# Core's own default wait, `P2PInterface`'s and `wait_until`'s, and the
-# one its `wait_for_parent_requests` passes
+# Core's own default wait, `P2PInterface`'s and `wait_until`'s
 _WAIT = 60.0
-_PARENT_REQUESTS_WAIT = 10.0
 
 # Core's own `FEE_INCREMENT` (`p2p_orphan_handling.py`), in satoshis
 _FEE_INCREMENT = 2400
@@ -233,154 +222,6 @@ _MAXIMAL_PACKAGE_VSIZE = 101_000
 # (`test_framework/mempool_util.py`) spends its input with
 _LARGE_ORPHAN_WITNESS_SIZE = 390_000
 
-_TX_TYPES = (InventoryType.MSG_TX, InventoryType.MSG_WTX)
-
-# the commands Core's own `assert_no_immediate_response` reads
-_RESPONSES = ("getdata", "inv", "tx")
-
-
-class _Conn:
-    """Core's own `PeerTxRelayer`: a peer recording what the node asks of it.
-
-    `Peer.wait_for` drops what it does not wait for, and Core's peer asks
-    for whatever the node announces, so every wait here reads the
-    connection itself and hands each message to `_handle` first.
-    `last_getdata` is the items of the latest `getdata`, Core's
-    `last_message["getdata"]`; `requested` the hash of every item any
-    `getdata` named, Core's `getdata_received`; `tx_invs` the hash of every
-    transaction an `inv` announced, Core's `P2PTxInvStore.get_invs`.
-
-    :param peer: the connection, its handshake done.
-    """
-
-    def __init__(self, peer: Peer) -> None:
-        self.peer = peer
-        self.last_getdata: tuple[Inventory, ...] = ()
-        self.requested: set[bytes] = set()
-        self.tx_invs: list[bytes] = []
-
-    def send(self, payload: Payload) -> None:
-        """Core's own `send_without_ping`."""
-        self.peer.send(payload)
-
-    def _handle(self, message: Message) -> None:
-        """Core's `on_getdata`, `on_inv`, `P2PTxInvStore`'s, and `on_ping`."""
-        if message.command == "ping":
-            self.send(Pong(Ping.parse(message.payload).nonce))
-        elif message.command == "getdata":
-            self.last_getdata = GetData.parse(message.payload).items
-            self.requested.update(item.hash for item in self.last_getdata)
-        elif message.command == "inv":
-            items = Inv.parse(message.payload).items
-            self.tx_invs += [item.hash for item in items if item.type_code in _TX_TYPES]
-            wanted = [item for item in items if item.type_code]
-            if wanted:
-                self.send(GetData(wanted))
-
-    def sync_with_ping(self) -> None:
-        """`Peer.sync_with_ping`'s barrier, every message read answered.
-
-        :raises ConnectionError: the node closed the connection.
-        :raises TimeoutError: no matching `pong` arrived within the wait.
-        """
-        nonce = secrets.randbelow(2**64 - 1) + 1
-        self.send(Ping(0))
-        self.send(Ping(nonce))
-        deadline = time.monotonic() + scaled(_WAIT)
-        while True:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                err_msg = "no pong within the wait"
-                raise TimeoutError(err_msg)
-            message = self.peer.receive(timeout=remaining)
-            self._handle(message)
-            if message.command == "pong" and Pong.parse(message.payload).nonce == nonce:
-                return
-
-    def send_and_ping(self, payload: Payload) -> None:
-        """Core's own `send_and_ping`: `send`, then `sync_with_ping`."""
-        self.send(payload)
-        self.sync_with_ping()
-
-    def _wait_until(self, predicate: Callable[[], bool], *, timeout: float) -> None:
-        """Core's own `P2PInterface.wait_until`, the peer read before a poll."""
-
-        def _served() -> bool:
-            self.sync_with_ping()
-            return predicate()
-
-        wait_until(_served, timeout=timeout)
-
-    def wait_for_getdata(self, hashes: list[bytes]) -> None:
-        """Core's own `wait_for_getdata`: the last `getdata` names `hashes`."""
-        self._wait_until(
-            lambda: [item.hash for item in self.last_getdata] == hashes,
-            timeout=_WAIT,
-        )
-
-    def wait_for_parent_requests(self, txids: list[bytes]) -> None:
-        """Core's own `wait_for_parent_requests`.
-
-        The latest `getdata` asks for exactly `txids`, each as a
-        `MSG_WITNESS_TX`.
-        """
-
-        def _requested() -> bool:
-            items = self.last_getdata
-            return len(items) == len(txids) and all(
-                item.type_code == InventoryType.MSG_WITNESS_TX and item.hash in txids
-                for item in items
-            )
-
-        self._wait_until(_requested, timeout=_PARENT_REQUESTS_WAIT)
-
-    def wait_for_request(self, txhash: bytes) -> None:
-        """Wait for the latest `getdata` to name `txhash`, among any others.
-
-        Core's `test_maximal_package_protected` waits so on its peer, where
-        `wait_for_getdata` asks for the latest to name exactly its hashes.
-        """
-        self._wait_until(
-            lambda: txhash in [item.hash for item in self.last_getdata],
-            timeout=_WAIT,
-        )
-
-    def assert_no_immediate_response(self, payload: Payload) -> None:
-        """Core's own `assert_no_immediate_response`.
-
-        No `getdata`, `inv` or `tx` answers `payload` ahead of the `pong`
-        of a ping round trip: the latest of each is the one there was
-        before.
-        """
-        before = {
-            command: self.peer.last_message.get(command) for command in _RESPONSES
-        }
-        self.send_and_ping(payload)
-        for command in _RESPONSES:
-            assert self.peer.last_message.get(command) == before[command]
-
-    def assert_never_requested(self, txhash: bytes) -> None:
-        """Core's own `assert_never_requested`, after a ping round trip."""
-        self.sync_with_ping()
-        assert txhash not in self.requested
-
-
-class _Clock:
-    """Core's own mock time: `setmocktime` once, then `bumpmocktime`.
-
-    :param node: the node whose clock this sets, to the wall clock now.
-    """
-
-    def __init__(self, node: NodeAdapter) -> None:
-        self._node = node
-        self._now = int(time.time())
-        node.set_mock_time(self._now)
-
-    def bump(self, seconds: int) -> None:
-        """Core's own `bumpmocktime`: move the node's clock `seconds` on."""
-        self._now += seconds
-        self._node.set_mock_time(self._now)
-
 
 def _inv(inv_type: InventoryType, value: bytes) -> Inv:
     """Core's own `msg_inv([CInv(t=inv_type, h=value)])`."""
@@ -390,30 +231,6 @@ def _inv(inv_type: InventoryType, value: bytes) -> Inv:
 def _tx(tx: Tx) -> TxPayload:
     """Core's own `msg_tx(tx)`, its witness serialized."""
     return TxPayload(tx, include_witness=True, check_validity=False)
-
-
-def _inbound(stack: ExitStack, node: NodeAdapter, *, wtxidrelay: bool = True) -> _Conn:
-    """Core's own `add_p2p_connection(PeerTxRelayer(wtxidrelay=wtxidrelay))`."""
-    peer = stack.enter_context(Peer(node.p2p_address, _MAGIC))
-    peer.handshake(wtxidrelay=wtxidrelay)
-    conn = _Conn(peer)
-    conn.sync_with_ping()
-    return conn
-
-
-def _outbound(stack: ExitStack, node: NodeAdapter) -> _Conn:
-    """Core's own `add_outbound_p2p_connection(PeerTxRelayer(), ...)`.
-
-    The connection type is `outbound-full-relay`, every one Core's file
-    makes.
-    """
-    with Listener(_MAGIC) as listener:
-        node.add_outbound_connection(listener.address, "outbound-full-relay")
-        peer = stack.enter_context(listener.accept())
-    peer.handshake()
-    conn = _Conn(peer)
-    conn.sync_with_ping()
-    return conn
 
 
 def _fresh_node(
@@ -432,19 +249,19 @@ def _fresh_node(
     return node
 
 
-def _wallet(node: NodeAdapter, coins: int) -> tuple[MiniWallet, _Clock]:
+def _wallet(node: NodeAdapter, coins: int) -> tuple[MiniWallet, Clock]:
     """Return a wallet holding `coins` matured coins, and the node's clock.
 
     Every coinbase mined ahead of this call matures with them.
     """
     wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + coins)
-    return wallet, _Clock(node)
+    return wallet, Clock(node)
 
 
 def _node(
     cluster: _Cluster, skip_counts: SkipCounts, coins: int, *capabilities: Capability
-) -> tuple[NodeAdapter, MiniWallet, _Clock]:
+) -> tuple[NodeAdapter, MiniWallet, Clock]:
     """Return a fresh node, a wallet holding `coins` coins, and its clock.
 
     :param coins: the matured coins the body spends.
@@ -523,7 +340,7 @@ def _sync_validation_queue(node: NodeAdapter) -> None:
         node.rpc.call("syncwithvalidationinterfacequeue")
 
 
-def _relay_transaction(conn: _Conn, clock: _Clock, tx: Tx) -> None:
+def _relay_transaction(conn: RelayConn, clock: Clock, tx: Tx) -> None:
     """Core's own `relay_transaction`: announced by wtxid, asked for, sent."""
     conn.send_and_ping(_inv(InventoryType.MSG_WTX, tx.hash))
     clock.bump(_TXREQUEST_TIME_SKIP)
@@ -571,8 +388,8 @@ def parents_arriving_during_the_delay_are_not_requested(
         ]
     )
     with ExitStack() as stack:
-        peer_spy = _inbound(stack, node)
-        peer_normal = _inbound(stack, node)
+        peer_spy = RelayConn.inbound(stack, node)
+        peer_normal = RelayConn.inbound(stack, node)
         # the node asks for no parent at once
         peer_spy.assert_no_immediate_response(_tx(tx_fake_orphan))
 
@@ -607,8 +424,8 @@ def a_rejected_parent_is_requested_only_under_another_witness(
     coin_overly_large, coin_other = mine_p2pk_coins(node, 2)
     wallet, clock = _wallet(node, 2)
     with ExitStack() as stack:
-        peer1 = _inbound(stack, node)
-        peer2 = _inbound(stack, node)
+        peer1 = RelayConn.inbound(stack, node)
+        peer2 = RelayConn.inbound(stack, node)
 
         # a parent with no witness, refused for its size: its txid is its
         # wtxid, and so is known to be invalid
@@ -688,7 +505,7 @@ def parents_not_recently_confirmed_are_requested(
     """
     node, wallet, clock = _node(cluster, skip_counts, 4, Capability.INVALIDATE_BLOCK)
     with ExitStack() as stack:
-        peer = _inbound(stack, node)
+        peer = RelayConn.inbound(stack, node)
 
         # a parent confirmed long ago
         tx_conf_old = wallet.send_self_transfer()
@@ -774,8 +591,8 @@ def parents_already_requested_are_not_requested_again(
     # where its txid is its wtxid
     assert inflight_parent_ab.id == inflight_parent_ab.hash
     with ExitStack() as stack:
-        peer_txrequest = _inbound(stack, node)
-        peer_orphans = _inbound(stack, node)
+        peer_txrequest = RelayConn.inbound(stack, node)
+        peer_orphans = RelayConn.inbound(stack, node)
 
         # `inflight_parent_ab` is announced and asked for
         peer_txrequest.send_and_ping(
@@ -822,7 +639,7 @@ def a_parent_kept_as_an_orphan_is_not_requested(
         [p2pk_new_utxo(missing_parent), p2pk_new_utxo(missing_parent_orphan)]
     )
     with ExitStack() as stack:
-        peer = _inbound(stack, node)
+        peer = RelayConn.inbound(stack, node)
 
         # a parent is kept as an orphan, and its own parent asked for
         _relay_transaction(peer, clock, missing_parent_orphan)
@@ -849,7 +666,7 @@ def an_orphan_is_reconsidered_once_its_parent_is_mined(
     parent = wallet.create_self_transfer(fee_rate=0)
     child = wallet.create_self_transfer(utxo_to_spend=_new_utxo(wallet, parent))
     with ExitStack() as stack:
-        peer = _inbound(stack, node)
+        peer = RelayConn.inbound(stack, node)
         _relay_transaction(peer, clock, child)
         assert in_orphanage(node, child)
 
@@ -892,10 +709,10 @@ def descendants_of_a_rejected_parent_are_rejected_too(
     assert child.id != child.hash
     assert grandchild.id != grandchild.hash
     with ExitStack() as stack:
-        peer1 = _inbound(stack, node)
-        peer2 = _inbound(stack, node)
+        peer1 = RelayConn.inbound(stack, node)
+        peer2 = RelayConn.inbound(stack, node)
         # announcing by txid
-        peer3 = _inbound(stack, node, wtxidrelay=False)
+        peer3 = RelayConn.inbound(stack, node, wtxidrelay=False)
 
         _relay_transaction(peer1, clock, parent_overly_large_nonsegwit)
         assert parent_overly_large_nonsegwit.id.hex() not in _mempool(node)
@@ -941,8 +758,8 @@ def an_orphan_of_the_same_txid_is_kept_too(
     tx_child = wallet.create_self_transfer(utxo_to_spend=_new_utxo(wallet, tx_parent))
     tx_orphan_bad_wit = malleated_to_invalid_witness(tx_child)
     with ExitStack() as stack:
-        bad_peer = _inbound(stack, node)
-        honest_peer = _inbound(stack, node)
+        bad_peer = RelayConn.inbound(stack, node)
+        honest_peer = RelayConn.inbound(stack, node)
 
         # the fake orphan arrives first, its parent missing
         bad_peer.send_and_ping(_tx(tx_orphan_bad_wit))
@@ -989,8 +806,8 @@ def a_parent_of_the_same_txid_is_requested_again(
         utxo_to_spend=_new_utxo(wallet, tx_middle)
     )
     with ExitStack() as stack:
-        bad_peer = _inbound(stack, node)
-        honest_peer = _inbound(stack, node)
+        bad_peer = RelayConn.inbound(stack, node)
+        honest_peer = RelayConn.inbound(stack, node)
 
         # the fake orphan arrives first, its parent missing
         bad_peer.send_and_ping(_tx(tx_orphan_bad_wit))
@@ -1036,9 +853,9 @@ def an_inv_by_an_orphan_txid_is_requested(
     tx_child = wallet.create_self_transfer(utxo_to_spend=_new_utxo(wallet, tx_parent))
     tx_orphan_bad_wit = malleated_to_invalid_witness(tx_child)
     with ExitStack() as stack:
-        bad_peer = _inbound(stack, node)
+        bad_peer = RelayConn.inbound(stack, node)
         # announcing by txid, which a wtxid peer's `inv` would not be
-        honest_peer = _inbound(stack, node, wtxidrelay=False)
+        honest_peer = RelayConn.inbound(stack, node, wtxidrelay=False)
 
         # the fake orphan arrives first, its parent missing
         bad_peer.send_and_ping(_tx(tx_orphan_bad_wit))
@@ -1080,8 +897,8 @@ def an_outbound_announcer_is_asked_for_parents_first(
     parent_tx, orphan_tx = _parent_and_child(wallet)
     orphan_inv = _inv(InventoryType.MSG_WTX, orphan_tx.hash)
     with ExitStack() as stack:
-        peer_inbound = _inbound(stack, node)
-        peer_outbound = _outbound(stack, node)
+        peer_inbound = RelayConn.inbound(stack, node)
+        peer_outbound = RelayConn.outbound(stack, node)
 
         # the inbound peer relays the orphan
         peer_inbound.send_and_ping(orphan_inv)
@@ -1121,10 +938,10 @@ def every_announcer_is_asked_for_parents(
     with ExitStack() as stack:
         # announcing ahead of the orphan, one disconnecting while asked for
         # its parent and one never answering
-        peer_early_disconnected = _outbound(stack, node)
-        peer_early_unresponsive = _inbound(stack, node)
+        peer_early_disconnected = RelayConn.outbound(stack, node)
+        peer_early_unresponsive = RelayConn.inbound(stack, node)
         # announcing after it
-        peer_late_announcer = _inbound(stack, node)
+        peer_late_announcer = RelayConn.inbound(stack, node)
 
         peer_early_disconnected.send_and_ping(orphan_inv)
         clock.bump(_TXREQUEST_TIME_SKIP)
@@ -1195,7 +1012,7 @@ def a_parent_gone_missing_is_requested(
     orphan_inv = _inv(InventoryType.MSG_WTX, orphan.hash)
     with ExitStack() as stack:
         # peer1 sends the orphan and is asked for the missing parent
-        peer1 = _inbound(stack, node)
+        peer1 = RelayConn.inbound(stack, node)
         peer1.send_and_ping(orphan_inv)
         clock.bump(_TXREQUEST_TIME_SKIP)
         peer1.wait_for_getdata([orphan.hash])
@@ -1220,7 +1037,7 @@ def a_parent_gone_missing_is_requested(
         assert tx_replacer_c.id.hex() in node_mempool
 
         # peer2 announces the orphan too, its missing parents now different
-        peer2 = _inbound(stack, node)
+        peer2 = RelayConn.inbound(stack, node)
         peer2.send_and_ping(orphan_inv)
         assert _announcers(node) == 2
 
@@ -1261,12 +1078,12 @@ def a_maximal_ancestor_package_is_protected_in_the_orphanage(
         assert result["reject-reason"] == "missing-inputs"
 
     with ExitStack() as stack:
-        peer_normal = _inbound(stack, node)
-        peer_doser = _inbound(stack, node)
+        peer_normal = RelayConn.inbound(stack, node)
+        peer_doser = RelayConn.inbound(stack, node)
 
         # a large orphan from each of a set of peers, its parent asked for
         for large_orphan in large_orphans[:_INDIVIDUAL_DOSERS]:
-            peer_doser_individual = _inbound(stack, node)
+            peer_doser_individual = RelayConn.inbound(stack, node)
             peer_doser_individual.send_and_ping(_tx(large_orphan))
             clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY + 1)
             peer_doser_individual.wait_for_getdata([large_orphan.vin[0].prev_out.tx_id])

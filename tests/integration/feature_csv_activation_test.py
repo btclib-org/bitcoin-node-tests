@@ -75,6 +75,7 @@ from bitcoin_node_tests.mini_wallet import (
     build_next_block,
     raw_p2pk_script_sig,
 )
+from tests.integration.script_verify_flag_test import block_script_verify_flag_failed
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -112,10 +113,11 @@ _SEQ_RANDOM_LOW_BIT = 1 << 18
 _RAW_OP_TRUE = ScriptPubKey(b"\x51", check_validity=False)
 
 _NONFINAL = "bad-txns-nonfinal"
-_SCRIPT_FAILED = "block-script-verify-flag-failed"
-_NEGATIVE = f"{_SCRIPT_FAILED} (Negative locktime)"
-_STACK_SIZE = f"{_SCRIPT_FAILED} (Operation not valid with the current stack size)"
-_UNSATISFIED = f"{_SCRIPT_FAILED} (Locktime requirement not satisfied)"
+# the reasons a script failure is refused for, after the build's own
+# `*-script-verify-flag-failed` (`_Chain.script_failure`)
+_NEGATIVE = " (Negative locktime)"
+_STACK_SIZE = " (Operation not valid with the current stack size)"
+_UNSATISFIED = " (Locktime requirement not satisfied)"
 
 
 def _relative_locktime(sdf: bool, srhb: bool, stf: bool, srlb: bool) -> int:
@@ -267,6 +269,10 @@ class _Chain:
         self.send_block(self.create_test_block(txs))
         best = self.node.rpc.call("getbestblockhash")
         self.node.rpc.call("invalidateblock", [best])
+
+    def script_failure(self, reason: str) -> str:
+        """Return the refusal of a block whose script fails for `reason`."""
+        return f"{block_script_verify_flag_failed(self.node)}{reason}"
 
     def refuse_each(self, txs: Sequence[Tx], reject_reason: str) -> None:
         """Check a block carrying any one of `txs` is refused so."""
@@ -462,8 +468,8 @@ def csv_rules_are_enforced_from_the_configured_height(
     chain.accept_and_invalidate(bip68success_txs)
 
     # BIP112, version 1: a negative argument and an empty stack fail
-    chain.refuse_each([special_v1], _NEGATIVE)
-    chain.refuse_each([emptystack_v1], _STACK_SIZE)
+    chain.refuse_each([special_v1], chain.script_failure(_NEGATIVE))
+    chain.refuse_each([emptystack_v1], chain.script_failure(_STACK_SIZE))
     # with the disable flag in the argument the spends pass
     chain.accept_and_invalidate(
         [s.tx for s in vary_op_csv_v1 if s.sdf]
@@ -473,11 +479,11 @@ def csv_rules_are_enforced_from_the_configured_height(
     fail_txs = _txs(vary_nsequence_v1) + _txs(vary_nsequence_9_v1)
     fail_txs += [s.tx for s in vary_op_csv_v1 if not s.sdf]
     fail_txs += [s.tx for s in vary_op_csv_9_v1 if not s.sdf]
-    chain.refuse_each(fail_txs, _UNSATISFIED)
+    chain.refuse_each(fail_txs, chain.script_failure(_UNSATISFIED))
 
     # version 2: a negative argument and an empty stack fail
-    chain.refuse_each([special_v2], _NEGATIVE)
-    chain.refuse_each([emptystack_v2], _STACK_SIZE)
+    chain.refuse_each([special_v2], chain.script_failure(_NEGATIVE))
+    chain.refuse_each([emptystack_v2], chain.script_failure(_STACK_SIZE))
     # with the disable flag in the argument every sequence lock is met
     chain.accept_and_invalidate(
         [s.tx for s in vary_op_csv_v2 if s.sdf]
@@ -486,13 +492,15 @@ def csv_rules_are_enforced_from_the_configured_height(
     # nSequence 9 fails, by mismatch or by the check itself
     fail_txs = _txs(vary_nsequence_9_v2)
     fail_txs += [s.tx for s in vary_op_csv_9_v2 if not s.sdf]
-    chain.refuse_each(fail_txs, _UNSATISFIED)
+    chain.refuse_each(fail_txs, chain.script_failure(_UNSATISFIED))
     # the disable flag in nSequence fails
-    chain.refuse_each([s.tx for s in vary_nsequence_v2 if s.sdf], _UNSATISFIED)
+    chain.refuse_each(
+        [s.tx for s in vary_nsequence_v2 if s.sdf], chain.script_failure(_UNSATISFIED)
+    )
     # a type mismatch fails
     fail_txs = [s.tx for s in vary_nsequence_v2 if not s.sdf and s.stf]
     fail_txs += [s.tx for s in vary_op_csv_v2 if not s.sdf and s.stf]
-    chain.refuse_each(fail_txs, _UNSATISFIED)
+    chain.refuse_each(fail_txs, chain.script_failure(_UNSATISFIED))
     # the rest pass, the masking of the other bits working
     chain.accept_and_invalidate(
         [s.tx for s in vary_nsequence_v2 if not s.sdf and not s.stf]

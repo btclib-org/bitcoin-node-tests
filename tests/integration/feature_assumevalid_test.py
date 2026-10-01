@@ -94,6 +94,10 @@ from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.node import wait_until
 from bitcoin_node_tests.peer import Peer
+from tests.integration.script_verify_flag_test import (
+    bitcoind_version,
+    block_script_verify_flag_failed,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -150,13 +154,6 @@ _FULL_SYNC_TIMEOUT = 960.0
 # past `pyproject.toml`'s `timeout`, so the test gets that wait plus the
 # ordinary `timeout` for the rest of what it does
 TEST_TIMEOUT = _FULL_SYNC_TIMEOUT + 300.0
-
-# the `CLIENT_VERSION` (`src/clientversion.h`) of `v30.0`, the first
-# release naming this rejection "block-script-verify-flag-failed" rather
-# than "mandatory-script-verify-flag-failed" (bitcoin/bitcoin#33183) --
-# unrelated to the two below, but a third wording this test reads off
-# the version
-_BLOCK_SCRIPT_VERIFY_FLAG_RENAME_VERSION = 300000
 
 # the `CLIENT_VERSION` of `v30.0`, the first release logging a script
 # verification toggle at all (bitcoin/bitcoin#32975); a build before it,
@@ -246,26 +243,12 @@ def _debug_log(node: _Node) -> Path:
     return node.debug_log_path
 
 
-def _bitcoind_version(node: NodeAdapter) -> int | None:
-    """Return `node`'s own `getnetworkinfo` `version`, `None` off bitcoind.
-
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35))
-    """
-    if not isinstance(node, BitcoindAdapter):
-        return None
-    info = node.rpc.call("getnetworkinfo")
-    assert isinstance(info, dict)
-    version = info["version"]
-    assert isinstance(version, int)
-    return version
-
-
 def _logs_script_check_toggle(node: NodeAdapter) -> bool:
     """Whether `node` logs a script-verification toggle at all.
 
     Bitcoind before `_SCRIPT_CHECK_TOGGLE_LOGGED_VERSION` excepted.
     """
-    version = _bitcoind_version(node)
+    version = bitcoind_version(node)
     return version is None or version >= _SCRIPT_CHECK_TOGGLE_LOGGED_VERSION
 
 
@@ -274,20 +257,13 @@ def _names_script_verification_reason(node: NodeAdapter) -> bool:
 
     Bitcoind before `_SCRIPT_VERIFICATION_REASON_VERSION` excepted.
     """
-    version = _bitcoind_version(node)
+    version = bitcoind_version(node)
     return version is None or version >= _SCRIPT_VERIFICATION_REASON_VERSION
 
 
 def _invalid_script_message(node: NodeAdapter) -> str:
-    """Return the rejection line the spend's own script failure logs.
-
-    Bitcoind before `_BLOCK_SCRIPT_VERIFY_FLAG_RENAME_VERSION` excepted,
-    `"mandatory"` there rather than `"block"`.
-    """
-    version = _bitcoind_version(node)
-    new_wording = version is None or version >= _BLOCK_SCRIPT_VERIFY_FLAG_RENAME_VERSION
-    reason = "block" if new_wording else "mandatory"
-    return f"Block validation error: {reason}-script-verify-flag-failed"
+    """Return the rejection line the spend's own script failure logs."""
+    return f"Block validation error: {block_script_verify_flag_failed(node)}"
 
 
 def _maybe_assert_debug_log(

@@ -823,6 +823,7 @@ _ROWS: dict[str, str] = {
     "feature_assumevalid": "`feature_assumevalid.py`",
     "feature_rbf": "`feature_rbf.py`",
     "p2p_permissions": "`p2p_permissions.py`",
+    "p2p_private_broadcast_retry_v1": "`p2p_private_broadcast_retry_v1.py`",
 }
 
 # the modules whose tests are this repository's own harness rather than

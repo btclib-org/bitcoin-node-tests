@@ -1378,3 +1378,9 @@ private copies (issue #321).
 `tests/integration/bitcoind_adapters_test.py` holds `UnboundBitcoindAdapter`,
 which `feature_port` and `p2p_getaddr_caching` kept as private copies
 (closes #321).
+
+### `p2p_private_broadcast_retry_v1` ported, `-privatebroadcast` probed
+
+The port runs a `Socks5Proxy` for `-proxy` and one for `-onion`. Where
+`-help` lists no `-privatebroadcast`, `BitcoindAdapter` lacks
+`PRIVATE_BROADCAST` and the private broadcast tests skip (issue #47).

@@ -191,6 +191,9 @@ xfail_strict = true
 # their waits, so a missed deadline still fails naming the condition it
 # waited on rather than as a timeout; `tests/integration/conftest.py`'s
 # own `pytest_configure` scales it by `--timeout-factor` along with them.
+# A test with a wait of Core's own at or past the bound marks itself
+# `scaled_timeout`, and `pytest_collection_modifyitems` gives it the
+# `timeout` it names, scaled the same way.
 timeout = 300
 filterwarnings = ["error"]
 # --strict-markers is on, so a marker is declared here or it is a typo.
@@ -202,6 +205,7 @@ filterwarnings = ["error"]
 # rather than the fixture that does there
 markers = [
     "integration: needs a real node, opt-in via TF2_INTEGRATION",
+    "scaled_timeout(seconds): this test's own `timeout`, scaled by --timeout-factor",
 ]
 
 [tool.codespell]

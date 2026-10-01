@@ -104,7 +104,10 @@ if TYPE_CHECKING:
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
-__all__ = ["script_verification_depends_on_assumevalid_and_its_conditions"]
+__all__ = [
+    "TEST_TIMEOUT",
+    "script_verification_depends_on_assumevalid_and_its_conditions",
+]
 
 type _Node = BitcoindAdapter | BtclibNodeAdapter
 
@@ -142,6 +145,11 @@ _TOO_HIGH_CHAIN_WORK = "-minimumchainwork=0xffff"
 
 # Core's own `p2p1.sync_with_ping(timeout=960)`, syncing the whole chain
 _FULL_SYNC_TIMEOUT = 960.0
+
+# the test's own bound, through `scaled_timeout`: `_FULL_SYNC_TIMEOUT` is at or
+# past `pyproject.toml`'s `timeout`, so the test gets that wait plus the
+# ordinary `timeout` for the rest of what it does
+TEST_TIMEOUT = _FULL_SYNC_TIMEOUT + 300.0
 
 # the `CLIENT_VERSION` (`src/clientversion.h`) of `v30.0`, the first
 # release naming this rejection "block-script-verify-flag-failed" rather

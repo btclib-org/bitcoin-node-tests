@@ -1381,5 +1381,5 @@ which `feature_port` and `p2p_getaddr_caching` kept as private copies
 
 ### The leftover test peers are `Conn`s
 
-A p2p test peer that copied the receive and ping helpers of `Conn`
-(`tests/integration/p2p_conns_test.py`) subclasses it instead (closes #362).
+p2p test helpers that repeated the receive and ping of `Conn`
+(`tests/integration/p2p_conns_test.py`) now use it (closes #362).

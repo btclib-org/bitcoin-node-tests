@@ -37,8 +37,8 @@ What differs from Core's file:
   has, its coinbase paying `RAW_P2PK_SCRIPT_PUB_KEY`, and each is
   submitted over `submitblock`;
 - Core's `P2PDataStore` records every `getdata` from its framework's
-  network thread, and here the peer records those it reads in a ping
-  round trip after its connection;
+  network thread, and here `_DataStore` records those it reads in
+  `Conn.sync_with_ping`;
 - Core's `disconnect_p2ps` waits for the node to count no test peer, and
   here the wait is for the node's own `getpeerinfo` to name the other
   node alone.
@@ -214,8 +214,7 @@ class _DataStore(Conn):
 def _connect(node: NodeAdapter) -> _DataStore:
     """Core's own `add_p2p_connection`: a handshake, then a ping round trip.
 
-    The round trip is `Peer.sync_with_ping`'s, which answers no `ping`
-    and records no `getdata`.
+    The round trip is `Peer.sync_with_ping`'s, which records no `getdata`.
     """
     peer = Peer(node.p2p_address, _MAGIC)
     try:

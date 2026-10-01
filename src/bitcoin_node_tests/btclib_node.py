@@ -374,6 +374,11 @@ own probe: a build whose `rpc/callbacks.py` names `getchaintips` in its
 public `callbacks`, as `main` (`e471c576`) does. The released `2026.9.24`
 (`422d2640`) names no such callback, so an instance built against it does
 not gain the capability.
+
+`Capability.ASSUME_VALID` is never declared: no file names
+`assumevalid`, measured at the released `2026.9.24` (`422d2640`) and at
+`main` (`26ec9ec5`) alike
+([ISS btclib-node#1576](https://github.com/btclib-org/btclib-node/issues/1576)).
 """
 
 from __future__ import annotations

@@ -554,6 +554,16 @@ class Capability(Enum):
     status, `active`, `valid-fork`, `headers-only` or `invalid` among
     them: Core's own `getchaintips` (`rpc_getchaintips.py`). Named for the
     RPC, as `BLOCK_STATS` is.
+    `ASSUME_VALID` -- recognise `-assumevalid=<hash>`, Core's own hex hash
+    of a block externally verified valid. A block skips script
+    verification where every one of these holds: the hash is not all
+    zeros, it names a block the node already has a header for, the
+    candidate is on the chain leading to that block, the candidate is
+    also on the chain leading to the node's own best header, the best
+    header's chain work is at least `-minimumchainwork`, and the
+    candidate is buried under more than two weeks' worth of work of the
+    best header; a candidate failing any of those is verified in full
+    (`feature_assumevalid.py`).
     """
 
     MINE = "mine"
@@ -633,6 +643,7 @@ class Capability(Enum):
     SIGN_MESSAGE_WITH_PRIVKEY = "sign_message_with_privkey"
     ESTIMATE_SMART_FEE = "estimate_smart_fee"
     CHAIN_TIPS = "chain_tips"
+    ASSUME_VALID = "assume_valid"
 
 
 class SkipCounts:

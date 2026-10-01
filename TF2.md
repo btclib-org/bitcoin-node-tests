@@ -3718,12 +3718,13 @@ at the default ancestor limit, refused `too-long-mempool-chain`.
 `Capability.PACKAGE_ACCEPTANCE`, ahead of `Capability.MINE`.
 `mempool_updatefromblock.py`'s chain-length case is a counted skip on
 `Capability.GENERATE`, for its own `generateblock`, ahead of
-`Capability.MINE`. Its tournament asks for `Capability.MINE` alone, and
-its `btclib-node` verdict is a prediction, read from btclib-node at
-`b62eef6f`: `getmempoolentry` answers the ancestor and descendant counts
-and sizes the tournament reads (`get_mempool_entry` in
-`rpc/callbacks.py`), so the row's cell stays a skip, the chain's. CI's
-`btclib-node` job measures it.
+`Capability.MINE`. Its tournament asks for `Capability.MINE` alone. It
+skips on the released `btclib-node`, which lacks `Capability.MINE`. On
+btclib-node's `main`, read at `b62eef6f`, it is predicted to pass:
+`getmempoolentry` (`get_mempool_entry` in `rpc/callbacks.py`) answers the
+ancestor and descendant counts and sizes it reads. The row's cell stays a
+skip, the chain's, on either build. The `btclib-node-main` job measures
+the prediction once the branch is on `main`.
 
 `p2p_leak_tx.py`'s own rows are the clock and MiniWallet families
 together, each subject its own pytest function over `Peer` and

@@ -1436,3 +1436,9 @@ build's own wording of the `-proxyrandomize` warning is asserted (issue #47).
 A build with no cap on the queue must take every submission.
 `MiniWallet.new_utxos` hashes a transaction once, not once per output
 (closes #47).
+
+### The primary-checkout section uses one form for the checkout
+
+- **The section writes the checkout as `"${checkout:?}"` throughout, says
+  what `<scratchpad>` is and names the pull** (issue
+  btclib-org/.github#1500).

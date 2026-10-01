@@ -564,6 +564,11 @@ class Capability(Enum):
     candidate is buried under more than two weeks' worth of work of the
     best header; a candidate failing any of those is verified in full
     (`feature_assumevalid.py`).
+    `INCREMENTAL_RELAY_FEE` -- recognise `-incrementalrelayfee`, Core's own
+    rate, in BTC/kvB, that a replacement must add to the fee of what it
+    replaces, per virtual byte of its own size (`feature_rbf.py`). Where
+    `-minrelaytxfee` is not given, Core raises the minimum relay fee rate
+    to it.
     """
 
     MINE = "mine"
@@ -644,6 +649,7 @@ class Capability(Enum):
     ESTIMATE_SMART_FEE = "estimate_smart_fee"
     CHAIN_TIPS = "chain_tips"
     ASSUME_VALID = "assume_valid"
+    INCREMENTAL_RELAY_FEE = "incremental_relay_fee"
 
 
 class SkipCounts:

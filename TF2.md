@@ -1092,6 +1092,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_fingerprint.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `rpc_estimatefee.py` | [`4056908f0fea`](https://github.com/bitcoin/bitcoin/commit/4056908f0fea) | 2026-09-29 | pass, the `options` checks and the estimator refusal run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (estimate_smart_fee) |
 | `feature_assumevalid.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass, its log lines read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (assume_valid) |
+| `feature_rbf.py` | [`1a85ca1dff1f`](https://github.com/bitcoin/bitcoin/commit/1a85ca1dff1f) | 2026-04-24 | pass, the replacement rules' wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (incremental_relay_fee) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -3165,6 +3166,37 @@ a height. `btclib-node`'s cell is a counted skip on `ASSUME_VALID` on
 either build, no file naming `assumevalid` at the released build or at
 `main`
 ([ISS btclib-node#1576](https://github.com/btclib-org/btclib-node/issues/1576)).
+
+`feature_rbf.py` is ISS 14's too, MiniWallet, the node wallet and an option
+together. Its row is Core's own claim in full, over one node. A transaction
+spending what another in the mempool spends replaces it where it pays for it,
+with each refusal in Core's own words. A replacement paying what it replaces or
+less is refused, and so is one paying more by less than the incremental relay
+fee of its own size, one whose fee rate does not improve the mempool's feerate
+diagram, one reaching more clusters than Core's `MAX_REPLACEMENT_LIMIT`, and one
+spending an output of what it replaces, directly or through a descendant. A
+long chain of transactions and a wide tree are each replaced by one paying their
+fees in all. A replacement adding an unconfirmed input is taken where the
+diagram improves and refused where it does not. A fee changed by
+`prioritisetransaction` counts in both the absolute check and the rate check, a
+transaction not signalling BIP125 is replaced all the same,
+`createrawtransaction` and `fundrawtransaction` mark an input replaceable where
+asked, and `-incrementalrelayfee`, at each setting Core tries, is what a
+replacement must add, to the satoshi. The row asks for
+`Capability.INCREMENTAL_RELAY_FEE` first, then `DATACARRIER`, `NODE_WALLET`,
+`GENERATE` and `MINE`. The replacement rules are the cluster mempool's
+(bitcoin/bitcoin#33629) or the earlier ones, and the body reads which runs off
+the node's own `help`, asserting each one's wording and its verdict on an
+unconfirmed input.
+`tests/integration/feature_rbf_test.py`'s own docstring has what else differs
+from Core's file. The `bitcoind` cell is one verdict for the pinned release and
+for Core's `master`, the pinned release's own copy of the file differing from
+the pin only in the `-deprecatedrpc` options `master`'s node is given, and the
+earlier rules' wording is asserted on a build before the cluster mempool.
+`btclib-node`'s cell is a counted skip on `INCREMENTAL_RELAY_FEE` on either
+build, `cli.py` registering no `-incrementalrelayfee` at the released build or
+at `main`
+([ISS btclib-node#1596](https://github.com/btclib-org/btclib-node/issues/1596)).
 
 [ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)'s
 files are those a planning pass for ISS 14 found to need no mechanism the

@@ -1320,3 +1320,9 @@ given none catches it and marks the chain past it invalid.
 An instance declares it where the build's own `rpc.callbacks.callbacks` names
 `disconnectnode`, as btclib-node's `main` does and its release does not
 (closes #297).
+
+### `feature_rbf` is ported
+
+A replacement pays for what it replaces or is refused, under either generation
+of the rules. `Capability.INCREMENTAL_RELAY_FEE` is new; btclib-node skips
+(issue #14).

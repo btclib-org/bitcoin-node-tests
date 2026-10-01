@@ -15,7 +15,8 @@ back to the height it had. `blocks/` is Core's own layout
 (`Capability.BLK_FILES`), under the regtest chain's own directory, the
 chain every node of this suite starts on by default.
 
-Core's own claim in full. Its chain is the framework's cached one; this
+Core's own claim in full but for the refusal's stderr, read per-build
+below. Its chain is the framework's cached one; this
 node mines its own to the same height (`Capability.MINE`). The node is
 built over a data directory of its own, through `make_adapter`
 (`tests/integration/conftest.py`), since the test removes a directory
@@ -25,6 +26,13 @@ mempool" (`TestNode.wait_for_rpc_connection`'s own comment), where
 `NodeAdapter.start` returns on the first RPC answer. This waits the same
 way before reading the height: without the wait, `getblockcount` answered
 `0` right after the start, measured against the pinned release.
+
+A bitcoind before `v31.0` prints `": "` ahead of that message, `noui`
+having added the empty caption and its separator
+(bitcoin/bitcoin#34276). No probe tells the two apart, the node having no
+option or RPC for it: that build is asserted to print it, read off its own
+`getnetworkinfo` `version`
+([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
 
 `feature_reindex_init_bitcoind_test.py` and
 `feature_reindex_init_btclib_node_test.py` run it,
@@ -42,6 +50,7 @@ import pytest
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import free_ports, wait_until
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -67,6 +76,14 @@ _NO_BLOCK_INDEX = (
     f"Error initializing block database.{os.linesep}"
     "Please restart with -reindex or -reindex-chainstate to recover."
 )
+
+# Core's own `CLIENT_VERSION`, at or past which a refused start's message
+# has no `": "` ahead of it: `v31.0`'s (bitcoin/bitcoin#34276). A known
+# limit: a `master` build from that change's merge (`6ae96ed607`,
+# 2026-01-28) until the version moved to `31.99` (`48b952cbb6`, 2026-03-06)
+# reports `309900` and prints the bare message all the same, so this test
+# fails against such a build
+_BARE_MESSAGE_VERSION = 310000
 
 # `_wait_for_rpc`'s own wording (`node.py`), split into the exit code and
 # the stderr it carries
@@ -106,6 +123,8 @@ def a_lost_block_index_is_rebuilt_once_allowed(
     require(Capability.MINE, node.capabilities, skip_counts)
     try:
         node.start()
+        version = bitcoind_version(node)
+        bare = version is None or version >= _BARE_MESSAGE_VERSION
         for _ in range(_HEIGHT // _MINE_CHUNK):
             node.mine(_MINE_CHUNK)
         node.stop()
@@ -116,7 +135,9 @@ def a_lost_block_index_is_rebuilt_once_allowed(
         early_exit = _EARLY_EXIT.fullmatch(str(refused.value))
         assert early_exit is not None
         assert int(early_exit[1]) != 0
-        assert early_exit[2].strip() == _NO_BLOCK_INDEX
+        assert early_exit[2].strip() == (
+            _NO_BLOCK_INDEX if bare else f": {_NO_BLOCK_INDEX}"
+        )
 
         node.restart(["-test=reindex_after_failure_noninteractive_yes"])
         wait_until(lambda: _mempool_loaded(node))

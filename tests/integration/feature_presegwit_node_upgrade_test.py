@@ -46,6 +46,13 @@ for `getmempoolinfo`'s `loaded`, which the import thread of
 waits for it after the reindexing start, the one start here after which
 a height it reads could still be moved by a running import.
 
+A bitcoind before `v31.0` prints `": "` ahead of that message, `noui`
+having added the empty caption and its separator
+(bitcoin/bitcoin#34276). No probe tells the two apart, the node having no
+option or RPC for it: that build is asserted to print it, read off its own
+`getnetworkinfo` `version`
+([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+
 `feature_presegwit_node_upgrade_bitcoind_test.py` and
 `feature_presegwit_node_upgrade_btclib_node_test.py` run it,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -64,6 +71,7 @@ from btclib.block.block import witness_commitment_output
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
 from bitcoin_node_tests.timeout_factor import scaled
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -90,6 +98,14 @@ _EXPECTED_MSG = (
     f"validation. Please restart with -reindex..{os.linesep}"
     "Please restart with -reindex or -reindex-chainstate to recover."
 )
+
+# Core's own `CLIENT_VERSION`, at or past which a refused start's message
+# has no `": "` ahead of it: `v31.0`'s (bitcoin/bitcoin#34276). A known
+# limit: a `master` build from that change's merge (`6ae96ed607`,
+# 2026-01-28) until the version moved to `31.99` (`48b952cbb6`, 2026-03-06)
+# reports `309900` and prints the bare message all the same, so this test
+# fails against such a build
+_BARE_MESSAGE_VERSION = 310000
 
 # `_wait_for_rpc`'s own wording (`node.py`), split into the exit code and
 # the stderr it carries
@@ -177,6 +193,8 @@ def a_pre_segwit_chain_needs_a_reindex_to_upgrade(
         assert answer is None
     assert node.rpc.call("getblockcount") == _MINED
 
+    version = bitcoind_version(node)
+    bare = version is None or version >= _BARE_MESSAGE_VERSION
     node.stop()
     lower = f"-testactivationheight=segwit@{_LOWER_SEGWIT_HEIGHT}"
     with pytest.raises(RuntimeError) as refused:
@@ -184,7 +202,7 @@ def a_pre_segwit_chain_needs_a_reindex_to_upgrade(
     early_exit = _EARLY_EXIT.fullmatch(str(refused.value))
     assert early_exit is not None
     assert int(early_exit[1]) != 0
-    assert early_exit[2] == _EXPECTED_MSG
+    assert early_exit[2] == (_EXPECTED_MSG if bare else f": {_EXPECTED_MSG}")
 
     node.restart(["-reindex", lower])
     _wait_for_import(node)

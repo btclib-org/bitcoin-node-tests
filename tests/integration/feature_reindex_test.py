@@ -40,6 +40,12 @@ not repeat, matched once where it is expected. That start logs
 "Reindexing finished", the stopped reindex carried to its end, and comes
 back at the height mined.
 
+A bitcoind before `v30.0` logs that interruption as "Interrupt requested.
+Exit ImportBlocks" (bitcoin/bitcoin#32967). No probe tells the two apart,
+the node having no option or RPC for it: that build is asked for its own
+line, read off its own `getnetworkinfo` `version`
+([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+
 `feature_reindex_bitcoind_test.py` and `feature_reindex_btclib_node_test.py`
 run it, `tests/integration/conftest.py`'s own module docstring having how.
 """
@@ -54,6 +60,7 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.node import free_ports, wait_until
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -118,6 +125,16 @@ _OUT_OF_ORDER = (
 # `ImportBlocks`'s own (`src/node/blockstorage.cpp`)
 _REINDEX_FINISHED = "Reindexing finished"
 _REINDEX_INTERRUPTED = "Interrupt requested. Exit reindexing."
+
+# the same line before `_REINDEX_EXIT_NAMED_VERSION`, naming the function
+_REINDEX_INTERRUPTED_BEFORE = "Interrupt requested. Exit ImportBlocks"
+
+# Core's own `CLIENT_VERSION`, at or past which that line says `reindexing`:
+# `v30.0`'s (bitcoin/bitcoin#32967). A known limit: a `master` build from
+# that change's merge (`6cdc5a90cf`, 2025-07-25) until the version moved to
+# `30.99` (`9f744fffc3`, 2025-09-09) reports `299900` and logs the newer
+# line all the same, so the interrupted step fails against such a build
+_REINDEX_EXIT_NAMED_VERSION = 300000
 
 # `CDBWrapper`'s own (`src/dbwrapper.cpp`), each followed by the path
 _WIPING = "Wiping LevelDB in "
@@ -327,9 +344,15 @@ def an_interrupted_reindex_keeps_its_index(
     try:
         node.start()
         _generate(node, _INTERRUPTED_HEIGHT)
+        version = bitcoind_version(node)
         node.stop()
 
-        with assert_debug_log(log_path, [f"{_WIPING}{index}", _REINDEX_INTERRUPTED]):
+        interrupted = (
+            _REINDEX_INTERRUPTED_BEFORE
+            if version is not None and version < _REINDEX_EXIT_NAMED_VERSION
+            else _REINDEX_INTERRUPTED
+        )
+        with assert_debug_log(log_path, [f"{_WIPING}{index}", interrupted]):
             offset = log_path.stat().st_size
             node.restart(["-blockfilterindex", "-reindex"])
             wait_until(lambda: _INITLOAD_START in _appended(log_path, offset))

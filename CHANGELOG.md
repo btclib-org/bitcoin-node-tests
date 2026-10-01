@@ -1401,3 +1401,8 @@ build no longer fails while that site is down (closes #365).
 The port runs a `Socks5Proxy` for `-proxy` and one for `-onion`. Where
 `-help` lists no `-privatebroadcast`, `BitcoindAdapter` lacks
 `PRIVATE_BROADCAST` and the private broadcast tests skip (issue #47).
+
+### `rpc_net`'s single-node steps are ported
+
+Core's `rpc_net` is checked for the steps that need one node, its dead
+`-proxy` needing no mock; btclib-node skips (issue #47).

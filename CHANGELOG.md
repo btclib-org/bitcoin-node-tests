@@ -1389,3 +1389,9 @@ p2p test helpers that repeated the receive and ping of `Conn`
 - **`required-version` reads `>=0.12.18`, not `>=0.12.19`** (issue
   btclib-org/.github#1482): the Dependabot service refused `0.12.19` with
   `tool_version_not_supported`.
+
+### The docs build survives an outage of `docs.python.org`
+
+`docs/source/_inventories/python.inv` is Python 3.14's inventory, which
+Sphinx reads only when `docs.python.org` fails to answer, so the `-n -W`
+build no longer fails while that site is down (closes #365).

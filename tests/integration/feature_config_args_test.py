@@ -5,7 +5,7 @@
 """Core's `feature_config_args`, the steps whose subject is a proxy option.
 
 Read from Core's `test/functional/feature_config_args.py`
-(`2630d8e6c9d6`, 2026-09-21), a file of
+(`2630d8e6c9d6`, 2026-09-22), a file of
 [ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47):
 `-proxy` given no value is refused (`test_invalid_command_line_options`),
 `-connect` ignores `-seednode`, and `-dnsseed` too where a proxy is given
@@ -18,8 +18,8 @@ log and configuration file steps, the proxy in them only keeping the node
 off the network.
 
 No step reads what the node asks of a proxy: each refuses a start, reads a
-line of the log, or reads the stderr of a start. Core's `-proxy` and
-`-onion` name a port nothing listens at, so no `socks5.Socks5Proxy` runs.
+line of the log, or reads the stderr of a start, so no
+`socks5.Socks5Proxy` runs.
 Each step asks for `Capability.PROXY`; the second also for
 `Capability.DEBUG_LOG`, `Capability.DNS_SEED` and
 `Capability.ADDRESS_FETCH`, and the third for
@@ -27,11 +27,9 @@ Each step asks for `Capability.PROXY`; the second also for
 
 What differs from Core's file:
 
-- Core's `write_config` (`test_framework/util.py`) writes `connect=0` and
-  `dnsseed=0` into `bitcoin.conf`, and neither adapter writes a
-  `bitcoin.conf`. Each start here passes the two where Core's own start
-  has them, and leaves `-dnsseed=0` out of the start that asserts the
-  soft-disabling of `-dnsseed`.
+- Core's `write_config` (`test_framework/util.py`) writes `dnsseed=0`
+  into `bitcoin.conf`, which neither adapter writes. The starts given
+  `-seednode` pass it as `-dnsseed=0`; the others leave it out.
 - Core's step also asserts `-connect` soft-disables `-listen`, which is
   logged only where nothing else sets `-listen`. `BitcoindAdapter` passes
   `-bind`, which sets it, so only the `-dnsseed` line is asserted.
@@ -81,8 +79,7 @@ __all__ = [
 # Core's `UNREACHABLE_PROXY_ARG` (`test_framework/netutil.py`)
 _UNREACHABLE_PROXY = "-proxy=127.0.0.1:1"
 
-# `write_config`'s own `dnsseed=0` line (`test_framework/util.py`); its
-# `connect=0` line is `-connect=0` where a step passes no other
+# `write_config`'s own `dnsseed=0` line (`test_framework/util.py`)
 _NO_DNSSEED = "-dnsseed=0"
 
 _PROXY_WITHOUT_VALUE = (
@@ -166,7 +163,7 @@ def _refused_stderr(node: NodeAdapter, extra_args: Sequence[str]) -> str:
 def _scopes_its_claims(executable: str) -> bool:
     """Return whether `executable` words its private broadcast claims as risk.
 
-    bitcoin/bitcoin@2630d8e6c9d6 (2026-09-21) reworded the `-proxyrandomize`
+    bitcoin/bitcoin@2630d8e6c9d6 reworded the `-proxyrandomize`
     warning's last sentence and added "best-effort concealment" to
     `-privatebroadcast`'s `-help` text, which is what this reads: no build
     lists the sentence and words the warning the old way, or the reverse.

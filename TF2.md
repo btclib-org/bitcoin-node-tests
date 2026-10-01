@@ -1101,7 +1101,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_net.py` (`addpeeraddress`) | same | same | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (known_addresses) |
 | `rpc_net.py` (`getaddrmaninfo`) | same | same | pass | skip (cjdns) |
 | `rpc_net.py` (`getrawaddrman`) | same | same | pass | skip (cjdns) |
-| `feature_config_args.py` (`-proxy`) | [`2630d8e6c9d6`](https://github.com/bitcoin/bitcoin/commit/2630d8e6c9d6) | 2026-09-21 | pass | skip (proxy) |
+| `feature_config_args.py` (`-proxy`) | [`2630d8e6c9d6`](https://github.com/bitcoin/bitcoin/commit/2630d8e6c9d6) | 2026-09-22 | pass | skip (proxy) |
 | `feature_config_args.py` (`-connect`) | same | same | pass | skip (proxy) |
 | `feature_config_args.py` (`-privatebroadcast`) | same | same | pass, the warning's last sentence asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
 
@@ -4384,8 +4384,7 @@ given no value, `-connect` beside `-seednode` and `-dnsseed` and a proxy, and
 `-proxyrandomize` turned off) are ported in
 `tests/integration/feature_config_args_test.py`, each its own row. Its module
 docstring has what differs from Core's file. No step reads what the node asks
-of a proxy, and Core's `-proxy` and `-onion` name a port nothing listens at, so
-no `Socks5Proxy` runs; each asks for `Capability.PROXY`, which
+of a proxy, so no `Socks5Proxy` runs; each asks for `Capability.PROXY`, which
 `btclib-node` does not declare, so its cells are a counted skip. The warning
 of `-privatebroadcast` beside `-proxyrandomize` turned off ends in another
 sentence before bitcoin/bitcoin@2630d8e6c9d6, which also adds a sentence to

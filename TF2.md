@@ -4339,18 +4339,17 @@ build's `-help` lists `-privatebroadcast` (`bitcoind.py`'s own
 `_has_private_broadcast`), so the private broadcast files are a counted
 skip on a release whose `-help` lists none. `btclib-node`'s cell is a
 counted skip on `Capability.PRIVATE_BROADCAST`.
-`rpc_net.py`'s steps that need one node (`addnode`, a peer's service
-names, `getnodeaddresses`, `addpeeraddress`, `getaddrmaninfo` and
-`getrawaddrman`) are ported in `tests/integration/rpc_net_test.py`, each
-its own row. Its module docstring has what differs from Core's file. Core gives its nodes a `-proxy` nothing listens at, so
-that no step dials a public address; no step reads what the node asks
-of it, so no proxy runs, and a step given the argument asks for
-`Capability.PROXY`. The steps Core restarts with
-`-cjdnsreachable` ask for `Capability.CJDNS`. A blank `addnode`
-address is refused only past the pinned release, and a blank
-`addpeeraddress` address only from `v31.0`. The body asks the build a
-call that changes nothing and asserts that build's own answer. The steps that
-connect Core's nodes are
+`rpc_net.py`'s steps that need one node (`addnode`, a peer's service names,
+`getnodeaddresses`, `addpeeraddress`, `getaddrmaninfo` and `getrawaddrman`) are
+ported in `tests/integration/rpc_net_test.py`, each its own row. Its module
+docstring has what differs from Core's file. Core gives its nodes a `-proxy`
+nothing listens at, so that no step dials a public address; no step reads what
+the node asks of it, so no proxy runs, and a step given the argument asks for
+`Capability.PROXY`. The steps Core restarts with `-cjdnsreachable` ask for
+`Capability.CJDNS`. A blank `addnode` address is refused only past the pinned
+release, and a blank `addpeeraddress` address only from the pinned release's
+own series. The body asks the build a call that changes nothing and asserts
+that build's own answer. The steps that connect Core's nodes are
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s.
 `btclib-node`'s cells are a counted skip on each row's own capability.
 The rest of

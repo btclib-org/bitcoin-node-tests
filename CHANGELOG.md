@@ -1378,3 +1378,9 @@ private copies (issue #321).
 `tests/integration/bitcoind_adapters_test.py` holds `UnboundBitcoindAdapter`,
 which `feature_port` and `p2p_getaddr_caching` kept as private copies
 (closes #321).
+
+### The docs build survives an outage of `docs.python.org`
+
+`docs/source/_inventories/python.inv` is Python 3.14's inventory, which
+Sphinx reads only when `docs.python.org` fails to answer, so the `-n -W`
+build no longer fails while that site is down (closes #365).

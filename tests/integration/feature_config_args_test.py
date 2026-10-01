@@ -305,6 +305,8 @@ def private_broadcast_is_refused_without_a_proxy_and_warns_without_randomizing(
     finally:
         node.stop()
     (stderr_file,) = set(stderr_dir.iterdir()) - before
-    last_sentence = _RISK_REDUCED if _scopes_its_claims(executable) else _MAXIMUM_PRIVACY
+    last_sentence = (
+        _RISK_REDUCED if _scopes_its_claims(executable) else _MAXIMUM_PRIVACY
+    )
     warning = stderr_file.read_text(encoding="utf-8").strip()
     assert warning == _NOT_RANDOMIZED + last_sentence

@@ -4360,14 +4360,14 @@ steps that connect Core's nodes are
 `feature_config_args.py`'s steps whose subject is a proxy option (`-proxy`
 given no value, `-connect` beside `-seednode` and `-dnsseed` and a proxy, and
 `-privatebroadcast` without a Tor or I2P proxy, beside `-connect`, and beside
-`-proxyrandomize=0`) are ported in
+`-proxyrandomize` turned off) are ported in
 `tests/integration/feature_config_args_test.py`, each its own row. Its module
 docstring has what differs from Core's file. No step reads what the node asks
 of a proxy, and Core's `-proxy` and `-onion` name a port nothing listens at, so
 no `Socks5Proxy` runs; each asks for `Capability.PROXY`, which
 `btclib-node` does not declare, so its cells are a counted skip. The warning
-of `-privatebroadcast` beside `-proxyrandomize=0` ends in another sentence
-before bitcoin/bitcoin@2630d8e6c9d6, which also adds a sentence to
+of `-privatebroadcast` beside `-proxyrandomize` turned off ends in another
+sentence before bitcoin/bitcoin@2630d8e6c9d6, which also adds a sentence to
 `-privatebroadcast`'s `-help` text; the body reads that text and asserts the
 build's own sentence. The file's other steps use a proxy only to keep the node
 off the network, and stay with

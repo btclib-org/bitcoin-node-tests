@@ -155,6 +155,22 @@ def _has_wallet(executable: str) -> bool:
     return b"\nWallet options:" in probe.stdout
 
 
+@lru_cache
+def _has_private_broadcast(executable: str) -> bool:
+    """Return whether `executable` takes `-privatebroadcast`.
+
+    `-help` lists the option from `v31.0` on; an older build lists none
+    and refuses to start on it. Probed off the binary as `_has_wallet` is,
+    with `-nosettings` for the same reason.
+
+    :param executable: the `bitcoind` binary to probe.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-help", "-nosettings"], check=False, capture_output=True
+    )
+    return b"\n  -privatebroadcast\n" in probe.stdout
+
+
 class BitcoindAdapter(NodeAdapter):
     """A `bitcoind`: cookie authentication, and every capability.
 
@@ -327,7 +343,8 @@ class BitcoindAdapter(NodeAdapter):
     own flag (`src/init.cpp`), with its `getprivatebroadcastinfo` and
     `abortprivatebroadcast` (`src/rpc/mempool.cpp`) and `mockscheduler`
     (`src/rpc/node.cpp`), declared on regtest alone, where
-    `mockscheduler` answers.
+    `mockscheduler` answers, and only by a build whose `-help` lists the
+    option, `_has_private_broadcast` being the probe.
     `Capability.STARTUP_NOTIFY` is unconditional too: `-startupnotify` is
     this binary's own flag (`src/init.cpp`).
     `Capability.DUMP_UTXO_SET` is unconditional too: `dumptxoutset` is
@@ -499,8 +516,9 @@ class BitcoindAdapter(NodeAdapter):
         `BtclibNodeAdapter.__init__` (`btclib_node.py`) uses and for the
         same reason: `_check_extra_args(self._command(), extra_args)`
         needs `self._executable` set before `_command` can be called.
-        `_has_wallet` is then this class's own per-build probe, read once
-        per instance rather than once per `mine` call,
+        `_has_wallet` and `_has_private_broadcast` are then this class's
+        own per-build probes, read once per instance rather than once per
+        `mine` call,
         `_REGTEST_ONLY` is what any other `chain` drops, and
         `_TEST_CHAIN_ONLY` what main drops besides.
         """
@@ -516,6 +534,8 @@ class BitcoindAdapter(NodeAdapter):
         )
         if not _has_wallet(executable):
             self.capabilities = self.capabilities - _WALLET_ONLY
+        if not _has_private_broadcast(executable):
+            self.capabilities = self.capabilities - {Capability.PRIVATE_BROADCAST}
         if chain != "regtest":
             self.capabilities = self.capabilities - _REGTEST_ONLY
         if chain == "main":

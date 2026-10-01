@@ -1094,6 +1094,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_assumevalid.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass, its log lines read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (assume_valid) |
 | `feature_rbf.py` | [`1a85ca1dff1f`](https://github.com/bitcoin/bitcoin/commit/1a85ca1dff1f) | 2026-04-24 | pass, the replacement rules' wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (incremental_relay_fee) |
 | `p2p_permissions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (peer_permissions) |
+| `p2p_private_broadcast_retry_v1.py` | [`4e8c4bc794c0`](https://github.com/bitcoin/bitcoin/commit/4e8c4bc794c0) | 2026-08-04 | pass | skip (private_broadcast) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -4314,15 +4315,27 @@ build answers instead. `btclib-node`'s cell is a counted skip on
 pinned release, whose binary puts no cap on its private broadcast queue,
 the file's whole subject, and the `-proxy` its node is given names a
 port nothing listens at, so it needs no listening proxy.
-`p2p_private_broadcast_retry_v1.py` is not ported either: in Core's
-file, the peers its node reaches over IPv4 through the Tor proxy, all but
-the one whose transport it reads, answer in BIP324's v2 transport, which
-`Peer` does not speak.
+`p2p_private_broadcast_retry_v1.py` is ported on a forwarding proxy for
+`-proxy` and another for `-onion`, in
+`tests/integration/p2p_private_broadcast_retry_v1_test.py`, whose module
+docstring has what differs from Core's file. The Tor proxy hands the
+first IPv4 address it is asked for to a socket that reads the start of
+what the node sends, and the body waits for a v2 start and then a v1
+one. Core's file answers every other IPv4 connection through the Tor
+proxy in BIP324's v2 transport, which `Peer` does not speak; the body
+closes them instead. It asks for `Capability.PRIVATE_BROADCAST` and the
+capability of every option its node is given but `-test=addrman` and
+`-dnsseed` off. Core's file at the pinned release differs from the pin
+in its factories' signatures alone.
+`BitcoindAdapter` declares `Capability.PRIVATE_BROADCAST` only where the
+build's `-help` lists `-privatebroadcast` (`bitcoind.py`'s own
+`_has_private_broadcast`), so the private broadcast files are a counted
+skip on a release whose `-help` lists none. `btclib-node`'s cell is a
+counted skip on `Capability.PRIVATE_BROADCAST`.
 The rest of
 [ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47) is
-`p2p_private_broadcast_retry_v1.py` and the proxy steps of
-`feature_config_args.py` and `rpc_net.py`, which ISS 14's list above
-holds for their log steps.
+the proxy steps of `feature_config_args.py` and `rpc_net.py`, which
+ISS 14's list above holds for their log steps.
 
 ## The node wallet: `Capability.NODE_WALLET`
 

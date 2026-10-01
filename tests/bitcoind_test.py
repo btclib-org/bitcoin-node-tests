@@ -2,10 +2,11 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""`BitcoindAdapter`'s own command line, RPC client, `mine`, `_has_wallet`."""
+"""`BitcoindAdapter`'s own command line, RPC client, `mine`, and its probes."""
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -18,6 +19,16 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability
 from bitcoin_node_tests.node import NodeAdapter
 from bitcoin_node_tests.timeout_factor import set_factor
+
+# the probe itself, for its own tests: `_any_build` patches the name
+_has_private_broadcast = bitcoind_module._has_private_broadcast
+
+
+@pytest.fixture(autouse=True)
+def _any_build() -> Iterator[None]:
+    """Answer `_has_private_broadcast` without running a binary."""
+    with patch.object(bitcoind_module, "_has_private_broadcast", return_value=True):
+        yield
 
 
 def test_capabilities_are_every_one_this_repository_names() -> None:
@@ -159,6 +170,41 @@ def test_has_wallet_is_cached_per_executable() -> None:
         second = bitcoind_module._has_wallet("fake-bitcoind-cached")
     assert first is second is True
     run.assert_called_once()
+
+
+def test_capabilities_drop_private_broadcast_where_help_lists_no_option(
+    tmp_path: Path,
+) -> None:
+    """A build whose `-help` lists no `-privatebroadcast` loses that alone."""
+    with (
+        patch.object(bitcoind_module, "_has_wallet", return_value=True),
+        patch.object(bitcoind_module, "_has_private_broadcast", return_value=False),
+    ):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
+    assert adapter.capabilities == BitcoindAdapter.capabilities - {
+        Capability.PRIVATE_BROADCAST
+    }
+
+
+def test_has_private_broadcast_reads_the_probe_s_own_stdout() -> None:
+    """`_has_private_broadcast` is `-help` listing the option."""
+    _has_private_broadcast.cache_clear()
+    stdout = b"...\n  -privatebroadcast\n       Broadcast transactions...\n"
+    with patch("subprocess.run", return_value=SimpleNamespace(stdout=stdout)) as run:
+        assert _has_private_broadcast("fake-bitcoind-31") is True
+    run.assert_called_once_with(
+        ["fake-bitcoind-31", "-help", "-nosettings"],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_has_private_broadcast_is_false_where_help_lists_no_option() -> None:
+    """A build before `v31.0` lists no `-privatebroadcast`."""
+    _has_private_broadcast.cache_clear()
+    stdout = b"...\n  -proxy=<ip:port|path>\n..."
+    with patch("subprocess.run", return_value=SimpleNamespace(stdout=stdout)):
+        assert _has_private_broadcast("fake-bitcoind-30") is False
 
 
 def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:

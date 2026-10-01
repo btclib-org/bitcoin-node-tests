@@ -824,6 +824,24 @@ _ROWS: dict[str, str] = {
     "feature_rbf": "`feature_rbf.py`",
     "p2p_permissions": "`p2p_permissions.py`",
     "p2p_private_broadcast_retry_v1": "`p2p_private_broadcast_retry_v1.py`",
+    "rpc_net::test_a_node_is_added_listed_and_removed": (
+        "`rpc_net.py` (addnode)"
+    ),
+    "rpc_net::test_a_peer_s_service_flags_are_named": (
+        "`rpc_net.py` (service flags)"
+    ),
+    "rpc_net::test_getnodeaddresses_answers_from_the_address_table": (
+        "`rpc_net.py` (`getnodeaddresses`)"
+    ),
+    "rpc_net::test_addpeeraddress_fills_the_address_tables": (
+        "`rpc_net.py` (`addpeeraddress`)"
+    ),
+    "rpc_net::test_getaddrmaninfo_counts_the_addresses_of_each_network": (
+        "`rpc_net.py` (`getaddrmaninfo`)"
+    ),
+    "rpc_net::test_getrawaddrman_lists_the_address_tables": (
+        "`rpc_net.py` (`getrawaddrman`)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

@@ -92,6 +92,13 @@ constraints. Do not use Fable unless instructed.
   cannot see a file Core gains.** That is `tf2_ledger_census.py`'s
   question, run separately and weekly, under a title distinct from the
   per-pin drift issue's own -- the two must never share one issue.
+- **A rebase over a `main` that gained its own `CHANGELOG.md` entry eats
+  the blank line above the branch's entry.** `.gitattributes` says why,
+  and what names it. Prove the repair by rebuilding the file as the new
+  base's `CHANGELOG.md`, a blank line and the branch's entry as written,
+  then `cmp` it with the committed file; a copy with one byte changed
+  must differ. An expected file built from the rebased diff lacks the
+  blank line too, so it matches the broken file.
 
 ## Conventions to match
 

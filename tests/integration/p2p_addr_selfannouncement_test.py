@@ -50,6 +50,15 @@ there instead. A `master` build between that change's merge and the
 version's move to `32.99` reads older and bypasses all the same, the
 constant's own comment having the commits.
 
+Before `v31.0` a bitcoind sends the first self-announcement to an inbound
+peer in the same message as its answer to the peer's `getaddr`
+(bitcoin/bitcoin#34146).
+
+No probe tells the two behaviours apart, the node having no option or RPC
+for it: that build's inbound checks assert the one message, read off its own
+`getnetworkinfo` `version`
+([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+
 `p2p_addr_selfannouncement_bitcoind_test.py` and
 `p2p_addr_selfannouncement_btclib_node_test.py` run each body,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -59,7 +68,7 @@ from __future__ import annotations
 
 import secrets
 import time
-from contextlib import nullcontext
+from contextlib import ExitStack, nullcontext
 from dataclasses import replace
 from ipaddress import IPv4Address
 from typing import TYPE_CHECKING
@@ -84,6 +93,7 @@ from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.node import wait_until
 from bitcoin_node_tests.peer import Listener, Peer
 from bitcoin_node_tests.timeout_factor import scaled
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -133,6 +143,14 @@ _HARNESS_ARGS = ("-peertimeout=999999999", "-connect=0")
 # such a build
 _EXTERNALIP_BYPASSES_ONLYNET_VERSION = 320000
 
+# Core's own `CLIENT_VERSION`, at or past which the first self-announcement
+# to an inbound peer is alone in its message: `v31.0`'s
+# (bitcoin/bitcoin#34146). A known limit: a `master` build from that
+# change's merge (`80c4c2df3f`, 2026-01-14) until the version moved to `31.99`
+# (`48b952cbb6`, 2026-03-06) reports `309900` and sends it alone all the same,
+# so the inbound checks fail against such a build
+_SEPARATE_FIRST_ANNOUNCEMENT_VERSION = 310000
+
 
 def _debug_log(
     node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
@@ -169,12 +187,22 @@ class _SelfAnnouncementReceiver:
     :param expected: the self-announcement, its timestamp the node's clock.
     :param addrv2: whether the handshake asked for `addrv2`, the one
         address message Core's receiver then accepts.
+    :param first_alone: whether the first self-announcement is alone in
+        the first address message.
     """
 
-    def __init__(self, peer: Peer, expected: NetworkAddressV2, *, addrv2: bool) -> None:
+    def __init__(
+        self,
+        peer: Peer,
+        expected: NetworkAddressV2,
+        *,
+        addrv2: bool,
+        first_alone: bool = True,
+    ) -> None:
         self.peer = peer
         self.expected = expected
         self.addrv2 = addrv2
+        self.first_alone = first_alone
         self.self_announcements_received = 0
         self.addresses_received = 0
         self.addr_messages_received = 0
@@ -199,9 +227,9 @@ class _SelfAnnouncementReceiver:
                 self.self_announcements_received += 1
                 if self.self_announcements_received == 1:
                     # the first self-announcement is in the first address
-                    # message, and alone in it: the first address received
+                    # message, and alone in it where `first_alone`
                     assert self.addr_messages_received == 1
-                    assert len(addresses) == 1
+                    assert not self.first_alone or len(addresses) == 1
 
     def sync_with_ping(self) -> None:
         """`Peer.sync_with_ping`'s barrier, every message read handled.
@@ -230,6 +258,21 @@ def _restart(node: BitcoindAdapter | BtclibNodeAdapter) -> None:
     node.mine(1)
     for i in range(_PEER_ADDRESSES):
         node.rpc.call("addpeeraddress", [f"{1 + i}.{i}.1.1", 8333])
+
+
+def _first_alone(node: NodeAdapter, *, outbound: bool) -> bool:
+    """Whether `node`'s first self-announcement is alone in its message.
+
+    An outbound peer, queued no other address here, gets it alone from
+    every build. An inbound peer gets it alone from a bitcoind at
+    `_SEPARATE_FIRST_ANNOUNCEMENT_VERSION` or later, and with the `getaddr`
+    answer from an older one
+    ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+    """
+    version = bitcoind_version(node)
+    return (
+        outbound or version is None or version >= _SEPARATE_FIRST_ANNOUNCEMENT_VERSION
+    )
 
 
 def _connect(node: NodeAdapter, *, outbound: bool, addrv2: bool) -> Peer:
@@ -279,14 +322,17 @@ def _self_announcement_test(
     )
     advertising = [f"Advertising address {_IP_TO_ANNOUNCE}:{port}"]
 
-    with _expecting(log_path, advertising):
-        peer = _connect(node, outbound=outbound, addrv2=addrv2)
-        receiver = _SelfAnnouncementReceiver(peer, expected, addrv2=addrv2)
-        # `add_p2p_connection`'s own barrier, then the check's
-        receiver.sync_with_ping()
-        receiver.sync_with_ping()
+    first_alone = _first_alone(node, outbound=outbound)
+    with ExitStack() as stack:
+        with _expecting(log_path, advertising):
+            peer = stack.enter_context(_connect(node, outbound=outbound, addrv2=addrv2))
+            receiver = _SelfAnnouncementReceiver(
+                peer, expected, addrv2=addrv2, first_alone=first_alone
+            )
+            # `add_p2p_connection`'s own barrier, then the check's
+            receiver.sync_with_ping()
+            receiver.sync_with_ping()
 
-    with peer:
         if outbound:
             # the node's only self-announcement to an outbound peer
             assert receiver.self_announcements_received == 1
@@ -301,9 +347,10 @@ def _self_announcement_test(
             peer.send(Headers([header], check_validity=False))
             receiver.sync_with_ping()
         else:
-            # the self-announcement, then the answer to the `getaddr`
+            # the self-announcement, then the answer to the `getaddr`,
+            # or both in one message
             assert receiver.self_announcements_received == 1
-            assert receiver.addr_messages_received == 2
+            assert receiver.addr_messages_received == (2 if first_alone else 1)
             assert receiver.addresses_received > 1
 
         for _ in range(_LATER_ANNOUNCEMENTS):

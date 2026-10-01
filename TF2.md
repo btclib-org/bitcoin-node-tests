@@ -1101,6 +1101,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_net.py` (`addpeeraddress`) | same | same | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (known_addresses) |
 | `rpc_net.py` (`getaddrmaninfo`) | same | same | pass | skip (cjdns) |
 | `rpc_net.py` (`getrawaddrman`) | same | same | pass | skip (cjdns) |
+| `feature_config_args.py` (`-proxy`) | [`2630d8e6c9d6`](https://github.com/bitcoin/bitcoin/commit/2630d8e6c9d6) | 2026-09-22 | pass | skip (proxy) |
+| `feature_config_args.py` (`-connect`) | same | same | pass | skip (proxy) |
+| `feature_config_args.py` (`-privatebroadcast`) | same | same | pass, the warning's last sentence asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
 
 `feature_blocksdir.py`'s row is a smaller claim than Core's own test:
 Core also mines blocks through the framework's own deterministic wallet
@@ -1525,7 +1528,8 @@ step of that shape and none ported yet:
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
 every log step of each reaching another of the mechanisms above:
 `feature_abortnode.py`, `feature_addrman.py`, `feature_asmap.py`,
-`feature_assumevalid.py`, `feature_block.py`, `feature_config_args.py`,
+`feature_assumevalid.py`, `feature_block.py`, the rest of
+`feature_config_args.py`,
 `feature_fee_estimation.py`, `feature_index_prune.py`, `feature_init.py`,
 `feature_logging.py`, `feature_maxuploadtarget.py`, `feature_port.py`,
 `feature_pruning.py`, `feature_reindex.py`, `feature_reindex_readonly.py`,
@@ -1582,8 +1586,9 @@ Ledgered already, a row above or a paragraph naming the file:
 `p2p_dns_seeds.py`, `feature_anchors.py`,
 `p2p_addr_selfannouncement.py`, `p2p_seednode.py`, `p2p_ibd_stalling.py`,
 `p2p_private_broadcast.py`, `p2p_tx_download.py`, `p2p_blocksonly.py`,
-`p2p_orphan_handling.py` and `rpc_net.py` but for the steps that connect
-its nodes.
+`p2p_orphan_handling.py`, `rpc_net.py` but for the steps that connect
+its nodes, and `feature_config_args.py` but for the steps that give its
+node no proxy to read.
 Listed and not the family's: `combine_logs.py`,
 a tool merging a run's logs that Core's own `test_runner.py` names among
 its `NON_SCRIPTS`; and
@@ -4373,10 +4378,21 @@ the build a call that changes nothing and asserts that build's own answer. The
 steps that connect Core's nodes are
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s.
 `btclib-node`'s cells are a counted skip on each row's own capability.
-The rest of
-[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47) is
-the proxy steps of `feature_config_args.py`, which ISS 14's list above
-holds for its log steps.
+`feature_config_args.py`'s steps whose subject is a proxy option (`-proxy`
+given no value, `-connect` beside `-seednode` and `-dnsseed` and a proxy, and
+`-privatebroadcast` without a Tor or I2P proxy, beside `-connect`, and beside
+`-proxyrandomize` turned off) are ported in
+`tests/integration/feature_config_args_test.py`, each its own row. Its module
+docstring has what differs from Core's file. No step reads what the node asks
+of a proxy, so no `Socks5Proxy` runs; each asks for `Capability.PROXY`, which
+`btclib-node` does not declare, so its cells are a counted skip. The warning
+of `-privatebroadcast` beside `-proxyrandomize` turned off ends in another
+sentence before bitcoin/bitcoin@2630d8e6c9d6, which also adds a sentence to
+`-privatebroadcast`'s `-help` text; the body reads that text and asserts the
+build's own sentence. The file's other steps use a proxy only to keep the node
+off the network, and stay with
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s list
+above.
 
 ## The node wallet: `Capability.NODE_WALLET`
 

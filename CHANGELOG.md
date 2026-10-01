@@ -1412,3 +1412,9 @@ Core's `rpc_net` is checked for the steps that need one node, its dead
 Where `-help-debug` lists no `-limitclustercount`, `BitcoindAdapter` lacks
 the cluster capabilities and `mempool_cluster` skips; the mempool files
 that branch on them assert the older limits there (issue #354).
+
+### `feature_config_args`'s proxy steps are ported
+
+Core's `feature_config_args` is checked for `-proxy` given no value, `-connect`
+beside a proxy, and `-privatebroadcast` without a proxy; btclib-node skips. A
+build's own wording of the `-proxyrandomize` warning is asserted (issue #47).

@@ -838,6 +838,15 @@ _ROWS: dict[str, str] = {
     "rpc_net::test_getrawaddrman_lists_the_address_tables": (
         "`rpc_net.py` (`getrawaddrman`)"
     ),
+    "feature_config_args::test_a_proxy_without_a_value_is_refused": (
+        "`feature_config_args.py` (`-proxy`)"
+    ),
+    "feature_config_args::test_a_connect_node_ignores_the_seednode_and_the_dnsseed_beside_a_proxy": (
+        "`feature_config_args.py` (`-connect`)"
+    ),
+    "feature_config_args::test_private_broadcast_is_refused_without_a_proxy_and_warns_without_randomizing": (
+        "`feature_config_args.py` (`-privatebroadcast`)"
+    ),
 }
 
 # the modules whose tests are this repository's own harness rather than

@@ -64,6 +64,9 @@ What differs from Core's file besides:
   first three adding ten inbound peers to each; here the second node is
   the inv-block check's alone, the in-flight check has its one peer and
   the tx-requests check its ten, each over one node;
+- the inv-block check reads `getpeerinfo`'s `inv_to_send` only where the
+  build's own `help getpeerinfo` names it (bitcoin/bitcoin#33448, which
+  `v31.0rc1` is the first tag to carry);
 - the spurious `notfound` is followed by a ping round trip, where Core
   sends it and asserts nothing;
 - Core's harness starts every node with a `peertimeout` (`write_config`,
@@ -706,6 +709,13 @@ def requests_in_flight_are_capped(cluster: _Cluster, skip_counts: SkipCounts) ->
         _serving_wait_until([peer], lambda: peer.tx_getdata_count == len(txids))
 
 
+def _reports_inv_to_send(node: NodeAdapter) -> bool:
+    """Return whether `node`'s own `help getpeerinfo` names `inv_to_send`."""
+    help_text = node.rpc.call("help", ["getpeerinfo"])
+    assert isinstance(help_text, str)
+    return "inv_to_send" in help_text
+
+
 def a_tx_reaches_a_node_past_unresponsive_peers(
     cluster: _Cluster, skip_counts: SkipCounts
 ) -> None:
@@ -718,6 +728,7 @@ def a_tx_reaches_a_node_past_unresponsive_peers(
     require(Capability.CLOCK, node0.capabilities, skip_counts)
     require(Capability.CONNECT, node1.capabilities, skip_counts)
     require(Capability.MINE, node0.capabilities, skip_counts)
+    reports_inv_to_send = _reports_inv_to_send(node0)
     wallet = MiniWallet(node0)
     wallet.generate(COINBASE_MATURITY + 1)
     connect_nodes(node1, node0)
@@ -746,14 +757,16 @@ def a_tx_reaches_a_node_past_unresponsive_peers(
         # connection as inbound and announces the transaction on its own
         # schedule, which the clock moved past that expiry covers
         assert _peer_info(node0)[0]["inbound"] is True
-        assert _peer_info(node0)[0]["inv_to_send"] == 1
+        if reports_inv_to_send:
+            assert _peer_info(node0)[0]["inv_to_send"] == 1
         assert _peer_info(node1)[0]["inbound"] is False
         mock_time += 2 + _NONPREF_PEER_TX_DELAY + _GETDATA_TX_INTERVAL
         node0.set_mock_time(mock_time)
         # an unrelated peer, so that node0 runs its send loop at least once
         peers[0].sync_with_ping()
-        # Core's own comment: may fail rarely
-        assert _peer_info(node0)[0]["inv_to_send"] == 0
+        if reports_inv_to_send:
+            # Core's own comment: may fail rarely
+            assert _peer_info(node0)[0]["inv_to_send"] == 0
         wait_until_mempools_agree([node0, node1], timeout=_WAIT)
 
         node0.set_mock_time(0)

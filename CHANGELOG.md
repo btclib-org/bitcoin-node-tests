@@ -1454,3 +1454,9 @@ and close the peer they open when they fail (issue #354).
 `feature_reindex_init`, `rpc_getdescriptorinfo`, `feature_reindex`,
 `feature_presegwit_node_upgrade`, `p2p_i2p_sessions` and `rpc_uptime` expect an
 older bitcoind's behaviour; the first skips before `v30.0` (issue #354).
+
+### `p2p_leak_tx` and `p2p_tx_download` read `getpeerinfo`'s `inv` fields per build
+
+`p2p_leak_tx`'s in-block check and `p2p_tx_download`'s inv-block check read
+them only where the build's own `help getpeerinfo` names them
+(bitcoin/bitcoin#33448, issue #354).

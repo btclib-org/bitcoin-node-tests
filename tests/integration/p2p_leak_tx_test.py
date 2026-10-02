@@ -18,7 +18,9 @@ in for `P2PInterface`/`P2PDataStore`/`P2PTxInvStore` and a `TestNode`
 btclib's `tests/integration/` fixture).
 
 `tx_in_block` checks
-`getrawmempool`'s own `mempool_sequence` and `getpeerinfo`'s own
+`getrawmempool`'s own `mempool_sequence` and, where the build's own
+`help getpeerinfo` names them (bitcoin/bitcoin#33448, which `v31.0rc1` is
+the first tag to carry), `getpeerinfo`'s own
 `last_inv_sequence`/`inv_to_send` around a broadcast and the `inv` it
 produces once the mock clock advances, builds a `getdata` from that
 `inv`, mines the transaction into a block, and only then sends the
@@ -95,6 +97,13 @@ def _node(
     return node
 
 
+def _reports_inv_fields(node: BitcoindAdapter | BtclibNodeAdapter) -> bool:
+    """Return whether `node`'s own `help getpeerinfo` names the `inv` fields."""
+    help_text = node.rpc.call("help", ["getpeerinfo"])
+    assert isinstance(help_text, str)
+    return "last_inv_sequence" in help_text and "inv_to_send" in help_text
+
+
 def _wait_for_inv(peer: Peer, tx_hash: bytes) -> Inv:
     """Wait for an `inv` naming `tx_hash` as an `MSG_WTX`, and return it."""
     message = peer.wait_for(
@@ -114,6 +123,7 @@ def tx_in_block(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     :param skip_counts: the session's own tally.
     """
     adapter = _node(cluster, skip_counts)
+    reports_inv_fields = _reports_inv_fields(adapter)
     wallet = MiniWallet(adapter)
     wallet.generate(COINBASE_MATURITY + 1)
     mocktime = int(time.time())
@@ -126,9 +136,10 @@ def tx_in_block(cluster: _Cluster, skip_counts: SkipCounts) -> None:
         tx = wallet.send_self_transfer()
         rawmp = adapter.rpc.call("getrawmempool", [False, True])
         assert rawmp["mempool_sequence"] == 2  # our tx caused mempool activity
-        peer_info = adapter.rpc.call("getpeerinfo")[0]
-        assert peer_info["last_inv_sequence"] == 1  # that is after the last inv
-        assert peer_info["inv_to_send"] == 1  # and our tx has been queued
+        if reports_inv_fields:
+            peer_info = adapter.rpc.call("getpeerinfo")[0]
+            assert peer_info["last_inv_sequence"] == 1  # that is after the last inv
+            assert peer_info["inv_to_send"] == 1  # and our tx has been queued
 
         mocktime += _ANNOUNCE_ADVANCE
         adapter.set_mock_time(mocktime)
@@ -136,9 +147,10 @@ def tx_in_block(cluster: _Cluster, skip_counts: SkipCounts) -> None:
 
         rawmp = adapter.rpc.call("getrawmempool", [False, True])
         assert rawmp["mempool_sequence"] == 2  # no mempool update
-        peer_info = adapter.rpc.call("getpeerinfo")[0]
-        assert peer_info["last_inv_sequence"] == 2  # announced the current mempool
-        assert peer_info["inv_to_send"] == 0  # nothing left in the queue
+        if reports_inv_fields:
+            peer_info = adapter.rpc.call("getpeerinfo")[0]
+            assert peer_info["last_inv_sequence"] == 2  # announced the current mempool
+            assert peer_info["inv_to_send"] == 0  # nothing left in the queue
 
         want_tx = GetData(inv.items)
         wallet.generate(1, confirm=[tx])

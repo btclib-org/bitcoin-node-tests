@@ -4173,9 +4173,16 @@ one of Core's checks as a body over a fresh node in
 has what differs from Core's file. Every body asks for `ORPHANAGE` first,
 and for `CLOCK` and `MINE`; the prefer-outbound and announcers checks ask
 for `TYPED_OUTBOUND`, the multiple-parents check for `INVALIDATE_BLOCK`,
-and the same-txid check for `DEBUG_LOG` besides,
-reading a line bitcoind writes under the `-debug=mempoolrej` it starts
-with. The parent-confirmed check is read per-build: an orphan is taken
+the same-txid check for `DEBUG_LOG` besides, reading a line bitcoind
+writes under the `-debug=mempoolrej` it starts with, and the
+maximal-package check for `DATACARRIER`. That check restarts its node with
+a `-datacarriersize` over the `OP_RETURN` padding of the package's last
+transaction: a build without bitcoin/bitcoin#32406, which `v30.0rc1` is
+the first tag to carry, refuses that padding by default. On a build
+without bitcoin/bitcoin#31829, which `v30.0rc1` is the first tag to
+carry, the orphanage evicts by count alone and the large orphans stay
+under it, so the check asserts there only that the package is kept and
+taken in. The parent-confirmed check is read per-build: an orphan is taken
 into the mempool once a block confirms its parent only on a build
 carrying bitcoin/bitcoin@9cc7dc50bdc9867d079ab7a111d39487a4566767, which
 the pinned release does not, so the body reads the build's own

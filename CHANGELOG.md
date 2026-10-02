@@ -1465,3 +1465,8 @@ them only where the build's own `help getpeerinfo` names them
 
 The log half of `p2p_ibd_stalling` does not expect `Stall started` absent from a
 bitcoind before `v31.0`, which logs it again (bitcoin/bitcoin#32180, issue #354).
+
+### `p2p_orphan_handling`'s maximal-package check restarts its node with a `-datacarriersize`
+
+A bitcoind before `v30.0` refuses the `OP_RETURN` padding of the package's
+last transaction by default (bitcoin/bitcoin#32406, issue #354).

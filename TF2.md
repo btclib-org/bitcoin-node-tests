@@ -906,7 +906,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_generate.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (generate) |
 | `rpc_signrawtransactionwithkey.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (sign_raw_transaction) |
 | `rpc_scantxoutset.py` | [`b388674acf06`](https://github.com/bitcoin/bitcoin/commit/b388674acf06) | 2026-08-06 | pass, `start`'s refusal of a null scan-object list asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (scan_utxo_set) |
-| `feature_proxy.py` | [`f82043af507a`](https://github.com/bitcoin/bitcoin/commit/f82043af507a) | 2026-06-30 | pass | skip (proxy) |
+| `feature_proxy.py` | [`f82043af507a`](https://github.com/bitcoin/bitcoin/commit/f82043af507a) | 2026-06-30 | pass; skip (proxy_per_network) on a build whose `-help` shows no `-proxy` suffix, the malformed suffix starts' refusal asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (proxy) |
 | `feature_proxy.py` (`-cjdnsreachable`) | same | same | pass | skip (cjdns) |
 | `feature_proxy.py` (`-i2psam`) | same | same | pass | skip (i2p_sam) |
 | `feature_proxy.py` (`-onlynet`) | same | same | pass | skip (onlynet) |
@@ -4314,9 +4314,12 @@ factory names nowhere.
 `socks5_test.py` drives it against a client written octet by octet.
 It listens on IPv4 loopback, or on IPv6 loopback or a unix socket where
 its `family` asks, and `endpoint` spells each the way `-proxy` takes it.
-`Capability.PROXY` is what a test asks for: `-proxy`, with its
-`=<network>` suffix and a `unix:` path, `-onion` and `-proxyrandomize`,
-bitcoind's own flags. `Capability.CJDNS`, `Capability.I2P_SAM` and
+`Capability.PROXY` is what a test asks for: `-proxy`, with a `unix:`
+path, `-onion` and `-proxyrandomize`, bitcoind's own flags.
+`Capability.PROXY_PER_NETWORK` is `-proxy`'s `=<network>` suffix, which
+`v30.0rc1` is the first tag to carry (bitcoin/bitcoin#32425):
+`BitcoindAdapter` declares it where the build's own `-help` shows the
+suffix. `Capability.CJDNS`, `Capability.I2P_SAM` and
 `Capability.ONLYNET` are `-cjdnsreachable`, `-i2psam` and `-onlynet`.
 `btclib-node` declares none of them on any build, `cli.py` registering
 none of those flags (`btclib_node.py`'s own docstring names the commits
@@ -4324,9 +4327,13 @@ read).
 
 `feature_proxy.py` is ported on it, its rows above. Each of Core's
 nodes is a test of its own; every start Core's file expects refused is
-refused with Core's own wording whole; and the starts giving `-proxy` a
-network suffix compare every network's proxy, where Core's file reads
-only the networks each start names.
+refused with Core's own wording whole, or, on a build without
+`Capability.PROXY_PER_NETWORK`, a suffix start with that build's own port
+refusal; and the restarts giving `-proxy` a network suffix compare every
+network's proxy, where Core's file reads only the networks each names.
+Those restarts are a counted skip on `Capability.PROXY_PER_NETWORK` where
+it is not declared
+([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
 `tests/integration/feature_proxy_test.py`'s module docstring has what
 differs from Core's file: among it, the start Core expects to succeed
 with `-listenonion` on is dropped, since `BitcoindAdapter`'s own argv

@@ -12,7 +12,8 @@ reports which proxy each network is reached by, and a start naming no
 usable proxy is refused. `socks5.Socks5Proxy` is the proxy, and each test
 asks for the capability of every option it sets or whose refusal it
 reads: `Capability.PROXY` for
-`-proxy`, `-onion` and `-proxyrandomize`, `Capability.CJDNS` for
+`-proxy`, `-onion` and `-proxyrandomize`, `Capability.PROXY_PER_NETWORK`
+for `-proxy`'s `=<network>` suffix, `Capability.CJDNS` for
 `-cjdnsreachable`, `Capability.I2P_SAM` for `-i2psam` and
 `Capability.ONLYNET` for `-onlynet`.
 
@@ -39,7 +40,11 @@ the `-onion` test here already covers: the `-i2psam` test gives the node
 Every start Core's file expects refused is refused here, with a non-zero
 exit and a stderr equal to Core's own `expected_msg` whole, the
 `ErrorMatch.FULL_TEXT` comparison `assert_start_raises_init_error` makes
-by default. The start Core's file expects to succeed, `-onlynet=onion`
+by default. A node without `Capability.PROXY_PER_NETWORK` reads a
+`-proxy` suffix as part of the port, so the starts giving one expect its
+refusal of that port instead.
+
+The start Core's file expects to succeed, `-onlynet=onion`
 beside `-listenonion=1`, is dropped: `BitcoindAdapter._command` sets
 `-listenonion=0` itself, so `_check_extra_args` (`node.py`) refuses the
 option, and that same argv is what refuses `-onlynet=onion` given alone,
@@ -233,6 +238,14 @@ def _assert_every_network_but_i2p(
     assert networks["onion"]["reachable"] is True
     assert networks["i2p"]["reachable"] is False
     assert networks["cjdns"]["reachable"] is cjdns
+
+
+def _port_refusal(arg: str) -> str:
+    """Return the refusal of a `-proxy` suffix read as part of the port.
+
+    :param arg: the `-proxy=<value>` argument.
+    """
+    return f"Error: Invalid port specified in -proxy: '{arg.removeprefix('-proxy=')}'"
 
 
 def _refusal(node: NodeAdapter, extra_args: list[str]) -> str:
@@ -504,6 +517,7 @@ def proxy_network_suffix_sets_the_proxy_of_that_network(
     """
     (node,) = cluster(1)
     require(Capability.PROXY, node.capabilities, skip_counts)
+    require(Capability.PROXY_PER_NETWORK, node.capabilities, skip_counts)
     none = dict.fromkeys(_NETWORKS, "")
     for proxies, expected in (
         (["127.6.6.6:6666=ipv6"], {"ipv6": "127.6.6.6:6666"}),
@@ -541,7 +555,9 @@ def malformed_proxy_or_onion_is_refused(
 
     Core's own invalid hosts and ports for each, a `-proxy` ending in
     `=`, one naming a network Core does not know, and a unix socket path
-    longer than a socket address holds.
+    longer than a socket address holds. A node without
+    `Capability.PROXY_PER_NETWORK` reads a suffix as part of the port, so
+    the `-proxy` starts giving one expect its refusal of that port.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
@@ -549,13 +565,24 @@ def malformed_proxy_or_onion_is_refused(
     (node,) = cluster(1)
     require(Capability.PROXY, node.capabilities, skip_counts)
     node.stop()
+    trailing, unknown = "-proxy=127.0.0.1:9050=", "-proxy=127.0.0.1:9050=foo"
+    if Capability.PROXY_PER_NETWORK in node.capabilities:
+        trailing_expected, unknown_expected = (
+            _PROXY_TRAILING_EQUALS,
+            _PROXY_UNKNOWN_NETWORK,
+        )
+    else:
+        trailing_expected, unknown_expected = (
+            _port_refusal(trailing),
+            _port_refusal(unknown),
+        )
     for arg, expected in (
         ("-proxy=abc..abc:23456", _PROXY_HOST),
         ("-proxy=192.0.0.1:def", _PROXY_PORT),
         ("-onion=xyz..xyz:23456", _ONION_HOST),
         ("-onion=192.0.0.1:def", _ONION_PORT),
-        ("-proxy=127.0.0.1:9050=", _PROXY_TRAILING_EQUALS),
-        ("-proxy=127.0.0.1:9050=foo", _PROXY_UNKNOWN_NETWORK),
+        (trailing, trailing_expected),
+        (unknown, unknown_expected),
         (f"-proxy={_LONG_UNIX_PATH}", _PROXY_LONG_UNIX_PATH),
     ):
         assert _refusal(node, [arg]) == expected

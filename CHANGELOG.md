@@ -1488,3 +1488,9 @@ These tests and `p2p_orphan_handling` start it with
 `mempool_datacarrier` and `mempool_accept` assert an older bitcoind's 83-byte,
 one-output cap (bitcoin/bitcoin#32406, issue #354) and a `getmempoolinfo`
 lacking `permitbaremultisig` and `maxdatacarriersize` (bitcoin/bitcoin#29954).
+
+### `CONTRIBUTING.md` says the maintainer self-merges while the bot review is off
+
+*The review* says no ack of record exists while `claude-review.yml` is off,
+and that a local review of a named sha, by a reviewer other than the author,
+stands in (issue btclib-org/.github#1527).

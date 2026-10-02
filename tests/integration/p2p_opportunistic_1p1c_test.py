@@ -31,16 +31,21 @@ a fresh node:
 - no parent of a child of two parents, each refused for its fee, is
   asked for;
 - a child of two parents, one of them in the mempool, is taken in with
-  the other;
+  the other, where the build evaluates such a package, and refused with
+  it otherwise;
 - a parent and child spending the child of another such pair are taken
   in on top of it;
 - a child kept as an orphan, its parent asked for, is taken in with that
   parent while other peers fill the orphanage with large orphans, some
-  evicted;
+  evicted where the build bounds each peer's share of the orphanage, none
+  where it bounds their number alone;
 - a child kept as an orphan, its parent asked for, stays kept and is
   taken in with that parent while other peers send small orphans, the
   same ones from each of a set of peers and others of its own from one
-  more peer.
+  more peer, where the build bounds each peer's share of the orphanage;
+  where it bounds their number alone, the orphanage holds that bound
+  once they are sent, and the child is taken in with its parent if still
+  kept, and not if evicted at random.
 
 Every body asks for `Capability.ORPHANAGE` first. It starts its node
 with `-maxmempool=5` (`Capability.MAXMEMPOOL`) and a `-datacarriersize`
@@ -100,6 +105,21 @@ option or without it. A `master` build between the option's merge and
 the version's move to `32.99` reads older and starts without it, the
 constant's own comment having the commits.
 
+A build before `v30.0rc1` bounds the orphanage by count alone, at
+`DEFAULT_MAX_ORPHAN_TRANSACTIONS` (`-maxorphantx`, `src/net_processing.h`),
+evicting an orphan at random once the bound is passed
+(`TxOrphanage::LimitOrphans`, `src/txorphanage.cpp`);
+bitcoin/bitcoin#31829, of which `v30.0rc1` is the first tag, bounds each
+peer's share instead. Core's own `v29.4` file has no check of either. The
+two orphanage checks read the build off `getorphantxs`'s `help`, which
+lists `expiration` before bitcoin/bitcoin#31829 and not after.
+
+A bitcoind before bitcoin/bitcoin#31385, first in `v30.0rc1`, refuses a
+child of two parents when one of them is in the mempool. Core's `v29.4`
+file asserts that refusal, and so does the check on such a build.
+bitcoin/bitcoin#31385 changes no RPC, so the check reads the build's
+`getnetworkinfo` `version` against `_TWO_PARENT_VERSION`.
+
 Core's many-orphans check counts each peer sending one of the same small
 orphans as an announcement of it, adding up past the orphanage's bound
 on its latency score, `DEFAULT_MAX_ORPHANAGE_LATENCY_SCORE`
@@ -145,6 +165,7 @@ from tests.integration.p2pk_coins_test import (
     p2pk_self_transfer,
     p2pk_tx,
 )
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -232,6 +253,20 @@ _LARGE_VSIZE = 100_000
 _BATCH_SIZE = 51
 _NUM_PEERS_SHARED = 60
 _BATCH_SINGLE_DOSER = 100
+
+# the `CLIENT_VERSION` (`src/clientversion.h`) of `v30.0`, whose first tag,
+# `v30.0rc1`, is the first to carry bitcoin/bitcoin#31385, which relaxes the
+# rule refusing a child with a parent in the mempool beside another.
+# bitcoin/bitcoin#31385 changes no RPC, and `submitpackage`'s `help`
+# describes the rule only from bitcoin/bitcoin#33630, first in `v30.1`. A
+# known limit: a `master` build from that merge (`24246c3deb`) up to the
+# move to `30.99` (`9f744fffc3`) reports `299900` with the relaxed rule, so
+# this check fails against such a build
+_TWO_PARENT_VERSION = 300000
+
+# Core's own `DEFAULT_MAX_ORPHAN_TRANSACTIONS` (`src/net_processing.h`),
+# the orphanage's bound on its size before bitcoin/bitcoin#31829
+_MAX_ORPHAN_TRANSACTIONS = 100
 
 # Core's own `DEFAULT_MAX_ORPHANAGE_LATENCY_SCORE` (`src/node/txorphanage.h`),
 # the orphanage's bound on its latency score, to which each announcement
@@ -324,6 +359,34 @@ def _takes_inbound_relay_percent(node: NodeAdapter) -> bool:
         return False
     version = node.rpc.call("getnetworkinfo")["version"]
     return bool(version >= _INBOUND_RELAY_PERCENT_VERSION)
+
+
+def _help_says(node: NodeAdapter, rpc: str, text: str) -> bool:
+    """Whether `rpc`'s own `help` on `node` has `text`."""
+    answer = node.rpc.call("help", [rpc])
+    assert isinstance(answer, str)
+    return text in answer
+
+
+def _takes_two_parent_package(node: NodeAdapter) -> bool:
+    """Whether `node` evaluates a child with a parent already in its mempool.
+
+    Read off `bitcoind_version` against `_TWO_PARENT_VERSION`. Any node but
+    a bitcoind answers yes.
+    """
+    version = bitcoind_version(node)
+    return version is None or version >= _TWO_PARENT_VERSION
+
+
+def _bounds_orphans_by_count(node: NodeAdapter) -> bool:
+    """Whether `node` bounds its orphanage by count alone, evicting at random.
+
+    `getorphantxs`'s `help` lists `expiration` until bitcoin/bitcoin#31829.
+    Any node but a bitcoind answers no.
+    """
+    if not isinstance(node, BitcoindAdapter):
+        return False
+    return _help_says(node, "getorphantxs", '"expiration"')
 
 
 def _node(
@@ -792,8 +855,20 @@ def an_orphan_is_taken_in_with_one_parent_beside_another_in_the_mempool(
         node_mempool = _mempool(node)
         assert grandparent_high.id.hex() in node_mempool
         assert parent_high.id.hex() in node_mempool
-        assert parent_low.id.hex() in node_mempool
-        assert child.id.hex() in node_mempool
+        if _takes_two_parent_package(node):
+            assert parent_low.id.hex() in node_mempool
+            assert child.id.hex() in node_mempool
+            return
+
+        # a package of the other parent and the child is refused, sent by
+        # the peer or submitted
+        assert parent_low.id.hex() not in node_mempool
+        assert child.id.hex() not in node_mempool
+        result = node.rpc.call(
+            "submitpackage",
+            [[parent_low.serialize(True).hex(), child.serialize(True).hex()]],
+        )
+        assert result["package_msg"] == "package-not-child-with-unconfirmed-parents"
 
 
 def a_package_is_taken_in_on_top_of_another(
@@ -891,10 +966,19 @@ def an_orphan_outlives_large_orphans_from_other_peers(
         clock.bump(_NONPREF_PEER_TX_DELAY + _TXID_RELAY_DELAY)
         peer_normal.wait_for_getdata([low_fee_parent.id])
 
-        # the rest of the large orphans, from one peer, evict some orphan
+        # the rest of the large orphans, from one peer, evict some orphan,
+        # none where the bound is on their number alone and is not reached
         for large_orphan in large_orphans[_INDIVIDUAL_DOSERS:]:
             peer_doser.send_and_ping(_tx(large_orphan))
-        wait_until(lambda: len(_orphans(node)) < len(large_orphans) + 1, timeout=_WAIT)
+        if _bounds_orphans_by_count(node):
+            assert len(large_orphans) + 1 <= _MAX_ORPHAN_TRANSACTIONS
+            wait_until(
+                lambda: len(_orphans(node)) == len(large_orphans) + 1, timeout=_WAIT
+            )
+        else:
+            wait_until(
+                lambda: len(_orphans(node)) < len(large_orphans) + 1, timeout=_WAIT
+            )
 
         # the parent arrives, and is taken in with the child
         peer_normal.send_and_ping(_tx(low_fee_parent))
@@ -961,6 +1045,23 @@ def an_orphan_outlives_many_orphans_from_other_peers(
             lambda: any(tx.id.hex() in _orphans(node) for tx in this_batch_orphans),
             timeout=_WAIT,
         )
+
+        # where the bound is on their number alone, the orphanage is full,
+        # and the child may be among the orphans evicted at random
+        if _bounds_orphans_by_count(node):
+            wait_until(
+                lambda: len(_orphans(node)) == _MAX_ORPHAN_TRANSACTIONS,
+                timeout=_WAIT,
+            )
+            kept = high_fee_child.id.hex() in _orphans(node)
+
+            # a kept child is taken in with its parent, an evicted one is not
+            peer_normal.send_and_ping(_tx(low_fee_parent))
+            assert (high_fee_child.id.hex() in _mempool(node)) == kept
+            if kept:
+                entry = node.rpc.call("getmempoolentry", [high_fee_child.id.hex()])
+                assert entry["ancestorcount"] == 2
+            return
 
         # the child is still kept
         assert high_fee_child.id.hex() in _orphans(node)

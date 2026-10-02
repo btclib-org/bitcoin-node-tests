@@ -1494,3 +1494,9 @@ lacking `permitbaremultisig` and `maxdatacarriersize` (bitcoin/bitcoin#29954).
 *The review* says no ack of record exists while `claude-review.yml` is off,
 and that a local review of a named sha, by a reviewer other than the author,
 stands in (issue btclib-org/.github#1527).
+
+### `p2p_opportunistic_1p1c` asserts the 2p1c package and the orphanage per build
+
+A bitcoind before `v30.0` refuses a child of two parents when one is in the
+mempool (bitcoin/bitcoin#31385) and bounds the orphanage by count alone
+(bitcoin/bitcoin#31829). Those checks assert what each build does (issue #354).

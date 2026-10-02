@@ -13,9 +13,10 @@ reason and fees, and leaves the mempool as it found it; and
 `getmempoolinfo` reports the fee defaults and `-permitbaremultisig=0`.
 
 Core's `run_test` is the body, in its own order, and every assertion of
-Core's own is kept. It asks for `Capability.PERMIT_BARE_MULTISIG` and
-`Capability.MINE`, and restarts its node with the
-`-permitbaremultisig=0` Core starts it with before any block is mined.
+Core's own is kept on a build with bitcoin/bitcoin#32406 and
+bitcoin/bitcoin#29954. It asks for `Capability.PERMIT_BARE_MULTISIG` and
+`Capability.MINE`, and restarts its node with the `-permitbaremultisig=0` Core
+starts it with before any block is mined.
 
 `testmempoolaccept` reports `vsize_adjusted` and `vsize_bip141` beside
 `vsize` only past the pinned release, from bitcoin/bitcoin#32800's
@@ -24,6 +25,14 @@ merge. Where the build's own `getnetworkinfo` `version` reads older
 each allowed transaction is expected without them, as Core's file at
 the pinned `v31.1` expects it. `_VSIZE_FIELDS_VERSION`'s own comment has
 the known limit.
+
+A build without bitcoin/bitcoin#32406, read by `mempool_datacarrier_test.py`'s
+`uncapped_by_default`, relays one null-data output per transaction: there
+the several-outputs, large-output and maximal-size `OP_RETURN` checks give
+way to one, two outputs refused as `multi-op-return`. A build without
+bitcoin/bitcoin#29954, read by `mempool_info_reports`, has no
+`permitbaremultisig` in `getmempoolinfo`, so that assertion is skipped and the
+`bare-multisig` refusal is the check there.
 
 What differs from Core's file:
 
@@ -77,6 +86,10 @@ from btclib.tx.limits import SEQUENCE_FINAL
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
+from tests.integration.mempool_datacarrier_test import (
+    mempool_info_reports,
+    uncapped_by_default,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -291,6 +304,38 @@ def _garbage_is_refused(node: NodeAdapter) -> None:
     )
 
 
+def _op_return_outputs_are_standard(mempool: _Mempool, raw_tx_reference: str) -> None:
+    """Core's checks of several and of large `OP_RETURN` outputs."""
+    # Multiple OP_RETURN and more than 83 bytes, even if over
+    # MAX_SCRIPT_ELEMENT_SIZE, are standard since v30
+    tx = _parse(raw_tx_reference)
+    tx.vout.append(_out(0, script_serialize(["OP_RETURN", b"\xff"])))
+    tx.vout.append(_out(0, script_serialize(["OP_RETURN", b"\xff" * 50_000])))
+    mempool.check(mempool.allowed(tx, _COIN // 20), tx, maxfeerate=0)
+
+    # A transaction with several OP_RETURN outputs: Core's
+    # `int(nValue / op_return_count)`, one object repeated
+    tx = _parse(raw_tx_reference)
+    share = int(tx.vout[0].value / _OP_RETURN_COUNT)
+    tx.vout = [_out(share, script_serialize(["OP_RETURN", b"\xff"]))] * _OP_RETURN_COUNT
+    # Core's own `Decimal("0.05000026")`: the reference's input less the
+    # outputs' own sum
+    mempool.check(mempool.allowed(tx, 5_000_026), tx)
+
+    # A transaction with an OP_RETURN output that bumps into the max
+    # standardness tx size: -5 for PUSHDATA4 and -4 for script size
+    tx = _parse(raw_tx_reference)
+    tx.vout[0] = _out(tx.vout[0].value, script_serialize(["OP_RETURN"]))
+    data_len = _MAX_STANDARD_TX_WEIGHT // 4 - tx.vsize - 5 - 4
+    value = tx.vout[0].value
+    tx.vout[0] = _out(value, script_serialize(["OP_RETURN", b"\xff" * data_len]))
+    assert tx.vsize == _MAX_STANDARD_TX_WEIGHT // 4
+    mempool.check(mempool.allowed(tx, _COIN // 10 - _COIN // 20), tx)
+    tx.vout[0] = _out(value, script_serialize(["OP_RETURN", b"\xff" * (data_len + 1)]))
+    assert tx.vsize > _MAX_STANDARD_TX_WEIGHT // 4
+    mempool.check(mempool.refused(tx, "tx-size"), tx)
+
+
 def _reference_variants_are_refused(
     mempool: _Mempool, raw_tx_reference: str, raw_tx_coinbase_spent: str
 ) -> None:
@@ -383,34 +428,13 @@ def _reference_variants_are_refused(
     tx.vout[0] = _out(tx.vout[0].value, script_serialize(["OP_RETURN", "OP_HASH160"]))
     mempool.check(mempool.refused(tx, "scriptpubkey"), tx)
 
-    # Multiple OP_RETURN and more than 83 bytes, even if over
-    # MAX_SCRIPT_ELEMENT_SIZE, are standard since v30
-    tx = _parse(raw_tx_reference)
-    tx.vout.append(_out(0, script_serialize(["OP_RETURN", b"\xff"])))
-    tx.vout.append(_out(0, script_serialize(["OP_RETURN", b"\xff" * 50_000])))
-    mempool.check(mempool.allowed(tx, _COIN // 20), tx, maxfeerate=0)
-
-    # A transaction with several OP_RETURN outputs: Core's
-    # `int(nValue / op_return_count)`, one object repeated
-    tx = _parse(raw_tx_reference)
-    share = int(tx.vout[0].value / _OP_RETURN_COUNT)
-    tx.vout = [_out(share, script_serialize(["OP_RETURN", b"\xff"]))] * _OP_RETURN_COUNT
-    # Core's own `Decimal("0.05000026")`: the reference's input less the
-    # outputs' own sum
-    mempool.check(mempool.allowed(tx, 5_000_026), tx)
-
-    # A transaction with an OP_RETURN output that bumps into the max
-    # standardness tx size: -5 for PUSHDATA4 and -4 for script size
-    tx = _parse(raw_tx_reference)
-    tx.vout[0] = _out(tx.vout[0].value, script_serialize(["OP_RETURN"]))
-    data_len = _MAX_STANDARD_TX_WEIGHT // 4 - tx.vsize - 5 - 4
-    value = tx.vout[0].value
-    tx.vout[0] = _out(value, script_serialize(["OP_RETURN", b"\xff" * data_len]))
-    assert tx.vsize == _MAX_STANDARD_TX_WEIGHT // 4
-    mempool.check(mempool.allowed(tx, _COIN // 10 - _COIN // 20), tx)
-    tx.vout[0] = _out(value, script_serialize(["OP_RETURN", b"\xff" * (data_len + 1)]))
-    assert tx.vsize > _MAX_STANDARD_TX_WEIGHT // 4
-    mempool.check(mempool.refused(tx, "tx-size"), tx)
+    if uncapped_by_default(node):
+        _op_return_outputs_are_standard(mempool, raw_tx_reference)
+    else:
+        # Core's own check on `v29.4`: one null-data output per transaction
+        tx = _parse(raw_tx_reference)
+        tx.vout = [_out(tx.vout[0].value, script_serialize(["OP_RETURN", b"\xff"]))] * 2
+        mempool.check(mempool.refused(tx, "multi-op-return"), tx)
 
     # A timelocked transaction: non-max, so the locktime is not ignored
     tx = _parse(raw_tx_reference)
@@ -577,7 +601,8 @@ def mempool_acceptance_of_raw_transactions(
     wallet.generate(_CHAIN_HEIGHT)
     mempool = _Mempool(node)
 
-    assert node.rpc.call("getmempoolinfo")["permitbaremultisig"] is False
+    if mempool_info_reports(node, "permitbaremultisig"):
+        assert node.rpc.call("getmempoolinfo")["permitbaremultisig"] is False
 
     # Start with empty mempool, and 200 blocks
     assert node.rpc.call("getblockcount") == _CHAIN_HEIGHT

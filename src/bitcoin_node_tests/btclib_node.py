@@ -192,10 +192,12 @@ registers no `-test`, measured at the released `2026.9.24` and at `main`
 `Capability.PROXY` is never declared either: `cli.py` registers none of
 `-proxy`, `-onion` and `-proxyrandomize`, measured against its
 `_build_parser` at the released `2026.9.24` (`422d2640`) and its
-`_OPTIONS` at `main` (`d2b4efa5`) alike. Nor are `Capability.CJDNS`,
-`Capability.I2P_SAM` and `Capability.ONLYNET`: it registers none of
-`-cjdnsreachable`, `-i2psam`, `-i2pacceptincoming` and `-onlynet`,
-measured the same way at the released `2026.9.24` and at `main`
+`_OPTIONS` at `main` (`d2b4efa5`) alike. Nor is
+`Capability.PROXY_PER_NETWORK`, the suffix of an option it does not
+register. Nor are `Capability.CJDNS`, `Capability.I2P_SAM` and
+`Capability.ONLYNET`: it registers none of `-cjdnsreachable`, `-i2psam`,
+`-i2pacceptincoming` and `-onlynet`, measured the same way at the
+released `2026.9.24` and at `main`
 (`1aeebc67`).
 
 `Capability.NODE_WALLET` is never declared either: `btclib-node` keeps

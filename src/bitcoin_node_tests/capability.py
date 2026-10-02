@@ -340,16 +340,21 @@ class Capability(Enum):
     (`rpc_scantxoutset.py`). Named for what it reads rather than for the
     RPC's own spelling.
     `PROXY` -- dial a peer through the SOCKS5 proxy `-proxy` names, on a
-    TCP address or a `unix:` socket path, for every network or for the one
-    its `=<network>` suffix names, an onion one through `-onion`'s where
-    that is given, sending a proxy that accepts username/password
-    credentials of each connection's own under `-proxyrandomize`; report
-    each network's proxy in `getnetworkinfo`; and refuse to start on a
-    `-proxy` or `-onion` naming no usable proxy (`feature_proxy.py`,
+    TCP address or a `unix:` socket path, for every network, an onion one
+    through `-onion`'s where that is given, sending a proxy that accepts
+    username/password credentials of each connection's own under
+    `-proxyrandomize`; report each network's proxy in `getnetworkinfo`;
+    and refuse to start on a `-proxy` or `-onion` naming no usable proxy
+    (`feature_proxy.py`,
     [ISS bitcoin-node-tests#47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)).
     One member for the three options, as `DATACARRIER` is for its pair:
     `-onion` names a SOCKS5 proxy as `-proxy` does, for onion alone, and
     `-proxyrandomize` qualifies whichever of the two is given.
+    `PROXY_PER_NETWORK` -- take `-proxy`'s `=<network>` suffix, setting
+    the proxy of that network alone or, given `0`, removing it, and refuse
+    to start on a suffix that is empty or names an unknown network
+    (`feature_proxy.py`). Not `PROXY`'s own: a node can take `-proxy` and
+    read the suffix as part of the port.
     `CJDNS` -- take a CJDNS address, one in `fc00::/8`, as CJDNS once
     `-cjdnsreachable` says the network is reachable, dial it through the
     proxy `-proxy` names, and report CJDNS reachable in `getnetworkinfo`
@@ -619,6 +624,7 @@ class Capability(Enum):
     GENERATE = "generate"
     SCAN_UTXO_SET = "scan_utxo_set"
     PROXY = "proxy"
+    PROXY_PER_NETWORK = "proxy_per_network"
     CJDNS = "cjdns"
     I2P_SAM = "i2p_sam"
     ONLYNET = "onlynet"

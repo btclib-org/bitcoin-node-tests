@@ -6,7 +6,8 @@
 
 Read from Core's `test/functional/feature_proxy.py`:
 `feature_proxy_test.py` beside this module is the body, run here against
-bitcoind, which declares every capability it asks for.
+bitcoind, which declares every capability it asks for,
+`Capability.PROXY_PER_NETWORK` only where its build takes the suffix.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """

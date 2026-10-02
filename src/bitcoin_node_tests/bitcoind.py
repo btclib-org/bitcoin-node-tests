@@ -182,6 +182,23 @@ def _has_private_broadcast(executable: str) -> bool:
 
 
 @lru_cache
+def _has_proxy_per_network(executable: str) -> bool:
+    """Return whether `executable` takes `-proxy=<proxy>=<network>`.
+
+    The suffix arrives in `v30.0` (bitcoin/bitcoin#32425), and `-help`
+    shows it as `[=<network>]` in the `-proxy` entry; an older build shows
+    none and reads the `=` as part of the port. Probed off the binary as
+    `_has_wallet` is, with `-nosettings` for the same reason.
+
+    :param executable: the `bitcoind` binary to probe.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-help", "-nosettings"], check=False, capture_output=True
+    )
+    return b"[=<network>]\n" in probe.stdout
+
+
+@lru_cache
 def _has_cluster_mempool(executable: str) -> bool:
     """Return whether `executable` runs the cluster mempool.
 
@@ -360,6 +377,9 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.ONLYNET` are unconditional too: `-proxy`, `-onion`,
     `-proxyrandomize`, `-cjdnsreachable`, `-i2psam`, `-i2pacceptincoming`
     and `-onlynet` are this binary's own flags (`src/init.cpp`).
+    `Capability.PROXY_PER_NETWORK` is `-proxy`'s `=<network>` suffix, this
+    binary's own (`src/init.cpp`), declared only by a build whose `-help`
+    shows it, `_has_proxy_per_network` being the probe.
     `Capability.TX_RECONCILIATION` and `Capability.PEER_BLOOM_FILTERS` are
     unconditional: `-txreconciliation` and `-peerbloomfilters` are
     this binary's own flags (`src/init.cpp`).
@@ -506,6 +526,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.GENERATE,
             Capability.SCAN_UTXO_SET,
             Capability.PROXY,
+            Capability.PROXY_PER_NETWORK,
             Capability.CJDNS,
             Capability.I2P_SAM,
             Capability.ONLYNET,
@@ -567,9 +588,10 @@ class BitcoindAdapter(NodeAdapter):
         `BtclibNodeAdapter.__init__` (`btclib_node.py`) uses and for the
         same reason: `_check_extra_args(self._command(), extra_args)`
         needs `self._executable` set before `_command` can be called.
-        `_has_wallet`, `_has_private_broadcast`, `_has_cluster_mempool` and
-        `_has_reindex_after_failure` are then this class's own per-build
-        probes, read once per instance rather than once per `mine` call,
+        `_has_wallet`, `_has_private_broadcast`, `_has_cluster_mempool`,
+        `_has_reindex_after_failure` and `_has_proxy_per_network` are then
+        this class's own per-build probes, read once per instance rather
+        than once per `mine` call,
         `_REGTEST_ONLY` is what any other `chain` drops, and
         `_TEST_CHAIN_ONLY` what main drops besides.
         """
@@ -591,6 +613,8 @@ class BitcoindAdapter(NodeAdapter):
             self.capabilities = self.capabilities - _CLUSTER_MEMPOOL_ONLY
         if not _has_reindex_after_failure(executable):
             self.capabilities = self.capabilities - {Capability.REINDEX_AFTER_FAILURE}
+        if not _has_proxy_per_network(executable):
+            self.capabilities = self.capabilities - {Capability.PROXY_PER_NETWORK}
         if chain != "regtest":
             self.capabilities = self.capabilities - _REGTEST_ONLY
         if chain == "main":

@@ -1470,3 +1470,9 @@ bitcoind before `v31.0`, which logs it again (bitcoin/bitcoin#32180, issue #354)
 
 A bitcoind before `v30.0` refuses the `OP_RETURN` padding of the package's
 last transaction by default (bitcoin/bitcoin#32406, issue #354).
+
+### `feature_proxy` reads `-proxy`'s network suffix only where the build takes it
+
+`BitcoindAdapter` declares `Capability.PROXY_PER_NETWORK` where `-help` shows
+the suffix (bitcoin/bitcoin#32425). Without it the suffix test skips and the
+malformed-`-proxy` test expects the build's port refusal (issue #354).

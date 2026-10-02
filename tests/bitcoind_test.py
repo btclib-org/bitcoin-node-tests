@@ -24,6 +24,7 @@ from bitcoin_node_tests.timeout_factor import set_factor
 _has_private_broadcast = bitcoind_module._has_private_broadcast
 _has_cluster_mempool = bitcoind_module._has_cluster_mempool
 _has_reindex_after_failure = bitcoind_module._has_reindex_after_failure
+_has_proxy_per_network = bitcoind_module._has_proxy_per_network
 
 
 @pytest.fixture(autouse=True)
@@ -33,6 +34,7 @@ def _any_build() -> Iterator[None]:
         patch.object(bitcoind_module, "_has_private_broadcast", return_value=True),
         patch.object(bitcoind_module, "_has_cluster_mempool", return_value=True),
         patch.object(bitcoind_module, "_has_reindex_after_failure", return_value=True),
+        patch.object(bitcoind_module, "_has_proxy_per_network", return_value=True),
     ):
         yield
 
@@ -82,6 +84,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.GENERATE,
             Capability.SCAN_UTXO_SET,
             Capability.PROXY,
+            Capability.PROXY_PER_NETWORK,
             Capability.CJDNS,
             Capability.I2P_SAM,
             Capability.ONLYNET,
@@ -283,6 +286,41 @@ def test_has_reindex_after_failure_is_false_where_help_lists_no_option() -> None
     stdout = b"-test=<option>\n  addrman (use a small addrman)"
     with patch("subprocess.run", return_value=SimpleNamespace(stdout=stdout)):
         assert _has_reindex_after_failure("fake-bitcoind-29") is False
+
+
+def test_capabilities_drop_proxy_per_network_where_help_shows_no_suffix(
+    tmp_path: Path,
+) -> None:
+    """A build whose `-help` shows no `-proxy` suffix loses it alone."""
+    with (
+        patch.object(bitcoind_module, "_has_wallet", return_value=True),
+        patch.object(bitcoind_module, "_has_proxy_per_network", return_value=False),
+    ):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
+    assert adapter.capabilities == BitcoindAdapter.capabilities - {
+        Capability.PROXY_PER_NETWORK
+    }
+
+
+def test_has_proxy_per_network_reads_the_probe_s_own_stdout() -> None:
+    """`_has_proxy_per_network` is `-help` showing the suffix."""
+    _has_proxy_per_network.cache_clear()
+    stdout = b"  -proxy=<ip>[:<port>]|unix:<path>[=<network>]\n       Connect"
+    with patch("subprocess.run", return_value=SimpleNamespace(stdout=stdout)) as run:
+        assert _has_proxy_per_network("fake-bitcoind-30") is True
+    run.assert_called_once_with(
+        ["fake-bitcoind-30", "-help", "-nosettings"],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_has_proxy_per_network_is_false_where_help_shows_no_suffix() -> None:
+    """A build before `v30.0` shows `-proxy=<ip:port|path>` alone."""
+    _has_proxy_per_network.cache_clear()
+    stdout = b"  -proxy=<ip:port|path>\n       Connect through SOCKS5 proxy"
+    with patch("subprocess.run", return_value=SimpleNamespace(stdout=stdout)):
+        assert _has_proxy_per_network("fake-bitcoind-29") is False
 
 
 def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:

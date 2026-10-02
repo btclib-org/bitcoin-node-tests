@@ -869,7 +869,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
 | `mempool_package_limits.py` | `fa5f29774872` | 2025-12-16 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 | `mempool_updatefromblock.py` | `fa6b05c96ffb` | 2026-03-12 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
-| `p2p_leak_tx.py` (in block) | `fa5f29774872` | 2025-12-16 | pass | skip |
+| `p2p_leak_tx.py` (in block) | `fa5f29774872` | 2025-12-16 | pass, the `getpeerinfo` fields asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
 | `p2p_leak_tx.py` (replaced) | same | same | pass | skip |
 | `p2p_leak_tx.py` (unannounced) | same | same | pass | skip |
 | `feature_utxo_set_hash.py` | `58eeab790d98` | 2026-05-13 | pass | skip (mine) on the build; fail ([ISS btclib-node#1387](https://github.com/btclib-org/btclib-node/issues/1387)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) and before [ISS btclib-node#1387](https://github.com/btclib-org/btclib-node/issues/1387); fail ([ISS btclib-node#1598](https://github.com/btclib-org/btclib-node/issues/1598)) on a build past [ISS btclib-node#1387](https://github.com/btclib-org/btclib-node/issues/1387) |
@@ -985,7 +985,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_tx_download.py` (duplicate inv) | same | same | pass, the duplicates asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (debug_log) |
 | `p2p_tx_download.py` (spurious notfound) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_tx_download.py` (in flight) | same | same | pass | skip (clock) |
-| `p2p_tx_download.py` (inv block) | same | same | pass | skip (clock) |
+| `p2p_tx_download.py` (inv block) | same | same | pass, `inv_to_send` asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (clock) |
 | `p2p_tx_download.py` (tx requests) | same | same | pass | skip (clock) |
 | `p2p_tx_download.py` (rejects) | same | same | pass | skip (clock) |
 | `p2p_tx_download.py` (mismatch) | same | same | pass | skip (clock) |
@@ -3765,15 +3765,18 @@ together, each subject its own pytest function over `Peer` and
 `P2PInterface`/`P2PDataStore`/`P2PTxInvStore`. "in block" is Core's own
 `test_tx_in_block`: a `getdata` built from the `inv` the node announces,
 sent only after the transaction has been mined into a block, is still
-answered with the transaction. Each connection is synced with a ping
-after its handshake, as Core's `TestNode.add_p2p_connection` does, so
-the node has processed this peer's own `verack` before any transaction
-is broadcast or the mock clock moves. Each subject starts its own node
-rather than sharing one across the module: `mempool_sequence` is a
-counter over a node's whole lifetime, and `pytest-randomly` does not
-hold that ordering against a shared node still. The `btclib-node` cells
-skip on `Capability.CLOCK`, the first capability each subject asks for
-on either node.
+answered with the transaction. Its `getpeerinfo` checks are read per-build:
+`last_inv_sequence` and `inv_to_send` are in the node's answer only on a
+build carrying bitcoin/bitcoin#33448, which `v31.0rc1` is the first tag to
+carry, so the body reads the build's own `help getpeerinfo` and leaves those
+checks out on an older build. Each connection is synced with a ping after its
+handshake, as Core's `TestNode.add_p2p_connection` does, so the node has
+processed this peer's own `verack` before any transaction is broadcast or the
+mock clock moves. Each subject starts its own node rather than sharing one
+across the module: `mempool_sequence` is a counter over a node's whole lifetime,
+and `pytest-randomly` does not hold that ordering against a shared node still.
+The `btclib-node` cells skip on `Capability.CLOCK`, the first capability each
+subject asks for on either node.
 
 `feature_utxo_set_hash.py`'s row computes the UTXO set's own
 commitments independently, walking every block this harness's own chain
@@ -4125,6 +4128,10 @@ bitcoin/bitcoin@1278a5970d5ada0979052a5bad899e896b8ab40b, which the
 pinned release does not, so the body reads the build's own
 `getnetworkinfo` `version` and asserts, on an older build, that each is
 processed.
+The inv-block check is read per-build too: `getpeerinfo`'s `inv_to_send`
+is in the node's answer only on a build carrying bitcoin/bitcoin#33448,
+which `v31.0rc1` is the first tag to carry, so the body reads the build's own
+`help getpeerinfo` and leaves `inv_to_send` unread on an older build.
 
 `btclib-node`'s cell on the spurious-`notfound` row is a counted skip on a
 build before

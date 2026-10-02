@@ -43,9 +43,10 @@ a fresh node:
   more peer.
 
 Every body asks for `Capability.ORPHANAGE` first. It starts its node
-with `-maxmempool=5` (`Capability.MAXMEMPOOL`) and fills the mempool
-with `mempool_util.fill_mempool`, so that its minimum fee rate stands
-above the relay one, and mines its coins first (`Capability.MINE`,
+with `-maxmempool=5` (`Capability.MAXMEMPOOL`) and a `-datacarriersize`
+(`Capability.DATACARRIER`) and fills the mempool with
+`mempool_util.fill_mempool`, so that its minimum fee rate stands above
+the relay one, and mines its coins first (`Capability.MINE`,
 `mini_wallet.MiniWallet`). Every body but the one chaining a package on
 another moves the node's clock (`Capability.CLOCK`) where Core's does,
 from the wall clock at its start; that one, as Core's own, waits out the
@@ -65,6 +66,10 @@ of every poll.
 
 What differs from Core's file besides:
 
+- `v29.4` refuses the `OP_RETURN` padding `fill_mempool` adds, as an
+  output larger than its default `-datacarriersize`, with `scriptpubkey`,
+  and `v30.3` and later do not (bitcoin/bitcoin#32406, first in
+  `v30.0rc1`), so every body's node starts with the option;
 - Core runs every check over one node, filled once, and ends each with
   its `cleanup`, which asserts the mempool's minimum fee rate still
   above the relay one; here each body starts a fresh node, fills its
@@ -127,6 +132,7 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mempool_util import fill_mempool
 from bitcoin_node_tests.mini_wallet import (
+    PADDING_DATACARRIER_SIZE,
     MiniWallet,
     Utxo,
 )
@@ -189,6 +195,9 @@ _BAD_ORPHAN_FEE = 10_000
 # what `fill_mempool` needs the node started with, as Core's own
 # `extra_args` gives it
 _MAXMEMPOOL = "-maxmempool=5"
+
+# what `fill_mempool`'s padding needs on a build without bitcoin/bitcoin#32406
+_DATACARRIER = f"-datacarriersize={PADDING_DATACARRIER_SIZE}"
 
 # the rest of Core's own `extra_args`, which `_takes_inbound_relay_percent`
 # says whether the running build takes
@@ -327,14 +336,15 @@ def _node(
 ) -> tuple[NodeAdapter, MiniWallet, list[Utxo]]:
     """Return a fresh node whose mempool is full, a wallet, and P2PK coins.
 
-    The node restarts with `-maxmempool=5`, then its coins are mined:
-    `p2pk_coins` of them paying `RAW_P2PK_SCRIPT_PUB_KEY`, and `coins`
-    to the wallet, all of which mature under the blocks `fill_mempool`
-    mines before it fills the mempool.
+    The node restarts with `-maxmempool=5` and a `-datacarriersize`, then
+    its coins are mined: `p2pk_coins` of them paying
+    `RAW_P2PK_SCRIPT_PUB_KEY`, and `coins` to the wallet, all of which
+    mature under the blocks `fill_mempool` mines before it fills the
+    mempool.
 
     :param capabilities: what the body asks for besides
-        `Capability.MAXMEMPOOL` and `Capability.MINE`, asked for after
-        `Capability.ORPHANAGE`.
+        `Capability.MAXMEMPOOL`, `Capability.DATACARRIER` and
+        `Capability.MINE`, asked for after `Capability.ORPHANAGE`.
     :param inbound_relay_percent: restart with `-inboundrelaypercent=100`
         too, where `_takes_inbound_relay_percent` says the node takes it.
     """
@@ -343,13 +353,14 @@ def _node(
         Capability.ORPHANAGE,
         *capabilities,
         Capability.MAXMEMPOOL,
+        Capability.DATACARRIER,
         Capability.MINE,
     ):
         require(capability, node.capabilities, skip_counts)
     if inbound_relay_percent and _takes_inbound_relay_percent(node):
-        node.restart([_MAXMEMPOOL, _INBOUND_RELAY_PERCENT])
+        node.restart([_MAXMEMPOOL, _DATACARRIER, _INBOUND_RELAY_PERCENT])
     else:
-        node.restart([_MAXMEMPOOL])
+        node.restart([_MAXMEMPOOL, _DATACARRIER])
     p2pk = mine_p2pk_coins(node, p2pk_coins)
     wallet = MiniWallet(node)
     wallet.generate(coins)

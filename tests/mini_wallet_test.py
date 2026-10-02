@@ -34,6 +34,7 @@ from bitcoin_node_tests.capability import Capability
 from bitcoin_node_tests.mini_wallet import (
     DEFAULT_FEE_RATE,
     FEE,
+    PADDING_DATACARRIER_SIZE,
     RAW_P2PK_SCRIPT_PUB_KEY,
     MiniWallet,
     Utxo,
@@ -757,6 +758,18 @@ def test_create_self_transfer_pads_to_the_target_vsize() -> None:
     assert tx.vsize == 250
     assert len(tx.vout) == 2
     assert tx.vout[1].script_pub_key.script.startswith(b"\x6a")  # OP_RETURN
+
+
+def test_padding_datacarrier_size_admits_the_padding_of_a_standard_tx() -> None:
+    """The padding of a 100000-vbyte transaction fits the option."""
+    rpc = _FakeRpc()
+    wallet = MiniWallet(_FakeNode(rpc))
+    wallet.generate(COINBASE_MATURITY + 1)
+
+    tx = wallet.create_self_transfer(target_vsize=100_000)
+
+    assert tx.vsize == 100_000
+    assert len(tx.vout[1].script_pub_key.script) <= PADDING_DATACARRIER_SIZE
 
 
 def test_create_self_transfer_refuses_a_target_vsize_too_small() -> None:

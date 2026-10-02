@@ -30,7 +30,10 @@ beyond a single transaction's own accepted vsize; none of them is
 answered by the option and MiniWallet families alone.
 
 The node starts without `-bytespersigop` and is restarted with it
-before any block is mined.
+before any block is mined, and with a `-datacarriersize` over the
+`OP_RETURN` padding of the transactions below, which `v29.4` refuses by
+default with `scriptpubkey` (`Capability.DATACARRIER`;
+bitcoin/bitcoin#32406, first in `v30.0rc1`).
 
 `mempool_sigoplimit_bitcoind_test.py` and
 `mempool_sigoplimit_btclib_node_test.py` run it,
@@ -50,7 +53,11 @@ from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet, nulldata_script_pub_key
+from bitcoin_node_tests.mini_wallet import (
+    PADDING_DATACARRIER_SIZE,
+    MiniWallet,
+    nulldata_script_pub_key,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -106,8 +113,14 @@ def a_sigop_heavy_transaction_is_billed_by_its_equivalent_vsize(
     """
     (node,) = cluster(1)
     require(Capability.BYTES_PER_SIGOP, node.capabilities, skip_counts)
+    require(Capability.DATACARRIER, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)
-    node.restart([f"-bytespersigop={_BYTES_PER_SIGOP}"])
+    node.restart(
+        [
+            f"-bytespersigop={_BYTES_PER_SIGOP}",
+            f"-datacarriersize={PADDING_DATACARRIER_SIZE}",
+        ]
+    )
     wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + 1)
     witness_script = _witness_script(_NUM_SIGOPS)

@@ -968,7 +968,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_dns_seeds.py` | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | skip (dns_seed) |
 | `p2p_seednode.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (address_fetch) |
 | `p2p_ibd_stalling.py` (wire) | [`24628d3ae7dc`](https://github.com/bitcoin/bitcoin/commit/24628d3ae7dc) | 2026-09-14 | pass | skip (typed_outbound) |
-| `p2p_ibd_stalling.py` (log) | same | same | pass | skip (typed_outbound) |
+| `p2p_ibd_stalling.py` (log) | same | same | pass, `Stall started`'s absence once the block withheld first is sent asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (typed_outbound) |
 | `p2p_ibd_stalling.py` (`manual`, wire) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 | `p2p_ibd_stalling.py` (`manual`, log) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 | `p2p_private_broadcast.py` | [`ac6b6c1f06e9`](https://github.com/bitcoin/bitcoin/commit/ac6b6c1f06e9) | 2026-08-18 | pass, the refusals without `-privatebroadcast` and `attempts_remaining` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (private_broadcast) |
@@ -4109,7 +4109,12 @@ what differs from Core's file. Each body asks for `TYPED_OUTBOUND`, and
 `CLOCK` for Core's own mock time; each log half asks for `DEBUG_LOG`
 besides. Its `manual` check is read per-build, as
 `p2p_add_connections.py`'s is: where the build's own `help addconnection`
-names no `manual`, it asserts the refusal instead.
+names no `manual`, it asserts the refusal instead. The (log) row is read
+per-build too: a build without bitcoin/bitcoin#32180, which `v31.0rc1` is
+the first tag to carry, logs `Stall started` once the block withheld first
+is sent, so the body reads the build's own `getnetworkinfo` `version` and,
+there, does not assert it absent
+([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
 `btclib-node`'s cell on each row is a counted skip.
 
 `p2p_tx_download.py` is ported on it too, each of Core's checks a body

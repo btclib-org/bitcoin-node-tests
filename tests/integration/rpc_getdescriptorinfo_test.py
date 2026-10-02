@@ -37,6 +37,14 @@ Where this differs from Core's own file:
 - The wrong-type refusal is always asked: Core's own file skips it under
   `--usecli`, an option this harness has no counterpart for.
 
+A bitcoind before `v30.0` words the refusal of a public key with
+whitespace `<function>(): key '<key>' is not valid` (bitcoin/bitcoin#31603),
+which `_before_v30` gives from each row, and accepts a private key with
+whitespace, its base58 decoding skipping it. No probe tells the two
+apart, the node having no option or RPC for it: that build is read off its
+own `getnetworkinfo` `version`
+([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+
 `rpc_getdescriptorinfo_bitcoind_test.py` and
 `rpc_getdescriptorinfo_btclib_node_test.py` run it,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -54,6 +62,7 @@ from btclib.curves import secp256k1
 from btclib.descriptors.descriptors import add_checksum
 
 from bitcoin_node_tests.capability import Capability, require
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from bitcoin_node_tests.bitcoind import BitcoindAdapter
@@ -234,6 +243,21 @@ WHITESPACE_KEYS: list[tuple[str, str]] = [
     ),
 ]
 
+# Core's own `CLIENT_VERSION`, at or past which a key with whitespace beside
+# it is refused as such: `v30.0`'s (bitcoin/bitcoin#31603). A known limit: a
+# `master` build from that change's merge (`223fc24c4e`, 2025-03-18) until
+# the version moved to `30.99` (`9f744fffc3`, 2025-09-09) reports `299900`
+# and words the refusal as `v30.0` does all the same, so this test fails
+# against such a build
+_WHITESPACE_REFUSAL_VERSION = 300000
+
+
+def _before_v30(refusal: str) -> str:
+    """Return `refusal` as a bitcoind before `v30.0` words it."""
+    return refusal.replace("Key '", "key '").replace(
+        "' is invalid due to whitespace", "' is not valid"
+    )
+
 
 def _refusal(node: NodeAdapter, *params: object) -> tuple[int, str]:
     """Return the code and message `getdescriptorinfo` refuses `params` with."""
@@ -266,15 +290,21 @@ def malformed_requests_are_refused(
     assert code == -5
     assert "'' is not a valid descriptor function" in message
 
+    version = bitcoind_version(node)
+    older = version is not None and version < _WHITESPACE_REFUSAL_VERSION
     prv_key = wif_from_prv_key(secrets.randbelow(secp256k1.n - 1) + 1, "regtest")
-    whitespace_keys = [
-        *WHITESPACE_KEYS,
-        (f"pk( {prv_key})", f"pk(): Key ' {prv_key}' is invalid due to whitespace"),
-    ]
-    for descriptor, expected in whitespace_keys:
+    for descriptor, expected in WHITESPACE_KEYS:
         code, message = _refusal(node, descriptor)
         assert code == -5
-        assert expected in message, descriptor
+        assert (_before_v30(expected) if older else expected) in message, descriptor
+
+    padded = f"pk( {prv_key})"
+    if older:
+        assert node.rpc.call("getdescriptorinfo", [padded])["hasprivatekeys"] is True
+    else:
+        code, message = _refusal(node, padded)
+        assert code == -5
+        assert f"pk(): Key ' {prv_key}' is invalid due to whitespace" in message
 
 
 def descriptors_answer_their_info(

@@ -28,6 +28,12 @@ are given it, as Core gives both its own.
 Core's two nodes are not linked to each other here, where Core's
 `setup_network` links them: neither step reads the other node.
 
+A bitcoind before `v31.0` logs `Creating persistent SAM session`, without
+`I2P` (bitcoin/bitcoin#34051). No probe tells the two apart, the node
+having no option or RPC for it: that build is asked for its own line, read
+off its own `getnetworkinfo` `version`
+([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+
 `p2p_i2p_sessions_bitcoind_test.py` and
 `p2p_i2p_sessions_btclib_node_test.py` run it,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -41,6 +47,7 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.node import free_port
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -52,6 +59,13 @@ __all__ = ["i2pacceptincoming_chooses_a_persistent_or_a_transient_session"]
 
 # Core's own address
 _ADDRESS = "zsxwyo6qcn3chqzwxnseusqgsnuw3maqnztkiypyfxtya4snkoka.b32.i2p"
+
+# Core's own `CLIENT_VERSION`, at or past which the session lines name `I2P`:
+# `v31.0`'s (bitcoin/bitcoin#34051). A known limit: a `master` build from
+# that change's merge (`2210feb446`, 2025-12-14) until the version moved to
+# `31.99` (`48b952cbb6`, 2026-03-06) reports `309900` and logs the newer line
+# all the same, so this test fails against such a build
+_I2P_NAMED_VERSION = 310000
 
 
 def i2pacceptincoming_chooses_a_persistent_or_a_transient_session(
@@ -75,16 +89,18 @@ def i2pacceptincoming_chooses_a_persistent_or_a_transient_session(
     if not isinstance(node0, BitcoindAdapter) or not isinstance(node1, BitcoindAdapter):
         err_msg = f"{type(node0).__name__} declares DEBUG_LOG, naming no debug.log"
         raise TypeError(err_msg)
+    version = bitcoind_version(node0)
+    i2p = "" if version is not None and version < _I2P_NAMED_VERSION else "I2P "
     i2psam = f"-i2psam=127.0.0.1:{free_port()}"
     node0.restart([i2psam, "-i2pacceptincoming=1"])
     node1.restart([i2psam, "-i2pacceptincoming=0"])
 
     with assert_debug_log(
-        node0.debug_log_path, ["Creating persistent I2P SAM session"], timeout=0
+        node0.debug_log_path, [f"Creating persistent {i2p}SAM session"], timeout=0
     ):
         node0.rpc.call("addnode", [_ADDRESS, "onetry"])
 
     with assert_debug_log(
-        node1.debug_log_path, ["Creating transient I2P SAM session"], timeout=0
+        node1.debug_log_path, [f"Creating transient {i2p}SAM session"], timeout=0
     ):
         node1.rpc.call("addnode", [_ADDRESS, "onetry"])

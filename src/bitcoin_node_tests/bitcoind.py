@@ -199,6 +199,24 @@ def _has_cluster_mempool(executable: str) -> bool:
     return b"\n  -limitclustercount=<n>\n" in probe.stdout
 
 
+@lru_cache
+def _has_reindex_after_failure(executable: str) -> bool:
+    """Return whether `executable` takes `-test=reindex_after_failure_...`.
+
+    The option, `reindex_after_failure_noninteractive_yes`, arrives in
+    `v30.0` (bitcoin/bitcoin#32987). It is debug-only, so `-help-debug`
+    lists it under `-test` and `-help` does not; an older build lists it
+    nowhere. Probed off the binary as `_has_wallet` is, with `-nosettings`
+    for the same reason.
+
+    :param executable: the `bitcoind` binary to probe.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-help-debug", "-nosettings"], check=False, capture_output=True
+    )
+    return b"reindex_after_failure_noninteractive_yes" in probe.stdout
+
+
 class BitcoindAdapter(NodeAdapter):
     """A `bitcoind`: cookie authentication, and every capability.
 
@@ -335,7 +353,9 @@ class BitcoindAdapter(NodeAdapter):
     narrowed by `_has_wallet`.
     `Capability.REINDEX_AFTER_FAILURE` is `-test`'s own
     `reindex_after_failure_noninteractive_yes`, a debug-only flag of this
-    binary's own (`src/init.cpp`), which it refuses off regtest.
+    binary's own (`src/init.cpp`), which it refuses off regtest. It is
+    declared only by a build whose `-help-debug` lists it,
+    `_has_reindex_after_failure` being the probe.
     `Capability.PROXY`, `Capability.CJDNS`, `Capability.I2P_SAM` and
     `Capability.ONLYNET` are unconditional too: `-proxy`, `-onion`,
     `-proxyrandomize`, `-cjdnsreachable`, `-i2psam`, `-i2pacceptincoming`
@@ -547,9 +567,9 @@ class BitcoindAdapter(NodeAdapter):
         `BtclibNodeAdapter.__init__` (`btclib_node.py`) uses and for the
         same reason: `_check_extra_args(self._command(), extra_args)`
         needs `self._executable` set before `_command` can be called.
-        `_has_wallet`, `_has_private_broadcast` and `_has_cluster_mempool`
-        are then this class's own per-build probes, read once per instance
-        rather than once per `mine` call,
+        `_has_wallet`, `_has_private_broadcast`, `_has_cluster_mempool` and
+        `_has_reindex_after_failure` are then this class's own per-build
+        probes, read once per instance rather than once per `mine` call,
         `_REGTEST_ONLY` is what any other `chain` drops, and
         `_TEST_CHAIN_ONLY` what main drops besides.
         """
@@ -569,6 +589,8 @@ class BitcoindAdapter(NodeAdapter):
             self.capabilities = self.capabilities - {Capability.PRIVATE_BROADCAST}
         if not _has_cluster_mempool(executable):
             self.capabilities = self.capabilities - _CLUSTER_MEMPOOL_ONLY
+        if not _has_reindex_after_failure(executable):
+            self.capabilities = self.capabilities - {Capability.REINDEX_AFTER_FAILURE}
         if chain != "regtest":
             self.capabilities = self.capabilities - _REGTEST_ONLY
         if chain == "main":

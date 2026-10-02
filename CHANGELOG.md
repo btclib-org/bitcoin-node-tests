@@ -1448,3 +1448,9 @@ A build with no cap on the queue must take every submission.
 `p2p_addr_selfannouncement` and `p2p_ibd_txrelay` assert a bitcoind's own
 behaviour before `v31.0` (bitcoin/bitcoin#34146, bitcoin/bitcoin#34054),
 and close the peer they open when they fail (issue #354).
+
+### Tests read a bitcoind's own behaviour before the release that changed it
+
+`feature_reindex_init`, `rpc_getdescriptorinfo`, `feature_reindex`,
+`feature_presegwit_node_upgrade`, `p2p_i2p_sessions` and `rpc_uptime` expect an
+older bitcoind's behaviour; the first skips before `v30.0` (issue #354).

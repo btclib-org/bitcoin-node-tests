@@ -1442,3 +1442,9 @@ A build with no cap on the queue must take every submission.
 - **The section writes the checkout as `"${checkout:?}"` throughout, says
   what `<scratchpad>` is and names the pull** (issue
   btclib-org/.github#1500).
+
+### Two p2p tests assert a bitcoind's own behaviour before v31.0
+
+`p2p_addr_selfannouncement` and `p2p_ibd_txrelay` assert a bitcoind's own
+behaviour before `v31.0` (bitcoin/bitcoin#34146, bitcoin/bitcoin#34054),
+and close the peer they open when they fail (issue #354).

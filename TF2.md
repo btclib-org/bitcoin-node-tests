@@ -944,8 +944,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_mutated_blocks.py` (missing parent, log) | same | same | pass | skip |
 | `feature_anchors.py` | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | skip (typed_outbound) |
 | `feature_anchors.py` (onion) | same | same | pass | skip (typed_outbound) |
-| `p2p_addr_selfannouncement.py` (inbound, wire) | [`dab7f2c984bd`](https://github.com/bitcoin/bitcoin/commit/dab7f2c984bd) | 2026-07-07 | pass | skip |
-| `p2p_addr_selfannouncement.py` (inbound, log) | same | same | pass | skip |
+| `p2p_addr_selfannouncement.py` (inbound, wire) | [`dab7f2c984bd`](https://github.com/bitcoin/bitcoin/commit/dab7f2c984bd) | 2026-07-07 | pass, the first address message asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
+| `p2p_addr_selfannouncement.py` (inbound, log) | same | same | pass, the first address message asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
 | `p2p_addr_selfannouncement.py` (outbound, wire) | same | same | pass | skip |
 | `p2p_addr_selfannouncement.py` (outbound, log) | same | same | pass | skip |
 | `p2p_addr_selfannouncement.py` (`-onlynet`) | same | same | pass, the onion `-externalip` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
@@ -1064,8 +1064,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `interface_rpc.py` (status codes) | same | same | pass | fail ([ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109)) on the build; pass on a build past [ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109) |
 | `interface_rpc.py` (notifications) | same | same | pass | skip (generate) |
 | `interface_rpc.py` (work queue) | same | same | pass | skip (rpc_work_queue) |
-| `p2p_ibd_txrelay.py` (wire) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
-| `p2p_ibd_txrelay.py` (log) | same | same | pass | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_ibd_txrelay.py` (wire) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `p2p_ibd_txrelay.py` (log) | same | same | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (mine) on the build; skip (test_activation_height) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (permit_bare_multisig) |
 | `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass; skip (limit_cluster_size) on a build before the cluster mempool | skip (limit_cluster_size) |
@@ -2720,17 +2720,21 @@ as
 [ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
 tags it, and node-linking besides: the census reads its nodes as never
 connected, where Core's own `setup_network` links them, and each of its
-tests takes the pair from the cluster fixture. It is Core's own claim in
-full. Both nodes, started with `-minrelaytxfee`, send each other a
-`feefilter` of `MAX_MONEY` rounded down to `FeeFilterRounder`'s top
-bucket in initial block download, and of the minimum relay fee once out
-of it, read off `getpeerinfo`. While a block older than the maximum tip
-age keeps it there, the node under test asks for no transaction a peer
-announces and processes none a peer sends unasked; once out, it asks for
-the old block's coinbase by its wtxid and processes that transaction.
-The (log) row reads the processing in the node's own log, in Core's own
-words; the (wire) row sends the same transactions and reads nothing of
-them past a ping round trip. Each asks for `Capability.MIN_RELAY_TX_FEE`
+tests takes the pair from the cluster fixture. It is Core's own claim, its
+coinbase check read per-build as below. Both nodes, started with
+`-minrelaytxfee`, send each other a `feefilter` of `MAX_MONEY` rounded down to
+`FeeFilterRounder`'s top bucket in initial block download, and of the minimum
+relay fee once out of it, read off `getpeerinfo`. While a block older than the
+maximum tip age keeps it there, the node under test asks for no transaction a
+peer announces and processes none a peer sends unasked; once out, it asks for
+the old block's coinbase by its wtxid and processes that transaction. Its
+coinbase check is read per-build: a block connected during initial block
+download stays out of the recently-confirmed filter only on a build carrying
+bitcoin/bitcoin#34054, first released in `v31.0rc1`, so the body reads the build's
+own `getnetworkinfo` `version` and asserts, on an older build, that the coinbase
+is not asked for. The (log) row reads the processing in the node's own log, in
+Core's own words; the (wire) row sends the same transactions and reads nothing
+of them past a ping round trip. Each asks for `Capability.MIN_RELAY_TX_FEE`
 beside `MINE`, `CLOCK` and `CONNECT`, and the (log) row for `DEBUG_LOG`
 too. `tests/integration/p2p_ibd_txrelay_test.py`'s own docstring has
 what differs from Core's file. Each `bitcoind` cell is one verdict for
@@ -4065,7 +4069,11 @@ and `ONLYNET`, and its pin is past the pinned release, whose own file has
 no such check: `-externalip` bypasses `-onlynet` only on a build carrying
 bitcoin/bitcoin@8c87e32bd3937251d6f30295cc1924048e5b74d1, which the release
 does not, so the body reads the build's own `getnetworkinfo` `version` and
-asserts, on an older build, that the onion address is left out.
+asserts, on an older build, that the onion address is left out. Its inbound
+checks are read per-build: the first self-announcement is alone in its
+message only on a build carrying bitcoin/bitcoin#34146, first released in
+`v31.0rc1`, so the body reads the build's own `getnetworkinfo` `version` and
+asserts, on an older build, one message holding it and the `getaddr` answer.
 `btclib-node`'s cell on each row is a counted skip.
 
 `p2p_ibd_stalling.py` is ported on it too, each of Core's checks a wire

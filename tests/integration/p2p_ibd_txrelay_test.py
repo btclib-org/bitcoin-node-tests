@@ -18,6 +18,13 @@ both nodes out of it, each sends the other a `feefilter` of the minimum
 relay fee, the node asks a peer announcing the old block's coinbase by
 its wtxid for it, and processes the transaction it ignored before.
 
+A bitcoind before `v31.0` fills its recently-confirmed filter with a block
+connected during initial block download (bitcoin/bitcoin#34054), so it
+asks for no such coinbase. No probe tells the two behaviours apart, the
+node having no option or RPC for it: that build is asserted to ask for
+nothing, read off its own `getnetworkinfo` `version`
+([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+
 Core's run is one sequence, and each body is that whole sequence over
 two fresh nodes. The log half asserts besides what Core's
 `assert_debug_log` asserts around each transaction sent unasked
@@ -67,6 +74,7 @@ from bitcoin_node_tests.mini_wallet import RAW_P2PK_SCRIPT_PUB_KEY, build_next_b
 from bitcoin_node_tests.node import connect_nodes, sync_all, wait_until
 from bitcoin_node_tests.peer import Peer
 from tests.integration.p2p_conns_test import Conn
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -112,6 +120,14 @@ _RAW_TX_HEX = (
     "c4db743ce7ca2b01ffffffff0140420f00000000001976a914660d4ef3a743e3e696ad99"
     "0364e555c271ad504b88ac00000000"
 )
+
+# Core's own `CLIENT_VERSION`, at or past which a block connected during
+# initial block download leaves the recently-confirmed filter alone: `v31.0`'s
+# (bitcoin/bitcoin#34054). A known limit: a `master` build from that change's
+# merge (`af99643454`, 2026-02-26) until the version moved to `31.99`
+# (`48b952cbb6`, 2026-03-06) reports `309900` and behaves as `v31.0` all the
+# same, so the coinbase step fails against such a build
+_IBD_BLOCKS_NOT_FILTERED_VERSION = 310000
 
 # Core's own default wait, `wait_until`'s and `wait_for_getdata`'s
 _WAIT = 60.0
@@ -226,12 +242,11 @@ def _connect(node: NodeAdapter) -> _DataStore:
     return store
 
 
-def _disconnect_p2ps(node: NodeAdapter, peer: Peer) -> None:
-    """Core's own `disconnect_p2ps`: close `peer`, then wait for the node.
+def _disconnect_p2ps(node: NodeAdapter) -> None:
+    """Core's own `disconnect_p2ps`, `node`'s test peer already closed.
 
     The node's other peer is the second node alone.
     """
-    peer.close()
     wait_until(lambda: len(_peer_info(node)) == 1, timeout=_WAIT)
 
 
@@ -242,6 +257,17 @@ def _asks_for(wtxid: bytes) -> Callable[[Message], bool]:
         return [item.hash for item in GetData.parse(message.payload).items] == [wtxid]
 
     return predicate
+
+
+def _filters_ibd_blocks(node: NodeAdapter) -> bool:
+    """Whether `node` marks a block connected during IBD as recently confirmed.
+
+    Only a bitcoind before `_IBD_BLOCKS_NOT_FILTERED_VERSION` does, read off
+    its own `getnetworkinfo` `version`
+    ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+    """
+    version = bitcoind_version(node)
+    return version is not None and version < _IBD_BLOCKS_NOT_FILTERED_VERSION
 
 
 def _wtx_inv(wtxid: bytes) -> Inv:
@@ -279,23 +305,25 @@ def _run(node: NodeAdapter, other: NodeAdapter, log_path: Path | None) -> None:
     # an announced transaction asked for by no `getdata`
     txid = _TXID.to_bytes(32, "big")
     store = _connect(node)
-    peer = store.peer
-    peer.send(_wtx_inv(txid))
-    store.sync_with_ping()
-    # were the node to ask, it would ask after this delay first
-    mock_time += _NONPREF_PEER_TX_DELAY
-    node.set_mock_time(mock_time)
-    store.sync_with_ping()
-    assert txid not in store.requests
-    _disconnect_p2ps(node, peer)
+    with store.peer as peer:
+        peer.send(_wtx_inv(txid))
+        store.sync_with_ping()
+        # were the node to ask, it would ask after this delay first
+        mock_time += _NONPREF_PEER_TX_DELAY
+        node.set_mock_time(mock_time)
+        store.sync_with_ping()
+        assert txid not in store.requests
+    _disconnect_p2ps(node)
 
     # a transaction sent unasked, and left unprocessed
     assert isinstance(other.rpc.call("decoderawtransaction", [_RAW_TX_HEX]), dict)
     tx = Tx.parse(bytes.fromhex(_RAW_TX_HEX), check_validity=False)
-    peer = _connect(node).peer
-    with _expecting(log_path, ["received: tx"], ["was not accepted"]):
+    with (
+        _connect(node).peer as peer,
+        _expecting(log_path, ["received: tx"], ["was not accepted"]),
+    ):
         _send_tx(peer, tx)
-    _disconnect_p2ps(node, peer)
+    _disconnect_p2ps(node)
 
     # out of initial block download on a block at the node's own clock
     _submit_block(node, mock_time)
@@ -304,14 +332,20 @@ def _run(node: NodeAdapter, other: NodeAdapter, log_path: Path | None) -> None:
         assert not _in_ibd(each)
         _wait_for_fee_filters(each, _NORMAL_FEE_FILTER)
 
-    # the coinbase confirmed during initial block download is asked for
-    peer = _connect(node).peer
-    peer.send(_wtx_inv(ibd_wtxid))
-    peer.sync_with_ping()
-    mock_time += _NONPREF_PEER_TX_DELAY
-    node.set_mock_time(mock_time)
-    peer.wait_for("getdata", predicate=_asks_for(ibd_wtxid), timeout=_WAIT)
-    _disconnect_p2ps(node, peer)
+    # the coinbase confirmed during initial block download is asked for,
+    # unless the build filtered it as recently confirmed
+    store = _connect(node)
+    with store.peer as peer:
+        peer.send(_wtx_inv(ibd_wtxid))
+        peer.sync_with_ping()
+        mock_time += _NONPREF_PEER_TX_DELAY
+        node.set_mock_time(mock_time)
+        if _filters_ibd_blocks(node):
+            store.sync_with_ping()
+            assert ibd_wtxid not in store.requests
+        else:
+            peer.wait_for("getdata", predicate=_asks_for(ibd_wtxid), timeout=_WAIT)
+    _disconnect_p2ps(node)
 
     # the same transaction, sent unasked, now processed
     with _connect(node).peer as peer, _expecting(log_path, ["was not accepted"]):

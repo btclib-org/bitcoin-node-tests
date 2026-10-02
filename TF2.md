@@ -864,7 +864,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_setban.py` (non-IP) | same | same | pass | skip (ban) on the build; fail ([ISS btclib-node#1218](https://github.com/btclib-org/btclib-node/issues/1218)) on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) and before [ISS btclib-node#1218](https://github.com/btclib-org/btclib-node/issues/1218); pass on a build past [ISS btclib-node#1218](https://github.com/btclib-org/btclib-node/issues/1218) |
 | `rpc_setban.py` (bantime) | same | same | pass | skip (ban) on the build; pass on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
 | `p2p_disconnect_ban.py` (disconnectnode) | [`dcd90fbe54cf`](https://github.com/bitcoin/bitcoin/commit/dcd90fbe54cf) | 2026-04-07 | pass | skip (disconnect) on the build; pass on a build past [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193) |
-| `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
+| `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass, the policy asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
 | `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
 | `mempool_package_limits.py` | `fa5f29774872` | 2025-12-16 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
@@ -1067,7 +1067,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_ibd_txrelay.py` (wire) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_ibd_txrelay.py` (log) | same | same | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (mine) on the build; skip (test_activation_height) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
-| `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (permit_bare_multisig) |
+| `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), the null-data and bare-multisig checks per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (permit_bare_multisig) |
 | `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass; skip (limit_cluster_size) on a build before the cluster mempool | skip (limit_cluster_size) |
 | `feature_minchainwork.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (minimum_chain_work) |
 | `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mempool_graph) |
@@ -2804,7 +2804,8 @@ build or at `main`; past that, no build serves `invalidateblock`
 
 `mempool_accept.py` is ISS 14's too, an option and MiniWallet, as
 [ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags it. It is Core's own claim in full: `testmempoolaccept` answers
+tags it. It is Core's own claim in full on a build with bitcoin/bitcoin#32406 and
+bitcoin/bitcoin#29954: `testmempoolaccept` answers
 each raw transaction Core's file builds with Core's own verdict,
 reject reason and fees, refuses garbage with Core's own RPC errors,
 and leaves the mempool as it found it, and `getmempoolinfo` reports the
@@ -2812,7 +2813,13 @@ default relay fees and bare multisig not permitted, as the node is
 started. It asks for
 `Capability.PERMIT_BARE_MULTISIG` and `MINE`.
 `tests/integration/mempool_accept_test.py`'s own docstring has what
-differs from Core's file, the census's `-txindex` among it. The
+differs from Core's file, the census's `-txindex` among it.
+Both bitcoin/bitcoin#32406 and bitcoin/bitcoin#29954 are first in `v30.0rc1`.
+Without bitcoin/bitcoin#32406, the several-outputs, large-output and
+maximal-size `OP_RETURN` checks give way to one: a transaction with a second
+`OP_RETURN` output is refused as `multi-op-return`.
+Without bitcoin/bitcoin#29954, `getmempoolinfo` has no `permitbaremultisig`,
+so that assertion is skipped and the `bare-multisig` refusal is the check. The
 `bitcoind` cell is one verdict for the pinned release and for Core's
 `master`: an allowed transaction's `vsize_adjusted` and `vsize_bip141`
 are expected where the build's own `getnetworkinfo` `version` reads at
@@ -3664,12 +3671,20 @@ against the fake RPC alongside the rest of `mini_wallet_test.py`.
 file: kept is that the default setting relays a sizeable `OP_RETURN`,
 `-datacarrier` disabled refuses one of any size (even a bare, empty
 one), a custom `-datacarriersize` bounds the payload at its own
-boundary, and `getmempoolinfo` reports bare multisig permitted by
-default, the check Core's own file carries for `mempool_dust.py`'s
-option. Dropped is Core's own extra node, a further custom
-`-datacarriersize` value, and its own sweep of `None`/empty/single-byte
-payloads across every node, neither reaching a boundary the kept
-configurations do not already cover.
+boundary, and bare multisig is permitted by default, the check Core's own file
+carries for `mempool_dust.py`'s option. Dropped is Core's own extra node, a
+further custom `-datacarriersize` value, and its own sweep of
+`None`/empty/single-byte payloads across every node, neither reaching a
+boundary the kept configurations do not already cover.
+
+Both bitcoin/bitcoin#29954 and bitcoin/bitcoin#32406 are first in `v30.0rc1`.
+`getmempoolinfo` says bare multisig is permitted where the build reports
+`permitbaremultisig` (bitcoin/bitcoin#29954); without it,
+`testmempoolaccept` allows a bare multisig output. Without
+bitcoin/bitcoin#32406 a null-data output is capped at the older
+`-datacarriersize` default, so the default check asserts a payload at that cap
+relays and one byte more is refused, and every refusal reads `scriptpubkey`,
+not `datacarrier`.
 
 `mempool_dust.py`'s own row is a smaller claim than Core's own file too: kept is
 that a value clearly under the dust threshold is refused and one clearly over it

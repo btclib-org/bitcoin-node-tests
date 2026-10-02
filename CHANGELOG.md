@@ -1482,3 +1482,9 @@ malformed-`-proxy` test expects the build's port refusal (issue #354).
 A bitcoind before `v30.0` refuses the `OP_RETURN` padding `target_vsize` adds.
 These tests and `p2p_orphan_handling` start it with
 `mini_wallet.PADDING_DATACARRIER_SIZE` (bitcoin/bitcoin#32406, issue #354).
+
+### Two mempool tests assert the datacarrier policy per build
+
+`mempool_datacarrier` and `mempool_accept` assert an older bitcoind's 83-byte,
+one-output cap (bitcoin/bitcoin#32406, issue #354) and a `getmempoolinfo`
+lacking `permitbaremultisig` and `maxdatacarriersize` (bitcoin/bitcoin#29954).

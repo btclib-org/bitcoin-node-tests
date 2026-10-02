@@ -1042,10 +1042,10 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_opportunistic_1p1c.py` (orphan invalid) | same | same | pass | skip |
 | `p2p_opportunistic_1p1c.py` (parent invalid) | same | same | pass | skip |
 | `p2p_opportunistic_1p1c.py` (multiple parents) | same | same | pass | skip |
-| `p2p_opportunistic_1p1c.py` (parent in mempool) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (parent in mempool) | same | same | pass, the package asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
 | `p2p_opportunistic_1p1c.py` (1p1c on 1p1c) | same | same | pass | skip |
-| `p2p_opportunistic_1p1c.py` (DoS, large orphans) | same | same | pass | skip |
-| `p2p_opportunistic_1p1c.py` (DoS, many orphans) | same | same | pass | skip |
+| `p2p_opportunistic_1p1c.py` (DoS, large orphans) | same | same | pass, the eviction asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
+| `p2p_opportunistic_1p1c.py` (DoS, many orphans) | same | same | pass, the orphanage asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
 | `p2p_block_times.py` | [`5d5397d84108`](https://github.com/bitcoin/bitcoin/commit/5d5397d84108) | 2026-07-25 | pass, `last_block_announcement` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 | `p2p_outbound_eviction.py` (unprotected) | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip |
 | `p2p_outbound_eviction.py` (protected) | same | same | pass | skip |
@@ -4290,8 +4290,18 @@ the node dial outbound full-relay peers, so they ask for
 `TYPED_OUTBOUND`, and every check but the one chaining a package on
 another asks for `CLOCK`. A `P2PK` row is its check over a parent with
 no witness, Core's `RAW_P2PK` wallet. Each `bitcoind` cell is one
-verdict for the pinned release and for Core's `master`. `btclib-node`'s
-cell on each row is a counted skip on `ORPHANAGE`
+verdict for the pinned release and for Core's `master`. The rows marked
+per-build read the build off its RPC: a build before `v30.0rc1`, the first
+tag to carry bitcoin/bitcoin#31385 and bitcoin/bitcoin#31829, refuses a
+child with its other parent where one parent is in the mempool, and bounds
+the orphanage by count alone, evicting at random. On such a build the
+parent-in-mempool row asserts the refusal Core's own `v29` file asserts,
+the large-orphans row that no orphan is evicted, and the many-orphans row
+that the orphanage fills to its bound and that its child is taken in with
+its parent if still kept, and not if evicted. The parent-in-mempool row
+reads `getnetworkinfo`'s `version`, bitcoin/bitcoin#31385 changing no RPC;
+the others read `getorphantxs`'s `help`.
+`btclib-node`'s cell on each row is a counted skip on `ORPHANAGE`
 ([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
 Core's node starts with `-inboundrelaypercent` besides, an option the
 pinned release refuses as unknown: the orphanage check sending many

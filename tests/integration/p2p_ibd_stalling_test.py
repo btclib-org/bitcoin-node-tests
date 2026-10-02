@@ -20,7 +20,7 @@ fresh node:
   the block the timeout is two seconds again and the chain connects up
   to the later withheld block. The log half asserts Core's own
   `Stall started` and `Decreased stalling timeout to 2 seconds`, and the
-  absence of the first beside the second.
+  absence of the first beside the second, read per-build: see below.
 - a `manual` peer withholding the first block keeps its connection past
   the stalling timeout, its request is given to one of four outbound
   peers that serve every block, and the node asks it for no block until
@@ -61,6 +61,13 @@ build's own `help addconnection` names no `manual`
 the second check's bodies assert the refusal Core's
 `RPC_INVALID_PARAMETER` answers instead.
 
+A bitcoind before `v31.0` logs `Stall started` again once the block
+withheld first is sent (bitcoin/bitcoin#32179, fixed by bitcoin/bitcoin#32180).
+No option or RPC tells such a build apart, so the first check's log half
+reads the build's own `getnetworkinfo` `version` and, there, does not
+assert `Stall started` absent
+([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+
 `p2p_ibd_stalling_bitcoind_test.py` and
 `p2p_ibd_stalling_btclib_node_test.py` run each body,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -91,6 +98,7 @@ from bitcoin_node_tests.node import wait_until
 from bitcoin_node_tests.peer import Listener
 from tests.integration.p2p_add_connections_test import takes_manual
 from tests.integration.p2p_conns_test import Conn
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Mapping, Sequence
@@ -139,6 +147,14 @@ _OP_TRUE = b"\x51"
 
 _STALL_STARTED = "Stall started"
 _DECREASED = "Decreased stalling timeout to 2 seconds"
+# Core's own `CLIENT_VERSION`, at or past which the stall is not logged again
+# once the block withheld first is sent: `v31.0`'s (bitcoin/bitcoin#32180).
+# A known limit: a `master` build from that change's merge (`1fe851a478`,
+# 2025-11-10) until the version moved to `31.99` (`48b952cbb6`, 2026-03-06)
+# reports `309900` and does not log it all the same, so the log half fails
+# against such a build
+_STALL_NOT_RELOGGED_VERSION = 310000
+
 _PAUSING = "Pausing block downloads from stalling manual peer"
 
 
@@ -164,6 +180,18 @@ def _expecting(
     if log_path is None:
         return nullcontext()
     return assert_debug_log(log_path, expected, unexpected)
+
+
+def _relogs_stall(node: NodeAdapter) -> bool:
+    """Whether `node` logs `Stall started` again.
+
+    It does once the block withheld first is sent, and only a bitcoind
+    before `_STALL_NOT_RELOGGED_VERSION` does, read off its own
+    `getnetworkinfo` `version`
+    ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+    """
+    version = bitcoind_version(node)
+    return version is not None and version < _STALL_NOT_RELOGGED_VERSION
 
 
 def _block_payload(block: Block) -> BlockPayload:
@@ -417,7 +445,8 @@ def _stalling(node: NodeAdapter, log_path: Path | None) -> None:
         _all_sync_send_with_ping(peers)
 
         # the first withheld block, once sent, brings the timeout back to two
-        with _expecting(log_path, [_DECREASED], [_STALL_STARTED]):
+        unexpected = [] if _relogs_stall(node) else [_STALL_STARTED]
+        with _expecting(log_path, [_DECREASED], unexpected):
             for peer in peers:
                 if peer.is_connected and stall_blocks[0] in peer.getdata_requests:
                     peer.send(_block_payload(block_dict[stall_blocks[0]]))

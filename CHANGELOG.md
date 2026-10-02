@@ -1460,3 +1460,8 @@ older bitcoind's behaviour; the first skips before `v30.0` (issue #354).
 `p2p_leak_tx`'s in-block check and `p2p_tx_download`'s inv-block check read
 them only where the build's own `help getpeerinfo` names them
 (bitcoin/bitcoin#33448, issue #354).
+
+### `p2p_ibd_stalling` reads the stall log per-build
+
+The log half of `p2p_ibd_stalling` does not expect `Stall started` absent from a
+bitcoind before `v31.0`, which logs it again (bitcoin/bitcoin#32180, issue #354).

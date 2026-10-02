@@ -66,6 +66,16 @@ announcing by txid is `Peer.handshake(wtxidrelay=False)`.
 
 What differs from Core's file besides:
 
+- `v29.4` refuses an `OP_RETURN` output larger than its default
+  `-datacarriersize` with `scriptpubkey`, `v30.3` and later do not, and
+  the padding Core's `target_vsize` adds to the last transaction of the
+  maximal ancestor package is such an output, so that body restarts its
+  node with the option (`Capability.DATACARRIER`; bitcoin/bitcoin#32406,
+  first in `v30.0`);
+- a build before bitcoin/bitcoin#31829 (first in `v30.0`) bounds its
+  orphanage by count alone, which the large orphans stay within, so there
+  nothing is evicted and that body asserts only that the package is kept
+  and taken in;
 - Core runs every check over one node and ends each with its `cleanup`,
   which mines the node's mempool into a block, asserts the mempool and
   the orphanage empty and restarts the node; here each body starts a
@@ -217,6 +227,10 @@ _DEFAULT_ANCESTOR_LIMIT = 25
 _LARGE_ORPHANS = 60
 _INDIVIDUAL_DOSERS = 20
 _MAXIMAL_PACKAGE_VSIZE = 101_000
+
+# a `-datacarriersize` over the OP_RETURN padding of the package's last
+# transaction, which `v29.4` refuses by default
+_DATACARRIER_SIZE = _MAX_STANDARD_TX_WEIGHT // 4
 
 # the size of the one witness item Core's own `create_large_orphan`
 # (`test_framework/mempool_util.py`) spends its input with
@@ -1066,7 +1080,9 @@ def a_maximal_ancestor_package_is_protected_in_the_orphanage(
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
     """
-    node, wallet, clock = _node(cluster, skip_counts, 1)
+    node = _fresh_node(cluster, skip_counts, Capability.DATACARRIER)
+    node.restart([f"-datacarriersize={_DATACARRIER_SIZE}"])
+    wallet, clock = _wallet(node, 1)
     large_orphans = [_large_orphan() for _ in range(_LARGE_ORPHANS)]
 
     # each is an orphan, and within the standard size an orphan is kept at

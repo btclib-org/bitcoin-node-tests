@@ -35,6 +35,11 @@ The nodes are built through `make_adapter`
 a data directory and starts each node with an option from its first
 start.
 
+The first node also starts with a `-datacarriersize`
+(`Capability.DATACARRIER`) over the padding of the transactions it sends,
+which `v29.4` refuses by default with `scriptpubkey` (bitcoin/bitcoin#32406,
+first in `v30.0rc1`).
+
 `feature_blocksxor_bitcoind_test.py` and
 `feature_blocksxor_btclib_node_test.py` run it,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -50,7 +55,7 @@ from btclib.p2p import magic_from_chain
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from bitcoin_node_tests.mini_wallet import PADDING_DATACARRIER_SIZE, MiniWallet
 from bitcoin_node_tests.node import free_ports
 
 if TYPE_CHECKING:
@@ -120,12 +125,21 @@ def block_files_are_obfuscated_with_the_xor_key(
     """
     datadir = tmp_path / "datadir"
     node = _node(
-        make_adapter, cls, executable, datadir, ["-blocksxor=1", "-fastprune=1"]
+        make_adapter,
+        cls,
+        executable,
+        datadir,
+        [
+            "-blocksxor=1",
+            "-fastprune=1",
+            f"-datacarriersize={PADDING_DATACARRIER_SIZE}",
+        ],
     )
     fresh = _node(make_adapter, cls, executable, tmp_path / "fresh", ["-blocksxor=0"])
     for capability in (
         Capability.BLOCKS_XOR,
         Capability.FASTPRUNE,
+        Capability.DATACARRIER,
         Capability.MINE,
         Capability.BLK_FILES,
     ):

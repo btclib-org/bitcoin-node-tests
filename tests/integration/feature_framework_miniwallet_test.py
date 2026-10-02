@@ -33,6 +33,11 @@ above `sendrawtransaction`'s own default `maxfeerate`; and that
 over `TRUC_MAX_VSIZE` (`src/policy/truc_policy.h`) refused where the
 same size at version 2 is accepted.
 
+Each of those two restarts the session's node with a `-datacarriersize`
+(`Capability.DATACARRIER`) over its `target_vsize` padding, and without
+it once done: `v29.4` refuses that padding by default with `scriptpubkey`
+(bitcoin/bitcoin#32406, first in `v30.0rc1`).
+
 `feature_framework_miniwallet_bitcoind_test.py` and
 `feature_framework_miniwallet_btclib_node_test.py` run each body,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -40,6 +45,7 @@ same size at version 2 is accepted.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -48,9 +54,15 @@ from bitcoin_core_rpc import RpcError
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import DEFAULT_FEE_RATE, MiniWallet
+from bitcoin_node_tests.mini_wallet import (
+    DEFAULT_FEE_RATE,
+    PADDING_DATACARRIER_SIZE,
+    MiniWallet,
+)
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from bitcoin_node_tests.bitcoind import BitcoindAdapter
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
@@ -65,6 +77,19 @@ __all__ = [
 
 # `src/policy/truc_policy.h`'s own `TRUC_MAX_VSIZE`, virtual bytes
 _TRUC_MAX_VSIZE = 10_000
+
+
+@contextmanager
+def _padding_allowed(adapter: BitcoindAdapter | BtclibNodeAdapter) -> Iterator[None]:
+    """Run with a `-datacarriersize` over `target_vsize`'s padding.
+
+    The session's node is shared, so it restarts without the option after.
+    """
+    adapter.restart([f"-datacarriersize={PADDING_DATACARRIER_SIZE}"])
+    try:
+        yield
+    finally:
+        adapter.restart()
 
 
 def _base_fee(entry: object) -> int:
@@ -171,25 +196,27 @@ def mini_wallet_fee_rate_is_the_fee_the_node_reports(
     :param skip_counts: the session's own tally.
     """
     require(Capability.MINE, adapter.capabilities, skip_counts)
-    rpc = adapter.rpc
-    wallet = MiniWallet(adapter)
-    wallet.generate(COINBASE_MATURITY + 3)
+    require(Capability.DATACARRIER, adapter.capabilities, skip_counts)
+    with _padding_allowed(adapter):
+        rpc = adapter.rpc
+        wallet = MiniWallet(adapter)
+        wallet.generate(COINBASE_MATURITY + 3)
 
-    unpadded = wallet.send_self_transfer(fee_rate=12_345)
-    padded = wallet.send_self_transfer(fee_rate=12_345, target_vsize=250)
-    # 0.2 BTC/kvB, twice the default `maxfeerate` a bare call is held to
-    above_ceiling = wallet.send_self_transfer(fee_rate=20_000_000)
+        unpadded = wallet.send_self_transfer(fee_rate=12_345)
+        padded = wallet.send_self_transfer(fee_rate=12_345, target_vsize=250)
+        # 0.2 BTC/kvB, twice the default `maxfeerate` a bare call is held to
+        above_ceiling = wallet.send_self_transfer(fee_rate=20_000_000)
 
-    unpadded_entry = rpc.call("getmempoolentry", [unpadded.id.hex()])
-    assert unpadded_entry["vsize"] == unpadded.vsize
-    # 12_345 sat/kvB over 104 vB is 1283.88 sat, rounded up
-    assert _base_fee(unpadded_entry) == 1284
-    padded_entry = rpc.call("getmempoolentry", [padded.id.hex()])
-    assert padded_entry["vsize"] == 250
-    # over 250 vB, 3086.25 sat, rounded up
-    assert _base_fee(padded_entry) == 3087
-    above_ceiling_entry = rpc.call("getmempoolentry", [above_ceiling.id.hex()])
-    assert _base_fee(above_ceiling_entry) == 2_080_000
+        unpadded_entry = rpc.call("getmempoolentry", [unpadded.id.hex()])
+        assert unpadded_entry["vsize"] == unpadded.vsize
+        # 12_345 sat/kvB over 104 vB is 1283.88 sat, rounded up
+        assert _base_fee(unpadded_entry) == 1284
+        padded_entry = rpc.call("getmempoolentry", [padded.id.hex()])
+        assert padded_entry["vsize"] == 250
+        # over 250 vB, 3086.25 sat, rounded up
+        assert _base_fee(padded_entry) == 3087
+        above_ceiling_entry = rpc.call("getmempoolentry", [above_ceiling.id.hex()])
+        assert _base_fee(above_ceiling_entry) == 2_080_000
 
 
 def mini_wallet_version_3_is_held_to_truc_policy(
@@ -201,20 +228,25 @@ def mini_wallet_version_3_is_held_to_truc_policy(
     :param skip_counts: the session's own tally.
     """
     require(Capability.MINE, adapter.capabilities, skip_counts)
-    rpc = adapter.rpc
-    wallet = MiniWallet(adapter)
-    wallet.generate(COINBASE_MATURITY + 3)
+    require(Capability.DATACARRIER, adapter.capabilities, skip_counts)
+    with _padding_allowed(adapter):
+        rpc = adapter.rpc
+        wallet = MiniWallet(adapter)
+        wallet.generate(COINBASE_MATURITY + 3)
 
-    truc = wallet.send_self_transfer(version=3)
-    assert (
-        rpc.call("decoderawtransaction", [truc.serialize(True).hex()])["version"] == 3
-    )
-    mempool = rpc.call("getrawmempool")
-    assert isinstance(mempool, list)
-    assert truc.id.hex() in mempool
+        truc = wallet.send_self_transfer(version=3)
+        assert (
+            rpc.call("decoderawtransaction", [truc.serialize(True).hex()])["version"]
+            == 3
+        )
+        mempool = rpc.call("getrawmempool")
+        assert isinstance(mempool, list)
+        assert truc.id.hex() in mempool
 
-    oversize = _TRUC_MAX_VSIZE + 1
-    wallet.send_self_transfer(version=2, target_vsize=oversize)
-    too_big = wallet.create_self_transfer(version=3, target_vsize=oversize)
-    with pytest.raises(RpcError, match="TRUC-violation, version=3 tx .* is too big"):
-        rpc.call("sendrawtransaction", [too_big.serialize(True).hex()])
+        oversize = _TRUC_MAX_VSIZE + 1
+        wallet.send_self_transfer(version=2, target_vsize=oversize)
+        too_big = wallet.create_self_transfer(version=3, target_vsize=oversize)
+        with pytest.raises(
+            RpcError, match="TRUC-violation, version=3 tx .* is too big"
+        ):
+            rpc.call("sendrawtransaction", [too_big.serialize(True).hex()])

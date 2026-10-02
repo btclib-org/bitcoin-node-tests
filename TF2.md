@@ -837,8 +837,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_bip434_feature.py` | `da74ff9ca49e` | 2026-06-04 | pass, `FEATURE`'s own disconnects asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | bitcoind only |
 | `feature_framework_miniwallet.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_framework_miniwallet.py` (`confirmed_only`) | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (generate) |
-| `feature_framework_miniwallet.py` (`fee_rate`) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) and before [ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397); pass on a build past [ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397) |
-| `feature_framework_miniwallet.py` (TRUC) | same | same | pass | skip (mine) on the build; fail ([ISS btclib-node#1398](https://github.com/btclib-org/btclib-node/issues/1398)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `feature_framework_miniwallet.py` (`fee_rate`) | same | same | pass | skip (mine) on the build; skip (datacarrier) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
+| `feature_framework_miniwallet.py` (TRUC) | same | same | pass | skip (mine) on the build; skip (datacarrier) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `mempool_resurrect.py` | `fa5f29774872` | 2025-12-16 | pass | skip (mine) on the build; fail ([ISS btclib-node#1388](https://github.com/btclib-org/btclib-node/issues/1388)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) and before [ISS btclib-node#1388](https://github.com/btclib-org/btclib-node/issues/1388); pass on a build past [ISS btclib-node#1388](https://github.com/btclib-org/btclib-node/issues/1388) |
 | `mempool_spend_coinbase.py` | `6eca11175be6` | 2026-07-16 | pass | skip (mine) on the build; fail ([ISS btclib-node#1328](https://github.com/btclib-org/btclib-node/issues/1328)) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) and before [ISS btclib-node#1328](https://github.com/btclib-org/btclib-node/issues/1328); pass on a build past [ISS btclib-node#1328](https://github.com/btclib-org/btclib-node/issues/1328) |
 | `feature_dersig.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
@@ -2025,15 +2025,16 @@ closing
 on -- and its own `mine` is `MiniWallet.generate`. The released build
 does not, so each cell is the skip. On a `main` declaring it, each row
 is a body run against both nodes (`tests/integration/conftest.py`'s own
-module docstring): the unqualified row passes, `fee_rate` passes on a
-`main` past
+module docstring): the unqualified row passes. `fee_rate` and TRUC pad
+with `target_vsize`, so each restarts the node under a `-datacarriersize`
+and asks for `Capability.DATACARRIER` after `MINE`, which
+`BtclibNodeAdapter` does not declare: each is a counted skip there, and
+what
 [ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397),
-and TRUC fails on an RPC that `main` does not serve,
-`decoderawtransaction`
-([ISS btclib-node#1398](https://github.com/btclib-org/btclib-node/issues/1398)).
-With that call removed, TRUC fails next on a TRUC transaction over
-`TRUC_MAX_VSIZE` that `main` accepts
-([ISS btclib-node#1399](https://github.com/btclib-org/btclib-node/issues/1399)).
+[ISS btclib-node#1398](https://github.com/btclib-org/btclib-node/issues/1398)
+and
+[ISS btclib-node#1399](https://github.com/btclib-org/btclib-node/issues/1399)
+name is not reached until it does.
 
 `confirmed_only` has the node itself confirm one of its coins, over
 `generateblock`, so it asks for `Capability.GENERATE` ahead of
@@ -2527,6 +2528,10 @@ what Core's `InitBlocksdirXorKey` does anyway for a block directory
 holding files and no key file, and the second is Core's default. So the
 test also asserts the first block file obfuscated under the key, and an
 all-zero key written by a fresh node started with the option off.
+Its first node starts with a `-datacarriersize` too: a build without
+bitcoin/bitcoin#32406, which `v30.0rc1` is the first tag to carry,
+refuses by default the `OP_RETURN` padding of the transactions it sends,
+and Core's file of that build passes the same option.
 Each module docstring has what else differs from Core's file. Every
 `btclib-node` cell is a counted skip on the option's new capability,
 `Capability.CAPTURE_MESSAGES` or `Capability.BLOCKS_XOR`, asked for
@@ -2963,7 +2968,10 @@ both replace a package. With the mempool full, a child double-spending
 its parent's own mempool parent is refused. Each body asks for
 `Capability.PACKAGE_ACCEPTANCE` (`capability.py`) first, naming
 `submitpackage` and a `testmempoolaccept` handed a package, then the
-basic body for `CONNECT` and the last for `MAXMEMPOOL`, then `MINE`.
+basic body for `CONNECT` and the last for `MAXMEMPOOL` and `DATACARRIER`,
+then `MINE`. That last body restarts its node with a `-datacarriersize`
+over the padding `fill_mempool` adds, which a build without
+bitcoin/bitcoin#32406, first in `v30.0rc1`, refuses by default.
 `tests/integration/mempool_package_rbf_test.py`'s own docstring has what
 differs from Core's file. The `bitcoind` cell is one verdict for the
 pinned release and for Core's `master`. `btclib-node`'s cell is a
@@ -3693,15 +3701,19 @@ standardness test, all driving package or standardness mechanics beyond
 a single transaction's own accepted vsize. Measured live against the
 pinned release: `testmempoolaccept`'s own answer carries no
 `vsize_adjusted` or `vsize_bip141` field there, `vsize` alone already
-reflecting the sigop-adjusted floor.
+reflecting the sigop-adjusted floor. Its node restarts with a
+`-datacarriersize` besides (`Capability.DATACARRIER`), over the
+`OP_RETURN` padding of the transactions it builds, which a build without
+bitcoin/bitcoin#32406, first in `v30.0rc1`, refuses by default.
 
 Every `btclib-node` cell across this trio is a counted skip on its own
 option capability alone, ahead of `Capability.MINE` which every row also
-needs: measured against `cli.py`'s registered options, `_build_parser`
-on the released build and `_OPTIONS` on `main`, none of `-datacarrier`,
-`-datacarriersize`, `-permitbaremultisig`, `-dustrelayfee` or
-`-bytespersigop` is one of its registered flags, so `require` never
-reaches `Capability.MINE` at all.
+needs: `BtclibNodeAdapter` declares none of `DATACARRIER`,
+`PERMIT_BARE_MULTISIG`, `DUST_RELAY_FEE` or `BYTES_PER_SIGOP`, so `require`
+never reaches `Capability.MINE` at all. Measured at btclib-node `fbb226ef`,
+`cli.py` registers `-datacarrier`, `-datacarriersize`,
+`-permitbaremultisig` and `-dustrelayfee`, from `9fe1bfd9`, their help
+reading "not yet enforced", and does not register `-bytespersigop`.
 
 `mempool_package_limits.py`'s row is a smaller claim than Core's own
 file: kept is one ancestor-side case (a chain of in-mempool ancestors, a
@@ -4123,7 +4135,8 @@ module docstring has what differs from Core's file. Every body asks for
 `MINE`, to leave initial block download, and every body moving Core's own
 mock time for `CLOCK`; the tiebreak and outbound checks ask for
 `TYPED_OUTBOUND`, the inv-block check for `CONNECT`, the rejection check
-for `MAXMEMPOOL` and the duplicate check for `DEBUG_LOG` besides. A peer
+for `MAXMEMPOOL` and `DATACARRIER` and the duplicate check for `DEBUG_LOG`
+besides. A peer
 announcing by txid is `Peer.handshake`'s `wtxidrelay` off, Core's
 `P2PInterface(wtxidrelay=False)`. Its `-whitelist` asks for no
 capability, as the `noban` checks above do not.
@@ -4252,9 +4265,11 @@ the pass is measured, not a fix.
 one of Core's checks as a body over a fresh node in
 `tests/integration/p2p_opportunistic_1p1c_test.py`, whose module
 docstring has what differs from Core's file. Every body asks for
-`ORPHANAGE` first, and for `MAXMEMPOOL` and `MINE`: its node restarts
-with the `-maxmempool` Core's own starts with, and
-`mempool_util.fill_mempool` fills its mempool. The parent-first,
+`ORPHANAGE` first, and for `MAXMEMPOOL`, `DATACARRIER` and `MINE`: its
+node restarts with the `-maxmempool` Core's own starts with and a
+`-datacarriersize` over the padding `mempool_util.fill_mempool` adds, which
+a build without bitcoin/bitcoin#32406, first in `v30.0rc1`, refuses by
+default, and `fill_mempool` fills its mempool. The parent-first,
 low-and-high-child, multiple-parents and parent-in-mempool checks have
 the node dial outbound full-relay peers, so they ask for
 `TYPED_OUTBOUND`, and every check but the one chaining a package on

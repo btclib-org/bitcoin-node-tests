@@ -60,6 +60,10 @@ What differs from Core's file besides:
   the rejection check alone, which fills the mempool, restarts its node
   with the first, and no node here is restarted over a mempool it had
   saved;
+- that check's restart passes a `-datacarriersize` too
+  (`Capability.DATACARRIER`), over the `OP_RETURN` padding `fill_mempool`
+  adds, which a bitcoind without bitcoin/bitcoin#32406, first in
+  `v30.0rc1`, refuses by default with `scriptpubkey`;
 - Core runs its last five checks over two linked nodes, ahead of the
   first three adding ten inbound peers to each; here the second node is
   the inv-block check's alone, the in-flight check has its one peer and
@@ -111,7 +115,7 @@ from btclib.tx.limits import COINBASE_MATURITY
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mempool_util import fill_mempool
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from bitcoin_node_tests.mini_wallet import PADDING_DATACARRIER_SIZE, MiniWallet
 from bitcoin_node_tests.node import (
     connect_nodes,
     wait_until,
@@ -812,9 +816,15 @@ def a_rejected_tx_is_asked_for_again_after_a_block(
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
     """
-    node, wallet = _node(cluster, skip_counts, Capability.CLOCK, Capability.MAXMEMPOOL)
+    node, wallet = _node(
+        cluster,
+        skip_counts,
+        Capability.CLOCK,
+        Capability.MAXMEMPOOL,
+        Capability.DATACARRIER,
+    )
     wallet.generate(COINBASE_MATURITY)
-    node.restart(["-maxmempool=5"])
+    node.restart(["-maxmempool=5", f"-datacarriersize={PADDING_DATACARRIER_SIZE}"])
     fill_mempool(node)
     wallet.resync()
     mempoolminfee = node.rpc.call("getmempoolinfo")["mempoolminfee"]

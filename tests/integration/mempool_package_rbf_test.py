@@ -27,6 +27,10 @@ What differs from Core's file:
 - Core starts its nodes with `-maxmempool=5`, which only its
   `fill_mempool` needs; the mempool-ancestor body, the one calling it, is
   the one whose node restarts with it;
+- that body's node restarts with a `-datacarriersize` too
+  (`Capability.DATACARRIER`), over the `OP_RETURN` padding `fill_mempool`
+  adds, which `v29.4` refuses by default with `scriptpubkey`
+  (bitcoin/bitcoin#32406, first in `v30.0rc1`);
 - Core's second node is kept by the basic body alone, whose own
   `sync_all` calls are what check that a package replacement reaches a
   peer over p2p; elsewhere Core's file reads nothing from it, the syncs
@@ -59,7 +63,7 @@ from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mempool_util import fill_mempool
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from bitcoin_node_tests.mini_wallet import PADDING_DATACARRIER_SIZE, MiniWallet
 from bitcoin_node_tests.node import connect_nodes, sync_all
 
 if TYPE_CHECKING:
@@ -116,6 +120,9 @@ _CHILD_FEE_RATE = 10_000 * _DEFAULT_FEE
 # what Core's own `set_test_params` starts its nodes with, for
 # `fill_mempool`
 _MAXMEMPOOL = "-maxmempool=5"
+
+# what `fill_mempool`'s padding needs on a build without bitcoin/bitcoin#32406
+_DATACARRIER = f"-datacarriersize={PADDING_DATACARRIER_SIZE}"
 
 
 def _hex(tx: Tx) -> str:
@@ -627,8 +634,10 @@ def a_child_double_spending_its_mempool_ancestor_is_refused(
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
     """
-    node, packages = _node(cluster, skip_counts, Capability.MAXMEMPOOL, coins=1)
-    node.restart([_MAXMEMPOOL])
+    node, packages = _node(
+        cluster, skip_counts, Capability.MAXMEMPOOL, Capability.DATACARRIER, coins=1
+    )
+    node.restart([_MAXMEMPOOL, _DATACARRIER])
     fill_mempool(node)
     wallet = packages.wallet
     wallet.resync()

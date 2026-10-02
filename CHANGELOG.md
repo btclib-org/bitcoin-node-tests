@@ -1476,3 +1476,9 @@ last transaction by default (bitcoin/bitcoin#32406, issue #354).
 `BitcoindAdapter` declares `Capability.PROXY_PER_NETWORK` where `-help` shows
 the suffix (bitcoin/bitcoin#32425). Without it the suffix test skips and the
 malformed-`-proxy` test expects the build's port refusal (issue #354).
+
+### Tests padding with `MiniWallet` start their node with a `-datacarriersize`
+
+A bitcoind before `v30.0` refuses the `OP_RETURN` padding `target_vsize` adds.
+These tests and `p2p_orphan_handling` start it with
+`mini_wallet.PADDING_DATACARRIER_SIZE` (bitcoin/bitcoin#32406, issue #354).

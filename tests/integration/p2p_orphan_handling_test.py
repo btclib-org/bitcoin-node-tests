@@ -145,6 +145,7 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.mini_wallet import (
+    PADDING_DATACARRIER_SIZE,
     MiniWallet,
     Utxo,
 )
@@ -227,10 +228,6 @@ _DEFAULT_ANCESTOR_LIMIT = 25
 _LARGE_ORPHANS = 60
 _INDIVIDUAL_DOSERS = 20
 _MAXIMAL_PACKAGE_VSIZE = 101_000
-
-# a `-datacarriersize` over the OP_RETURN padding of the package's last
-# transaction, which `v29.4` refuses by default
-_DATACARRIER_SIZE = _MAX_STANDARD_TX_WEIGHT // 4
 
 # the size of the one witness item Core's own `create_large_orphan`
 # (`test_framework/mempool_util.py`) spends its input with
@@ -1081,7 +1078,7 @@ def a_maximal_ancestor_package_is_protected_in_the_orphanage(
     :param skip_counts: the session's own tally.
     """
     node = _fresh_node(cluster, skip_counts, Capability.DATACARRIER)
-    node.restart([f"-datacarriersize={_DATACARRIER_SIZE}"])
+    node.restart([f"-datacarriersize={PADDING_DATACARRIER_SIZE}"])
     wallet, clock = _wallet(node, 1)
     large_orphans = [_large_orphan() for _ in range(_LARGE_ORPHANS)]
 

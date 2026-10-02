@@ -212,6 +212,7 @@ if TYPE_CHECKING:
 __all__ = [
     "DEFAULT_FEE_RATE",
     "FEE",
+    "PADDING_DATACARRIER_SIZE",
     "RAW_P2PK_SCRIPT_PUB_KEY",
     "MiniWallet",
     "Utxo",
@@ -245,6 +246,13 @@ FEE = 1000
 # satoshis per 1000 virtual bytes: Core's own `create_self_transfer` default
 # (`wallet.py`), `Decimal("0.003")` BTC/kvB
 DEFAULT_FEE_RATE = 300_000
+
+# the `-datacarriersize` Core's `fill_mempool` requires
+# (`test_framework/mempool_util.py`), over the `OP_RETURN` padding
+# `target_vsize` adds to a transaction of up to 100000 virtual bytes; a
+# bitcoind before bitcoin/bitcoin#32406 refuses that padding by default, with
+# `scriptpubkey`
+PADDING_DATACARRIER_SIZE = 100_000
 
 # regtest's own halving schedule (`CONSENSUS_PARAMS["regtest"]`): every 150
 # blocks rather than mainnet's 210_000, `subsidy`'s own default -- this

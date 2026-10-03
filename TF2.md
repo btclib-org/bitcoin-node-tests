@@ -3521,10 +3521,10 @@ back to v1 once a v2 attempt is reset by the other side
 so `connect_nodes` now passes `v2transport` explicitly rather than
 leaning on a fallback, matching Core's own `connect_nodes`'s
 `peer_advertises_v2` parameter, here with a default of `False`, the one wire
-every adapter this repository builds speaks -- `btclib-node`'s own
-`add_node` reads and type-checks the argument without ever acting on it,
-[ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)
-being why. A test whose subject is BIP324 itself,
+`Peer` speaks -- a `btclib-node` build without `-v2transport`, the PyPI
+release, reads and type-checks the argument without acting on it
+([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)).
+A test whose subject is BIP324 itself,
 `v2transport_option_test.py`, passes `True`. Measured against
 the fix: the mixed-cluster test below, which timed out before it and
 passes after, on every `btclib-node` build measured.
@@ -3639,9 +3639,11 @@ go as follows.
   `wait_until_tips_agree`/`wait_until_mempools_agree` and is not built
   by this issue.
 - `p2p_v2_transport.py` (`-v2transport`, log, a raw socket): ISS 14's,
-  on bitcoind alone, `Capability.V2TRANSPORT` being `BitcoindAdapter`'s
-  and not `btclib-node`'s
-  ([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)).
+  on bitcoind alone: it matches Core's own debug-log lines ("start sending
+  v2 handshake", "retrying with v1 transport protocol", "V2 transport
+  error: ..."), so it needs `Capability.DEBUG_LOG`, which
+  `BtclibNodeAdapter` does not declare, and btclib-node's `main` at
+  `3f7d2b19` has none of those lines nor the v1 retry.
 - `p2p_blockfilters.py` (`-blockfilterindex`, `-peerblockfilters`, log,
   and BIP157's own `getcfilters`/`getcfheaders`/`getcfcheckpt` from a
   raw peer): ISS 14's, ported, its row in the table above.

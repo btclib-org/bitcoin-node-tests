@@ -6,11 +6,10 @@
 
 `v2transport_option_test.py` beside this module holds each body, run
 here against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220): `Capability.V2TRANSPORT` is never declared
-here -- `btclib_node.py`'s own module docstring has the measurement,
-`addnode`'s own `v2transport` parameter read and discarded with no
-BIP324 codec behind it -- so each counts a skip rather than a silent
-pass.
+btclib-org/btclib#2220): `Capability.V2TRANSPORT` is declared by a build
+with btclib-node's `-v2transport` flag -- `btclib_node.py`'s own module
+docstring has which -- so against a build without it, the PyPI release,
+each counts a skip rather than a silent pass.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/v2transport_option_btclib_node_test.py

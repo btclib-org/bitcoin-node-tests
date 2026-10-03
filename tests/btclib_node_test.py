@@ -37,6 +37,7 @@ def test_capabilities_gain_rpc_auth_config_where_the_build_writes_a_cookie(
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -57,6 +58,7 @@ def test_capabilities_gain_rpc_auth_negation_where_the_build_negates(
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -77,6 +79,7 @@ def test_capabilities_gain_inbound_eviction_where_the_build_evicts(
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -97,6 +100,7 @@ def test_capabilities_gain_mine_where_the_build_connects_alone(
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset({Capability.CONNECT, Capability.MINE})
@@ -115,6 +119,7 @@ def test_capabilities_gain_ban_where_the_build_serves_a_ban_list(
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset({Capability.CONNECT, Capability.BAN})
@@ -133,6 +138,7 @@ def test_capabilities_gain_min_relay_tx_fee_where_the_build_sets_it(
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=True),
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -153,6 +159,7 @@ def test_capabilities_gain_chain_tips_where_the_build_serves_them(
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=True),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -173,10 +180,32 @@ def test_capabilities_gain_disconnect_where_the_build_serves_it(
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=True),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
         {Capability.CONNECT, Capability.DISCONNECT}
+    )
+
+
+def test_capabilities_gain_v2transport_where_the_build_speaks_bip324(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a `-v2transport` build declares it."""
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=False),
+        patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
+        patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
+        patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=True),
+    ):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities == frozenset(
+        {Capability.CONNECT, Capability.V2TRANSPORT}
     )
 
 
@@ -193,6 +222,7 @@ def test_capabilities_stay_connect_alone_where_the_build_does_not(
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities is BtclibNodeAdapter.capabilities
@@ -265,6 +295,7 @@ def test_capabilities_drop_mine_on_another_chain(tmp_path: Path) -> None:
         patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
     ):
         adapter = BtclibNodeAdapter(
             sys.executable, tmp_path, 18443, 18444, chain="signet"
@@ -544,6 +575,51 @@ def test_sets_min_relay_fee_is_false_where_the_parse_refuses() -> None:
     btclib_node_module._sets_min_relay_fee.cache_clear()
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
         assert btclib_node_module._sets_min_relay_fee("fake-python-pre-1332") is False
+
+
+def test_speaks_v2_reads_the_probe_s_own_return_code() -> None:
+    """`_speaks_v2` is `_V2_PROBE` exiting zero."""
+    btclib_node_module._speaks_v2.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._speaks_v2("fake-python-1675") is True
+    run.assert_called_once_with(
+        ["fake-python-1675", "-c", btclib_node_module._V2_PROBE],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_speaks_v2_is_false_where_the_parse_refuses() -> None:
+    """A nonzero exit -- the flag refused, or left on -- is `False`."""
+    btclib_node_module._speaks_v2.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
+        assert btclib_node_module._speaks_v2("fake-python-pre-1675") is False
+
+
+@pytest.mark.parametrize(
+    "body, speaks",
+    [
+        ("return SimpleNamespace(v2transport=False)", True),
+        ("return SimpleNamespace(v2transport=True)", False),
+        ("return SimpleNamespace()", False),
+        ("raise SystemExit(2)", False),
+    ],
+)
+def test_v2_probe_answers_from_the_parsed_config(
+    body: str, speaks: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_V2_PROBE` answers from `v2transport` on a stub `build_config`."""
+    package = tmp_path / "btclib_node"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "cli.py").write_text(
+        f"from types import SimpleNamespace\ndef build_config(argv):\n    {body}\n"
+    )
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path))
+    btclib_node_module._speaks_v2.cache_clear()
+    answer = btclib_node_module._speaks_v2(sys.executable)
+    btclib_node_module._speaks_v2.cache_clear()
+    assert answer is speaks
 
 
 class _FakeMiniWallet:

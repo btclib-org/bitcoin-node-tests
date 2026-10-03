@@ -579,12 +579,10 @@ for a flag like Core's own to set a default on. An adapter's own
 own flag, node by node; `tests/integration/v2transport_option_test.py`
 passes it to `NodeAdapter.restart` and measures both directions against
 `getpeerinfo`'s own `transport_protocol_type`.
-`Capability.V2TRANSPORT` is declared by `BitcoindAdapter` alone: `Peer`
-(`peer.py`) speaks only the plaintext v1 wire format, so the capability
-covers node-to-node connections and not a `Peer`'s own, and
-`BtclibNodeAdapter` never declares it -- its own `addnode` reads and
-discards a `v2transport` parameter
-(`btclib_node.rpc.callbacks.addnode`), with no BIP324 codec behind it.
+`Capability.V2TRANSPORT` covers node-to-node connections, not a `Peer`'s
+own: `Peer` (`peer.py`) speaks only the plaintext v1 wire format.
+`BitcoindAdapter` always declares it and `BtclibNodeAdapter` declares it
+per build; `btclib_node.py`'s module docstring says which builds.
 
 `--valgrind`: no pytest option, since valgrind wraps a process rather
 than a test; a `TF2_BITCOIND` naming a wrapper script that execs the

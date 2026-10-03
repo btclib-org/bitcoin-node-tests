@@ -1539,4 +1539,4 @@ the flag gets no `-v1transport` (closes #395).
 ### The maintainer's bypass is for emergencies
 
 Every pull request, the maintainer's included, lands with an approving review
-from an owner other than its author (issue btclib-org/.github#1362).
+from somebody other than its author (issue btclib-org/.github#1362).

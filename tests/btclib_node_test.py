@@ -622,6 +622,72 @@ def test_v2_probe_answers_from_the_parsed_config(
     assert answer is speaks
 
 
+def test_accepts_v1transport_reads_the_probe_s_own_return_code() -> None:
+    """`_accepts_v1transport` is `_V1_PROBE` exiting zero."""
+    btclib_node_module._accepts_v1transport.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._accepts_v1transport("fake-python-f1") is True
+    run.assert_called_once_with(
+        ["fake-python-f1", "-c", btclib_node_module._V1_PROBE],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_accepts_v1transport_is_false_where_the_parse_refuses() -> None:
+    """A nonzero exit -- the flag refused, or read false -- is `False`."""
+    btclib_node_module._accepts_v1transport.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
+        assert btclib_node_module._accepts_v1transport("fake-python-pre-f1") is False
+
+
+@pytest.mark.parametrize(
+    "body, accepts",
+    [
+        ("return SimpleNamespace(v1transport=True)", True),
+        ("return SimpleNamespace(v1transport=False)", False),
+        ("return SimpleNamespace()", False),
+        ("raise SystemExit(2)", False),
+    ],
+)
+def test_v1_probe_answers_from_the_parsed_config(
+    body: str, accepts: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_V1_PROBE` answers from `v1transport` on a stub `build_config`."""
+    package = tmp_path / "btclib_node"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "cli.py").write_text(
+        f"from types import SimpleNamespace\ndef build_config(argv):\n    {body}\n"
+    )
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path))
+    btclib_node_module._accepts_v1transport.cache_clear()
+    answer = btclib_node_module._accepts_v1transport(sys.executable)
+    btclib_node_module._accepts_v1transport.cache_clear()
+    assert answer is accepts
+
+
+@pytest.mark.parametrize("chain", ["regtest", "signet"])
+def test_command_adds_v1transport_where_the_build_accepts_it(
+    tmp_path: Path, chain: str
+) -> None:
+    """`-v1transport=1` is in the argv of a build with the flag, once."""
+    with patch.object(btclib_node_module, "_accepts_v1transport", return_value=True):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444, chain=chain)
+        command = adapter._command()
+    assert command.count("-v1transport=1") == 1
+
+
+def test_command_adds_nothing_where_the_build_lacks_v1transport(
+    tmp_path: Path,
+) -> None:
+    """A build without the flag, which would refuse it, is started as before."""
+    with patch.object(btclib_node_module, "_accepts_v1transport", return_value=False):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+        command = adapter._command()
+    assert not any("v1transport" in arg for arg in command)
+
+
 class _FakeMiniWallet:
     """`MiniWallet`'s own `generate`, answering fixed header hashes."""
 

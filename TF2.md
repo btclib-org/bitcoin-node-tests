@@ -3529,6 +3529,14 @@ A test whose subject is BIP324 itself,
 the fix: the mixed-cluster test below, which timed out before it and
 passes after, on every `btclib-node` build measured.
 
+This suite runs `btclib-node` with `-v1transport` on wherever the build
+accepts it (`BtclibNodeAdapter._command`, decided by a probe), because
+`Peer` speaks v1 only and btclib-node refuses v1 once `-v1transport` is off
+([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)).
+With v1 off the node drops every `Peer` at its first bytes and refuses
+`addnode` and `addconnection` with `v2transport` off. A build without the
+flag, such as the PyPI release, gets no `-v1transport`.
+
 `rpc_setban.py` is ported, its own rows above. Core's own file restarts
 a node repeatedly, some of those with different `extra_args` than it
 started with and some with the same. The different-`extra_args`

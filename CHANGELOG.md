@@ -1529,3 +1529,9 @@ is a bot's (issue btclib-org/.github#452).
 A probe of `cli.build_config` declares it on btclib-node's `main` and not on
 the PyPI release. The BIP324 test runs on `main` and checks that both ends
 read one `session_id` (closes #392).
+
+### `BtclibNodeAdapter` starts btclib-node with `-v1transport=1` if it can
+
+A probe of `cli.build_config` decides, as for `-v2transport`. `Peer` speaks
+v1 only, and btclib-node refuses v1 under `-v1transport=0`. A build without
+the flag gets no `-v1transport` (closes #395).

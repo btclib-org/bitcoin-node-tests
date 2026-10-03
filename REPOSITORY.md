@@ -100,6 +100,7 @@ nothing.
 | `lint / Lint and type-check` | `lint.yml`, calling `reusable-lint.yml` |
 | `bitcoind / Regtest against Bitcoin Core` | `node-integration.yml` |
 | `lint / Dependency review` | `lint.yml`, calling `reusable-lint.yml` |
+| `lint / Sign-off` | `lint.yml`, calling `reusable-lint.yml` |
 
 A job whose whole body is a call to a reusable workflow contributes no
 name of its own: the context joins the calling job's id to the called
@@ -194,7 +195,8 @@ gh api -X PATCH "$branch"/protection/required_status_checks \
    {"context": "docs / Build the documentation", "app_id": 15368},
    {"context": "lint / Lint and type-check", "app_id": 15368},
    {"context": "bitcoind / Regtest against Bitcoin Core", "app_id": 15368},
-   {"context": "lint / Dependency review", "app_id": 15368}]}
+   {"context": "lint / Dependency review", "app_id": 15368},
+   {"context": "lint / Sign-off", "app_id": 15368}]}
 JSON
 ```
 
@@ -207,7 +209,8 @@ gh api "$branch"/protection/required_status_checks \
 #            ["docs / Build the documentation",15368],
 #            ["lint / Lint and type-check",15368],
 #            ["bitcoind / Regtest against Bitcoin Core",15368],
-#            ["lint / Dependency review",15368]],
+#            ["lint / Dependency review",15368],
+#            ["lint / Sign-off",15368]],
 #  "strict":true}
 ```
 

@@ -108,6 +108,13 @@ against it does not gain the capability.
 (`422d2640`) refuses the argument as argparse's "unrecognized
 arguments", so an instance built against it does not gain the capability.
 
+`BtclibNodeAdapter._command` adds `-v1transport=1` where
+`_accepts_v1transport`'s probe holds: `Peer` speaks v1 only, and
+btclib-node refuses v1 under `-v1transport=0`
+([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)).
+A build without the flag, such as the PyPI `2026.9.24`, gets no
+`-v1transport`.
+
 `Capability.INBOUND_EVICTION` is declared per instance too, by
 `_evicts_inbound`'s own probe: a build carrying
 `btclib_node.p2p.eviction`, a port of Core's `SelectNodeToEvict`
@@ -656,6 +663,32 @@ def _speaks_v2(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# exits 0 only where `-v1transport=1` is accepted and `Config.v1transport`
+# reads true; a build registering no such flag refuses it and exits
+# nonzero. `-noconf` keeps any `bitcoin.conf` out of it
+_V1_PROBE = """from btclib_node.cli import build_config
+config = build_config(["-regtest", "-noconf", "-v1transport=1"])
+raise SystemExit(0 if config.v1transport is True else 1)
+"""
+
+
+@lru_cache
+def _accepts_v1transport(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node has `-v1transport`.
+
+    Asks the build's own `cli.build_config`, as `_speaks_v2` above does,
+    to read `-v1transport=1`: `_V1_PROBE` above. Cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _V1_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 # exits 0 only where the dispatch table holds `Capability.CHAIN_TIPS`'s RPC
 _CHAIN_TIPS_PROBE = """\
 from btclib_node.rpc.callbacks import callbacks
@@ -835,8 +868,14 @@ class BtclibNodeAdapter(NodeAdapter):
         test makes dials. That listener binds every interface, on every
         chain, this node having no `-bind` to narrow it
         (ISS btclib-org/btclib-node#1257).
+
+        `-v1transport=1` is added where `_accepts_v1transport` holds,
+        since `Peer` speaks v1 only and btclib-node refuses v1 under
+        `-v1transport=0`; a build without the flag refuses it, so gets
+        nothing.
         """
         isolation = [] if self._chain == "regtest" else ["-connect=0", "-listen=1"]
+        v1 = ["-v1transport=1"] if _accepts_v1transport(self._executable) else []
         return [
             self._executable,
             "-m",
@@ -847,6 +886,7 @@ class BtclibNodeAdapter(NodeAdapter):
             "-rpcbind=127.0.0.1",
             f"-port={self._p2p_port}",
             *isolation,
+            *v1,
         ]
 
     @property

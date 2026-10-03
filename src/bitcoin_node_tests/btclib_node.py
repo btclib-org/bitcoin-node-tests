@@ -98,14 +98,15 @@ it as argparse's "unrecognized arguments", `-nolisten` being the one
 negated spelling its `_build_parser` registers, so an instance built
 against it does not gain the capability.
 
-`Capability.V2TRANSPORT` is never declared: `cli.py`'s own `_build_parser` at
-the released `2026.9.24` (`422d2640`) and its `_OPTIONS` at `main` (`8ded5494`)
-name no `-v2transport` flag, and `rpc/callbacks.py`'s own `addnode`
-reads a `v2transport` parameter only to discard it -- "`v2transport` is read
-and type-checked, matching Core's own optional third argument, and otherwise
-unused: BIP324 is not a transport this node speaks yet" is that module's own
-wording -- so there is no BIP324 codec behind either spelling for this
-capability to name.
+`Capability.V2TRANSPORT` is declared per instance too, by
+`_speaks_v2`'s own probe: a build whose `cli.build_config` reads
+`-nov2transport` as `v2transport` off -- `main` from btclib-node PR 1675
+(`3f7d2b19`) on, step D2 of
+[ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)
+-- has the flag, the BIP324 codec behind it, and `getpeerinfo`'s own
+`transport_protocol_type` and `session_id`. The released `2026.9.24`
+(`422d2640`) refuses the argument as argparse's "unrecognized
+arguments", so an instance built against it does not gain the capability.
 
 `Capability.INBOUND_EVICTION` is declared per instance too, by
 `_evicts_inbound`'s own probe: a build carrying
@@ -626,6 +627,35 @@ def _sets_min_relay_fee(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# exits 0 only where `-nov2transport` turns `Config.v2transport` off; a
+# build registering no such flag refuses it and exits nonzero. `-noconf`
+# keeps any `bitcoin.conf` out of it
+_V2_PROBE = """from btclib_node.cli import build_config
+config = build_config(["-regtest", "-noconf", "-nov2transport"])
+raise SystemExit(0 if config.v2transport is False else 1)
+"""
+
+
+@lru_cache
+def _speaks_v2(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node speaks BIP324.
+
+    Asks the build's own `cli.build_config`, as `_sets_min_relay_fee`
+    above does, to read `-nov2transport`, and answers whether the
+    resulting config's `v2transport` is false: `_V2_PROBE` above.
+    Otherwise in the standing of `_writes_auth_cookie` above: no node
+    started, no port bound, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _V2_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 # exits 0 only where the dispatch table holds `Capability.CHAIN_TIPS`'s RPC
 _CHAIN_TIPS_PROBE = """\
 from btclib_node.rpc.callbacks import callbacks
@@ -723,8 +753,9 @@ class BtclibNodeAdapter(NodeAdapter):
         `_connects_alone` answers `Capability.MINE`,
         `_serves_ban_list` answers `Capability.BAN`,
         `_sets_min_relay_fee` answers `Capability.MIN_RELAY_TX_FEE`,
-        `_serves_chain_tips` answers `Capability.CHAIN_TIPS`, and
-        `_serves_disconnect` answers `Capability.DISCONNECT`. The
+        `_serves_chain_tips` answers `Capability.CHAIN_TIPS`,
+        `_serves_disconnect` answers `Capability.DISCONNECT`, and
+        `_speaks_v2` answers `Capability.V2TRANSPORT`. The
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
         is left untouched where every probe answers `False`. A `chain`
         other than regtest drops `Capability.MINE` whatever its probe
@@ -740,23 +771,22 @@ class BtclibNodeAdapter(NodeAdapter):
             trace_rpc=trace_rpc,
             chain=chain,
         )
-        probed = set()
-        if _writes_auth_cookie(executable):
-            probed.add(Capability.RPC_AUTH_CONFIG)
-        if _negates_rpcauth(executable):
-            probed.add(Capability.RPC_AUTH_NEGATION)
-        if _evicts_inbound(executable):
-            probed.add(Capability.INBOUND_EVICTION)
+        probed = {
+            capability
+            for probe, capability in (
+                (_writes_auth_cookie, Capability.RPC_AUTH_CONFIG),
+                (_negates_rpcauth, Capability.RPC_AUTH_NEGATION),
+                (_evicts_inbound, Capability.INBOUND_EVICTION),
+                (_serves_ban_list, Capability.BAN),
+                (_sets_min_relay_fee, Capability.MIN_RELAY_TX_FEE),
+                (_serves_chain_tips, Capability.CHAIN_TIPS),
+                (_serves_disconnect, Capability.DISCONNECT),
+                (_speaks_v2, Capability.V2TRANSPORT),
+            )
+            if probe(executable)
+        }
         if _connects_alone(executable) and chain == "regtest":
             probed.add(Capability.MINE)
-        if _serves_ban_list(executable):
-            probed.add(Capability.BAN)
-        if _sets_min_relay_fee(executable):
-            probed.add(Capability.MIN_RELAY_TX_FEE)
-        if _serves_chain_tips(executable):
-            probed.add(Capability.CHAIN_TIPS)
-        if _serves_disconnect(executable):
-            probed.add(Capability.DISCONNECT)
         if probed:
             self.capabilities = type(self).capabilities | probed
 

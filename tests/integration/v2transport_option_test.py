@@ -39,22 +39,48 @@ __all__ = [
 ]
 
 
-def _transport_protocol(adapter: NodeAdapter) -> str:
-    """Return the one peer's own `transport_protocol_type`, or raise.
+def _only_peer(adapter: NodeAdapter) -> dict[str, object]:
+    """Return the one peer's own `getpeerinfo` entry, or raise.
 
     :param adapter: a node with exactly one peer connected.
-    :raises TypeError: `getpeerinfo` answered something other than the
-        one-peer list this helper assumes.
+    :raises TypeError: `getpeerinfo` answered something other than a
+        one-peer list of objects.
     """
     peers = adapter.rpc.call("getpeerinfo")
     if not isinstance(peers, list) or len(peers) != 1:
         err_msg = f"getpeerinfo answered {peers!r}, not a one-peer list"
         raise TypeError(err_msg)
-    protocol = peers[0]["transport_protocol_type"]
+    (peer,) = peers
+    if not isinstance(peer, dict):
+        err_msg = f"getpeerinfo's one peer was {peer!r}, not an object"
+        raise TypeError(err_msg)
+    return peer
+
+
+def _transport_protocol(adapter: NodeAdapter) -> str:
+    """Return the one peer's own `transport_protocol_type`, or raise.
+
+    :param adapter: a node with exactly one peer connected.
+    :raises TypeError: the field was not a string.
+    """
+    protocol = _only_peer(adapter)["transport_protocol_type"]
     if not isinstance(protocol, str):
         err_msg = f"transport_protocol_type was {protocol!r}, not a string"
         raise TypeError(err_msg)
     return protocol
+
+
+def _session_id(adapter: NodeAdapter) -> str:
+    """Return the one peer's own `session_id`, or raise.
+
+    :param adapter: a node with exactly one peer connected.
+    :raises TypeError: the field was not a string.
+    """
+    session_id = _only_peer(adapter)["session_id"]
+    if not isinstance(session_id, str):
+        err_msg = f"session_id was {session_id!r}, not a string"
+        raise TypeError(err_msg)
+    return session_id
 
 
 def _pair(
@@ -79,7 +105,10 @@ def v2transport_1_connects_nodes_over_bip324(
     cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
-    """Check `-v2transport=1` on both sides: `getpeerinfo` answers `v2`.
+    """Check `-v2transport=1` on both sides: `v2`, and one `session_id`.
+
+    BIP324 derives the session id from the handshake, so both ends read
+    the same non-empty one.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
@@ -88,6 +117,8 @@ def v2transport_1_connects_nodes_over_bip324(
     connect_nodes(first, second, v2transport=True)
     assert _transport_protocol(first) == "v2"
     assert _transport_protocol(second) == "v2"
+    assert _session_id(first)
+    assert _session_id(first) == _session_id(second)
 
 
 def v2transport_0_connects_nodes_over_v1(

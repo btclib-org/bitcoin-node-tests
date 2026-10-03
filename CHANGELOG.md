@@ -1523,3 +1523,9 @@ setting section 11 of the standard states (issue btclib-org/.github#1540).
 *The review* says the maintainer lands their own pull requests through the
 bypass, and that the `two_person_review` criterion is unmet because the ack
 is a bot's (issue btclib-org/.github#452).
+
+### `BtclibNodeAdapter` declares `Capability.V2TRANSPORT` for a build with `-v2transport`
+
+A probe of `cli.build_config` declares it on btclib-node's `main` and not on
+the PyPI release. The BIP324 test runs on `main` and checks that both ends
+read one `session_id` (closes #392).

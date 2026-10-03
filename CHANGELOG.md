@@ -1517,3 +1517,9 @@ setting section 11 of the standard states (issue btclib-org/.github#1540).
 `CONTRIBUTING.md`'s shared half says a pull request whose commits lack the
 `Signed-off-by:` trailer cannot merge, and `REPOSITORY.md` lists
 `lint / Sign-off` among the required checks (issue btclib-org/.github#1550).
+
+### `CONTRIBUTING.md` says the ack of record is a bot's
+
+*The review* says the maintainer lands their own pull requests through the
+bypass, and that the `two_person_review` criterion is unmet because the ack
+is a bot's (issue btclib-org/.github#452).

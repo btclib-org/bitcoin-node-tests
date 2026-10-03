@@ -1500,3 +1500,9 @@ stands in (issue btclib-org/.github#1527).
 A bitcoind before `v30.0` refuses a child of two parents when one is in the
 mempool (bitcoin/bitcoin#31385) and bounds the orphanage by count alone
 (bitcoin/bitcoin#31829). Those checks assert what each build does (issue #354).
+
+### `dependabot.yml` does not say that every workflow passes `--locked`
+
+`.github/dependabot.yml` says the workflows install from `uv.lock` with
+`--locked`, bar `node-integration.yml`, which installs btclib-node with `pip`
+(issue btclib-org/.github#1538).

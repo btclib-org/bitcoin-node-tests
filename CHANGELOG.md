@@ -1535,3 +1535,15 @@ read one `session_id` (closes #392).
 A probe of `cli.build_config` decides, as for `-v2transport`. `Peer` speaks
 v1 only, and btclib-node refuses v1 under `-v1transport=0`. A build without
 the flag gets no `-v1transport` (closes #395).
+
+### The maintainer's bypass is for emergencies
+
+`CONTRIBUTING.md` and `REVIEWING.md` say every pull request, the maintainer's
+included, lands with an approving review from somebody other than its author;
+the bypass is for emergencies (issue btclib-org/.github#1362).
+
+### Earlier entries on how a pull request lands
+
+Entries above that have the maintainer landing without another person's approval
+describe the rule before issue btclib-org/.github#1362 (issue
+btclib-org/.github#1569).

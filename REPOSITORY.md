@@ -100,6 +100,7 @@ nothing.
 | `lint / Lint and type-check` | `lint.yml`, calling `reusable-lint.yml` |
 | `bitcoind / Regtest against Bitcoin Core` | `node-integration.yml` |
 | `lint / Dependency review` | `lint.yml`, calling `reusable-lint.yml` |
+| `lint / Sign-off` | `lint.yml`, calling `reusable-lint.yml` |
 
 A job whose whole body is a call to a reusable workflow contributes no
 name of its own: the context joins the calling job's id to the called
@@ -194,7 +195,8 @@ gh api -X PATCH "$branch"/protection/required_status_checks \
    {"context": "docs / Build the documentation", "app_id": 15368},
    {"context": "lint / Lint and type-check", "app_id": 15368},
    {"context": "bitcoind / Regtest against Bitcoin Core", "app_id": 15368},
-   {"context": "lint / Dependency review", "app_id": 15368}]}
+   {"context": "lint / Dependency review", "app_id": 15368},
+   {"context": "lint / Sign-off", "app_id": 15368}]}
 JSON
 ```
 
@@ -207,7 +209,8 @@ gh api "$branch"/protection/required_status_checks \
 #            ["docs / Build the documentation",15368],
 #            ["lint / Lint and type-check",15368],
 #            ["bitcoind / Regtest against Bitcoin Core",15368],
-#            ["lint / Dependency review",15368]],
+#            ["lint / Dependency review",15368],
+#            ["lint / Sign-off",15368]],
 #  "strict":true}
 ```
 
@@ -374,6 +377,18 @@ gh api orgs/btclib-org/actions/permissions \
 The organization gives the same two answers, `sha_pinning_required`
 being set at that level: [section 11 has the reasons for both
 fields](https://github.com/btclib-org/.github/blob/main/README.md#tokens-publishing-scanning).
+
+## Sign-off on web commits
+
+```shell
+gh api repos/btclib-org/bitcoin-node-tests --jq .web_commit_signoff_required
+# true
+gh api orgs/btclib-org --jq .web_commit_signoff_required
+# true
+```
+
+Set at the organization level, [for the reason section 11
+gives](https://github.com/btclib-org/.github/blob/main/README.md#signatures).
 
 ## Publishing
 
@@ -567,8 +582,8 @@ back with a call of its own.
 
 **A switch no section of the standard states a rule for stays out.**
 `allow_forking`, `allow_update_branch`, `has_discussions`,
-`has_downloads`, `is_template` and `web_commit_signoff_required` are in
-that document and no section above reads any of them back.
+`has_downloads` and `is_template` are in that document and no section
+above reads any of them back.
 
 **A credential this repository spends and does not hold.**
 `claude-review.yml` reads `secrets.CLAUDE_CODE_OAUTH_TOKEN`, which

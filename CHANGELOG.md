@@ -1506,3 +1506,20 @@ mempool (bitcoin/bitcoin#31385) and bounds the orphanage by count alone
 `.github/dependabot.yml` says the workflows install from `uv.lock` with
 `--locked`, bar `node-integration.yml`, which installs btclib-node with `pip`
 (issue btclib-org/.github#1538).
+
+### `REPOSITORY.md` reads back the web sign-off setting
+
+`REPOSITORY.md` reads `web_commit_signoff_required` back, the organization
+setting section 11 of the standard states (issue btclib-org/.github#1540).
+
+### The `Sign-off` check is required
+
+`CONTRIBUTING.md`'s shared half says a pull request whose commits lack the
+`Signed-off-by:` trailer cannot merge, and `REPOSITORY.md` lists
+`lint / Sign-off` among the required checks (issue btclib-org/.github#1550).
+
+### `CONTRIBUTING.md` says the ack of record is a bot's
+
+*The review* says the maintainer lands their own pull requests through the
+bypass, and that the `two_person_review` criterion is unmet because the ack
+is a bot's (issue btclib-org/.github#452).

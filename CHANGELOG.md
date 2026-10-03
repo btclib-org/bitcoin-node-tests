@@ -1538,5 +1538,12 @@ the flag gets no `-v1transport` (closes #395).
 
 ### The maintainer's bypass is for emergencies
 
-Every pull request, the maintainer's included, lands with an approving review
-from somebody other than its author (issue btclib-org/.github#1362).
+`CONTRIBUTING.md` and `REVIEWING.md` say every pull request, the maintainer's
+included, lands with an approving review from somebody other than its author;
+the bypass is for emergencies (issue btclib-org/.github#1362).
+
+### Earlier entries on how a pull request lands
+
+Entries above that have the maintainer landing without another person's approval
+describe the rule before issue btclib-org/.github#1362 (issue
+btclib-org/.github#1569).

@@ -1529,3 +1529,8 @@ is a bot's (issue btclib-org/.github#452).
 A probe of `cli.build_config` declares it on btclib-node's `main` and not on
 the PyPI release. The BIP324 test runs on `main` and checks that both ends
 read one `session_id` (closes #392).
+
+### The maintainer's bypass is for emergencies
+
+Every pull request, the maintainer's included, lands with an approving review
+from an owner other than its author (issue btclib-org/.github#1362).

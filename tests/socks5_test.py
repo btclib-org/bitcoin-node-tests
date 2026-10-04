@@ -304,7 +304,7 @@ def test_close_does_not_wait_out_a_client_still_negotiating() -> None:
         assert _receive(client, 2) == bytes([5, 0])
         start = time.monotonic()
         proxy.close()
-        assert time.monotonic() - start < 5
+        assert time.monotonic() - start < proxy._timeout / 2
         with pytest.raises(ConnectionError, match="after 0 of 4 octets"):
             proxy.next_request()
 
@@ -435,7 +435,7 @@ def test_close_ends_a_forwarding_at_both_ends() -> None:
             with far:
                 start = time.monotonic()
                 proxy.close()
-                assert time.monotonic() - start < 5
+                assert time.monotonic() - start < proxy._timeout / 2
                 assert client.recv(1) == b""
                 assert far.recv(1) == b""
 

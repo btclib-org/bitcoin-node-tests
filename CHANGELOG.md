@@ -1558,3 +1558,9 @@ rebase over a landing that wrote an entry stops on a conflict here
 `CONTRIBUTING.md`'s emergency paragraph says `--admin` skips the
 required checks too, and `REVIEWING.md`'s "hold the merge" excepts it
 (issue btclib-org/.github#1597).
+
+### Tests bound a wait by the timeout of what they test
+
+`tests/peer_test.py` and `tests/socks5_test.py` bound a measured wait by
+half the timeout the peer or proxy is given, not by seconds
+(issue btclib-org/.github#1587).

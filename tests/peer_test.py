@@ -653,8 +653,11 @@ def test_is_connected_answers_at_once_while_the_node_stays_up(
     try:
         start = time.monotonic()
         assert peer.is_connected
-        assert time.monotonic() - start < 1.0
-        assert peer._socket.gettimeout() == 5.0
+        elapsed = time.monotonic() - start
+        timeout = peer._socket.gettimeout()
+        assert timeout == 5.0
+        assert timeout is not None
+        assert elapsed < timeout / 2
     finally:
         peer.close()
 

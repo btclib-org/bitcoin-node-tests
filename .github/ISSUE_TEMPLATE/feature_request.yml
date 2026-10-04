@@ -1,7 +1,7 @@
 ---
 name: Feature request
 description: Add something to bitcoin-node-tests, or change how it works
-labels: [enhancement]
+type: Feature
 
 body:
   - type: markdown

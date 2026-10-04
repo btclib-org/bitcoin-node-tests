@@ -1552,3 +1552,9 @@ btclib-org/.github#1569).
 The issue forms set a type, not a kind label. `.gitattributes` goes, so a
 rebase over a landing that wrote an entry stops on a conflict here
 (issue btclib-org/.github#1584) (issue btclib-org/.github#1582).
+
+### `--admin` waits for no required check
+
+`CONTRIBUTING.md`'s emergency paragraph says `--admin` skips the
+required checks too, and `REVIEWING.md`'s "hold the merge" excepts it
+(issue btclib-org/.github#1597).

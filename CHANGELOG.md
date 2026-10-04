@@ -1564,3 +1564,9 @@ required checks too, and `REVIEWING.md`'s "hold the merge" excepts it
 `tests/peer_test.py` and `tests/socks5_test.py` bound a measured wait by
 half the timeout the peer or proxy is given, not by seconds
 (issue btclib-org/.github#1587).
+
+### `check-changelog` refuses an entry added to an older release
+
+- **A `###` heading under a release older than the newest, absent from
+  the file at the merge base with `origin/main`, is refused**
+  (issue btclib-org/.github#1614).

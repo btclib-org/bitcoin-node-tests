@@ -14,10 +14,8 @@ standard gives it to a repository that publishes, and this tree is
 tier 2, owing no release (CONTRIBUTING.md's *A version, and no
 release*).
 
-A test rather than a reading because `.gitattributes` marks the file
-`merge=union`: the driver never conflicts, so a branch carrying a count
-paragraph restores it on a rebase with nothing in the merge output to
-say so.
+A test rather than a reading because two branches moving a count to the
+same number merge in silence, with nothing in the merge output to say so.
 """
 
 import re

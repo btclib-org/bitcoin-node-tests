@@ -21,8 +21,7 @@ beside it (section 2 of that standard gives that file to a tier-1 tree).
 
 Neither this file nor any release notes file this tree gains states how
 many entries it holds: a stated number is a line every open branch has
-to edit, and this file carries a union merge driver that would keep both
-sides' numbers.
+to edit, and two branches moving it to the same number merge in silence.
 
 ## v0 (work in progress, not released yet)
 
@@ -1547,3 +1546,9 @@ the bypass is for emergencies (issue btclib-org/.github#1362).
 Entries above that have the maintainer landing without another person's approval
 describe the rule before issue btclib-org/.github#1362 (issue
 btclib-org/.github#1569).
+
+### The forms set a type, and the history files lose merge=union
+
+The issue forms set a type, not a kind label. `.gitattributes` goes, so a
+rebase over a landing that wrote an entry stops on a conflict here
+(issue btclib-org/.github#1584) (issue btclib-org/.github#1582).

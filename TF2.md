@@ -3557,13 +3557,15 @@ at the default ancestor limit, refused `too-long-mempool-chain`.
 `mempool_package_limits.py`'s `btclib-node` cells are a counted skip on
 `Capability.PACKAGE_ACCEPTANCE`, ahead of `Capability.MINE`.
 `mempool_updatefromblock.py`'s chain-length case is a counted skip on
-`Capability.GENERATE`, for its own `generateblock`, ahead of `Capability.MINE`.
-Its tournament asks for `Capability.MINE` alone. It runs wherever
-`Capability.MINE` is declared, and
-`test_reorg_recomputes_every_entry_s_own_ancestors_and_descendants` fails there
-on the ancestor and descendant counts
-([ISS bitcoin-node-tests#394](https://github.com/btclib-org/bitcoin-node-tests/issues/394)).
-The row's cell stays the chain case's skip until that is worked.
+`Capability.GENERATE`, for its own `generateblock`, ahead of
+`Capability.MINE`. Its tournament asks for `Capability.MINE` alone, and
+passes on the released `btclib-node` and on its `main`:
+`getmempoolentry` (`get_mempool_entry` in `rpc/callbacks.py`) answers the
+ancestor and descendant counts and sizes it reads. It confirms the
+transactions it mines with `MiniWallet.generate(confirm=...)`, since
+`BtclibNodeAdapter.mine` builds a block of the coinbase alone, where
+bitcoind's `generatetoaddress` takes the whole mempool. On either build
+the row's cell is the chain case's skip.
 
 `p2p_leak_tx.py`'s own rows are the clock and MiniWallet families
 together, each subject its own pytest function over `Peer` and

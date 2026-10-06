@@ -814,8 +814,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_invalid_messages.py` (addrv2 long, log) | same | same | pass | skip |
 | `p2p_invalid_messages.py` (addrv2 net id, wire) | same | same | pass | pass |
 | `p2p_invalid_messages.py` (addrv2 net id, log) | same | same | pass | skip |
-| `p2p_leak.py` (wire) | `01b8a117d2c5` | 2026-06-04 | pass | pass |
-| `p2p_leak.py` (log) | `01b8a117d2c5` | 2026-06-04 | pass | skip |
+| `p2p_leak.py` (wire) | `36775471f81a` | 2026-09-09 | pass | pass |
+| `p2p_leak.py` (log) | same | same | pass | skip |
+| `p2p_leak.py` (version boundary) | same | same | pass | pass |
 | `p2p_handshake.py` (wire) | `3fd68a95e68b` | 2026-04-07 | pass | fail ([ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)) on the build; pass on a build past [ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133) |
 | `p2p_handshake.py` (log) | same | same | pass | skip |
 | `p2p_handshake.py` (services, wire) | same | same | pass | skip |
@@ -918,7 +919,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_initial_headers_sync.py` (stall, log) | same | same | pass | skip |
 | `p2p_initial_headers_sync.py` (noban, wire) | same | same | pass | skip |
 | `p2p_initial_headers_sync.py` (noban, log) | same | same | pass | skip |
-| `p2p_sendtxrcncl.py` | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | skip (tx_reconciliation) |
+| `p2p_sendtxrcncl.py` | [`2fabbc0bb38d`](https://github.com/bitcoin/bitcoin/commit/2fabbc0bb38d) | 2026-09-09 | pass | skip (tx_reconciliation) |
 | `p2p_sendtxrcncl.py` (bloom) | same | same | pass | skip (tx_reconciliation) |
 | `p2p_sendtxrcncl.py` (outbound) | same | same | pass | skip |
 | `p2p_sendtxrcncl.py` (outbound, log) | same | same | pass | skip |
@@ -942,8 +943,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_mutated_blocks.py` (log) | same | same | pass | skip |
 | `p2p_mutated_blocks.py` (missing parent, wire) | same | same | pass | skip (mine) on the build; pass on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_mutated_blocks.py` (missing parent, log) | same | same | pass | skip |
-| `feature_anchors.py` | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | skip (typed_outbound) |
-| `feature_anchors.py` (onion) | same | same | pass | skip (typed_outbound) |
+| `feature_anchors.py` | [`ddf033054ff6`](https://github.com/bitcoin/bitcoin/commit/ddf033054ff6) | 2026-09-11 | pass, the network-off step asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
+| `feature_anchors.py` (onion) | same | same | pass, the network-toggle steps asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 | `p2p_addr_selfannouncement.py` (inbound, wire) | [`dab7f2c984bd`](https://github.com/bitcoin/bitcoin/commit/dab7f2c984bd) | 2026-07-07 | pass, the first address message asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
 | `p2p_addr_selfannouncement.py` (inbound, log) | same | same | pass, the first address message asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
 | `p2p_addr_selfannouncement.py` (outbound, wire) | same | same | pass | skip |
@@ -1069,7 +1070,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (mine) on the build; skip (test_activation_height) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), the null-data and bare-multisig checks per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | fail ([ISS btclib-node#1765](https://github.com/btclib-org/btclib-node/issues/1765)) |
 | `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass; skip (limit_cluster_size) on a build before the cluster mempool | skip (limit_cluster_size) |
-| `feature_minchainwork.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (minimum_chain_work) |
+| `feature_minchainwork.py` | [`c502b65c007b`](https://github.com/bitcoin/bitcoin/commit/c502b65c007b) | 2026-10-03 | pass | skip (minimum_chain_work) |
+| `feature_minchainwork.py` (outbound) | same | same | pass | skip |
 | `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mempool_graph) |
 | `feature_versionbits_warning.py` | [`5bd990a3ddb1`](https://github.com/bitcoin/bitcoin/commit/5bd990a3ddb1) | 2026-06-03 | pass, the reserved bit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
 | `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass, the replacement limit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (package_acceptance) |
@@ -1311,7 +1313,12 @@ the same Core test get their own row rather than being folded into a
 single pass/skip that would hide which half a `skip` was ever about.
 `p2p_leak.py`'s own earlier checks are not ported either way: they ask
 what a node sends before a handshake completes, not an `assert_debug_log`
-subject.
+subject. The one exception is the feature-negotiation version boundary
+(bitcoin/bitcoin#36152): a wire row of its own, with one verdict for every
+build of bitcoind measured and for `btclib-node`'s released build and
+`main`, so it needs no log half. `tests/integration/p2p_leak_test.py`'s own
+docstring has its steps, and `p2p_leak_btclib_node_test.py`'s what an
+earlier release does.
 
 `p2p_invalid_messages.py` gains more rows of the same shape (issue #5),
 one pair per Core assertion rather than one pair for the whole file:
@@ -2905,11 +2912,14 @@ A value that is not hex refuses the start in Core's own words. It asks
 for `Capability.MINIMUM_CHAIN_WORK` beside `CLOCK`, `PEER_TIMEOUT`,
 `MINE` and `CONNECT`.
 `tests/integration/feature_minchainwork_test.py`'s own docstring has
-what differs from Core's file. The `bitcoind` cell is one verdict for
-the pinned release and for Core's `master`. `btclib-node`'s cell is a
-counted skip on `MINIMUM_CHAIN_WORK` on every build, `cli.py`
-registering no `-minimumchainwork` at the released build or at `main`,
-the floor being the chain's own `minimum_chain_work`
+what differs from Core's file. Core's
+`test_outbound_insufficient_work_disconnect` (bitcoin/bitcoin#36426) is the
+`(outbound)` row, a body of its own that asks for `MINIMUM_CHAIN_WORK`,
+`MINE`, `TYPED_OUTBOUND` and `DEBUG_LOG`. The `bitcoind` cell of each row
+is one verdict for the pinned release and for Core's `master`.
+`btclib-node`'s cell is a counted skip on `MINIMUM_CHAIN_WORK` on every
+build, `cli.py` registering no `-minimumchainwork` at the released build or
+at `main`, the floor being the chain's own `minimum_chain_work`
 ([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)).
 
 `mempool_packages.py` is ISS 14's too, though
@@ -4079,7 +4089,9 @@ dropped given a wire half and a log half. `-txreconciliation` is
 restarts with the `-peertimeout` Core's harness gives every node too, under
 `Capability.PEER_TIMEOUT`, so that a peer never sending `verack` is dropped
 for its `sendtxrcncl` rather than by the handshake timeout. The steps
-without `-txreconciliation` ask for none of these. bitcoind starts with
+without `-txreconciliation` ask for none of these. The first body's
+check at BIP339's lowest version passes on every `bitcoind` build
+measured, so each cell is one verdict. bitcoind starts with
 `-debug=txreconciliation` besides, the category the registered and forgotten
 peers' lines are written under.
 
@@ -4137,7 +4149,11 @@ address through a `Socks5Proxy` given as `-onion`, so it asks for `PROXY`
 besides. Each asks for `TYPED_OUTBOUND` and `DEBUG_LOG`, Core's own log
 lines being where the node's read of the file, and in the second its
 dump, are asserted. `btclib-node`'s cell on each is a counted skip on
-`TYPED_OUTBOUND`.
+`TYPED_OUTBOUND`. The steps bitcoin/bitcoin#34213 added ask for
+`SUSPEND_NETWORK`, and the onion body's for `ADDRESS_FETCH` and `CLOCK`
+too. No release carries the change, so they run only on a build new enough
+([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)); the
+module's own docstring has the steps, the version and its limit.
 
 `p2p_addr_selfannouncement.py` is ported on it too, in
 `tests/integration/p2p_addr_selfannouncement_test.py`, whose module

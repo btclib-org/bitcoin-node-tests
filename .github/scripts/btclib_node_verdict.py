@@ -197,6 +197,9 @@ _ROWS: dict[str, str] = {
     ),
     "p2p_leak::test_obsolete_version_disconnects_the_peer": "`p2p_leak.py` (wire)",
     "p2p_leak::test_obsolete_version_is_logged": "`p2p_leak.py` (log)",
+    "p2p_leak::test_feature_negotiation_starts_at_the_wtxid_version": (
+        "`p2p_leak.py` (version boundary)"
+    ),
     "p2p_handshake::test_redundant_verack_keeps_the_connection": (
         "`p2p_handshake.py` (wire)"
     ),
@@ -789,6 +792,9 @@ _ROWS: dict[str, str] = {
     "mempool_accept": "`mempool_accept.py`",
     "mempool_cluster": "`mempool_cluster.py`",
     "feature_minchainwork": "`feature_minchainwork.py`",
+    "feature_minchainwork::test_outbound_peers_with_too_little_work_are_dropped_in_ibd": (
+        "`feature_minchainwork.py` (outbound)"
+    ),
     "mempool_packages": "`mempool_packages.py`",
     "feature_versionbits_warning": "`feature_versionbits_warning.py`",
     "mempool_package_rbf": "`mempool_package_rbf.py`",

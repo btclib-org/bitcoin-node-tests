@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tests.integration.p2p_leak_test import (
+    feature_negotiation_starts_at_the_wtxid_version,
     obsolete_version_disconnects_the_peer,
     obsolete_version_is_logged,
 )
@@ -41,3 +42,10 @@ def test_obsolete_version_is_logged(
 ) -> None:
     """The oracle: the log half the body module names, over bitcoind."""
     obsolete_version_is_logged(bitcoind_adapter, skip_counts)
+
+
+def test_feature_negotiation_starts_at_the_wtxid_version(
+    bitcoind_adapter: BitcoindAdapter,
+) -> None:
+    """The oracle: the version boundary the body module names, over bitcoind."""
+    feature_negotiation_starts_at_the_wtxid_version(bitcoind_adapter)

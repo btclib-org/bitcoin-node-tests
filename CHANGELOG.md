@@ -1599,3 +1599,9 @@ without a response, or part of one, until the call times out
 
 btclib-node answers a `ping` in the order received, so the `ping` proves the
 `addrv2` before it was handled and no fixed wait precedes it (issue #125).
+
+### The ported tests carry the cases Core added after their pins
+
+The cases are those of bitcoin/bitcoin#34213, bitcoin/bitcoin#36426 and
+bitcoin/bitcoin#36152, and the `TF2.md` rows move to the commits ported
+(closes #407).

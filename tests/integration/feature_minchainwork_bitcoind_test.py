@@ -19,6 +19,7 @@ import pytest
 
 from tests.integration.feature_minchainwork_test import (
     block_relay_waits_for_the_minimum_chain_work,
+    outbound_peers_with_too_little_work_are_dropped_in_ibd,
 )
 
 if TYPE_CHECKING:
@@ -36,3 +37,13 @@ def test_block_relay_waits_for_the_minimum_chain_work(
 ) -> None:
     """The oracle: the body this module's docstring names, over bitcoind."""
     block_relay_waits_for_the_minimum_chain_work(bitcoind_cluster, skip_counts)
+
+
+def test_outbound_peers_with_too_little_work_are_dropped_in_ibd(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: the body this module's docstring names, over bitcoind."""
+    outbound_peers_with_too_little_work_are_dropped_in_ibd(
+        bitcoind_cluster, skip_counts
+    )

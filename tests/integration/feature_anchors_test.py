@@ -4,8 +4,8 @@
 
 """Core's `feature_anchors`, as bodies over either node.
 
-Read from Core's `test/functional/feature_anchors.py` (`fa4cb96bdec2`,
-2026-02-17): a node stopped cleanly writes the addresses of its
+Read from Core's `test/functional/feature_anchors.py` (`ddf033054ff6`,
+2026-09-11): a node stopped cleanly writes the addresses of its
 block-relay-only outbound peers, and no other, to `anchors.dat` in its
 chain directory, reads the file back on the next start, deletes it, and
 dials the addresses it held.
@@ -21,6 +21,21 @@ Each of Core's checks is a body over a fresh node:
   (`Capability.PROXY`), is written in BIP155's encoding with no service
   flag, and is dialled on the next start once the file names a peer
   offering the services the node asks for.
+
+Core's steps for bitcoin/bitcoin#34213 are in those two bodies: the anchors
+survive a network switched off. A node stopped after `setnetworkactive`
+false still writes the block-relay-only peers it held; one started with
+`-networkactive=0` neither tries nor deletes the file; the anchors are tried
+once the network is switched on; and anchors never tried are discarded at
+the next shutdown with the network active. They ask for
+`Capability.SUSPEND_NETWORK` besides. No release carries the change, so
+they run on a build whose `getnetworkinfo` `version` is `329900` or
+later. A `master` build from `32.99`'s move (`f3fec67c3e`, 2026-09-11) to
+the merge of that change (`802eb7daa9`, 2026-10-02) reports `329900`
+without it, and fails them. Core's `-seednode` given twice, an address
+nothing listens on (`Capability.ADDRESS_FETCH`), and a clock moved past
+the seednode retry timer (`Capability.CLOCK`), both asked for there, show
+the node has passed its connection loop with the network off.
 
 Every log line is one Core's own file asserts, over `Capability.DEBUG_LOG`.
 
@@ -39,6 +54,7 @@ having how.
 
 from __future__ import annotations
 
+import time
 from base64 import b32decode
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
@@ -50,9 +66,10 @@ from btclib.p2p.magic import magic_from_chain
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_ports
+from bitcoin_node_tests.node import free_ports, wait_until
 from bitcoin_node_tests.peer import Listener, Peer
 from bitcoin_node_tests.socks5 import Socks5Proxy
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -95,6 +112,21 @@ _DUMPED_ONE = (
 # Core's own `P2P_SERVICES` (`test_framework/p2p.py`)
 _P2P_SERVICES = ServiceFlags.NODE_NETWORK | ServiceFlags.NODE_WITNESS
 
+# the `getnetworkinfo` `version` from which anchors survive a network
+# switched off; the module docstring has why
+_ANCHORS_SURVIVE_VERSION = 329900
+
+# Core's own `SEED_NODE`, an address nothing listens on, given twice as
+# `-seednode`, and the line the node logs for each
+_SEED_NODE = "127.0.0.1:1"
+_SEED_ARGS = [f"-seednode={_SEED_NODE}", f"-seednode={_SEED_NODE}"]
+_SEED_LOG = f"adding seednode ({_SEED_NODE}) to addrfetch"
+
+# the retry timer of the second seednode, Core's `ADD_NEXT_SEEDNODE`, in
+# seconds
+_ADD_NEXT_SEEDNODE = 10
+_ANCHORS_TRIED = "block-relay-only anchors will be tried for connections"
+
 
 def _node(
     make_adapter: AdapterFactory,
@@ -132,6 +164,32 @@ def _connected(peer: Peer) -> Peer:
         peer.close()
         raise
     return peer
+
+
+def _anchors_survive_a_network_toggle(
+    node: BitcoindAdapter | BtclibNodeAdapter,
+) -> bool:
+    """Return whether this build keeps anchors across a switched-off network.
+
+    Read per build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)):
+    a node other than bitcoind is held to it.
+    """
+    version = bitcoind_version(node)
+    return version is None or version >= _ANCHORS_SURVIVE_VERSION
+
+
+def _wait_for_an_open_connections_pass(
+    node: BitcoindAdapter | BtclibNodeAdapter, log_path: Path
+) -> None:
+    """Core's own `wait_for_open_connections_pass`, over `-seednode` twice.
+
+    The retry timer is checked right before the anchors are selected and
+    reads the node's clock, so one past `_ADD_NEXT_SEEDNODE` makes the
+    next pass queue the second seednode, logged at the top of the one
+    after.
+    """
+    with assert_debug_log(log_path, [_SEED_LOG]):
+        node.set_mock_time(int(time.time()) + _ADD_NEXT_SEEDNODE + 1)
 
 
 def _hex_port(address: str) -> str:
@@ -185,6 +243,11 @@ def block_relay_only_peers_are_the_anchors(
                 else:
                     inbound_ports.append(port)
 
+            if _anchors_survive_a_network_toggle(node):
+                require(Capability.SUSPEND_NETWORK, node.capabilities, skip_counts)
+                node.rpc.call("setnetworkactive", [False])
+                wait_until(lambda: node.rpc.call("getpeerinfo") == [])
+
             node.stop()
 
         anchors = anchors_path.read_bytes()
@@ -224,15 +287,19 @@ def onion_anchor_is_dumped_and_dialled(
     """
     datadir = tmp_path / "datadir"
     with Socks5Proxy(authentication=True) as proxy:
-        node = _node(
-            make_adapter, cls, executable, datadir, [f"-onion={proxy.endpoint}"]
-        )
+        onion_arg = f"-onion={proxy.endpoint}"
+        node = _node(make_adapter, cls, executable, datadir, [onion_arg])
         require(Capability.TYPED_OUTBOUND, node.capabilities, skip_counts)
         require(Capability.PROXY, node.capabilities, skip_counts)
         log_path = _debug_log(node, skip_counts)
         anchors_path = datadir / "regtest" / "anchors.dat"
         try:
             node.start()
+            survives = _anchors_survive_a_network_toggle(node)
+            if survives:
+                require(Capability.ADDRESS_FETCH, node.capabilities, skip_counts)
+                require(Capability.CLOCK, node.capabilities, skip_counts)
+                require(Capability.SUSPEND_NETWORK, node.capabilities, skip_counts)
             node.add_outbound_connection((_ONION_HOST, _ONION_PORT), "block-relay-only")
             with assert_debug_log(log_path, [_DUMPED_ONE]):
                 node.stop()
@@ -249,11 +316,39 @@ def onion_anchor_is_dumped_and_dialled(
             # so the file is rewritten naming them, its checksum with it
             new_data = bytearray(data)[:-_CHECKSUM_SIZE]
             new_data[_SERVICES_INDEX] = _P2P_SERVICES
-            anchors_path.write_bytes(bytes(new_data) + hash256(new_data))
+            anchors_file = bytes(new_data) + hash256(new_data)
+            anchors_path.write_bytes(anchors_file)
 
-            with assert_debug_log(
-                log_path, [f"Trying to make an anchor connection to {_ONION_ADDR}"]
-            ):
+            if survives:
+                # started with the network off, the node keeps the file
+                with assert_debug_log(log_path, [_SEED_LOG], [_ANCHORS_TRIED]):
+                    node.restart(["-networkactive=0", *_SEED_ARGS])
+                _wait_for_an_open_connections_pass(node, log_path)
+                node.stop()
+
+            dialling = f"Trying to make an anchor connection to {_ONION_ADDR}"
+            with assert_debug_log(log_path, [dialling]):
                 node.start()
+
+            if survives:
+                # switched on, the node tries them
+                node.stop()
+                anchors_path.write_bytes(anchors_file)
+                with assert_debug_log(log_path, [_SEED_LOG]):
+                    node.restart(["-networkactive=0", onion_arg, *_SEED_ARGS])
+                _wait_for_an_open_connections_pass(node, log_path)
+                with assert_debug_log(log_path, [dialling], timeout=2):
+                    node.rpc.call("setnetworkactive", [True])
+
+                # anchors never tried are dropped at the next stop
+                node.stop()
+                anchors_path.write_bytes(anchors_file)
+                with assert_debug_log(log_path, [f"1 {_ANCHORS_TRIED}"]):
+                    node.restart(["-maxconnections=8"])
+                with assert_debug_log(
+                    log_path,
+                    ["DumpAnchors: Flush 0 outbound block-relay-only peer addresses"],
+                ):
+                    node.stop()
         finally:
             node.stop()

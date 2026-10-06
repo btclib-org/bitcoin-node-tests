@@ -10,7 +10,9 @@ target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
 of its own: PyPI's `2026.9.24` on `version_msg.version < PROTOCOL_VERSION`
 (`70016`), `main` on Core's own `MIN_PEER_PROTO_VERSION` (`31800`,
 `p2p/protocol_version.py`). Core's own 31799 is under either, so the wire
-half passes on both builds.
+half passes on both builds. The version boundary passes on PyPI's
+`2026.10.4` and on `main` (`6777a6a8`); `2026.9.24` closes the connection
+of its 70015 peer, under its floor, so the body fails there.
 
 The log half does not: `Capability.DEBUG_LOG` is not declared
 (`btclib_node.py`'s own `capabilities`), this node's own log carrying no
@@ -27,6 +29,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tests.integration.p2p_leak_test import (
+    feature_negotiation_starts_at_the_wtxid_version,
     obsolete_version_disconnects_the_peer,
     obsolete_version_is_logged,
 )
@@ -50,3 +53,10 @@ def test_obsolete_version_is_logged(
 ) -> None:
     """The target: skipped, this node's own log carrying no such wording."""
     obsolete_version_is_logged(btclib_node_adapter, skip_counts)
+
+
+def test_feature_negotiation_starts_at_the_wtxid_version(
+    btclib_node_adapter: BtclibNodeAdapter,
+) -> None:
+    """The target: the version boundary the body module names."""
+    feature_negotiation_starts_at_the_wtxid_version(btclib_node_adapter)

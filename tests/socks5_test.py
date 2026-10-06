@@ -6,12 +6,14 @@
 
 from __future__ import annotations
 
+import errno
 import socket
 import struct
 import tempfile
 import threading
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -394,15 +396,28 @@ def test_a_factory_answering_none_closes_the_connection() -> None:
             proxy.next_request()
 
 
-def test_what_forwarding_raises_is_queued_behind_the_request() -> None:
-    """A factory's own exception, and a refusal, follow their requests."""
-    with _destination() as server:
-        refused = _address(server)
-    answers: list[tuple[str, int]] = [refused]
+def test_what_forwarding_raises_is_queued_behind_the_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A factory's own exception, and a refusal, follow their requests.
+
+    The refusal is raised by a patched `create_connection`: a port freed by
+    closing a listener refuses only until another socket takes it, and a
+    connection to a bound socket that never listens hangs on macOS.
+    """
+    refused = ("refused.invalid", 8333)
+    connect = socket.create_connection
+
+    def create_connection(address: tuple[str, int], *args: Any, **kwargs: Any) -> Any:
+        if address == refused:
+            raise ConnectionRefusedError(errno.ECONNREFUSED, "refused")
+        return connect(address, *args, **kwargs)
+
+    monkeypatch.setattr(socket, "create_connection", create_connection)
 
     def factory(request: Socks5Request, client: str) -> tuple[str, int]:
         if request.host == b"refused":
-            return answers[0]
+            return refused
         err_msg = f"no destination for {request.host!r}"
         raise LookupError(err_msg)
 

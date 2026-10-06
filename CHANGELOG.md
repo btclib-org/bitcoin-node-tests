@@ -1570,3 +1570,9 @@ half the timeout the peer or proxy is given, not by seconds
 - **A `###` heading under a release older than the newest, absent from
   the file at the merge base with `origin/main`, is refused**
   (issue btclib-org/.github#1614).
+
+### A refused forwarding no longer depends on a free port
+
+`test_what_forwarding_raises_is_queued_behind_the_request` has the
+connection refused by a patched `socket.create_connection`, not by a freed
+port another socket can take (closes #401).

@@ -106,8 +106,8 @@ constraints. Do not use Fable unless instructed.
 - **The prose style -- tone, comments, docstrings, no history -- is
   section 9 of the organization standard**, which `CONTRIBUTING.md`'s
   *Documentation and comments* is the pointer to.
-- **A pull request adds no `CHANGELOG.md` entry**: `CONTRIBUTING.md`'s
-  *Pull requests*.
+- **The changelog and the release notes**: `CONTRIBUTING.md`'s *Pull requests*
+  says which pull request writes them.
 - **Never state how many of anything a file holds**: `tests/tf2_ledger_test.py`
   fails on a stated count in `TF2.md`.
 

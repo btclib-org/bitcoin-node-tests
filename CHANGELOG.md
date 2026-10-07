@@ -1588,3 +1588,9 @@ not `v2026.9.24`. The `mempool_accept`, `mempool_dust` and
 A bitcoind before `v31.0` refuses a package whose parent pays no fee
 (bitcoin/bitcoin#33892) and checks a reorged child's dust spend
 (bitcoin/bitcoin#33616); the bodies assert each (closes #354).
+
+### `rpc_echo_payload` calls a libevent build over a connection per call
+
+A bitcoind serving HTTP through libevent can leave a kept-alive connection
+without a response, or part of one, until the call times out
+(closes #415).

@@ -14,20 +14,18 @@ ledger's `btclib-node` column against the testcases of the JUnit report
 that row covers, printing every row whose outcome moved.
 
 **Which verdict a cell gives for which build.** A cell is either a
-single verdict, true of every build, or `; `-separated segments, each
-qualified by the build it is for, in the spelling the ledger's cells
-use:
+single verdict, true of every build, or two `; `-separated segments, in
+the spelling the ledger's cells use:
 
-- `<verdict> on the build` -- the build the row was measured against,
-  the PyPI release the `btclib-node` job installs (`release` below);
-- `<verdict> on a build past [ISS ...](...)`, optionally followed by
-  `and before [ISS ...](...)` -- a build carrying the first fix, and
-  not the second.
+- `<verdict> on the build` -- the PyPI release the `btclib-node` job
+  installs (`release` below);
+- `<verdict> on a build past [ISS ...](...)` -- a build carrying that
+  issue's fix, which btclib-node's own `main` (the `btclib-node-main`
+  job, `main` below) is read as being.
 
-The `btclib-node-main` job installs btclib-node's own `main`, read here
-(`main` below) as a build past every issue a cell names: its segment is
-the one bounded by `past` alone. Where `main` is not past one of them,
-that row reports a move, which is what the ledger's cell then owes.
+A cell keeps no verdict of an older build, and a segment bounded by a
+second issue (`and before [ISS ...]`) is refused as any other shape the
+ledger does not define.
 
 A verdict is `pass`, `skip` with or without a parenthetical,
 `fail ([ISS ...](...))` or `not ported`; `bitcoind only` is a whole cell
@@ -55,6 +53,13 @@ reported only where they fail. `btclib_node_verdict_test.py` holds the
 table to the tree both ways: every test function of every
 `*_btclib_node_test.py` module resolves, and every ledger row other than
 **bitcoind only** is some test's.
+
+**A teardown timeout is no verdict.** A node that ignores `terminate`
+for the whole wait raises `TimeoutError` in the fixture's teardown
+(btclib-org/btclib-node#1274), which pytest reports as an `<error>` of a
+test whose call already ended. That error does not decide the row: the
+call's own outcome does, and each such test is listed under a heading of
+its own, which does not change the exit status.
 
 It exits 1 wherever anything moved, a row that now passes included:
 each move is a cell of `TF2.md` no longer describing that build, and a
@@ -88,11 +93,16 @@ _VERDICTS = (
 )
 
 _ON_THE_BUILD = re.compile(r"(?P<verdict>.+) on the build")
-_ON_A_BUILD_PAST = re.compile(
-    rf"(?P<verdict>.+) on a build past {_ISS}(?P<before> and before {_ISS})?"
-)
+_ON_A_BUILD_PAST = re.compile(rf"(?P<verdict>.+) on a build past {_ISS}")
 
 _BITCOIND_ONLY = "bitcoind only"
+
+# the `<error>` pytest writes for the teardown timeout of
+# btclib-org/btclib-node#1274
+_TEARDOWN_TIMEOUT = re.compile(
+    r'failed on teardown with "TimeoutError: node process ignored terminate for '
+)
+_TEARDOWN_ISSUE = "btclib-org/btclib-node#1274"
 
 _SUFFIX = "_btclib_node_test"
 
@@ -923,7 +933,7 @@ def expected(row: str, cell: str, build: str) -> Expected | None:
             if build == "release":
                 found.append(match["verdict"])
         elif match := _ON_A_BUILD_PAST.fullmatch(segment):
-            if build == "main" and match["before"] is None:
+            if build == "main":
                 found.append(match["verdict"])
         else:
             msg = f"{row}: no build qualifier reads {segment!r}"
@@ -962,25 +972,51 @@ def ledger_cells(ledger_text: str) -> dict[str, str]:
     return cells
 
 
+def _is_teardown_timeout(error: ET.Element) -> bool:
+    """Return whether an `<error>` is btclib-org/btclib-node#1274's timeout."""
+    return _TEARDOWN_TIMEOUT.match(error.get("message") or "") is not None
+
+
 def parse_junit(path: Path) -> dict[str, str]:
     """Return `{"classname::name": status}` for every testcase a report holds.
 
     :param path: the JUnit XML report's own path.
     :returns: `"fail"` where a `<failure>` or an `<error>` child is
         present, `"skip"` where a `<skipped>` one is, `"pass"` otherwise.
+        A teardown timeout (`teardown_timeouts`) is not counted as an
+        `<error>`: the call's own outcome stands. Pytest writes a second
+        `<testcase>` of the same name for a teardown error after a call
+        that failed or skipped, so the outcomes of one name are merged
+        and the worst stands.
     """
     root = ET.parse(path).getroot()  # noqa: S314
     results: dict[str, str] = {}
     for case in root.iter("testcase"):
         key = f"{case.get('classname')}::{case.get('name')}"
-        if case.find("failure") is not None or case.find("error") is not None:
+        errors = [e for e in case.findall("error") if not _is_teardown_timeout(e)]
+        if case.find("failure") is not None or errors:
             status = "fail"
         elif case.find("skipped") is not None:
             status = "skip"
         else:
             status = "pass"
-        results[key] = status
+        results[key] = _outcome([results[key], status]) if key in results else status
     return results
+
+
+def teardown_timeouts(path: Path) -> list[str]:
+    """Return the testcases whose teardown timed out, as `parse_junit` keys.
+
+    :param path: the JUnit XML report's own path.
+    :returns: the sorted `classname::name` of each testcase carrying the
+        `<error>` of btclib-org/btclib-node#1274.
+    """
+    root = ET.parse(path).getroot()  # noqa: S314
+    return sorted(
+        f"{case.get('classname')}::{case.get('name')}"
+        for case in root.iter("testcase")
+        if any(_is_teardown_timeout(e) for e in case.findall("error"))
+    )
 
 
 def locate(key: str) -> tuple[str, str]:
@@ -1088,16 +1124,23 @@ def main() -> int:
     lines = moves(
         ledger_path.read_text(encoding="utf-8"), parse_junit(report_path), build
     )
+    timeouts = teardown_timeouts(report_path)
     print(f"### TF2.md's btclib-node column against the {build} build")
     print()
-    if not lines:
+    if lines:
+        print("Moved since TF2.md:")
+        print()
+        for line in lines:
+            print(line)
+    else:
         print("Nothing moved: every row agrees with TF2.md.")
-        return 0
-    print("Moved since TF2.md:")
-    print()
-    for line in lines:
-        print(line)
-    return 1
+    if timeouts:
+        print()
+        print(f"### Teardown timeouts ({_TEARDOWN_ISSUE}), not verdicts")
+        print()
+        for key in timeouts:
+            print(f"- `{key}`: the node ignored terminate; its call's outcome stands")
+    return 1 if lines else 0
 
 
 if __name__ == "__main__":

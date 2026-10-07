@@ -10,6 +10,8 @@ is what this adapter needs already served: `getblock`, `submitblock`,
 `src/btclib_node/rpc/callbacks.py`'s own dispatch table before this
 module was written.
 
+The measurements below are as of the PyPI release `2026.9.24`.
+
 `Capability.MINE` is declared per instance, by `_connects_alone`'s
 own probe. `mine` below builds and solves each block client-side and
 hands it to `submitblock`, and a node with no peer never leaves
@@ -25,11 +27,10 @@ the capability. Neither build names `generatetoaddress`, `generateblock`
 or `getblocktemplate` in `src/btclib_node/rpc/callbacks.py`'s own
 dispatch table, which is why `mine` builds the block itself.
 
-Independently, [ISS
-btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072) is
-what makes `p2p_getdata` itself fail on the released build: `block_db` never
-holds the genesis block, so neither `getblock` nor a p2p `getdata` can serve
-the one block a fresh regtest node -- mined or not -- starts at.
+At the released `2026.9.24`, `block_db` never holds the genesis block, so
+neither `getblock` nor a p2p `getdata` can serve the one block a fresh regtest
+node -- mined or not -- starts at
+([ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)).
 
 `Capability.BLK_FILES` is not declared either, and is not a gap this
 adapter is waiting on: `block_db.BlockDB` is its own on-disk format, not
@@ -78,12 +79,11 @@ returns `True`) also recognises those three keys, both having landed in
 the same commit. The class-level `capabilities` stays
 `frozenset({Capability.CONNECT})`, the fact true of every build; an
 instance built with an executable carrying `rpc.auth` gains
-`Capability.RPC_AUTH_CONFIG` on top of it. PyPI's `2026.9.24` release,
-what this repository's own `TF2_BTCLIB_NODE_PYTHON` names, predates that
-issue -- measured live to warn `ignoring unknown configuration value
-rpcauth` and start anyway rather than to enforce it -- so an instance
-built against it does not gain the capability; one built against a
-`main` carrying #1070 does.
+`Capability.RPC_AUTH_CONFIG` on top of it. A build predating that
+issue warns `ignoring unknown configuration value rpcauth` and starts
+anyway rather than enforcing it (measured live at the released
+`2026.9.24`), so an instance built against it does not gain the
+capability; one built against a build carrying #1070 does.
 
 `Capability.RPC_AUTH_NEGATION` is declared per instance too, by
 `_negates_rpcauth`'s own probe: a build whose `cli.py` reads `-noname` as

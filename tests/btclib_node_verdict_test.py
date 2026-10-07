@@ -16,6 +16,7 @@ from __future__ import annotations
 import ast
 import importlib.util
 import runpy
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -60,8 +61,19 @@ def _ledger(rows: list[tuple[str, str]]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _junit(cases: list[tuple[str, str, str]]) -> str:
-    """Build a JUnit report: one `(module stem, name, outcome)` per testcase."""
+_TIMEOUT = (
+    '<error message="failed on teardown with &quot;TimeoutError: node process'
+    ' ignored terminate for 30.0s and was killed&quot;">traceback</error>'
+)
+
+
+def _junit(
+    cases: list[tuple[str, str, str]], timed_out: frozenset[str] = frozenset()
+) -> str:
+    """Build a JUnit report: one `(module stem, name, outcome)` per testcase.
+
+    A testcase named in `timed_out` also carries the teardown timeout.
+    """
     inner = {
         "pass": "",
         "fail": '<failure message="boom">traceback</failure>',
@@ -69,7 +81,7 @@ def _junit(cases: list[tuple[str, str, str]]) -> str:
     }
     bodies = "".join(
         f'<testcase classname="{_PKG}.{stem}_btclib_node_test" name="{name}"'
-        f' time="0.01">{inner[outcome]}</testcase>'
+        f' time="0.01">{inner[outcome]}{_TIMEOUT if name in timed_out else ""}</testcase>'
         for stem, name, outcome in cases
     )
     return (
@@ -121,14 +133,13 @@ def test_expected_reads_one_verdict_per_build(verdict: ModuleType) -> None:
     )
 
 
-def test_expected_passes_over_a_bounded_segment_for_main(verdict: ModuleType) -> None:
-    """A segment `past` one issue and `before` another is not main's."""
-    cell = (
-        f"skip (inbound_eviction) on the build; skip (mine) on a build past"
-        f" {_ISS} and before {_ISS2}; not ported on a build past {_ISS2}"
-    )
-    assert verdict.expected("`x.py`", cell, "release").text == "skip (inbound_eviction)"
-    assert verdict.expected("`x.py`", cell, "main").text == "not ported"
+def test_expected_refuses_a_segment_bounded_by_a_second_issue(
+    verdict: ModuleType,
+) -> None:
+    """`and before` is no qualifier: a cell carries one issue per segment."""
+    cell = f"skip on the build; skip on a build past {_ISS} and before {_ISS2}"
+    with pytest.raises(verdict.LedgerError, match="no build qualifier reads"):
+        verdict.expected("`x.py`", cell, "main")
 
 
 def test_expected_reads_a_failing_verdict_on_the_build(verdict: ModuleType) -> None:
@@ -424,13 +435,14 @@ def _run(
     tmp_path: Path,
     cases: list[tuple[str, str, str]],
     build: str,
+    timed_out: frozenset[str] = frozenset(),
 ) -> int:
     """Write `_ROWS_LEDGER` and a report of `cases`, and run `main` on them."""
     _patch_rows(verdict, monkeypatch)
     ledger = tmp_path / "TF2.md"
     ledger.write_text(_ROWS_LEDGER, encoding="utf-8")
     report = tmp_path / "integration.xml"
-    report.write_text(_junit(cases), encoding="utf-8")
+    report.write_text(_junit(cases, timed_out), encoding="utf-8")
     monkeypatch.setattr(sys, "argv", ["prog", str(ledger), str(report), build])
     result: int = verdict.main()
     return result
@@ -458,25 +470,83 @@ def test_the_script_exits_with_main_s_own_status(
     assert excinfo.value.code == 2
 
 
+_CLEAN = [
+    ("a", "test_a", "pass"),
+    ("b", "test_b", "fail"),
+    ("c", "test_c", "skip"),
+    ("d", "test_d", "fail"),
+]
+
+
+def test_main_reports_a_passed_call_with_a_teardown_timeout_apart(
+    verdict: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The call passed, so the row agrees: no move, a heading, exit 0."""
+    result = _run(verdict, monkeypatch, tmp_path, _CLEAN, "main", frozenset({"test_a"}))
+    assert result == 0
+    assert capsys.readouterr().out == (
+        "### TF2.md's btclib-node column against the main build\n\n"
+        "Nothing moved: every row agrees with TF2.md.\n\n"
+        "### Teardown timeouts (btclib-org/btclib-node#1274), not verdicts\n\n"
+        f"- `{_PKG}.a_btclib_node_test::test_a`: the node ignored terminate;"
+        " its call's outcome stands\n"
+    )
+
+
+def test_main_reports_a_failed_call_with_a_teardown_timeout_twice(
+    verdict: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The call failed: the row moves, and the timeout is still listed."""
+    cases = [("a", "test_a", "fail"), *_CLEAN[1:]]
+    result = _run(verdict, monkeypatch, tmp_path, cases, "main", frozenset({"test_a"}))
+    assert result == 1
+    out = capsys.readouterr().out
+    assert "- **regression**: `a.py`" in out
+    assert "### Teardown timeouts (btclib-org/btclib-node#1274), not verdicts" in out
+    assert f"- `{_PKG}.a_btclib_node_test::test_a`" in out
+
+
 def test_main_says_nothing_moved(
     verdict: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Agreement prints the heading and one line, and exits 0."""
-    cases = [
-        ("a", "test_a", "pass"),
-        ("b", "test_b", "fail"),
-        ("c", "test_c", "skip"),
-        ("d", "test_d", "fail"),
-    ]
-    assert _run(verdict, monkeypatch, tmp_path, cases, "main") == 0
+    """A clean pass prints the heading and one line, and exits 0."""
+    assert _run(verdict, monkeypatch, tmp_path, _CLEAN, "main") == 0
     out = capsys.readouterr().out
     assert out == (
         "### TF2.md's btclib-node column against the main build\n\n"
         "Nothing moved: every row agrees with TF2.md.\n"
     )
+
+
+def test_parse_junit_keeps_the_call_s_outcome_under_a_teardown_timeout(
+    verdict: ModuleType, tmp_path: Path
+) -> None:
+    """Only the timeout's own `<error>` is set aside; any other one fails."""
+    report = tmp_path / "integration.xml"
+    report.write_text(
+        '<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest">'
+        f'<testcase classname="m" name="a">{_TIMEOUT}</testcase>'
+        f'<testcase classname="m" name="b"><skipped message="x"/>{_TIMEOUT}</testcase>'
+        '<testcase classname="m" name="c"><error message="failed on teardown with'
+        ' &quot;OSError: other&quot;"/></testcase>'
+        "</testsuite></testsuites>",
+        encoding="utf-8",
+    )
+    assert verdict.parse_junit(report) == {
+        "m::a": "pass",
+        "m::b": "skip",
+        "m::c": "fail",
+    }
+    assert verdict.teardown_timeouts(report) == ["m::a", "m::b"]
 
 
 def test_main_prints_a_move_and_exits_1(
@@ -571,3 +641,63 @@ def test_every_row_is_some_test_and_every_test_row_a_row(
     }
     assert reached == compared
     assert set(verdict._ROWS.values()) == compared
+
+
+_REAL_TESTS = """
+import pytest
+
+@pytest.fixture
+def node():
+    yield
+    raise TimeoutError("node process ignored terminate for 30.0s and was killed")
+
+def test_failed(node):
+    assert False
+
+def test_skipped(node):
+    pytest.skip("not declared")
+
+def test_passed(node):
+    pass
+"""
+
+
+def test_parse_junit_reads_what_pytest_writes_for_a_teardown_timeout(
+    verdict: ModuleType, tmp_path: Path
+) -> None:
+    """A call's own outcome stands, in the report pytest itself writes.
+
+    Pytest writes a second `<testcase>` of the same name for the teardown
+    error after a call that failed or skipped, so the report is generated
+    here rather than written by hand.
+    """
+    (tmp_path / "test_real.py").write_text(_REAL_TESTS, encoding="utf-8")
+    (tmp_path / "pytest.ini").write_text("[pytest]\n", encoding="utf-8")
+    report = tmp_path / "integration.xml"
+    subprocess.run(  # noqa: S603
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            "-p",
+            "no:randomly",
+            "--junitxml",
+            str(report),
+            str(tmp_path / "test_real.py"),
+        ],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+    )
+    assert verdict.parse_junit(report) == {
+        "test_real::test_failed": "fail",
+        "test_real::test_skipped": "skip",
+        "test_real::test_passed": "pass",
+    }
+    assert verdict.teardown_timeouts(report) == [
+        "test_real::test_failed",
+        "test_real::test_passed",
+        "test_real::test_skipped",
+    ]

@@ -2,10 +2,10 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_minchainwork`, one body over either node.
+"""Core's `feature_minchainwork`, as bodies over either node.
 
 Read from Core's `test/functional/feature_minchainwork.py`
-(`fa5f29774872`, 2025-12-16), an option and the clock beside
+(`c502b65c007b`, 2026-10-03), an option and the clock beside
 node-linking
 ([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
 three nodes in a line, each dialling the one before it, the second and
@@ -46,8 +46,21 @@ A refusal is Core's own `expected_msg`, matched against the whole stderr
 of a start that exited with a code other than `0` before its RPC
 answered, as `feature_includeconf_test.py` matches one.
 
+Core's last step, `test_outbound_insufficient_work_disconnect`, is a body
+of its own, `outbound_peers_with_too_little_work_are_dropped_in_ibd`, so
+that a node lacking `Capability.TYPED_OUTBOUND` or
+`Capability.DEBUG_LOG` still runs the first. A node started under
+`-minimumchainwork=0x1000` is in initial block download with a short chain
+of its own, and is sent that chain's headers, which it already holds:
+an inbound and a manual peer sending them are kept, with no log line of
+the check; an outbound full-relay and a block-relay-only peer sending them
+are dropped for "outbound peer headers chain has insufficient work". The
+chain is a few blocks mined into the node, not the third node's, and the
+manual peer is dialled with `addnode`, where Core's `addconnection` takes
+`manual` only on `master`.
+
 `feature_minchainwork_bitcoind_test.py` and
-`feature_minchainwork_btclib_node_test.py` run it,
+`feature_minchainwork_btclib_node_test.py` run each,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -58,23 +71,28 @@ import time
 from typing import TYPE_CHECKING
 
 import pytest
+from btclib.block.block_header import BlockHeader
 from btclib.p2p import GetHeaders, Headers, Ping, Pong
 from btclib.p2p.magic import magic_from_chain
 
+from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
+from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.mini_wallet import MiniWallet
 from bitcoin_node_tests.node import connect_nodes, sync_all
-from bitcoin_node_tests.peer import Peer
+from bitcoin_node_tests.peer import Listener, Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
-__all__ = ["block_relay_waits_for_the_minimum_chain_work"]
+__all__ = [
+    "block_relay_waits_for_the_minimum_chain_work",
+    "outbound_peers_with_too_little_work_are_dropped_in_ibd",
+]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -103,6 +121,15 @@ _CHECK_INTERVAL = 0.2
 
 # Core's own `sync_blocks` default timeout
 _SYNC_TIMEOUT = 60.0
+
+# Core's own `-minimumchainwork` for the node kept in initial block download
+_HIGH_MINIMUM_CHAIN_WORK = "-minimumchainwork=0x1000"
+
+# how many blocks the node's own chain has
+_CHAIN_LENGTH = 5
+
+# Core's own line for an outbound peer whose headers carry too little work
+_INSUFFICIENT_WORK = "outbound peer headers chain has insufficient work"
 
 # Core's own `expected_msg` for the refused start
 _INVALID_WORK = (
@@ -272,3 +299,83 @@ def block_relay_waits_for_the_minimum_chain_work(
 
     # a -minimumchainwork that is not hex refuses the start
     assert _refused_stderr(node0, ["-minimumchainwork=test"]) == _INVALID_WORK
+
+
+def _headers_of_the_chain(node: NodeAdapter) -> Headers:
+    """Return Core's own `msg_headers` over every block of `node`'s chain."""
+    height = node.rpc.call("getblockcount")
+    assert isinstance(height, int)
+    headers = []
+    for at in range(1, height + 1):
+        block_hash = node.rpc.call("getblockhash", [at])
+        raw = node.rpc.call("getblockheader", [block_hash, False])
+        assert isinstance(raw, str)
+        headers.append(BlockHeader.parse(bytes.fromhex(raw), check_validity=False))
+    return Headers(headers, check_validity=False)
+
+
+def _dialled_peer(node: NodeAdapter, connection_type: str) -> Peer:
+    """Have `node` dial a fresh listener as `connection_type`, and shake hands.
+
+    A `manual` connection is `addnode`'s `onetry`, over v1.
+    """
+    with Listener(_MAGIC) as listener:
+        if connection_type == "manual":
+            host, port = listener.address
+            node.rpc.call("addnode", [f"{host}:{port}", "onetry", False])
+        else:
+            node.add_outbound_connection(listener.address, connection_type)
+        peer = listener.accept()
+    try:
+        peer.handshake()
+    except BaseException:
+        peer.close()
+        raise
+    return peer
+
+
+def outbound_peers_with_too_little_work_are_dropped_in_ibd(
+    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """Core's own `test_outbound_insufficient_work_disconnect`.
+
+    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param skip_counts: the session's own tally.
+    :raises TypeError: the node declares `Capability.DEBUG_LOG` without
+        being the adapter that names a `debug_log_path`.
+    """
+    (node,) = cluster(1)
+    require(Capability.MINIMUM_CHAIN_WORK, node.capabilities, skip_counts)
+    require(Capability.MINE, node.capabilities, skip_counts)
+    require(Capability.TYPED_OUTBOUND, node.capabilities, skip_counts)
+    require(Capability.DEBUG_LOG, node.capabilities, skip_counts)
+    if not isinstance(node, BitcoindAdapter):
+        err_msg = f"{type(node).__name__} declares DEBUG_LOG, naming no debug.log"
+        raise TypeError(err_msg)
+
+    node.restart([_HIGH_MINIMUM_CHAIN_WORK])
+    MiniWallet(node).generate(_CHAIN_LENGTH)
+    assert _in_ibd(node) is True
+    headers = _headers_of_the_chain(node)
+
+    # inbound and manual peers are kept
+    with (
+        assert_debug_log(node.debug_log_path, [], [_INSUFFICIENT_WORK], timeout=0),
+        Peer(node.p2p_address, _MAGIC) as inbound,
+        _dialled_peer(node, "manual") as manual,
+    ):
+        inbound.handshake()
+        for peer in (inbound, manual):
+            peer.send(headers)
+            peer.sync_with_ping()
+            assert peer.is_connected
+
+    # the other two are dropped, each for the line
+    for connection_type in ("outbound-full-relay", "block-relay-only"):
+        with (
+            _dialled_peer(node, connection_type) as peer,
+            assert_debug_log(node.debug_log_path, [_INSUFFICIENT_WORK]),
+        ):
+            peer.send(headers)
+            peer.wait_for_disconnect()

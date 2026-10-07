@@ -235,6 +235,10 @@ tx_out_ser = "tx_out_ser"
 # a Core commit's own short sha, `feature_bip68_sequence.py`'s pin: its
 # middle characters spell `ba`, which typos reads as a misspelt "by"
 "ab41492c6ba7" = "ab41492c6ba7"
+# a Core commit's own short sha, the merge of bitcoin/bitcoin#34213 named by
+# `feature_anchors_test.py`: its middle characters spell `daa`, which typos
+# reads as a misspelt "data"
+"802eb7daa9" = "802eb7daa9"
 
 [tool.typos.type.verbatim]
 extend-glob = ["CHANGELOG.md", ".pre-commit-config.yaml", "TF2.md"]

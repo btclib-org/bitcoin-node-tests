@@ -4,8 +4,8 @@
 
 """Core's `p2p_sendtxrcncl`, as bodies over either node.
 
-Read from Core's `test/functional/p2p_sendtxrcncl.py` (`fa4cb96bdec2`,
-2026-02-17): BIP330's `sendtxrcncl`, which a node started with
+Read from Core's `test/functional/p2p_sendtxrcncl.py` (`2fabbc0bb38d`,
+2026-09-09): BIP330's `sendtxrcncl`, which a node started with
 `-txreconciliation` sends ahead of its `verack` to a peer that relays
 transactions, and which it registers, ignores or disconnects for when a
 peer sends it.
@@ -14,9 +14,10 @@ Each group of Core's own steps is a body over a fresh node, run with the
 options Core restarts its own with and, where `-txreconciliation` is one
 of them, the `-peertimeout` Core's harness gives every node:
 
-- sent to an inbound peer, ahead of the `verack`, and not to one below
-  BIP339's protocol version or one asking for no transaction relay, the
-  last also with `NODE_BLOOM` offered (`-peerbloomfilters`);
+- sent to an inbound peer, ahead of the `verack`, to one at BIP339's
+  protocol version and not to one below it or one asking for no
+  transaction relay, the last also with `NODE_BLOOM` offered
+  (`-peerbloomfilters`);
 - sent to a full-relay outbound peer and not to a block-relay-only one, a
   feeler or an addr-fetch one, and a block-relay-only peer sending it
   dropped;
@@ -98,8 +99,10 @@ type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
 # Core's `P2P_SERVICES` (`test_framework/p2p.py`)
 _SERVICES = ServiceFlags.NODE_NETWORK | ServiceFlags.NODE_WITNESS
 
-# BIP339's `WTXID_RELAY_VERSION` less one, Core's own pre-wtxid peer
-_PRE_WTXID_VERSION = 70015
+# BIP339's `WTXID_RELAY_VERSION`, and the version less one, Core's own
+# pre-wtxid peer
+_WTXID_VERSION = 70016
+_PRE_WTXID_VERSION = _WTXID_VERSION - 1
 
 # `TXRECONCILIATION_VERSION` (`src/node/txreconciliation.h`)
 _TXRECONCILIATION_VERSION = 1
@@ -253,6 +256,10 @@ def sendtxrcncl_is_sent_to_inbound_peers_relaying_transactions(
 
     peer, _ = _connect_inbound(node, version=_PRE_WTXID_VERSION)
     assert _received(peer) is None
+    _close(node, peer)
+
+    peer, _ = _connect_inbound(node, version=_WTXID_VERSION, relay=True)
+    assert _received(peer) is not None
     _close(node, peer)
 
     peer, _ = _connect_inbound(node, relay=False)

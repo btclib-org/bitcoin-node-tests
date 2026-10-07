@@ -2,14 +2,34 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_leak`, one body per half over either node.
+"""Core's `p2p_leak`: an obsolete version and a feature-negotiation boundary.
 
-Read from Core's `test/functional/p2p_leak.py` (`01b8a117d2c5`,
-2026-06-04)'s own closing check, "old peers are disconnected", rather
-than ported whole: the rest of `P2PLeakTest.run_test` asks what a node
-sends *before* a handshake completes and what a `version` message itself
-carries, neither an `assert_debug_log` subject and so outside the log
-family (issue #5) this step is.
+The obsolete version has a wire body and a log body, the boundary a wire
+body, each over either node.
+
+Read from Core's `test/functional/p2p_leak.py` (`36775471f81a`,
+2026-09-09)'s own closing check, "old peers are disconnected", and its
+feature-negotiation version boundary, rather than ported whole: the rest
+of `P2PLeakTest.run_test` asks what a node sends *before* a handshake
+completes and what a `version` message itself carries, which are fields
+and orderings each implementation chooses for itself.
+
+The boundary is the one part of that check ported: it asks only which
+commands reach a peer. BIP339 requires `wtxidrelay` for a peer at 70016 or
+higher, and BIP434 forbids a `feature` to a peer below 70017. No BIP fixes
+the rest: Core withholds `wtxidrelay` below 70016, and sends `sendaddrv2`
+only from 70016, as a courtesy to nodes that reject messages they do not
+know (BIP155 sets no minimum version; `net_processing.cpp`, `v31.1`). The
+body holds a node to Core's behaviour there.
+
+It is Core's two peers that send a `version` and no `verack`, at 70015 and
+at exactly 70016
+(BIP339's `WTXID_RELAY_VERSION`): the node sends `wtxidrelay` and
+`sendaddrv2` to the second and to the first neither, and sends neither of
+them a `feature`. Where Core waits for each peer's own timeout and reads
+what it received, `feature_negotiation_starts_at_the_wtxid_version`
+reads up to the node's `verack`, which comes after the messages
+negotiated.
 
 Core's own check wraps the send in `assert_debug_log(["using obsolete
 version 31799, disconnecting peer=5"])` and then calls
@@ -23,7 +43,7 @@ own `nVersion < MIN_PEER_PROTO_VERSION` (`node/protocol_version.h`,
 count in its longer test rather than a fact of the obsolete-version
 check itself.
 
-`p2p_leak_bitcoind_test.py` and `p2p_leak_btclib_node_test.py` run both,
+`p2p_leak_bitcoind_test.py` and `p2p_leak_btclib_node_test.py` run each,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -44,6 +64,7 @@ if TYPE_CHECKING:
     from bitcoin_node_tests.capability import SkipCounts
 
 __all__ = [
+    "feature_negotiation_starts_at_the_wtxid_version",
     "obsolete_version_disconnects_the_peer",
     "obsolete_version_is_logged",
 ]
@@ -52,6 +73,10 @@ _MAGIC = magic_from_chain("regtest")
 # Core's own `create_old_version`, and the exact version its test picks:
 # one below `MIN_PEER_PROTO_VERSION` (`node/protocol_version.h`, 31800).
 _OBSOLETE_VERSION = 31799
+# BIP339's `WTXID_RELAY_VERSION`, where feature negotiation starts, and
+# the version below it
+_WTXID_RELAY_VERSION = 70016
+_PRE_WTXID_RELAY_VERSION = _WTXID_RELAY_VERSION - 1
 
 
 def _send_obsolete_version(peer: Peer) -> None:
@@ -96,3 +121,42 @@ def obsolete_version_is_logged(
     ):
         _send_obsolete_version(peer)
         peer.wait_for_disconnect()
+
+
+def _commands_before_verack(
+    adapter: BitcoindAdapter | BtclibNodeAdapter, version: int
+) -> list[str]:
+    """Send a `version` of `version` and no `verack`, and read up to the node's.
+
+    :returns: every command the node sent, `verack` last.
+    """
+    with Peer(adapter.p2p_address, _MAGIC) as peer:
+        peer.send(
+            Version(
+                version=version,
+                services=ServiceFlags.NODE_NETWORK | ServiceFlags.NODE_WITNESS,
+                nonce=1,
+            )
+        )
+        commands: list[str] = []
+        while not commands or commands[-1] != "verack":
+            commands.append(peer.receive().command)
+        return commands
+
+
+def feature_negotiation_starts_at_the_wtxid_version(
+    adapter: BitcoindAdapter | BtclibNodeAdapter,
+) -> None:
+    """Check `wtxidrelay` and `sendaddrv2` go to a peer at 70016, not at 70015.
+
+    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    """
+    below = _commands_before_verack(adapter, _PRE_WTXID_RELAY_VERSION)
+    assert "wtxidrelay" not in below
+    assert "sendaddrv2" not in below
+    assert "feature" not in below
+
+    at = _commands_before_verack(adapter, _WTXID_RELAY_VERSION)
+    assert "wtxidrelay" in at
+    assert "sendaddrv2" in at
+    assert "feature" not in at

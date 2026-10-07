@@ -7,7 +7,7 @@ r"""Core's `feature_csv_activation`, rewritten on this harness: btclib-node.
 `feature_csv_activation_test.py` beside this module holds the bodies, run
 here against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). `Capability.TEST_ACTIVATION_HEIGHT` is not
-declared (`TF2.md`'s activation-trio paragraph has the measurement), and
+declared (`feature_dersig_btclib_node_test.py` has the measurement), and
 every body asks for it, so each is a counted skip.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>

@@ -25,7 +25,7 @@ automatically created hidden services"), first released in `v32.0.0`,
 after `v31.1` was cut and with `node/protocol_version.h`'s own
 `PROTOCOL_VERSION` left at `70016` either side of it -- BIP434's own
 protocol bump is a later, unrelated commit
-(`TF2.md`'s own citation for `p2p_bip434_feature.py`), so the p2p
+(`p2p_bip434_feature_bitcoind_test.py` cites it), so the p2p
 handshake version this suite already reads elsewhere cannot tell the two
 builds apart here. What can, and is read from the running build rather
 than assumed for the whole class

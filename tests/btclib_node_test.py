@@ -38,6 +38,7 @@ def test_capabilities_gain_rpc_auth_config_where_the_build_writes_a_cookie(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -59,6 +60,7 @@ def test_capabilities_gain_rpc_auth_negation_where_the_build_negates(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -80,6 +82,7 @@ def test_capabilities_gain_inbound_eviction_where_the_build_evicts(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -101,6 +104,7 @@ def test_capabilities_gain_mine_where_the_build_connects_alone(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset({Capability.CONNECT, Capability.MINE})
@@ -120,6 +124,7 @@ def test_capabilities_gain_ban_where_the_build_serves_a_ban_list(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset({Capability.CONNECT, Capability.BAN})
@@ -139,10 +144,33 @@ def test_capabilities_gain_min_relay_tx_fee_where_the_build_sets_it(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
         {Capability.CONNECT, Capability.MIN_RELAY_TX_FEE}
+    )
+
+
+def test_capabilities_gain_permit_bare_multisig_where_the_build_reads_it(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a `-permitbaremultisig` build declares it."""
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=False),
+        patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
+        patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
+        patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=True),
+    ):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities == frozenset(
+        {Capability.CONNECT, Capability.PERMIT_BARE_MULTISIG}
     )
 
 
@@ -160,6 +188,7 @@ def test_capabilities_gain_chain_tips_where_the_build_serves_them(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=True),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -181,6 +210,7 @@ def test_capabilities_gain_disconnect_where_the_build_serves_it(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=True),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -202,6 +232,7 @@ def test_capabilities_gain_v2transport_where_the_build_speaks_bip324(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=True),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
@@ -223,6 +254,7 @@ def test_capabilities_stay_connect_alone_where_the_build_does_not(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities is BtclibNodeAdapter.capabilities
@@ -296,6 +328,7 @@ def test_capabilities_drop_mine_on_another_chain(tmp_path: Path) -> None:
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(
             sys.executable, tmp_path, 18443, 18444, chain="signet"
@@ -575,6 +608,27 @@ def test_sets_min_relay_fee_is_false_where_the_parse_refuses() -> None:
     btclib_node_module._sets_min_relay_fee.cache_clear()
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
         assert btclib_node_module._sets_min_relay_fee("fake-python-pre-1332") is False
+
+
+def test_permits_bare_multisig_reads_the_probe_s_own_return_code() -> None:
+    """`_permits_bare_multisig` is `_BARE_MULTISIG_PROBE` exiting zero."""
+    btclib_node_module._permits_bare_multisig.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._permits_bare_multisig("fake-python-1497") is True
+    run.assert_called_once_with(
+        ["fake-python-1497", "-c", btclib_node_module._BARE_MULTISIG_PROBE],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_permits_bare_multisig_is_false_where_the_parse_refuses() -> None:
+    """A nonzero exit -- the flag refused or its value misread -- is `False`."""
+    btclib_node_module._permits_bare_multisig.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
+        assert (
+            btclib_node_module._permits_bare_multisig("fake-python-pre-1497") is False
+        )
 
 
 def test_speaks_v2_reads_the_probe_s_own_return_code() -> None:

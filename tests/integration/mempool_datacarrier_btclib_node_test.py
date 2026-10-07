@@ -6,12 +6,11 @@ r"""Core's `mempool_datacarrier`, rewritten on this harness: btclib-node.
 
 `mempool_datacarrier_test.py` beside this module holds each body, run
 here against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). Neither `Capability.DATACARRIER` nor
-`Capability.PERMIT_BARE_MULTISIG` is declared: measured against
-`cli.py`'s registered options, `_build_parser` on the released build
-and `_OPTIONS` on `main`, none of `-datacarrier`, `-datacarriersize`
-and `-permitbaremultisig` is one of its registered flags -- each body a
-counted skip on whichever of the two it asks for.
+btclib-org/btclib#2220). `Capability.DATACARRIER` is not declared, so each
+null-data body is a counted skip. `Capability.PERMIT_BARE_MULTISIG` is
+declared on `v2026.10.4` and `main`, where the bare-multisig body runs;
+`v2026.9.24` registers no `-permitbaremultisig`, and there it is a counted
+skip.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \

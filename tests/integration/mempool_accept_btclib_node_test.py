@@ -6,13 +6,13 @@ r"""Core's `mempool_accept`, rewritten on tf2's own harness: btclib-node.
 
 `mempool_accept_test.py` beside this module is the body, run here
 against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `Capability.PERMIT_BARE_MULTISIG` is not
-declared: measured against `cli.py`'s registered options,
-`_build_parser` on the released build and `_OPTIONS` on `main`,
-`-permitbaremultisig` is not one of its registered flags
-([ISS btclib-node#1497](https://github.com/btclib-org/btclib-node/issues/1497))
--- a counted skip on that capability alone, on every build, before
-`Capability.MINE` is asked for.
+btclib-org/btclib#2220). `Capability.PERMIT_BARE_MULTISIG` is declared on a
+build whose `cli.py` registers `-permitbaremultisig`: `v2026.10.4`
+(`f1732715`) and `main` (`6777a6a8`), where the body runs and fails on
+`testmempoolaccept` answering a confirmed transaction `missing-inputs`
+([ISS btclib-node#1765](https://github.com/btclib-org/btclib-node/issues/1765)).
+`v2026.9.24` (`422d2640`) registers none, and there the body is a counted
+skip on that capability, before `Capability.MINE` is asked for.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/mempool_accept_btclib_node_test.py

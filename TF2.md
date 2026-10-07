@@ -865,7 +865,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_setban.py` (bantime) | same | same | pass | skip (ban) on the build; pass on a build past [ISS btclib-node#1088](https://github.com/btclib-org/btclib-node/issues/1088) |
 | `p2p_disconnect_ban.py` (disconnectnode) | [`dcd90fbe54cf`](https://github.com/bitcoin/bitcoin/commit/dcd90fbe54cf) | 2026-04-07 | pass | skip (disconnect) on the build; pass on a build past [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193) |
 | `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass, the policy asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
-| `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
+| `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | fail ([ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594)) on the build; skip (dust_relay_fee) on a build past [ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594) |
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
 | `mempool_package_limits.py` | `fa5f29774872` | 2025-12-16 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 | `mempool_updatefromblock.py` | `fa6b05c96ffb` | 2026-03-12 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
@@ -1067,7 +1067,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_ibd_txrelay.py` (wire) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `p2p_ibd_txrelay.py` (log) | same | same | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (mine) on the build; skip (clock) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
 | `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (mine) on the build; skip (test_activation_height) on a build past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) |
-| `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), the null-data and bare-multisig checks per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (permit_bare_multisig) |
+| `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), the null-data and bare-multisig checks per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | fail ([ISS btclib-node#1765](https://github.com/btclib-org/btclib-node/issues/1765)) |
 | `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass; skip (limit_cluster_size) on a build before the cluster mempool | skip (limit_cluster_size) |
 | `feature_minchainwork.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (minimum_chain_work) |
 | `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mempool_graph) |
@@ -2827,11 +2827,23 @@ or past the first release carrying bitcoin/bitcoin#32800, and
 absent where it reads older
 ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
 the test file's own `_VSIZE_FIELDS_VERSION` naming the known limit.
-`btclib-node`'s cell is a counted skip on `PERMIT_BARE_MULTISIG` on
-every build, `cli.py` registering no `-permitbaremultisig` at the
-released build or at `main`
-([ISS btclib-node#1497](https://github.com/btclib-org/btclib-node/issues/1497)).
-Past it, the file's standardness refusals are the rules
+`btclib-node`'s cell is a fail
+([ISS btclib-node#1765](https://github.com/btclib-org/btclib-node/issues/1765)).
+A build past
+[ISS btclib-node#1497](https://github.com/btclib-org/btclib-node/issues/1497)
+-- the released build and `main` (`6777a6a8`) -- registers
+`-permitbaremultisig`, so the body runs past `PERMIT_BARE_MULTISIG` and
+`MINE`. An older build registers none, and there the body is a counted skip
+on `PERMIT_BARE_MULTISIG`. On the released build and on `main`,
+`testmempoolaccept` answers a confirmed transaction `missing-inputs` where
+the body expects `txn-already-known`, the first assertion to fail. Past it, the
+body also fails where an allowed transaction lacks `vsize_adjusted` and
+`vsize_bip141`, which `_reports_vsize_fields` expects of every node but a
+`bitcoind` before `_VSIZE_FIELDS_VERSION`
+([ISS btclib-node#1757](https://github.com/btclib-org/btclib-node/issues/1757)),
+and where `sendrawtransaction` refuses a replacement
+([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)).
+Past those, the file's standardness refusals are the rules
 [ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382)
 is about.
 
@@ -3731,14 +3743,13 @@ reflecting the sigop-adjusted floor. Its node restarts with a
 `OP_RETURN` padding of the transactions it builds, which a build without
 bitcoin/bitcoin#32406, first in `v30.0rc1`, refuses by default.
 
-Every `btclib-node` cell across this trio is a counted skip on its own
-option capability alone, ahead of `Capability.MINE` which every row also
-needs: `BtclibNodeAdapter` declares none of `DATACARRIER`,
-`PERMIT_BARE_MULTISIG`, `DUST_RELAY_FEE` or `BYTES_PER_SIGOP`, so `require`
-never reaches `Capability.MINE` at all. Measured at btclib-node `fbb226ef`,
-`cli.py` registers `-datacarrier`, `-datacarriersize`,
-`-permitbaremultisig` and `-dustrelayfee`, from `9fe1bfd9`, their help
-reading "not yet enforced", and does not register `-bytespersigop`.
+`BtclibNodeAdapter` declares `PERMIT_BARE_MULTISIG` on a build past
+[ISS btclib-node#1497](https://github.com/btclib-org/btclib-node/issues/1497),
+and none of `DATACARRIER`, `DUST_RELAY_FEE` or `BYTES_PER_SIGOP`. A body
+asking for one it does not declare is a counted skip ahead of
+`Capability.MINE`. `mempool_dust.py`'s refusal body fails on the released
+build ([ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594))
+and passes on `main`.
 
 `mempool_package_limits.py`'s row is a smaller claim than Core's own
 file: kept is one ancestor-side case (a chain of in-mempool ancestors, a

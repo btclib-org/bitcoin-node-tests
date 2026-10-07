@@ -57,6 +57,8 @@ from bitcoin_node_tests.mini_wallet import FEE, MiniWallet, build_fork
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    from btclib.tx import Tx
+
     from bitcoin_node_tests.bitcoind import BitcoindAdapter
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
@@ -135,6 +137,7 @@ def reorg_recomputes_every_entry_s_own_ancestors_and_descendants(
     mine_after = {2, 4}
     tx_ids: list[str] = []
     tx_vsizes: list[int] = []
+    unconfirmed: list[Tx] = []
     for i in range(_TOURNAMENT_SIZE):
         if i == 0:
             tx = wallet.send_self_transfer_multi(
@@ -151,9 +154,13 @@ def reorg_recomputes_every_entry_s_own_ancestors_and_descendants(
             )
         tx_ids.append(tx.id.hex())
         tx_vsizes.append(tx.vsize)
+        unconfirmed.append(tx)
         tx_count = i + 1
         if tx_count in mine_after:
-            node.mine(1)
+            # BtclibNodeAdapter.mine mines the coinbase alone;
+            # bitcoind's takes the mempool
+            wallet.generate(1, confirm=unconfirmed)
+            unconfirmed.clear()
             assert node.rpc.call("getmempoolinfo")["size"] == 0
 
     for block in fork_blocks:

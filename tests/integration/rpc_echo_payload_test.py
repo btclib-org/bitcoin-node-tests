@@ -26,6 +26,16 @@ across its calls, the adapter holding one per thread (`node.py`'s
 `create_new_rpc_connection` gives them, so up to `_CALLERS` requests
 are in flight at once.
 
+A bitcoind serving HTTP through libevent, as every release before `v32.0`
+does (bitcoin/bitcoin#35182, first in `v32.0rc1`), can leave a request on a
+kept-alive connection unanswered. The pull
+request adding Core's file (bitcoin/bitcoin#34927) failed in CI on it until
+libevent was removed, and notes that a new connection works around it.
+So a build whose `logging` lists the `libevent` category, which
+bitcoin/bitcoin#35597 removed, is called over a connection of its own per
+call, as `urlopen_transport` makes one. That is the one difference from
+Core's file, which keeps each caller's connection.
+
 `rpc_echo_payload_bitcoind_test.py` and
 `rpc_echo_payload_btclib_node_test.py` run it,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -37,14 +47,19 @@ import random
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
-from bitcoin_core_rpc import HttpError, RpcError
+from bitcoin_core_rpc import (
+    BitcoinCoreRpcClient,
+    HttpError,
+    RpcError,
+    urlopen_transport,
+)
 
+from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
     from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
@@ -63,15 +78,45 @@ _DECODE_FAILED = "TX decode failed. Make sure the tx has at least one input."
 _SERVICE_UNAVAILABLE = 503
 
 
-def _call_repeatedly(node: NodeAdapter, data: str) -> None:
+def _serves_through_libevent(node: NodeAdapter) -> bool:
+    """Whether `node` is a bitcoind listing the `libevent` log category.
+
+    `logging` lists every category; a build past bitcoin/bitcoin#35597,
+    first in `v32.0rc1`, lists none of that name.
+    Any node but a bitcoind answers no.
+    """
+    if not isinstance(node, BitcoindAdapter):
+        return False
+    categories = node.rpc.call("logging")
+    assert isinstance(categories, dict)
+    return "libevent" in categories
+
+
+def _client_per_call(node: NodeAdapter) -> BitcoinCoreRpcClient:
+    """Return `node`'s client over a connection of its own for each call.
+
+    Covers a node authenticating by its cookie, as the cluster's are, and
+    not `--tracerpc`'s printing, which `NodeAdapter._rpc_transport` adds.
+    """
+    client = node.rpc
+    assert client.user is None, "a node with credentials of its own"
+    return BitcoinCoreRpcClient(
+        client.url,
+        cookie_path=client.cookie_path,
+        timeout=client.timeout,
+        transport=urlopen_transport,
+    )
+
+
+def _call_repeatedly(rpc: BitcoinCoreRpcClient, data: str) -> None:
     """Send random prefixes of `data`, accepting an answer or a refusal only."""
     for _ in range(_CALLS_PER_CALLER):
         payload = data[: random.randrange(len(data))]
         try:
             if random.getrandbits(1):
-                assert node.rpc.call("echo", [payload]) == [payload]
+                assert rpc.call("echo", [payload]) == [payload]
             else:
-                node.rpc.call("sendrawtransaction", [payload])
+                rpc.call("sendrawtransaction", [payload])
         except RpcError as e:
             if _DECODE_FAILED not in str(e):
                 raise
@@ -94,9 +139,13 @@ def a_payload_is_answered_or_refused_never_left_to_time_out(
     node.restart(["-rpcworkqueue=2", "-rpcthreads=2"])
     # json-serializable, but not hex
     data = "z" + random.randbytes(1_999_000).hex()
+    per_call = _serves_through_libevent(node)
     with ThreadPoolExecutor(max_workers=_CALLERS) as callers:
         futures = [
-            callers.submit(_call_repeatedly, node, data) for _ in range(_CALLERS)
+            callers.submit(
+                _call_repeatedly, _client_per_call(node) if per_call else node.rpc, data
+            )
+            for _ in range(_CALLERS)
         ]
     for future in futures:
         future.result()

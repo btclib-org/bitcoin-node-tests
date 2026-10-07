@@ -883,7 +883,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_presegwit_node_upgrade.py` | [`fad7bd9ba3ee`](https://github.com/bitcoin/bitcoin/commit/fad7bd9ba3ee) | 2026-01-14 | pass, the refusal's leading `": "` asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (test_activation_height) |
 | `rpc_validateaddress.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (validate_address) |
 | `p2p_addrfetch.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | skip (typed_outbound) |
-| `rpc_echo_payload.py` | [`fa7bc26d1276`](https://github.com/bitcoin/bitcoin/commit/fa7bc26d1276) | 2026-08-06 | pass | skip (rpc_work_queue) |
+| `rpc_echo_payload.py` | [`fa7bc26d1276`](https://github.com/bitcoin/bitcoin/commit/fa7bc26d1276) | 2026-08-06 | pass, a connection per call on a libevent build ([ISS 415](https://github.com/btclib-org/bitcoin-node-tests/issues/415)) | skip (rpc_work_queue) |
 | `p2p_compactblocks_blocksonly.py` | [`bf9884f4e55d`](https://github.com/bitcoin/bitcoin/commit/bf9884f4e55d) | 2026-06-18 | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (blocks_only) |
 | `rpc_getblockfilter.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (block_filter_index) |
 | `rpc_getblockfrompeer.py` | [`779f4446803d`](https://github.com/bitcoin/bitcoin/commit/779f4446803d) | 2026-05-25 | pass | skip (block_from_peer) |
@@ -1739,7 +1739,8 @@ promise, so the pair is `Capability.RPC_WORK_QUEUE` (`capability.py`)
 rather than a bitcoind-only row. A smaller claim than Core's own file:
 bitcoind's refusal is matched on its HTTP status alone,
 `bitcoin_core_rpc`'s own `HttpError` keeping the status and not the
-`Work queue depth exceeded` sent with it
+`Work queue depth exceeded` sent with it, and a bitcoind still serving HTTP
+through libevent being called over a connection per call
 (`tests/integration/rpc_echo_payload_test.py`'s own docstring).
 `btclib-node`'s cell is a counted skip on that capability: `cli.py`
 registers neither option, on the released build or on `main`

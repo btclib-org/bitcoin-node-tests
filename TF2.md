@@ -3561,10 +3561,7 @@ at the default ancestor limit, refused `too-long-mempool-chain`.
 `Capability.MINE`. Its tournament asks for `Capability.MINE` alone, and
 passes on the released `btclib-node` and on its `main`:
 `getmempoolentry` (`get_mempool_entry` in `rpc/callbacks.py`) answers the
-ancestor and descendant counts and sizes it reads. It confirms the
-transactions it mines with `MiniWallet.generate(confirm=...)`, since
-`BtclibNodeAdapter.mine` builds a block of the coinbase alone, where
-bitcoind's `generatetoaddress` takes the whole mempool. On either build
+ancestor and descendant counts and sizes it reads. On either build
 the row's cell is the chain case's skip.
 
 `p2p_leak_tx.py`'s own rows are the clock and MiniWallet families

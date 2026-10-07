@@ -356,7 +356,7 @@ upstream. That vendoring lives in `btclib`, not here.
 ```text
 repo    bitcoin/bitcoin
 path    test/functional/test_framework/crypto/secp256k1.py
-commit  3fd68a95e68b4c6f3bb6c59d41dd196001110f3a  2026-04-07
+commit  b6fc3cf0046d3106e0dfb30f320d48514eff6fb2  2026-09-28
 behind  0 revisions; that commit is the tip of the path
 ```
 
@@ -613,7 +613,7 @@ repository's.
 ```text
 repo    bitcoin/bitcoin
 path    test/functional/test_framework/test_framework.py
-commit  248ce46faf708a832b7922ae7ef9227dbcadf0e5  2026-09-22
+commit  3cb91bc7da67158fe6dc79886239f867245f1158  2026-10-06
 behind  0 revisions; that commit is the tip of the path
 ```
 
@@ -625,7 +625,7 @@ derives from.
 ```text
 repo    bitcoin/bitcoin
 path    test/functional/test_framework/test_node.py
-commit  d32a515fb0bbe7ce5be723ff37e532a8220bc3ce  2026-09-16
+commit  a4bc96966faa9efcd7b387907d51b4ac53f7039d  2026-09-29
 behind  0 revisions; that commit is the tip of the path
 ```
 
@@ -648,7 +648,7 @@ Verdict: **tf2's (harness)**. The framework driven from a python shell.
 ```text
 repo    bitcoin/bitcoin
 path    test/functional/test_framework/util.py
-commit  6f4109b4489182bf5fa517630043df1829f00808  2026-08-25
+commit  a4bc96966faa9efcd7b387907d51b4ac53f7039d  2026-09-29
 behind  0 revisions; that commit is the tip of the path
 ```
 

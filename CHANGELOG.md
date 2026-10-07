@@ -10,18 +10,9 @@
   }
 -->
 
-An entry for anything a reader would notice: what changed, and the issue
-it answers. That is section 9 of [the organization standard][std], and it
-is narrower than "every change" — a comment reworded inside a workflow
-changes nothing a reader of this repository meets, and lands without an
-entry. This tree publishes nothing yet, so there is no `RELEASE_NOTES.md`
-beside it (section 2 of that standard gives that file to a tier-1 tree).
-
-[std]: https://github.com/btclib-org/.github
-
-Neither this file nor any release notes file this tree gains states how
-many entries it holds: a stated number is a line every open branch has
-to edit, and two branches moving it to the same number merge in silence.
+The history of this repository is `git log` of `main`. Nothing here is
+released, so no entry is added. The entries below were written before
+that, grouped by subject rather than by version, and stay as they are.
 
 ## v0 (work in progress, not released yet)
 

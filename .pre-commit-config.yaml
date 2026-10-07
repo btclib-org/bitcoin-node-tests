@@ -156,7 +156,7 @@ repos:
   # repairs the very seam the third check exists to name, so a hook
   # reading the file after it would find nothing left to report.
   - repo: https://github.com/btclib-org/.github
-    rev: f668578c07124c632dc36f9c4a92a3a4db8914e8
+    rev: 70f5915abed3b982009996ae52254fbc68c00dfc
     hooks:
       - id: check-changelog
         args: [--grandfathered, "0"]

@@ -97,13 +97,6 @@ constraints. Do not use Fable unless instructed.
   cannot see a file Core gains.** That is `tf2_ledger_census.py`'s
   question, run separately and weekly, under a title distinct from the
   per-pin drift issue's own -- the two must never share one issue.
-- **A rebase over a `main` that gained its own `CHANGELOG.md` entry stops
-  on a conflict there.** Deleting the markers at git's default conflict
-  style drops a line both sides share, a heading or a blank line. Rebuild
-  it with btclib-org/.github's `.github/scripts/rebuild_union_files.py`.
-  To check the result, build the expected file (the new base's
-  `CHANGELOG.md`, a blank line, the branch's entry as written) and `cmp`
-  it with the committed file; a copy with one byte changed must differ.
 
 ## Conventions to match
 
@@ -113,9 +106,8 @@ constraints. Do not use Fable unless instructed.
 - **The prose style -- tone, comments, docstrings, no history -- is
   section 9 of the organization standard**, which `CONTRIBUTING.md`'s
   *Documentation and comments* is the pointer to.
-- **CHANGELOG.md gets an entry for anything a reader would notice.** No
-  `RELEASE_NOTES.md`: section 2 of the organization standard gives
-  that file to a tier-1 tree, and this one publishes nothing.
+- **A pull request adds no `CHANGELOG.md` entry**: `CONTRIBUTING.md`'s
+  *Pull requests*.
 - **Never state how many of anything a file holds**: `tests/tf2_ledger_test.py`
   fails on a stated count in `TF2.md`.
 

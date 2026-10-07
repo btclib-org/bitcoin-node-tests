@@ -1075,10 +1075,10 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass, the replacement limit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (package_acceptance) |
 | `p2p_headers_sync_with_minchainwork.py` | [`ff3e2e4ebdce`](https://github.com/bitcoin/bitcoin/commit/ff3e2e4ebdce) | 2026-08-19 | pass | skip (minimum_chain_work) |
 | `p2p_unrequested_blocks.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (minimum_chain_work) |
-| `p2p_1p1c_network.py` | [`95ef0fc5e781`](https://github.com/bitcoin/bitcoin/commit/95ef0fc5e781) | 2025-12-29 | pass | skip (orphanage) |
-| `mempool_ephemeral_dust.py` | [`7c8030143925`](https://github.com/bitcoin/bitcoin/commit/7c8030143925) | 2026-02-25 | pass | skip (package_acceptance) |
+| `p2p_1p1c_network.py` | [`95ef0fc5e781`](https://github.com/bitcoin/bitcoin/commit/95ef0fc5e781) | 2025-12-29 | pass, the fees asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (orphanage) |
+| `mempool_ephemeral_dust.py` | [`7c8030143925`](https://github.com/bitcoin/bitcoin/commit/7c8030143925) | 2026-02-25 | pass, `test_non_truc` asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (package_acceptance) |
 | `mempool_ephemeral_dust.py` (nonzero dust) | same | same | pass | skip (min_relay_tx_fee) on the build; pass on a build past [ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332) |
-| `mempool_ephemeral_dust.py` (reorg) | same | same | pass | skip (disconnect) on the build; fail ([ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382)) on a build past [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193) |
+| `mempool_ephemeral_dust.py` (reorg) | same | same | pass, the reorg asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (disconnect) on the build; fail ([ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382)) on a build past [ISS btclib-node#1193](https://github.com/btclib-org/btclib-node/issues/1193) |
 | `feature_notifications.py` (`-blocknotify`) | [`469b0e59a29a`](https://github.com/bitcoin/bitcoin/commit/469b0e59a29a) | 2026-09-01 | pass | skip (block_notify) |
 | `feature_notifications.py` (`-alertnotify`) | same | same | pass, the warning's wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
 | `feature_notifications.py` (`-shutdownnotify`) | same | same | pass | skip |
@@ -3085,7 +3085,10 @@ child. It asks for `Capability.ORPHANAGE` first, as
 `PACKAGE_ACCEPTANCE`, naming `submitpackage`, then `CONNECT` and `MINE`.
 `tests/integration/p2p_1p1c_network_test.py`'s own docstring has what differs
 from Core's file. The `bitcoind` cell is one verdict for the pinned release and
-for Core's `master`, the pinned release's own copy of the file being the pin's.
+for Core's `master`, the pinned release's own copy of the file being the pin's;
+a build without bitcoin/bitcoin#33892 passes by what Core's file did before it,
+each parent paying the relay fee, which the body reads off `getnetworkinfo`'s
+`version`.
 `btclib-node`'s cell is a counted skip on `ORPHANAGE` on either build,
 `getorphantxs` naming no callback in its dispatch table at the released build
 or at `main`
@@ -3124,7 +3127,9 @@ takes it, `MIN_RELAY_TX_FEE`, `CONNECT`, `DISCONNECT` for the reorg body,
 `GENERATE` where Core's `generate` mines from the node's own mempool, and
 `MINE`. `tests/integration/mempool_ephemeral_dust_test.py`'s own docstring has
 what differs from Core's file. The `bitcoind` cells are one verdict for the
-pinned release and for Core's `master`. `btclib-node`'s cells are
+pinned release and for Core's `master`; a build without bitcoin/bitcoin#33892
+or bitcoin/bitcoin#33616 passes by what Core's file did before them, in the
+bodies they change. `btclib-node`'s cells are
 counted skips: on `PACKAGE_ACCEPTANCE`, no file under its `src/` naming
 `submitpackage` at the released build or at `main`
 ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494));

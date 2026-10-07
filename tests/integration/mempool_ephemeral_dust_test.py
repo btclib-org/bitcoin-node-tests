@@ -13,6 +13,21 @@ unspent, and `PreCheckEphemeralTx` a parent with dust that pays a fee or
 carries more than one dust output. A block disconnected in a reorg
 returns such a parent to the mempool with no spend of its dust checked.
 
+Two rules are newer than a bitcoind before `v31.0`, whose first tag,
+`v31.0rc1`, is the first to carry both, neither changing an RPC: so
+the two bodies they decide read the build's `getnetworkinfo` `version`
+against `_ZERO_FEE_REORG_VERSION`, and do as Core's `v30.3` file does before
+it.
+bitcoin/bitcoin#33892 lets a package pay for a parent below the relay
+fee whatever its version, so a version 2 parent and its sweep are
+refused with `min relay fee not met` before it (`test_non_truc`).
+bitcoin/bitcoin#33616 stops a reorg checking that a child spends its
+parent's dust, so before it a child leaving that dust unspent does not come
+back (`test_reorgs`), and one spending it does. A known limit: a `master`
+build from those merges (`ec4ff99a22`, `7c80301439`) up to the move to
+`31.99` reports a `30.99` version with both rules, so those two bodies
+fail against such a build.
+
 Each of Core's subtests is a body of its own, in Core's order, over a
 fresh pair of nodes whose coins its own `MiniWallet` (`mini_wallet.py`)
 mines on the first, the second dialling the first, and every assertion
@@ -71,6 +86,7 @@ from bitcoin_node_tests.node import (
     sync_all,
     wait_until_mempools_agree,
 )
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -98,6 +114,11 @@ __all__ = [
 ]
 
 type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+
+# the `CLIENT_VERSION` (`src/clientversion.h`) of `v31.0`, whose first tag,
+# `v31.0rc1`, is the first to carry bitcoin/bitcoin#33892 and
+# bitcoin/bitcoin#33616
+_ZERO_FEE_REORG_VERSION = 310000
 
 # what Core's own `noban_tx_relay` starts every node with
 _NOBAN = "-whitelist=noban,in,out@127.0.0.1"
@@ -170,6 +191,16 @@ def _missing_ephemeral_spends(tx: Tx) -> str:
         f"missing-ephemeral-spends, tx {_txid(tx)} (wtxid={_wtxid(tx)}) "
         "did not spend parent's ephemeral dust"
     )
+
+
+def _has_zero_fee_reorg_rules(node: NodeAdapter) -> bool:
+    """Whether `node` has bitcoin/bitcoin#33892 and bitcoin/bitcoin#33616.
+
+    Read off `bitcoind_version` against `_ZERO_FEE_REORG_VERSION`. Any node
+    but a bitcoind answers yes.
+    """
+    version = bitcoind_version(node)
+    return version is None or version >= _ZERO_FEE_REORG_VERSION
 
 
 def _mempool(node: NodeAdapter) -> list[str]:
@@ -615,7 +646,8 @@ def a_non_truc_dusty_parent_enters_with_its_spender(
 ) -> None:
     """Check a version 2 parent's dust enters with the child spending it.
 
-    Core's `test_non_truc`.
+    Core's `test_non_truc`. Before `v31.0` the package is refused whole,
+    for the parent's fee.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
@@ -636,6 +668,12 @@ def a_non_truc_dusty_parent_enters_with_its_spender(
     dusty, sweep, _ = _package(wallet, version=2)
 
     res = _submit(node, [dusty, sweep])
+    if not _has_zero_fee_reorg_rules(node):
+        assert res["package_msg"] == "transaction failed", res
+        error = res["tx-results"][_wtxid(dusty)]["error"]
+        assert error.startswith(f"{_MIN_RELAY_FEE_NOT_MET}, 0 < "), res
+        assert _mempool(node) == []
+        return
     assert res["package_msg"] == "success", res
     _assert_mempool_contents(nodes, [dusty, sweep])
     _generate(nodes, wallet)
@@ -730,11 +768,13 @@ def a_reorg_returns_dust_to_the_mempool_unchecked(
 
     Core's `test_reorgs`, on the first node with the second unlinked: a
     zero-fee parent the mempool refuses, mined and disconnected, is back
-    in the mempool; so is a zero-fee child leaving that dust unspent and
-    carrying dust of its own. With the parent mined, a child spending its
-    dust and a chain off that child enter, and the parent's return leaves
-    every one of them in place. A parent with two dust outputs, or with a
-    fee, does not come back. Linked again, both nodes agree.
+    in the mempool. From `v31.0` so is a zero-fee child leaving that dust
+    unspent and carrying dust of its own, and with the parent mined, a
+    child spending its dust and a chain off that child enter, the parent's
+    return leaving every one of them in place; before it, that child does
+    not come back and one spending the dust does, a child of that one
+    refused as a `TRUC-violation`. A parent with two dust outputs, or with
+    a fee, does not come back. Linked again, both nodes agree.
 
     :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
     :param skip_counts: the session's own tally.
@@ -781,8 +821,42 @@ def a_reorg_returns_dust_to_the_mempool_unchecked(
     fork = build_fork(node, wallet.script_pub_key, _FORK_LENGTH)
     _generateblock(node, wallet, [dusty, sweep])
     _trigger_reorg(node, wallet, fork)
-    _assert_mempool_contents(nodes, [dusty, sweep], sync=False)
+    if _has_zero_fee_reorg_rules(node):
+        _assert_mempool_contents(nodes, [dusty, sweep], sync=False)
+        _reorged_parent_keeps_its_descendants(nodes, wallet, dusty, dusty_coins, sweep)
+    else:
+        _reorged_child_is_checked_for_dust_spends(nodes, wallet, dusty, dusty_coins)
 
+    multi_dusty, _, _ = _package(wallet, version=3, num_dust_outputs=2)
+    fork = build_fork(node, wallet.script_pub_key, _FORK_LENGTH)
+    _generateblock(node, wallet, [multi_dusty])
+    _trigger_reorg(node, wallet, fork)
+    assert _mempool(node) == []
+
+    dusty_fee, _, _ = _package(wallet, version=3, dust_tx_fee=1)
+    fork = build_fork(node, wallet.script_pub_key, _FORK_LENGTH)
+    _generateblock(node, wallet, [dusty_fee])
+    _trigger_reorg(node, wallet, fork)
+    assert _mempool(node) == []
+
+    connect_nodes(nodes[0], nodes[1])
+    sync_all(nodes, timeout=_WAIT)
+
+
+def _reorged_parent_keeps_its_descendants(
+    nodes: Sequence[NodeAdapter],
+    wallet: MiniWallet,
+    dusty: Tx,
+    dusty_coins: Sequence[Utxo],
+    sweep: Tx,
+) -> None:
+    """`test_reorgs` from the parent's return, with bitcoin/bitcoin#33616.
+
+    With the parent mined, a child spending its dust and a chain off that
+    child enter, and the parent's return leaves every one of them in
+    place.
+    """
+    node = nodes[0]
     fork = build_fork(node, wallet.script_pub_key, _FORK_LENGTH)
     _generateblock(node, wallet, [dusty])
     utxo = wallet.get_utxo()
@@ -803,20 +877,52 @@ def a_reorg_returns_dust_to_the_mempool_unchecked(
     _generateblock(node, wallet, expected_pool)
     assert _mempool(node) == []
 
-    multi_dusty, _, _ = _package(wallet, version=3, num_dust_outputs=2)
-    fork = build_fork(node, wallet.script_pub_key, _FORK_LENGTH)
-    _generateblock(node, wallet, [multi_dusty])
-    _trigger_reorg(node, wallet, fork)
-    assert _mempool(node) == []
 
-    dusty_fee, _, _ = _package(wallet, version=3, dust_tx_fee=1)
-    fork = build_fork(node, wallet.script_pub_key, _FORK_LENGTH)
-    _generateblock(node, wallet, [dusty_fee])
-    _trigger_reorg(node, wallet, fork)
-    assert _mempool(node) == []
+def _reorged_child_is_checked_for_dust_spends(
+    nodes: Sequence[NodeAdapter],
+    wallet: MiniWallet,
+    dusty: Tx,
+    dusty_coins: Sequence[Utxo],
+) -> None:
+    """Core's `v30.3` `test_reorgs`, from the first sweep's return on.
 
-    connect_nodes(nodes[0], nodes[1])
-    sync_all(nodes, timeout=_WAIT)
+    The sweep leaving the parent's dust unspent does not come back with
+    it. One spending the dust does, and a child of that one is refused as
+    a `TRUC-violation`.
+    """
+    node = nodes[0]
+    _assert_mempool_contents(nodes, [dusty], sync=False)
+
+    sweep_2 = wallet.create_self_transfer_multi(
+        fee_per_output=0, utxos_to_spend=dusty_coins, version=3
+    )
+    _add_output(sweep_2)
+    _assert_rpc_error(
+        node,
+        RPCErrorCode.VERIFY_REJECTED,
+        _MIN_RELAY_FEE_NOT_MET,
+        "sendrawtransaction",
+        [_hex(sweep_2)],
+    )
+
+    fork = build_fork(node, wallet.script_pub_key, _FORK_LENGTH)
+    _generateblock(node, wallet, [dusty, sweep_2])
+    _trigger_reorg(node, wallet, fork)
+    _assert_mempool_contents(nodes, [dusty, sweep_2], sync=False)
+
+    child = wallet.create_self_transfer_multi(
+        utxos_to_spend=wallet.new_utxos(sweep_2), version=3
+    )
+    _assert_rpc_error(
+        node,
+        RPCErrorCode.VERIFY_REJECTED,
+        "TRUC-violation",
+        "sendrawtransaction",
+        [_hex(child)],
+    )
+
+    _generateblock(node, wallet, [dusty, sweep_2])
+    assert _mempool(node) == []
 
 
 def a_batch_sweep_must_spend_every_parents_dust(

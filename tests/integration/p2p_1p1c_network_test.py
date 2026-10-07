@@ -40,6 +40,23 @@ node with, which asks for no capability. The final agreement is a relay
 across the line, each hop the time a node takes to announce and to ask:
 Core's own waits bound it, scaled by `--timeout-factor`.
 
+A bitcoind before `v31.0` refuses a package whose parent pays no fee:
+bitcoin/bitcoin#33892, first in `v31.0rc1`, lets the child pay for it.
+Core's own `v30.3` file instead starts each node with `-maxmempool=5`
+(and `v29.4`'s with `-datacarriersize=100000` beside it, for
+`fill_mempool`'s padding), fills the first node's mempool with
+`fill_mempool` so that every node's minimum fee rate stands above the
+relay fee, and has each parent pay that fee, the parent with two outputs
+one satoshi per virtual byte, which the child spending both pays fifty
+times over. The mempools then hold the filler too, so that file reads
+neither their contents nor the orphanage before the peers leave, and only
+waits for the mempools to agree once the packages are submitted. The body
+reads the build's `getnetworkinfo` `version` against
+`_ZERO_FEE_PARENT_VERSION`, bitcoin/bitcoin#33892 changing no RPC, and
+does as that file does before it. A known limit: a `master` build from
+that merge (`ec4ff99a22`) up to the move to `31.99` reports a `30.99`
+version with the new rule, so the body fails against such a build.
+
 What differs from Core's file:
 
 - Core's second wallet is a `MiniWalletMode.RAW_P2PK` one on the third
@@ -73,7 +90,9 @@ from btclib.p2p.magic import magic_from_chain
 from btclib.tx import Tx
 
 from bitcoin_node_tests.capability import Capability, require
+from bitcoin_node_tests.mempool_util import fill_mempool
 from bitcoin_node_tests.mini_wallet import (
+    PADDING_DATACARRIER_SIZE,
     MiniWallet,
     Utxo,
 )
@@ -89,6 +108,7 @@ from tests.integration.p2pk_coins_test import (
     p2pk_new_utxo,
     p2pk_self_transfer,
 )
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -109,6 +129,16 @@ _NUM_NODES = 4
 
 # what Core's own `noban_tx_relay` starts every node with
 _NOBAN = "-whitelist=noban,in,out@127.0.0.1"
+
+# the `CLIENT_VERSION` (`src/clientversion.h`) of `v31.0`, whose first tag,
+# `v31.0rc1`, is the first to carry bitcoin/bitcoin#33892; that change
+# alters no RPC
+_ZERO_FEE_PARENT_VERSION = 310000
+
+# what Core's own `v30.3` file starts every node with, and what
+# `fill_mempool`'s padding needs on a build without bitcoin/bitcoin#32406
+_MAXMEMPOOL = "-maxmempool=5"
+_DATACARRIER = f"-datacarriersize={PADDING_DATACARRIER_SIZE}"
 
 # the blocks Core's own `run_test` mines to each of its wallets
 _P2PK_BLOCKS = 10
@@ -167,22 +197,32 @@ def _peer_count(node: NodeAdapter) -> int:
     return len(peers)
 
 
-def _basic_1p1c(wallet: MiniWallet) -> list[Tx]:
+def _takes_zero_fee_parents(node: NodeAdapter) -> bool:
+    """Whether `node` takes a package whose parent pays no fee.
+
+    Read off `bitcoind_version` against `_ZERO_FEE_PARENT_VERSION`. Any
+    node but a bitcoind answers yes.
+    """
+    version = bitcoind_version(node)
+    return version is None or version >= _ZERO_FEE_PARENT_VERSION
+
+
+def _basic_1p1c(wallet: MiniWallet, parent_fee_rate: int) -> list[Tx]:
     """Core's own `create_basic_1p1c`, of its default wallet.
 
-    A parent paying no fee, of a confirmed coin, and a child of it at
-    `_HIGH_FEE_RATE`.
+    A parent of a confirmed coin at `parent_fee_rate`, and a child of it
+    at `_HIGH_FEE_RATE`.
     """
-    parent = wallet.create_self_transfer(fee_rate=0, confirmed_only=True)
+    parent = wallet.create_self_transfer(fee_rate=parent_fee_rate, confirmed_only=True)
     child = wallet.create_self_transfer(
         utxo_to_spend=wallet.new_utxos(parent)[0], fee_rate=_HIGH_FEE_RATE
     )
     return [parent, child]
 
 
-def _p2pk_basic_1p1c(coin: Utxo) -> list[Tx]:
+def _p2pk_basic_1p1c(coin: Utxo, parent_fee_rate: int) -> list[Tx]:
     """Core's own `create_basic_1p1c`, of its `RAW_P2PK` wallet."""
-    parent = p2pk_self_transfer(coin, 0)
+    parent = p2pk_self_transfer(coin, parent_fee_rate)
     return [parent, p2pk_self_transfer(p2pk_new_utxo(parent), _HIGH_FEE_RATE)]
 
 
@@ -206,29 +246,62 @@ def _package_2p1c(wallet: MiniWallet) -> list[Tx]:
     return [parent1, parent2, child]
 
 
-def _package_2outs(wallet: MiniWallet) -> list[Tx]:
+def _package_2outs(wallet: MiniWallet, *, zero_fee: bool) -> list[Tx]:
     """Core's own `create_package_2outs`.
 
-    A parent paying no fee, of a confirmed coin, into two outputs, and a
-    child spending both, in the reverse order.
+    A parent of a confirmed coin, into two outputs, and a child spending
+    both, in the reverse order. Where `zero_fee` the parent pays no fee and
+    the child `_TWO_OUTPUTS_CHILD_FEE` an output; otherwise the parent
+    pays one satoshi per virtual byte, rounded up, an output paying half
+    of it, and the child's one output a hundred times that.
     """
     utxo = wallet.get_utxo(confirmed_only=True)
+    if zero_fee:
+        parent_fee = 0
+        child_fee = _TWO_OUTPUTS_CHILD_FEE
+    else:
+        tester = wallet.create_self_transfer_multi(utxos_to_spend=[utxo], num_outputs=2)
+        parent_fee = -(-tester.vsize // 2)
+        child_fee = parent_fee * 100
     parent = wallet.create_self_transfer_multi(
-        utxos_to_spend=[utxo], num_outputs=2, fee_per_output=0
+        utxos_to_spend=[utxo], num_outputs=2, fee_per_output=parent_fee
     )
     child = wallet.create_self_transfer_multi(
-        utxos_to_spend=wallet.new_utxos(parent)[::-1],
-        fee_per_output=_TWO_OUTPUTS_CHILD_FEE,
+        utxos_to_spend=wallet.new_utxos(parent)[::-1], fee_per_output=child_fee
     )
     return [parent, child]
 
 
-def _presend(nodes: Sequence[NodeAdapter], txs_to_presend: list[list[Tx]]) -> None:
+def _raise_network_minfee(nodes: Sequence[NodeAdapter]) -> None:
+    """Core's own `raise_network_minfee`, of a build before `v31.0`.
+
+    The first node's mempool is filled until it evicts, and every node's
+    minimum fee rate stands above the relay fee once the others hold
+    the same transactions.
+    """
+    fill_mempool(nodes[0])
+    for node in nodes:
+
+        def _above(node: NodeAdapter = node) -> bool:
+            info = node.rpc.call("getmempoolinfo")
+            return bool(info["mempoolminfee"] > info["minrelaytxfee"])
+
+        wait_until(_above, timeout=_WAIT)
+
+
+def _presend(
+    nodes: Sequence[NodeAdapter],
+    txs_to_presend: list[list[Tx]],
+    *,
+    only_parent_in_mempools: bool,
+) -> None:
     """Have a peer of each node send it its `txs_to_presend` entry, then leave.
 
     Core's own `add_p2p_connection` for each node, its `send_and_ping`
     of each transaction, and its `disconnect_p2ps`: each peer closes, and
     each node comes to count the peers it had before its own connected.
+    Where `only_parent_in_mempools`, the mempools and the orphanages are
+    read before the peers leave.
     """
     peers_before = [_peer_count(node) for node in nodes]
     with ExitStack() as stack:
@@ -243,16 +316,17 @@ def _presend(nodes: Sequence[NodeAdapter], txs_to_presend: list[list[Tx]]) -> No
                 peer.send(_tx(tx))
                 peer.sync_with_ping()
 
-        # the fee-having parent is the only thing in the mempools
-        wait_until_mempools_agree(nodes, timeout=_WAIT)
-        sufficient_parent = txs_to_presend[2][0].id.hex()
-        for i, node in enumerate(nodes):
-            # the second node has a non-empty orphanage as well
-            if i == 1:
-                assert len(_orphans(node)) == _ORPHANS, _orphans(node)
-            else:
-                assert _orphans(node) == [], _orphans(node)
-            assert _mempool(node) == [sufficient_parent], _mempool(node)
+        if only_parent_in_mempools:
+            # the fee-having parent is the only thing in the mempools
+            wait_until_mempools_agree(nodes, timeout=_WAIT)
+            sufficient_parent = txs_to_presend[2][0].id.hex()
+            for i, node in enumerate(nodes):
+                # the second node has a non-empty orphanage as well
+                if i == 1:
+                    assert len(_orphans(node)) == _ORPHANS, _orphans(node)
+                else:
+                    assert _orphans(node) == [], _orphans(node)
+                assert _mempool(node) == [sufficient_parent], _mempool(node)
 
     for node, count in zip(nodes, peers_before, strict=True):
 
@@ -271,15 +345,19 @@ def every_node_takes_the_packages_one_node_is_given(
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(_NUM_NODES)
-    for capability in (
+    zero_fee = _takes_zero_fee_parents(nodes[0])
+    capabilities = [
         Capability.ORPHANAGE,
         Capability.PACKAGE_ACCEPTANCE,
         Capability.CONNECT,
         Capability.MINE,
-    ):
+    ]
+    if not zero_fee:
+        capabilities.append(Capability.MAXMEMPOOL)
+    for capability in capabilities:
         require(capability, nodes[0].capabilities, skip_counts)
     for node in nodes:
-        node.restart([_NOBAN])
+        node.restart([_NOBAN] if zero_fee else [_NOBAN, _MAXMEMPOOL, _DATACARRIER])
     for first, second in zip(nodes[1:], nodes, strict=False):
         connect_nodes(first, second)
 
@@ -289,10 +367,14 @@ def every_node_takes_the_packages_one_node_is_given(
     wallet.generate(_WALLET_BLOCKS)
     sync_all(nodes)
 
-    package_1 = _basic_1p1c(wallet)
-    package_2 = _p2pk_basic_1p1c(p2pk[0])
+    if not zero_fee:
+        _raise_network_minfee(nodes)
+
+    parent_fee_rate = 0 if zero_fee else _DEFAULT_MIN_RELAY_TX_FEE
+    package_1 = _basic_1p1c(wallet, parent_fee_rate)
+    package_2 = _p2pk_basic_1p1c(p2pk[0], parent_fee_rate)
     package_3 = _package_2p1c(wallet)
-    package_4 = _package_2outs(wallet)
+    package_4 = _package_2outs(wallet, zero_fee=zero_fee)
     parent_31 = package_3[0]
     # node0: sender; node1: the children, kept as orphans until its peer
     # disconnects; node3: the parents, refused for their fee; every node
@@ -305,6 +387,7 @@ def every_node_takes_the_packages_one_node_is_given(
             [parent_31],
             [package_1[0], package_2[0], parent_31, package_4[0]],
         ],
+        only_parent_in_mempools=zero_fee,
     )
 
     # the peers' disconnection clears their outstanding orphan requests
@@ -322,5 +405,6 @@ def every_node_takes_the_packages_one_node_is_given(
         assert result["package_msg"] == "success", result
 
     # wait for mempools to sync
-    wait_until(lambda: len(_mempool(nodes[0])) == _PACKAGED_TXS, timeout=_WAIT)
+    if zero_fee:
+        wait_until(lambda: len(_mempool(nodes[0])) == _PACKAGED_TXS, timeout=_WAIT)
     wait_until_mempools_agree(nodes, timeout=_WAIT)

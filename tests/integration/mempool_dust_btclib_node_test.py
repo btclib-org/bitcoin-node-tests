@@ -6,11 +6,15 @@ r"""Core's `mempool_dust`, rewritten on this harness: btclib-node.
 
 `mempool_dust_test.py` beside this module holds each body, run here
 against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `Capability.PERMIT_BARE_MULTISIG` is not
-declared: measured against `cli.py`'s registered options,
-`_build_parser` on the released build and `_OPTIONS` on `main`,
-`-permitbaremultisig` is not one of its registered flags -- a counted
-skip on that capability alone, before the node is restarted with it.
+btclib-org/btclib#2220). `Capability.PERMIT_BARE_MULTISIG` is declared on a
+build whose `cli.py` registers `-permitbaremultisig`: `v2026.10.4`
+(`f1732715`) and `main` (`6777a6a8`). There the refusal and allowance
+bodies run. On `v2026.10.4` a one-satoshi output paying a fee is allowed,
+where Core refuses it as `dust`
+([ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594)).
+`Capability.DUST_RELAY_FEE` is not declared, so the `-dustrelayfee=0` body
+is a counted skip. On `v2026.9.24` (`422d2640`) every body is a counted
+skip on `PERMIT_BARE_MULTISIG`.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \

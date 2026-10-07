@@ -340,11 +340,20 @@ released `2026.9.24` (`422d2640`) and at `main` (`93c1d066`) alike
 
 `Capability.MIN_RELAY_TX_FEE` is declared per instance, by
 `_sets_min_relay_fee`'s own probe: a build whose `cli.py` registers
-`-minrelaytxfee` -- `main` from btclib-node PR 1452 (`88f5c894`) on, the
-option [ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332)
-asked for. The released `2026.9.24` (`422d2640`) registers none, its
-`Config.min_relay_feerate` taking no flag, so an instance built against
-it does not gain the capability.
+`-minrelaytxfee` -- `v2026.10.4` (`f1732715`) and `main` (`6777a6a8`), from
+btclib-node PR 1452 (`88f5c894`), the option
+[ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332)
+asked for. `v2026.9.24` (`422d2640`) registers none, its
+`Config.min_relay_feerate` taking no flag, so an instance built against it
+does not gain the capability.
+
+`Capability.PERMIT_BARE_MULTISIG` is declared per instance, by
+`_permits_bare_multisig`'s own probe: a build whose `cli.py` registers
+`-permitbaremultisig` -- `v2026.10.4` (`f1732715`) and `main` (`6777a6a8`),
+from btclib-node PR 1599 (`9fe1bfd9`), the option
+[ISS btclib-node#1497](https://github.com/btclib-org/btclib-node/issues/1497)
+asked for. `v2026.9.24` (`422d2640`) registers none, so an
+instance built against it does not gain the capability.
 
 `Capability.ALERT_NOTIFY` is never declared either: no source file
 names `alertnotify`, measured at the released `2026.9.24` (`422d2640`)
@@ -634,6 +643,35 @@ def _sets_min_relay_fee(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# exits 0 only where `-permitbaremultisig=0` turns
+# `Config.permit_bare_multisig` off; a build registering no such flag
+# refuses it and exits nonzero. `-noconf` keeps any `bitcoin.conf` out of it
+_BARE_MULTISIG_PROBE = """\
+from btclib_node.cli import build_config
+config = build_config(["-regtest", "-noconf", "-permitbaremultisig=0"])
+raise SystemExit(0 if config.permit_bare_multisig is False else 1)
+"""
+
+
+@lru_cache
+def _permits_bare_multisig(executable: str) -> bool:
+    """Return whether `executable`'s btclib-node reads `-permitbaremultisig`.
+
+    Asks the build's own `cli.build_config`, as `_sets_min_relay_fee`
+    above does, to read the flag, and answers whether the resulting
+    config's `permit_bare_multisig` is off: `_BARE_MULTISIG_PROBE` above.
+    No node started, no port bound, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _BARE_MULTISIG_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 # exits 0 only where `-nov2transport` turns `Config.v2transport` off; a
 # build registering no such flag refuses it and exits nonzero. `-noconf`
 # keeps any `bitcoin.conf` out of it
@@ -786,6 +824,7 @@ class BtclibNodeAdapter(NodeAdapter):
         `_connects_alone` answers `Capability.MINE`,
         `_serves_ban_list` answers `Capability.BAN`,
         `_sets_min_relay_fee` answers `Capability.MIN_RELAY_TX_FEE`,
+        `_permits_bare_multisig` answers `Capability.PERMIT_BARE_MULTISIG`,
         `_serves_chain_tips` answers `Capability.CHAIN_TIPS`,
         `_serves_disconnect` answers `Capability.DISCONNECT`, and
         `_speaks_v2` answers `Capability.V2TRANSPORT`. The
@@ -812,6 +851,7 @@ class BtclibNodeAdapter(NodeAdapter):
                 (_evicts_inbound, Capability.INBOUND_EVICTION),
                 (_serves_ban_list, Capability.BAN),
                 (_sets_min_relay_fee, Capability.MIN_RELAY_TX_FEE),
+                (_permits_bare_multisig, Capability.PERMIT_BARE_MULTISIG),
                 (_serves_chain_tips, Capability.CHAIN_TIPS),
                 (_serves_disconnect, Capability.DISCONNECT),
                 (_speaks_v2, Capability.V2TRANSPORT),

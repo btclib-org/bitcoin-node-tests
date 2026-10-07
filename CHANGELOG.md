@@ -1576,3 +1576,9 @@ half the timeout the peer or proxy is given, not by seconds
 `test_what_forwarding_raises_is_queued_behind_the_request` has the
 connection refused by a patched `socket.create_connection`, not by a freed
 port another socket can take (closes #401).
+
+### `BtclibNodeAdapter` declares `PERMIT_BARE_MULTISIG` per build
+
+A probe of `cli.build_config` declares it on a build with `-permitbaremultisig`,
+not `v2026.9.24`. The `mempool_accept`, `mempool_dust` and
+`mempool_datacarrier` ports run past it; `TF2.md` records each (closes #411).

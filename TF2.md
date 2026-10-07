@@ -1390,21 +1390,27 @@ raw `addrv2` message rather than through `btclib.p2p.AddrV2`'s own codec
 -- `test_addrv2_empty`, `test_addrv2_no_addresses` and
 `test_addrv2_too_long_address`, each asserting the connection survives a
 malformed or trivial payload the way the rows above do.
-`tests/integration/p2p_invalid_messages_addrv2_bitcoind_test.py`'s own
+Each is one body over both nodes
+(`tests/integration/conftest.py`'s own module docstring).
+`tests/integration/p2p_invalid_messages_addrv2_test.py`'s own
 docstring has the full argument, including why `SenderOfAddrV2`'s own
 explicit wait for the node's `sendaddrv2` needs no equivalent here: this
 suite's `Peer.handshake` already negotiates `WTXID_RELAY_VERSION`, the
-same floor BIP155's own `sendaddrv2` announcement is gated on.
+same floor BIP155's own `sendaddrv2` announcement is gated on, and why a
+`ping` round trip proves the `addrv2` before it was handled on both
+nodes, btclib-node having queued it ahead of earlier messages until
+[ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410).
 `test_addrv2_empty` and `test_addrv2_too_long_address` disagree on
-btclib-node's own released build, by a distinct but adjacent mechanism:
+a btclib-node build before the fix of
+[ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170),
+by a distinct but adjacent mechanism:
 `btclib_node.p2p.callbacks.addrv2` calls `AddrV2.parse` with no
 `try`/`except` of its own, and `handle_p2p`'s own `_drop` (`p2p/main.py`)
 discourages and stops the connection for any `BTClibException` a
-callback raises -- the dispatch-level path
-[ISS btclib-node#1170](https://github.com/btclib-org/btclib-node/issues/1170)
+callback raises -- the dispatch-level path that issue
 names, rather than the checksum and msgtype rows' own frame-level one.
 `test_addrv2_no_addresses` raises nothing -- an empty list is valid --
-so it passes on both nodes.
+so it passes on both nodes. Each passes on a build past both fixes.
 
 `test_addrv2_unrecognized_network` joins them. Its assertion lines
 past Core's first are `LogDebug(BCLog::ADDRMAN, ...)`'s (`src/addrman.cpp`),
@@ -1413,7 +1419,7 @@ and `BitcoindAdapter._command` enables that category beside `net`,
 node is started for the test, with the address-relay permission and the
 disabled autoconnect Core's own run of the file has and the session's
 shared node does not:
-`tests/integration/p2p_invalid_messages_addrv2_bitcoind_test.py`'s own
+`tests/integration/p2p_invalid_messages_addrv2_test.py`'s own
 docstring has why each is needed, including the `addrman` lines a node
 holding the gossiped address writes without the second, measured
 against the pinned release. It passes on both nodes: `AddrV2.parse`

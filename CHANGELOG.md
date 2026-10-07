@@ -1594,3 +1594,8 @@ A bitcoind before `v31.0` refuses a package whose parent pays no fee
 A bitcoind serving HTTP through libevent can leave a kept-alive connection
 without a response, or part of one, until the call times out
 (closes #415).
+
+### `p2p_invalid_messages`' addrv2 checks are one body over both nodes
+
+btclib-node answers a `ping` in the order received, so the `ping` proves the
+`addrv2` before it was handled and no fixed wait precedes it (issue #125).

@@ -59,10 +59,12 @@ if TYPE_CHECKING:
     from bitcoin_node_tests.capability import SkipCounts
 
 __all__ = [
+    "debug_log",
     "duplicate_version_is_logged",
     "duplicate_version_keeps_the_connection",
     "invalid_msgtype_is_logged",
     "invalid_msgtype_keeps_the_connection",
+    "sync",
     "wrong_checksum_is_logged",
     "wrong_checksum_keeps_the_connection",
 ]
@@ -93,7 +95,7 @@ def _invalid_msgtype_message() -> bytes:
     return raw[:command_at] + b"\x00" + raw[command_at + 1 :]
 
 
-def _sync(peer: Peer) -> None:
+def sync(peer: Peer) -> None:
     """Round-trip a `ping`, so an earlier send is known to be processed.
 
     Raises whatever `Peer.wait_for` raises if the connection closed
@@ -105,7 +107,7 @@ def _sync(peer: Peer) -> None:
     peer.wait_for("pong", predicate=lambda m: Pong.parse(m.payload).nonce == nonce)
 
 
-def _debug_log(
+def debug_log(
     adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
 ) -> Path:
     """Return the log a log half reads, or skip where the node keeps none.
@@ -130,7 +132,7 @@ def duplicate_version_keeps_the_connection(
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
         peer.send(Version())
-        _sync(peer)
+        sync(peer)
 
 
 def duplicate_version_is_logged(
@@ -141,14 +143,14 @@ def duplicate_version_is_logged(
     :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
     :param skip_counts: the session's own tally.
     """
-    log_path = _debug_log(adapter, skip_counts)
+    log_path = debug_log(adapter, skip_counts)
     with (
         Peer(adapter.p2p_address, _MAGIC) as peer,
         assert_debug_log(log_path, ["redundant version message"]),
     ):
         peer.handshake()
         peer.send(Version())
-        _sync(peer)
+        sync(peer)
 
 
 def wrong_checksum_keeps_the_connection(
@@ -161,7 +163,7 @@ def wrong_checksum_keeps_the_connection(
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
         peer.send_raw(_wrong_checksum_message())
-        _sync(peer)
+        sync(peer)
 
 
 def wrong_checksum_is_logged(
@@ -172,14 +174,14 @@ def wrong_checksum_is_logged(
     :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
     :param skip_counts: the session's own tally.
     """
-    log_path = _debug_log(adapter, skip_counts)
+    log_path = debug_log(adapter, skip_counts)
     with (
         Peer(adapter.p2p_address, _MAGIC) as peer,
         assert_debug_log(log_path, ["Header error: Wrong checksum"]),
     ):
         peer.handshake()
         peer.send_raw(_wrong_checksum_message())
-        _sync(peer)
+        sync(peer)
 
 
 def invalid_msgtype_keeps_the_connection(
@@ -192,7 +194,7 @@ def invalid_msgtype_keeps_the_connection(
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
         peer.send_raw(_invalid_msgtype_message())
-        _sync(peer)
+        sync(peer)
 
 
 def invalid_msgtype_is_logged(
@@ -203,11 +205,11 @@ def invalid_msgtype_is_logged(
     :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
     :param skip_counts: the session's own tally.
     """
-    log_path = _debug_log(adapter, skip_counts)
+    log_path = debug_log(adapter, skip_counts)
     with (
         Peer(adapter.p2p_address, _MAGIC) as peer,
         assert_debug_log(log_path, ["Header error: Invalid message type"]),
     ):
         peer.handshake()
         peer.send_raw(_invalid_msgtype_message())
-        _sync(peer)
+        sync(peer)

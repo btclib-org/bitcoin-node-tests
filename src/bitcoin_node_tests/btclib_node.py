@@ -232,11 +232,9 @@ declared either: `cli.py` registers neither `-capturemessages` nor
 `-blocksxor`, measured against its `_build_parser` at the released
 `2026.9.24` (`422d2640`) and its `_OPTIONS` at `main` (`98448c4d`) alike.
 
-`Capability.ORPHANAGE` is never declared either: `getorphantxs` names no
-callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch table, and
-no source file names an orphan, measured at the released `2026.9.24`
-(`422d2640`) and at `main` (`1aeebc67`) alike
-([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
+`Capability.ORPHANAGE` is never declared either: the probe asking a
+build's dispatch table for `getorphantxs` is not written yet
+([ISS 424](https://github.com/btclib-org/bitcoin-node-tests/issues/424)).
 
 `Capability.BLOCK_PROPOSAL` is never declared either: `getblocktemplate`
 names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
@@ -288,11 +286,9 @@ and at `main` (`ecb9b190`) alike. Reading Core's block files is left
 out by decision, the node taking the same blocks over p2p
 ([ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)).
 
-`Capability.LISTEN_ADDRESS` is never declared either: `cli.py` registers
-`-port` and no `-bind`, and the listener binds `0.0.0.0` and `::` alone,
-measured at the released `2026.9.24` (`422d2640`) and at `main`
-(`ecb9b190`) alike
-([ISS btclib-node#1257](https://github.com/btclib-org/btclib-node/issues/1257)).
+`Capability.LISTEN_ADDRESS` is never declared either: the probe asking a
+build's `cli.py` for `-bind` is not written yet
+([ISS 424](https://github.com/btclib-org/bitcoin-node-tests/issues/424)).
 
 `Capability.MAX_TIP_AGE` is never declared either: `cli.py` registers
 no `-maxtipage`, the age being `constants.py`'s own `MAX_TIP_AGE` of a
@@ -333,10 +329,11 @@ registers no `-minimumchainwork`, the floor being the chain's own
 released `2026.9.24` (`422d2640`) and at `main` (`93c1d066`) alike
 ([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501)).
 
-`Capability.PACKAGE_ACCEPTANCE` is never declared either: no file under
-`src/` names `submitpackage`, measured at the released `2026.9.24`
-(`422d2640`) and at `main` (`93c1d066`) alike
+`Capability.PACKAGE_ACCEPTANCE` is declared per instance, by
+`_serves_submitpackage`'s own probe: a build whose `rpc/callbacks.py` names
+`submitpackage` in its public `callbacks`
 ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)).
+A build that names none does not gain the capability.
 
 `Capability.MIN_RELAY_TX_FEE` is declared per instance, by
 `_sets_min_relay_fee`'s own probe: a build whose `cli.py` registers
@@ -779,6 +776,32 @@ def _serves_disconnect(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# exits 0 only where the dispatch table holds `PACKAGE_ACCEPTANCE`'s RPC
+_SUBMITPACKAGE_PROBE = """\
+from btclib_node.rpc.callbacks import callbacks
+raise SystemExit(0 if "submitpackage" in callbacks else 1)
+"""
+
+
+@lru_cache
+def _serves_submitpackage(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node answers `submitpackage`.
+
+    Asks the build's own `rpc.callbacks.callbacks`, as `_serves_disconnect`
+    above does, whether it names `submitpackage`: `_SUBMITPACKAGE_PROBE`
+    above. Otherwise in the standing of `_writes_auth_cookie` above: no
+    node started, no port bound, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _SUBMITPACKAGE_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 class BtclibNodeAdapter(NodeAdapter):
     """A `btclib-node`, run as `python -m btclib_node`.
 
@@ -826,7 +849,8 @@ class BtclibNodeAdapter(NodeAdapter):
         `_sets_min_relay_fee` answers `Capability.MIN_RELAY_TX_FEE`,
         `_permits_bare_multisig` answers `Capability.PERMIT_BARE_MULTISIG`,
         `_serves_chain_tips` answers `Capability.CHAIN_TIPS`,
-        `_serves_disconnect` answers `Capability.DISCONNECT`, and
+        `_serves_disconnect` answers `Capability.DISCONNECT`,
+        `_serves_submitpackage` answers `Capability.PACKAGE_ACCEPTANCE`, and
         `_speaks_v2` answers `Capability.V2TRANSPORT`. The
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
         is left untouched where every probe answers `False`. A `chain`
@@ -854,6 +878,7 @@ class BtclibNodeAdapter(NodeAdapter):
                 (_permits_bare_multisig, Capability.PERMIT_BARE_MULTISIG),
                 (_serves_chain_tips, Capability.CHAIN_TIPS),
                 (_serves_disconnect, Capability.DISCONNECT),
+                (_serves_submitpackage, Capability.PACKAGE_ACCEPTANCE),
                 (_speaks_v2, Capability.V2TRANSPORT),
             )
             if probe(executable)

@@ -871,7 +871,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass, the policy asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
 | `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | fail ([ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594)) on the build; skip (dust_relay_fee) on a build past [ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594) |
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
-| `mempool_package_limits.py` | `fa5f29774872` | 2025-12-16 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
+| `mempool_package_limits.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass; skip (limit_cluster_count) on a build before the cluster mempool | skip (limit_cluster_count) |
 | `mempool_updatefromblock.py` | `fa6b05c96ffb` | 2026-03-12 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 | `p2p_leak_tx.py` (in block) | `fa5f29774872` | 2025-12-16 | pass, the `getpeerinfo` fields asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
 | `p2p_leak_tx.py` (replaced) | same | same | pass | skip |
@@ -1077,11 +1077,11 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_minchainwork.py` (outbound) | same | same | pass | skip |
 | `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mempool_graph) |
 | `feature_versionbits_warning.py` | [`5bd990a3ddb1`](https://github.com/bitcoin/bitcoin/commit/5bd990a3ddb1) | 2026-06-03 | pass, the reserved bit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
-| `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass, the replacement limit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (package_acceptance) |
+| `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass, the replacement limit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (package_acceptance) on the build; fail ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)) on a build past [ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494) |
 | `p2p_headers_sync_with_minchainwork.py` | [`ff3e2e4ebdce`](https://github.com/bitcoin/bitcoin/commit/ff3e2e4ebdce) | 2026-08-19 | pass | skip (minimum_chain_work) |
 | `p2p_unrequested_blocks.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (minimum_chain_work) |
 | `p2p_1p1c_network.py` | [`95ef0fc5e781`](https://github.com/bitcoin/bitcoin/commit/95ef0fc5e781) | 2025-12-29 | pass, the fees asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (orphanage) |
-| `mempool_ephemeral_dust.py` | [`7c8030143925`](https://github.com/bitcoin/bitcoin/commit/7c8030143925) | 2026-02-25 | pass, `test_non_truc` asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (package_acceptance) |
+| `mempool_ephemeral_dust.py` | [`7c8030143925`](https://github.com/bitcoin/bitcoin/commit/7c8030143925) | 2026-02-25 | pass, `test_non_truc` asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (package_acceptance) on the build; skip (orphanage) on a build past [ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494) |
 | `mempool_ephemeral_dust.py` (nonzero dust) | same | same | pass | pass |
 | `mempool_ephemeral_dust.py` (reorg) | same | same | pass, the reorg asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | fail ([ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382)) on the build; pass on a build past [ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382) |
 | `feature_notifications.py` (`-blocknotify`) | [`469b0e59a29a`](https://github.com/bitcoin/bitcoin/commit/469b0e59a29a) | 2026-09-01 | pass | skip (block_notify) |
@@ -2035,7 +2035,7 @@ declares `Capability.BLOCK_PROPOSAL` for no build, though a build past
 [ISS btclib-node#1427](https://github.com/btclib-org/btclib-node/issues/1427)
 names `getblocktemplate` in its dispatch table, so the `btclib-node` cell is
 that skip, `MINE` never reached. With that ask removed, the row skips next on
-`PACKAGE_ACCEPTANCE`
+`PACKAGE_ACCEPTANCE`, which a build serving `submitpackage` declares
 ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)).
 The blocks it proposes are built with btclib in the shape of Core's own
 `create_block` and `create_coinbase` (`blocktools.py`), and what the port
@@ -2689,8 +2689,7 @@ release and for Core's `master`. `BitcoindAdapter` declares
 where the build's `-help-debug` lists `-limitclustercount` (`bitcoind.py`'s own
 `_has_cluster_mempool`), so the file is a counted skip on `LIMIT_CLUSTER_SIZE`
 on a release before the cluster mempool. `btclib-node`'s cell is a counted skip
-on `LIMIT_CLUSTER_SIZE`, its `cli.py` registering no `-limitclustersize` and its
-mempool bounding no cluster
+on `LIMIT_CLUSTER_SIZE`, its `cli.py` registering no `-limitclustersize`
 ([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383));
 past that, `getmempoolcluster`, `getmempoolancestors` and `submitpackage` are
 served only by a build past
@@ -2805,10 +2804,9 @@ adds, which a build without bitcoin/bitcoin#32406, first in `v30.0rc1`, refuses
 by default. `tests/integration/mempool_package_rbf_test.py`'s own docstring has
 what differs from Core's file. The `bitcoind` cell is one verdict for the pinned
 release and for Core's `master`. `btclib-node`'s cell is a counted skip on
-`PACKAGE_ACCEPTANCE`: `BtclibNodeAdapter` declares the capability for no build,
-though a build past
+`PACKAGE_ACCEPTANCE` where the build serves no `submitpackage`. A build past
 [ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)
-serves `submitpackage`; past that, replacing a conflict at all is
+serves it and fails the replacement bodies, replacing a conflict at all being
 [ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)'s.
 
 `p2p_headers_sync_with_minchainwork.py` is ISS 14's too, an option, the log and
@@ -2936,10 +2934,10 @@ what differs from Core's file. The `bitcoind` cells are one verdict for the
 pinned release and for Core's `master`; a build without bitcoin/bitcoin#33892 or
 bitcoin/bitcoin#33616 passes by what Core's file did before them, in the bodies
 they change. `btclib-node`'s cells: the package bodies are counted skips on
-`PACKAGE_ACCEPTANCE`, which `BtclibNodeAdapter` declares for no build, a build
-past
-[ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)
-serving `submitpackage`. The nonzero-dust body passes on a build past
+`PACKAGE_ACCEPTANCE` where the build serves no `submitpackage`, and on the next
+capability they ask for on a build past
+[ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494),
+which serves it. The nonzero-dust body passes on a build past
 [ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332).
 The reorg body fails on a build where a mined parent with a second dust output
 comes back into the mempool, which Core's `IsStandardTx` would refuse as `dust`,
@@ -3547,15 +3545,15 @@ own C++ rather than a configurable option, so exercising it means
 building, mining and reorging a disproportionate volume of transactions
 for a boundary neither kept case needs to also cover.
 
-Where a build has no cluster mempool, both files run at the default
-ancestor and descendant limits instead of the cluster options, and match
-the older refusals. `mempool_package_limits.py` refuses a package
-`package-mempool-limits` in place of `too-large-cluster`.
-`mempool_updatefromblock.py` runs its tournament unchanged and its chain
-at the default ancestor limit, refused `too-long-mempool-chain`.
+Where a build has no cluster mempool, `mempool_updatefromblock.py` runs its
+tournament unchanged and its chain at the default ancestor limit, refused
+`too-long-mempool-chain`. `mempool_package_limits.py` is a counted skip on
+`Capability.LIMIT_CLUSTER_COUNT`, Core's file starting its node under
+`-limitclustercount` and asserting `too-large-cluster` alone.
 
 `mempool_package_limits.py`'s `btclib-node` cells are a counted skip on
-`Capability.PACKAGE_ACCEPTANCE`, ahead of `Capability.MINE`.
+`Capability.LIMIT_CLUSTER_COUNT`, ahead of `Capability.PACKAGE_ACCEPTANCE` and
+`Capability.MINE`.
 `mempool_updatefromblock.py`'s chain-length case is a counted skip on
 `Capability.GENERATE`, for its own `generateblock`, ahead of
 `Capability.MINE`. Its tournament asks for `Capability.MINE` alone, and

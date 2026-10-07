@@ -1582,3 +1582,9 @@ port another socket can take (closes #401).
 A probe of `cli.build_config` declares it on a build with `-permitbaremultisig`,
 not `v2026.9.24`. The `mempool_accept`, `mempool_dust` and
 `mempool_datacarrier` ports run past it; `TF2.md` records each (closes #411).
+
+### `mempool_ephemeral_dust` and `p2p_1p1c_network` assert per-build policy
+
+A bitcoind before `v31.0` refuses a package whose parent pays no fee
+(bitcoin/bitcoin#33892) and checks a reorged child's dust spend
+(bitcoin/bitcoin#33616); the bodies assert each (closes #354).

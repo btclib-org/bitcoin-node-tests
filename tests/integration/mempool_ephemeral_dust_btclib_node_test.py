@@ -15,8 +15,10 @@ two dust outputs returns to the mempool
 ([ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382)).
 Past that it fails at the parent with a dust output and a fee
 ([ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594)).
-Every other one is a counted skip on `Capability.PACKAGE_ACCEPTANCE`, which no
-build declares (`btclib_node.py`'s own docstring).
+Every other one is a counted skip on `Capability.PACKAGE_ACCEPTANCE` where the
+build does not declare it (`btclib_node.py`'s own docstring). Past it, a body
+is a counted skip on the next capability it asks for that the build lacks, and
+one asking for nothing the build lacks runs.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/mempool_ephemeral_dust_btclib_node_test.py

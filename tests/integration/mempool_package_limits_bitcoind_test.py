@@ -6,7 +6,8 @@
 
 Read from Core's `test/functional/mempool_package_limits.py`:
 `mempool_package_limits_test.py` beside this module holds each body, run
-here against bitcoind, which declares every capability they ask for.
+here against bitcoind. A bitcoind from before the cluster mempool declares
+no `Capability.LIMIT_CLUSTER_COUNT`, and each body is then a counted skip.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """

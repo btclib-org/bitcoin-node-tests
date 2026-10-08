@@ -7,11 +7,11 @@
 `p2p_1p1c_network_test.py` beside this module is the body, run here
 against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). The test is a counted skip on every build, on
-`Capability.ORPHANAGE`: `getorphantxs` names no callback in
-`src/btclib_node/rpc/callbacks.py`'s own dispatch table, on PyPI's
-`2026.9.24` or on `main`, and no source file keeps an orphan
-([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
-Neither build declares `Capability.PACKAGE_ACCEPTANCE` either
+`Capability.ORPHANAGE`, which the adapter declares for no build: the
+probe asking for `getorphantxs` is not written yet
+([ISS 424](https://github.com/btclib-org/bitcoin-node-tests/issues/424)).
+The test asks next for `Capability.PACKAGE_ACCEPTANCE`, which a build serving
+`submitpackage` declares
 ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)).
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>

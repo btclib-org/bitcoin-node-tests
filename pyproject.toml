@@ -28,8 +28,9 @@ authors = [{ name = "The btclib developers", email = "devs@btclib.org" }]
 # against this tree's own code and every dependency `uv.lock` resolves:
 # `typing.override` (PEP 698, used throughout the adapter) needs 3.12,
 # and so does `sphinx`, the tightest floor any group carries -- btclib,
-# bitcoin-core-rpc and the btclib siblings it needs all allow back to 3.11,
-# and nothing else in `dev` asks for more than 3.12. `.python-version` and requires-python
+# bitcoin-core-rpc and the btclib siblings it needs all allow an older
+# release, and nothing else in `dev` asks for more than 3.12.
+# `.python-version` and requires-python
 # still name the same release, this tree still running on one
 # interpreter (section 1); that interpreter is now the lowest one every
 # dependency and this tree's own syntax allow, not the newest one a

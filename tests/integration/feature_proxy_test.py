@@ -51,8 +51,9 @@ option, and that same argv is what refuses `-onlynet=onion` given alone,
 the way Core's `-listenonion=0` does.
 
 Core's check that `localaddresses` is empty is dropped: this adapter's
-own `-bind` already empties it without a proxy (`TF2.md`'s paragraph on
-`feature_discover.py` has the measurement).
+own `-bind` already empties it without a proxy: measured against the
+pinned bitcoind, `getnetworkinfo`'s `localaddresses` answers empty whether
+`-discover` is passed bare or given its disabling value.
 
 Each node given a proxy is also started with `-dnsseed` off, as Core's
 own `write_config` (`test_framework/util.py`) starts every node: through

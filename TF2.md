@@ -1111,2166 +1111,377 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_config_args.py` (`-connect`) | same | same | pass | skip (proxy) |
 | `feature_config_args.py` (`-privatebroadcast`) | same | same | pass, the warning's last sentence asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
 
-`feature_blocksdir.py`'s row is a smaller claim than Core's own test: Core also
-mines blocks through the framework's own deterministic wallet key before its
-disk read, which this drops -- a fresh node writes its genesis block to
-`blk00000.dat` before anything is mined, so the `-blocksdir` redirect this test
-is about needs nothing more than that to show. On a build past
-[ISS btclib-node#1416](https://github.com/btclib-org/btclib-node/issues/1416) a
-nonexistent `-blocksdir` is fatal too, in bitcoind's own words, so the cell
-names the capability rather than the node's whole behaviour: it is reading the
-chain back in Core's own `blk*.dat` layout that is `Capability.BLK_FILES`
-(`capability.py`) -- a capability btclib-node never declares, not a gap its
-adapter is waiting on but the decision
-[ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)
-already closed on.
+Each line gives the reason for a file's `btclib-node` cell and, where there is
+one, the issue it is filed as. What differs from Core's file is in the
+docstrings of `tests/integration/<file>*_test.py`. The cell gives the verdict
+per build; an entry gives the reason only. A row with no entry here has its
+prose in the later sections.
 
-The refusal itself is matched as the node's whole stderr, the path given
-included, the way Core's own file compares it, and in Core's own wording alone:
-`Error: Specified blocks directory "..." does not exist.`. `NodeAdapter.start`
-(`node.py`) reads a process's own stderr into the `RuntimeError` it raises on an
-early exit, which is what the tests above each check against
-([ISS bitcoin-node-tests#19](https://github.com/btclib-org/bitcoin-node-tests/issues/19)).
-
-`feature_filelock.py`'s row is a smaller claim than Core's own file: the
-cookie- and PID-file persistence checks are dropped, being a fact about which
-files a refused second start happens to leave behind rather than about the lock
-itself, and the wallet-directory lock is dropped on the charter's own "wallet
-... tests stay out". What is kept whole is the disk-family's own subject: a
-second process started over a datadir, or a blocksdir, a first one already holds
-is fatal, matched in Core's own wording alone, "Cannot obtain a lock on
-directory ...", the locked directory's path included. btclib-node writes it
-([ISS btclib-node#1147](https://github.com/btclib-org/btclib-node/issues/1147)),
-locking the data directory and then the blocks directory before either store
-opens.
-
-`rpc_whitelist.py`'s row is a smaller claim than Core's own file: named users
-exercising `rpcwhitelist` and `rpcwhitelistdefault` rather than Core's own
-`strange_users` roster of malformed-input edge cases, a claim about that file's
-own hand-written config parser rather than about
-`rpcauth`/`rpcwhitelist`/`rpcwhitelistdefault` themselves, which is
-`Capability.RPC_AUTH_CONFIG` (`capability.py`) -- the disk family's own second
-capability, a `bitcoin.conf` key rather than a command-line option, written to
-`datadir_path` before a node ever starts with no adapter change needed. bitcoind
-declares it unconditionally; `BtclibNodeAdapter` declares it per instance rather
-than at the class level, and unlike every capability above this is not a fact
-about `btclib-node` itself fixed once and for all -- `cli.py`'s own
-`_RECOGNIZED_KEYS` already names `rpcauth`, `rpcwhitelist` and
-`rpcwhitelistdefault`, landed as
-[ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070)
-alongside the module `btclib_node.py`'s own `_writes_auth_cookie` already probes
-for cookie authentication; `__init__` declares the capability on an instance
-exactly where that same probe answers `True`, both facts landing in one commit.
-An instance built with an executable past btclib-node#1070 declares the
-capability and runs the row's full assertions, matched against
-`rpc_whitelist_bitcoind_test.py`'s own claim; one built with an older executable
-declares nothing and skips.
-
-`rpc_users.py`'s row shares `Capability.RPC_AUTH_CONFIG` with
-`rpc_whitelist.py`'s own row above, and is a smaller claim than Core's own file
-in the same way. Kept: `-rpcauth` authenticating a user given either through
-`bitcoin.conf` or on the command line, a wrong password or a wrong user refused
-where a correct one is accepted; `test_rpccookieperms`'s own POSIX permission
-bits (`-rpccookieperms=owner`/`group`/`all`, and the default with none given); a
-roster of Core's own malformed `-rpcauth` values, refused at startup and matched
-against Core's own wording; Core's own "interactions between blank and non-blank
-rpcauth" check, a blank `-rpcauth=` refusing startup wherever it sits among
-named entries, in every ordering Core's own file checks; and the "failure to
-write cookie file will abort the node" check, a resource conflict in the same
-shape `feature_filelock.py`'s own row is. `test_rpccookieperms`'s own
-`platform.system() == 'Windows'` branch is dropped: this repository gates on one
-image, `ubuntu-latest` (`CONTRIBUTING.md`'s own table), so that branch is never
-reached here, and the POSIX check is the whole of the row's own claim for it.
-The bare `-rpcauth`, with no value at all, is dropped from the malformed roster:
-it is `argparse`'s own "expected one argument" on btclib-node rather than a fact
-about `RpcAuthEntry.parse` (`btclib-node`'s own `rpc/auth.py`), which the
-roster's other values already exercise between them. Core's own "-norpcauth
-disables previous -rpcauth params" check is ported as its own test and its own
-row, gated on `Capability.RPC_AUTH_NEGATION` rather than folded into the plain
-`rpc_users.py` row's `RPC_AUTH_CONFIG` cell: a `btclib-node` build can read
-`-rpcauth` and still refuse `-norpcauth` before a node ever starts.
-`BitcoindAdapter` declares the new capability unconditionally, the same way it
-declares `RPC_AUTH_CONFIG`; `BtclibNodeAdapter` declares it per instance, where
-its own `_negates_rpcauth` probe finds the build's `cli.build_config` discarding
-an `-rpcauth` given before `-norpcauth`
-([ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176)).
-On a build that reads `-norpcauth` that row's cell is a run; on a build whose
-argparse refuses it as "unrecognized arguments" it is a counted skip.
-
-Ported with `rpc_auth` (`NodeAdapter.__init__`): `-rpcuser`/
-`-rpcpassword` and `-norpccookiefile`, gated on
-`Capability.RPC_AUTH_CONFIG` on btclib-node too -- `cli.py`'s own
-`_RECOGNIZED_KEYS` names both alongside `rpcauth` from the same commit
-([ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070)).
-Dropped still: Core's own script-driven credential generation
-(`share/rpcauth/`, run as a subprocess) and its `SystemRandom`-chosen
-username, a claim about that script rather than about the mechanism,
-matching `rpc_whitelist.py`'s own reason for dropping Core's
-`strange_users` roster. Core writes no RPC cookie once `-rpcpassword`
-is set or `-norpccookiefile` is given, `-rpcauth` present or not --
-measured live against the pinned bitcoind, and against `btclib-node`'s
-own `rpc/auth.py` docstring, which states the same rule for that node,
-so `_rpc_client()`'s own default on both adapters, a cookie, waits on a
-file the node configured either way never writes.
-`NodeAdapter.__init__`'s own `rpc_auth` parameter (`node.py`) is what
-makes this row's own port possible: the caller that configures a node
-with either flag already knows the plaintext credential, and passes it
-there instead of leaving the readiness wait on a cookie
-([ISS bitcoin-node-tests#34](https://github.com/btclib-org/bitcoin-node-tests/issues/34)).
-This is a smaller mechanism than Core's own `busy_wait_for_debug_log`,
-an alternate readiness wait keyed on the debug log rather than RPC:
-Core needs it because its own `test_norpccookiefile` pairs
-`-norpccookiefile` with an `-rpcauth` value `test_framework/util.py`'s
-own `get_auth_cookie` has no way to recover the plaintext of from
-`bitcoin.conf` alone, where this repository's own tests construct every
-`-rpcauth` value they use and so always hold the plaintext behind it.
-
-A cookie write failure happens inside `Node.run` on btclib-node, once
-`rpc_manager.start_listener` has already tried and failed, and `__init__.py`'s
-own `RPC_INIT_ERROR` constant is bitcoind's own generic wording verbatim --
-measured live, a directory sitting where the cookie file must go refuses with
-`Error: Unable to start HTTP server. See debug log for details.` on both nodes,
-identically. A malformed `-rpcauth` answers with that same wording on a build
-past
-[ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210):
-`RpcAuth.start` logs "Invalid -rpcauth argument." and fails the listener, as
-Core's own `InitRPCAuthentication` refuses it once bound. btclib-node's test
-matches Core's wording alone.
-
-`p2p_getdata.py`'s row is a smaller claim than Core's own test: Core asks its
-"later valid `getdata`" question of a mined tip, and this asks it of genesis
-instead, `Capability.MINE` not being every node's fact yet. The
-invalid-`getdata`-then-`ping` half is unchanged from Core's. Step 4
-([ISS bitcoin-node-tests#2](https://github.com/btclib-org/bitcoin-node-tests/issues/2))
-re-asked whether that claim should widen now that `Capability.MINE` exists: it
-does not, because `BtclibNodeAdapter` declares `Capability.MINE` only on a build
-that connects a submitted block with no peer -- from the commit closing
-[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) on
--- and widening only the bitcoind half of this row would leave its own column
-and btclib-node's answering a different question about the same test.
-
-The first family's own rows -- `p2p_block_sync.py`, `p2p_compactblocks_hb.py`,
-`p2p_invalid_locator.py` and `p2p_net_deadlock.py` -- are Core's own claim in
-full, `bitcoind`'s pass being the whole of it: none narrows what Core asks, each
-needing `Capability.MINE` (`p2p_block_sync.py`, `p2p_compactblocks_hb.py` and
-`p2p_invalid_locator.py`, to reach a chain tall enough to mine or to name, and
-`Capability.DISCONNECT` besides for `p2p_compactblocks_hb.py`) or
-`Capability.RAW_MESSAGE` (`p2p_net_deadlock.py`, Core's own `sendmsgtopeer`), so
-a build declaring none of them is a counted skip -- naming the capability rather
-than the RPC, since a node offering the same fact under another name would still
-answer `pass`. Every row of these is one body run against both nodes
-(`tests/integration/conftest.py`'s own module docstring), so a build declaring
-`Capability.MINE` and `Capability.DISCONNECT` runs Core's own scenario:
-`p2p_block_sync.py` and `p2p_invalid_locator.py` pass; `p2p_compactblocks_hb.py`
-fails, every peer's `bip152_hb_to` staying false as this node picks no
-high-bandwidth peer
-([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)).
-`p2p_net_deadlock.py` skips on `Capability.RAW_MESSAGE`, which it asks for ahead
-of `Capability.MINE`; its cell is that skip. `p2p_compactblocks_hb.py`
-identifies each of the node under test's own peers by connection order rather
-than by the `-uacomment` Core's own `TestNode` sets, this adapter carrying no
-per-node command-line option; every other assertion is unchanged.
-
-The log family's own rows (issue #5) are each half of one Core test rather than
-the whole of it: `test_magic_bytes` (`p2p_invalid_messages.py`) and the closing
-check of `P2PLeakTest` (`p2p_leak.py`) each assert a disconnect *and* the log
-line Core's own binary writes for it, and the charter's own rule for this family
-is that a fact observable on the wire is asked for on the wire while a fact only
-the log carries asks for `Capability.DEBUG_LOG` instead -- one mechanism, not
-one verdict, so the wire half and the log half of the same Core test get their
-own row rather than being folded into a single pass/skip that would hide which
-half a `skip` was ever about. `p2p_leak.py`'s own earlier checks are not ported
-either way: they ask what a node sends before a handshake completes, not an
-`assert_debug_log` subject. The one exception is the feature-negotiation version
-boundary (bitcoin/bitcoin#36152): a wire row of its own, with one verdict
-whatever the build, so it needs no log half.
-`tests/integration/p2p_leak_test.py`'s own docstring has its steps, and
-`p2p_leak_btclib_node_test.py`'s what an earlier release does.
-
-`p2p_invalid_messages.py` gains more rows of the same shape (issue #5), one pair
-per Core assertion rather than one pair for the whole file:
-`test_oversized_inv_msg`, `test_oversized_getdata_msg` and
-`test_oversized_headers_msg` (each through the shared `test_oversized_msg`), and
-`test_invalid_pow_headers_msg`, each a `Misbehaving` log line paired with the
-disconnect it schedules. `InvalidMessagesTest.set_test_params`'s own whitelist
-permission is dropped for the same reason `test_magic_bytes`'s row already drops
-it: `net_permissions.cpp`'s own parser reads the string ahead of the `@` as a
-permission name, and the one Core's own file passes there grants
-`NetPermissionFlags::Addr` rather than `NoBan`, so it does not exempt the
-connection from the discourage-and-disconnect these checks are about.
-`tests/integration/p2p_invalid_messages_misbehaving_test.py`'s own docstring has
-the full argument, including why the PoW check needs none of Core's own
-preliminary "send a valid header first" step.
-
-`p2p_invalid_messages.py` gains a size row of the same wire-and-log
-shape as `test_magic_bytes` (issue #5): Core's own `test_size` disconnects
-the peer exactly as a wrong network magic does --
-`V1Transport::readHeader` (`src/net.cpp`) refuses a header whose own
-declared length is over `MAX_PROTOCOL_MESSAGE_LENGTH` and returns before
-a message ever reaches `GetReceivedMessage`, the same early exit
-`test_magic_bytes`'s own row already reads --
-`tests/integration/p2p_invalid_messages_test.py`'s own docstring
-carries both rows now. Both the wire and the log tests build the same
-several-megabyte payload and tolerate a `ConnectionError` on the send
-itself, measured live: the node closes the socket before this side has
-finished writing it. btclib-node's own `frame_message` refuses the same
-octets through `btclib.p2p.Message.parse`'s own length check ahead of the
-network-magic one, so this row's `btclib-node` cell is `pass` on both
-halves' own wire fact for the same reason `test_magic_bytes`'s already is.
-
-More rows are the log family's own opposite wire fact:
-`test_duplicate_version_msg`, `test_checksum` and `test_msgtype` (its non-v2
-branch, the only one this suite's `Peer` ever speaks) each reach
-`V1Transport::GetReceivedMessage` (`src/net.cpp`), which sets `reject_message`
-rather than returning early -- `CNode::ReceiveMsgBytes`'s own comment: "Message
-deserialization failed. Drop the message but don't disconnect the peer." So each
-row's wire half asks the opposite question from `test_magic_bytes`'s: that the
-connection *survives*, read off a `ping`/`pong` round trip rather than
-`wait_for_disconnect`.
-`tests/integration/p2p_invalid_messages_dropped_test.py`'s own docstring has the
-full argument, including why Core's own `bytesrecv_per_msg` check on the
-checksum and msgtype rows is dropped.
-
-Core's own `test_addrv2_*` checks join the same shape, through a raw `addrv2`
-message rather than through `btclib.p2p.AddrV2`'s own codec --
-`test_addrv2_empty`, `test_addrv2_no_addresses` and
-`test_addrv2_too_long_address`, each asserting the connection survives a
-malformed or trivial payload the way the rows above do. Each is one body over
-both nodes (`tests/integration/conftest.py`'s own module docstring).
-`tests/integration/p2p_invalid_messages_addrv2_test.py`'s own docstring has the
-full argument, including why `SenderOfAddrV2`'s own explicit wait for the node's
-`sendaddrv2` needs no equivalent here: this suite's `Peer.handshake` already
-negotiates `WTXID_RELAY_VERSION`, the same floor BIP155's own `sendaddrv2`
-announcement is gated on, and why a `ping` round trip proves the `addrv2` before
-it was handled on both nodes, a btclib-node build past
-[ISS btclib-node#1739](https://github.com/btclib-org/btclib-node/issues/1739)
-handling a peer's messages in the order received. `test_addrv2_no_addresses`
-raises nothing -- an empty list is valid. Each passes on both nodes.
-
-`test_addrv2_unrecognized_network` joins them. Its assertion lines
-past Core's first are `LogDebug(BCLog::ADDRMAN, ...)`'s (`src/addrman.cpp`),
-and `BitcoindAdapter._command` enables that category beside `net`,
-`-debug` accumulating rather than one occurrence replacing another. Its
-node is started for the test, with the address-relay permission and the
-disabled autoconnect Core's own run of the file has and the session's
-shared node does not:
-`tests/integration/p2p_invalid_messages_addrv2_test.py`'s own
-docstring has why each is needed, including the `addrman` lines a node
-holding the gossiped address writes without the second, measured
-against the pinned release. It passes on both nodes: `AddrV2.parse`
-reads an entry of a network id BIP155 does not name the way it reads any
-other, so btclib-node raises nothing either.
-
-`p2p_bip434_feature.py`'s row is ported, narrowed to what a build lacking
-BIP434 support disconnects for anyway rather than to `FEATURE`'s own
-accepted shapes -- the length-boundary and acceptance checks Core's own
-file also carries read the log of a node that file starts with
-`-peertimeout` above its default, so they are
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
-rather than this row's, and this row passes no `-peertimeout` -- and
-gated on a fact read
-from the running build rather than assumed for the whole class
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35),
-`capability.py`'s own module docstring): `node/protocol_version.h`'s own
-`PROTOCOL_VERSION` constant, read at the pinned tag and at Core's
-`master`:
-
-```shell
-gh api repos/bitcoin/bitcoin/contents/src/node/protocol_version.h?ref=v31.1 \
-    -H 'Accept: application/vnd.github.raw' | grep PROTOCOL_VERSION
-gh api repos/bitcoin/bitcoin/contents/src/node/protocol_version.h?ref=master \
-    -H 'Accept: application/vnd.github.raw' | grep PROTOCOL_VERSION
-gh api repos/bitcoin/bitcoin/contents/src/protocol.h?ref=v31.1 \
-    -H 'Accept: application/vnd.github.raw' | grep -c FEATURE
-```
-
-confirms the pinned release's own gap -- `NetMsgType::FEATURE`
-itself is absent from that tag's own header, landed only on `master`
-afterward, in the same commit
-(`6a129983c9bf8efa1081f9a8b462c3635d1cfb39`, "BIP434: FEATURE message
-support") that bumped `PROTOCOL_VERSION` past the value the pinned tag's
-own header carries -- so the version this row's test reads off
-`getnetworkinfo`'s own `protocolversion` (or the p2p handshake's own
-`version`, the same fact either way) is what decides which of `FEATURE`'s
-own shapes to assert, rather than a version the pinned release happens
-to be behind forever. Not a skip: a build with no `"feature"` branch at
-all ignores the message exactly as it ignores any other one it does not
-recognise, so the row's own tests assert that survival where a build
-past the bump would disconnect instead --
-`tests/integration/p2p_bip434_feature_bitcoind_test.py`'s own module
-docstring has the rest of the narrowing, and why a skip was tried first
-and reverted: `btclib-org/.github`'s own `reusable-integration-bitcoind.yml`
-fails the required job on any skip whose reason does not start with
-its `skip-reason-prefix`, which `node-integration.yml`'s `bitcoind` job
-sets to the start of `btclib_node_python`'s own skip message. `doc/bips.md` at
-Core's `master` names BIP434 as landing only in the next major release
-after the one this repository pins, and the functional test itself
-postdates the pinned tag (`da74ff9ca4`, 2026-06-04, not an ancestor of
-it) -- so no release of the oracle this suite pins today ever sends or
-accepts a `FEATURE` message, and this row's own assertion is what
-answers for it instead of waiting for the pinned release to move: a
-comment on
-[ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5) says
-this row need not wait either, since the informational `core-master` job
-(`.github/workflows/node-integration.yml`,
-[ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8))
-already runs it against a build that does.
-
-`p2p_handshake.py`, `p2p_addr_relay.py` and `p2p_addrv2_relay.py` give the log
-family more checks of the same wire-and-log shape (issue #5), each the first
-check of its own file's `run_test`: a second `verack` once the handshake is
-complete, ignored; an `addr` over `MAX_ADDR_TO_SEND`, a `Misbehaving` line and a
-disconnect; and a `sendaddrv2` after `verack`, a disconnect. Each is one body
-over both nodes (`tests/integration/conftest.py`'s own module docstring), whose
-own module docstring has what of Core's file it drops.
-
-The log family's census is Core's `test/functional/` at `master`
-`ed7dd7cf4e`, every file this command lists:
-
-```shell
-git -C ../bitcoin grep -l -E \
-    'assert_debug_log|debug_log|debug\.log|reject_reason=|clear_addrman=True' \
-    ed7dd7cf4e -- 'test/functional/*.py' ':!test/functional/test_framework/*'
-```
-
-`reject_reason=` and `clear_addrman=True` in the pattern are the
-framework's own calls to `assert_debug_log`, which a grep for the name
-alone does not find:
-`P2PDataStore`'s `send_blocks_and_test` and `send_txs_and_test`
-(`test_framework/p2p.py`) make one for a caller passing `reject_reason`,
-and `restart_node` (`test_framework/test_framework.py`) one for a caller
-passing `clear_addrman=True`. Each file is read at the grain Core's own file
-gives it, a `test_*` method or a `self.log.info` step of `run_test`, and a
-step asks for the log alone only where it reaches no option, no
-`MiniWallet` coin, no `setmocktime`, no read of the node's own files and
-no second node linked to its own, counting whatever an earlier step or the
-file's own setup already gave the same node. Core's `setup_network` links
-every node of a file starting more than one, unless the file overrides
-it, and its `generate` then syncs them. Not counted: a permission the
-step's own check never reads, the narrowing the `p2p_invalid_messages.py`
-rows above already make, and an option set to its own default.
-
-Open under
-[ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5), each a
-step of that shape and none ported yet:
-
-- `p2p_invalid_messages.py`'s `test_noncontinuous_headers_msg`, which
-  also needs `Capability.MINE`, an adapter's own fact rather than a step-5
-  mechanism;
-- `p2p_nobloomfilter_messages.py`'s filtered-block request, the
-  `-peerbloomfilters` value its node is given restating Core's own
-  default, and
-  `interface_http.py`'s `check_excessive_request_size`: steps Core's
-  `master` carries and the pinned release does not.
-
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
-every log step of each reaching another of the mechanisms above:
-`feature_abortnode.py`, `feature_addrman.py`, `feature_asmap.py`,
-`feature_assumevalid.py`, `feature_block.py`, the rest of
-`feature_config_args.py`,
-`feature_fee_estimation.py`, `feature_index_prune.py`, `feature_init.py`,
-`feature_logging.py`, `feature_maxuploadtarget.py`, `feature_port.py`,
-`feature_pruning.py`, `feature_reindex.py`, `feature_reindex_readonly.py`,
-`feature_settings.py`, `feature_signet.py`,
-`feature_utxo_abort_on_error.py`, the rest of `interface_http.py`,
-`mempool_limit.py`, `mempool_unbroadcast.py`,
-`mining_getblocktemplate_longpoll.py`, the rest of `p2p_addr_relay.py` and
-of `p2p_addrv2_relay.py`, the rest of `p2p_bip434_feature.py`,
-`p2p_blockfilters.py`, `p2p_compactblocks.py`,
-`p2p_connection_limits.py`,
-`p2p_disconnect_ban.py`'s `setban` half, `p2p_filter.py`,
-`p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
-`p2p_invalid_block.py`, `p2p_invalid_tx.py`,
-`p2p_permissions.py`,
-`p2p_segwit.py`,
-`p2p_unrequested_blocks.py`, `p2p_v2_misbehaving.py`,
-`p2p_v2_transport.py`, `rpc_misc.py` and the rest of `rpc_net.py`. Of these,
-`p2p_addr_relay.py` and `p2p_compactblocks.py` also dial out of the node
-under test in some step,
-[ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)'s
-subject. `rpc_misc.py`'s log check, the `libevent` category's
-deprecation warning, is a step of Core's `master` alone, run after its
-node restarts with `-txindex` and the other indexes; the file's other
-`logging` checks read the RPC's own answer and no log.
-`feature_assumeutxo.py` stays behind the disqualifier the node-linking
-section below names. `feature_reindex.py`, `feature_reindex_readonly.py`,
-`p2p_blockfilters.py`, `p2p_compactblocks.py`,
-`p2p_headers_sync_with_minchainwork.py`, `p2p_ibd_txrelay.py`,
-`p2p_invalid_block.py`, `p2p_unrequested_blocks.py`,
-`feature_settings.py`, `feature_assumevalid.py` and `p2p_permissions.py`
-are ported, their rows in the table above.
-
-The rest go where the node wallet, another Core binary, an older release,
-a proxy or an external interface is the subject:
-[ISS 45](https://github.com/btclib-org/bitcoin-node-tests/issues/45)
-every `wallet_*.py` file the command lists,
-[ISS 46](https://github.com/btclib-org/bitcoin-node-tests/issues/46)
-`feature_coinstatsindex_compatibility.py` and
-`feature_txindex_compatibility.py`,
-[ISS 48](https://github.com/btclib-org/bitcoin-node-tests/issues/48)
-`interface_ipc.py`, and
-[ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)
-`interface_bitcoin_cli.py`.
-
-Ledgered already, a row above or a paragraph naming the file:
-`p2p_invalid_messages.py` but for the step still open, `p2p_leak.py`,
-`rpc_setban.py`, `rpc_users.py`, `feature_posix_fs_permissions.py`,
-`feature_cltv.py`, `feature_dersig.py`, `feature_csv_activation.py`,
-`p2p_ping.py`, `p2p_timeouts.py`,
-`p2p_disconnect_ban.py`'s `disconnectnode` half,
-`p2p_bip434_feature.py`'s wire-only disconnects, `p2p_handshake.py`,
-`p2p_initial_headers_sync.py`, `p2p_sendtxrcncl.py`,
-`p2p_mutated_blocks.py`, `p2p_i2p_ports.py`, `p2p_i2p_sessions.py`,
-`p2p_dns_seeds.py`, `feature_anchors.py`,
-`p2p_addr_selfannouncement.py`, `p2p_seednode.py`, `p2p_ibd_stalling.py`,
-`p2p_private_broadcast.py`, `p2p_tx_download.py`, `p2p_blocksonly.py`,
-`p2p_orphan_handling.py`, `rpc_net.py` but for the steps that connect
-its nodes, and `feature_config_args.py` but for the steps that give its
-node no proxy to read.
-Listed and not the family's: `combine_logs.py`,
-a tool merging a run's logs that Core's own `test_runner.py` names among
-its `NON_SCRIPTS`; and
-`interface_rpc.py`, which compares `getrpcinfo`'s `logpath` with a path
-and reads no log line.
-
-`feature_uacomment.py` is the option family's own first row
-([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)),
-a smaller claim than Core's own test: Core's harness sets its own
-`-uacomment=testnode{i}` on every node it starts, which this adapter does not,
-so the default subversion carries no parenthetical comment at all here rather
-than `(testnode0)`; the assertion this keeps is that a comment appears once
-`-uacomment` names one. The length-limit and unsafe-character checks are dropped
--- both ask a node to fail its own startup on a bad value, a mechanism this
-issue's own capability check does not need and does not build.
-`Capability.UA_COMMENT` (`capability.py`) is the shape rule 4's "a capability
-per option" takes here: one member per Core option a ported test asks for, added
-the moment that test is ported rather than for the whole of Core's option
-surface up front -- `capability.py`'s own docstring has the case against a
-single parameterized capability instead, and the charter's own carve-out for a
-bitcoind-only option, which `-uacomment` is not. `-uacomment` is not one of
-`cli.py`'s registered flags, so this row's `btclib-node` cell is a counted skip.
-
-No test measured for this family asks for an option `btclib-node` does register
-and needs nothing else from step 5, `MINE` or an outbound connection.
-`p2p_add_connections.py` is the one dedicated `-maxconnections` test. Its
-options are a loopback `-bind` on some of its nodes, and on another a
-`-maxconnections` low enough, with `-listen` off, that its first step fills that
-node's outbound capacity before adding a manual connection beyond it. Every
-outbound connection it opens has a node dial a listening test peer as a chosen
-connection type -- Core's own `add_outbound_p2p_connection`, over
-`addconnection` -- beside inbound test peers of its own, and no step links one
-node to another. That mechanism is `Capability.TYPED_OUTBOUND` and
-`peer.Listener`, save the `manual` type its first step asks for, which
-`addconnection` takes only past the pinned release
-(bitcoin/bitcoin@4c79f3a34d003bd97824b032383ac816a4147d68). Its subject is that
-mechanism (Core's own docstring: "Test add_outbound_p2p_connection test
-framework functionality") rather than an option, so its rows are with the tests
-the mechanism blocks
-([ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)), not with
-this family. `feature_discover.py`'s own `-discover` is neutered by this
-adapter's own fixed `-bind` -- measured against the pinned bitcoind binary,
-`getnetworkinfo`'s `localaddresses` answers empty whether `-discover` is passed
-bare or given its own disabling value, so the option has nothing to demonstrate
-under either adapter's own command line. So this row exercises the skip arm
-alone. The pass-through arm's candidates ask for adapter capabilities besides:
-`rpc_getblockfrompeer.py`'s and `p2p_node_network_limited.py`'s rows pass
-`-prune`, which `cli.py` registers, with no capability of its own, and each
-row's `btclib-node` cell skips on a capability the node does not declare rather
-than on the option.
-
-Most of the option family's remaining tests ask for another step-5
-mechanism alongside an option -- MiniWallet, `assert_debug_log`,
-`setmocktime` or the disk -- and are ISS 14's to port once every family
-lands, not this issue's. Of the rest, most name a wallet feature or an
-option only bitcoind has a reason to carry (`-torcontrol`), which the
-charter's own rule keeps out of this mechanism entirely.
-`btclib-node`'s own registered surface carries no
-dedicated Core test that both asks for nothing else and does not already
-write `bitcoin.conf` directly -- `rpc_whitelist.py` and `rpc_users.py`
-set `-rpcauth` and `-rpcwhitelist` through the config file rather than
-the command line, which is the disk family's own subject
-(`datadir_path`/`bitcoin.conf`) and not this one's, and a string-literal
-census such as ISS 3's own does not see a bare `key=value` config line
-naming an option this way. `feature_reindex_init.py` shows a different
-miss: the string literal `-test=reindex_after_failure_noninteractive_yes`
-is what puts it in this family's own census, but the test also removes
-`node.blocks_path / "index"` directly -- `blocks_path` being
-`TestNode`'s own property name, a string the disk family's own
-`datadir_path`/`blocks/` pattern does not match either -- so it needs
-the disk family regardless of what `-test` itself turns out to name,
-and is ISS 14's rather than this one's, its row in the table above.
-
-`rpc_uptime.py`'s row is Core's own claim, read per-build: a single node,
-`Capability.CLOCK` (Core's own `setmocktime`) the only fact it asks for,
-so `btclib-node`'s cell is a counted skip on that capability rather than
-a narrowed question. A build without bitcoin/bitcoin#34328 counts `uptime`
-from the mock clock, so the body reads the build's own `getnetworkinfo`
-`version` and asserts there that `uptime` follows `setmocktime`
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
-
-`feature_torcontrol.py`'s row is the first of the bitcoind-only shape
-[ISS bitcoin-node-tests#23](https://github.com/btclib-org/bitcoin-node-tests/issues/23)
-builds: `-torcontrol`, the charter's own second named example of an
-option only bitcoind has a reason to carry, drives a real handshake
-against a mock Tor control server this test carries alongside itself
-rather than in this repository's own harness. A smaller claim than
-Core's own file, declared rather than silent: Core's own mock server
-negotiates proof-of-work defenses on `ADD_ONION`, a step `src/torcontrol.cpp`
-at the pinned release's own tag never takes and Core's own `master`
-always does, landed in between the pinned tag and `master` in
-`4c6798a3d386c2c1a4bcc4a8694281a8f0bef92d` -- read from the running
-build rather than assumed for the whole class
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35),
-this table's own paragraph above), so this row's own test asserts
-whichever of the pinned tag's and `master`'s own shapes the build under
-test actually carries, off `getnetworkinfo`'s own `version`.
-`tests/integration/feature_torcontrol_bitcoind_test.py`'s own module
-docstring has the measurement, both builds' own `version` included.
-Kept whole: the sequence from
-`PROTOCOLINFO` through `ADD_ONION` a fresh onion service takes to come
-up. No other option of
-the first family's or the option family's own census names a fact only
-bitcoind's binary can answer without also asking for a mechanism this
-repository does not build -- `-disablewallet`, the charter's own other
-example, is a wallet feature by name and stays out on that ground alone,
-and `-proxy` is not bitcoind's alone, `Capability.PROXY` naming it
-(*Proxies: `Socks5Proxy`* below).
-
-`p2p_compactblocks_blocksonly.py`'s row is an option-family row, found by
-re-running the family's census against Core's own tip rather than `cff00c5`:
-`-blocksonly` is `Capability.BLOCKS_ONLY` (`capability.py`), and every other
-fact the test asks for -- `Capability.MINE`, `Capability.CONNECT`,
-`Capability.DISCONNECT` and a `Peer` (`peer.py`) -- is the adapters' own rather
-than another step 5 mechanism. Core delivers each block itself, over a
-connection it controls, so the peer whose `sendcmpct` renegotiation is under
-test is fixed rather than raced for one of several slots, and the test reads the
-wire rather than `getpeerinfo`: BIP152's `sendcmpct` and `cmpctblock` are
-`btclib.p2p.compact_blocks`' own, and `Peer.last_message` is what the test reads
-the node's latest `sendcmpct` and `getdata` off. Core's own claim in full,
-reached another way at the start: Core's nodes begin on its cached chain, out of
-initial block download, and here one block mined and submitted to every node
-takes each out of it. That a `-blocksonly` node ignores a `cmpctblock` is Core's
-since bitcoin/bitcoin@bf9884f4e55df502b67b2636969cacce62edaee9, which the
-release candidates of the next major release carry and the pinned release does
-not: that one reconstructs the block instead, so the test reads
-`getnetworkinfo`'s `version` and asserts whichever the build does
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), measured
-against the pinned release and against `v32.0rc2`. `btclib-node`'s cell is a
-counted skip: `cli.py` registers no `-blocksonly`.
-
-`rpc_echo_payload.py`'s row is an option-family row
-([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)).
-Its subject is an RPC server's own, not bitcoind's alone: a payload of any size
-is either answered or refused, never left to time out, with `-rpcworkqueue` and
-`-rpcthreads` set low only so that concurrent callers fill the queue. Another
-node's RPC server could make the same promise, so the pair is
-`Capability.RPC_WORK_QUEUE` (`capability.py`) rather than a bitcoind-only row. A
-smaller claim than Core's own file: bitcoind's refusal is matched on its HTTP
-status alone, `bitcoin_core_rpc`'s own `HttpError` keeping the status and not
-the `Work queue depth exceeded` sent with it, and a bitcoind still serving HTTP
-through libevent being called over a connection per call
-(`tests/integration/rpc_echo_payload_test.py`'s own docstring). `btclib-node`'s
-cell is a counted skip on that capability: `cli.py` registers neither option.
-Core's test sends each payload through `echo` or through `sendrawtransaction`,
-chosen at random, and `btclib-node`'s `rpc/callbacks.py` has the second and not
-the first, so a port for that node also needs `echo`, and accepts a refusal in
-that node's own terms.
-
-`rpc_getblockfilter.py`'s row is an option-family row, Core's own claim in full:
-`getblockfilter` answers a filter for every block of an active chain and of a
-stale one on a node under `-blockfilterindex` (`Capability.BLOCK_FILTER_INDEX`),
-refuses an unknown block and an unknown filter type, and refuses every filter
-type once restarted without the index. Core's harness connects its nodes at
-setup and its test disconnects them first; this harness's nodes start
-unconnected. `btclib-node`'s cell is a counted skip: `cli.py` registers no
-`-blockfilterindex`, and `getblockfilter` names no callback in
-`rpc/callbacks.py`'s own dispatch table.
-
-`rpc_getblockfrompeer.py`'s row is an option-family row, a smaller claim than
-Core's own file in its literals alone:
-`tests/integration/rpc_getblockfrompeer_test.py`'s own docstring has them.
-Core's cached chain is mined here and submitted to every node, so the fetched
-block's hash is the chain's own rather than Core's literal; and Core's
-`pruneblockchain` heights are literals that differ between the pinned release
-and the pin, so the test asserts what both sets share instead.
-`getblockfrompeer` is `Capability.BLOCK_FROM_PEER`, `-fastprune`
-`Capability.FASTPRUNE`, and the pre-segwit peer a `Peer` whose `handshake`
-offers no `NODE_WITNESS`. `-prune` asks for no capability, `cli.py` registering
-it and `rpc/callbacks.py` answering `pruneblockchain`. `btclib-node`'s cell is a
-counted skip on `Capability.BLOCK_FROM_PEER`, asked for first:
-`getblockfrompeer` names no callback in that dispatch table.
-
-`p2p_node_network_limited.py`'s row is an option-family row, Core's own claim in
-full ([ISS 185](https://github.com/btclib-org/bitcoin-node-tests/issues/185)): a
-node under `-prune` signals `NODE_NETWORK_LIMITED` and not `NODE_NETWORK`,
-serves a `getdata` for a block near its tip and disconnects a peer asking for an
-older one, and a full node syncs from it only once out of initial block
-download, asking it for no block outside that window. `-prune` asks for no
-capability, as on `rpc_getblockfrompeer.py`'s row, and every other fact the test
-asks for -- `Capability.MINE`, `Capability.CONNECT`, `Capability.DISCONNECT`, a
-`Peer` (`peer.py`), and `setnetworkactive`, which is
-`Capability.SUSPEND_NETWORK` -- is the adapters' own rather than another step 5
-mechanism. Core expects `NODE_P2P_V2` besides under its own `--v2transport`, and
-the test expects it where the node declares `Capability.V2TRANSPORT`
-(`tests/integration/p2p_node_network_limited_test.py`'s own docstring).
-`btclib-node`'s cell is a counted skip on `Capability.SUSPEND_NETWORK`, the one
-capability the row asks for that `BtclibNodeAdapter` declares for no build: the
-adapter declares `Capability.MINE` and `Capability.DISCONNECT` for a build that
-supports them, and a build past
-[ISS btclib-node#1392](https://github.com/btclib-org/btclib-node/issues/1392)
-serves `setnetworkactive`, but the adapter has no probe for it. Measured apart
-from the test: a `getdata` for the oldest block the window holds is served and
-one for the block before it disconnects, as on bitcoind.
-
-The option family's census is Core's `test/functional/` at `master`
-`ed7dd7cf4e15`, run from this repository's root beside a Core checkout
-at `../bitcoin`:
-
-```shell
-core=ed7dd7cf4e15
-other='MiniWallet|assert_debug_log|mocktime|datadir_path|blocks_path'
-other+='|chain_path|createwallet|getnewaddress|skip_if_no_wallet'
-git -C ../bitcoin ls-tree --name-only "${core}" test/functional/ |
-    sed -n 's|^test/functional/\([a-z][a-z0-9_]*\.py\)$|\1|p' |
-    grep -v '^wallet_' |
-    while read -r name; do
-        grep -qwF "${name}" TF2.md && continue
-        text=$(git -C ../bitcoin show "${core}:test/functional/${name}")
-        grep -qE "[\"']-[a-z]" <<<"${text}" || continue
-        grep -qE "${other}" <<<"${text}" && continue
-        echo "${name}"
-    done
-```
-
-A file is the option family's
-([ISS 3](https://github.com/btclib-org/bitcoin-node-tests/issues/3))
-where the option is all it asks for beyond what the adapters and `Peer`
-already provide: an option `btclib-node` lacks, or one asking for no
-capability, and no other step 5 mechanism. The command lists every Core
-test file this ledger names nowhere, `wallet_*.py` aside
-([ISS 45](https://github.com/btclib-org/bitcoin-node-tests/issues/45)),
-that passes a string literal opening with `-` and a letter, and that
-reaches neither MiniWallet, `assert_debug_log`, `setmocktime`, the
-node's own files through `datadir_path`, `blocks_path` or `chain_path`,
-nor a wallet. It skips a file this ledger names anywhere, whether or not
-the ledger says where that file goes. Measured of this ledger rather than
-following from the filter: every file the command lists against an empty
-ledger and the table above gives no row has a sentence here saying where
-it goes, which a later mention naming no home would break. Against this
-ledger it lists nothing; against one naming none of the files below, it
-lists those files, each going where its line says:
-
-- `p2p_node_network_limited.py`, the row above, the option family's;
-- `feature_proxy.py`, the rows above, ported on the proxy
-  [ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)
-  builds;
-- `interface_usdt_net.py`, a USDT tracepoint test
-  ([ISS 48](https://github.com/btclib-org/bitcoin-node-tests/issues/48));
-- `p2p_v2_encrypted.py`, whose `-v2transport` is `Capability.V2TRANSPORT`
-  but whose peers speak BIP324 themselves, a transport `Peer` does not
-  ([ISS 175](https://github.com/btclib-org/bitcoin-node-tests/issues/175));
-- `rpc_getdescriptorinfo.py`, the row above, whose subject is the RPC
-  rather than `-disablewallet`
+- `feature_blocksdir.py`: a smaller claim, Core also mining before its disk
+  read. Skips on `blk_files`: btclib-node keeps its own block format, by
+  decision
+  ([ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)).
+  The refusal is matched on the node's whole stderr
+  ([ISS 19](https://github.com/btclib-org/bitcoin-node-tests/issues/19)).
+- `feature_filelock.py`: a smaller claim: the cookie- and PID-file checks and
+  the wallet-directory lock are dropped. btclib-node writes Core's lock error
+  ([ISS btclib-node#1147](https://github.com/btclib-org/btclib-node/issues/1147)).
+- `rpc_whitelist.py`: a smaller claim: named users, not Core's `strange_users`
+  roster. Gated on `rpc_auth_config`
+  ([ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070)).
+- `rpc_users.py`: a smaller claim: no Windows branch, no bare `-rpcauth`, no
+  `share/rpcauth` script. `-norpcauth` is gated on `rpc_auth_negation`
+  ([ISS btclib-node#1176](https://github.com/btclib-org/btclib-node/issues/1176));
+  `-rpcuser`, `-rpcpassword` and `-norpccookiefile` run through `rpc_auth`
+  ([ISS 34](https://github.com/btclib-org/bitcoin-node-tests/issues/34)). A
+  cookie that cannot be written and a malformed `-rpcauth` are refused in Core's
+  `Unable to start HTTP server` wording
+  ([ISS btclib-node#1210](https://github.com/btclib-org/btclib-node/issues/1210)).
+- `p2p_getdata.py`: a smaller claim: the later `getdata` is asked of genesis,
+  not of a mined tip, `MINE` not being every node's fact
+  ([ISS 2](https://github.com/btclib-org/bitcoin-node-tests/issues/2),
+  [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)).
+- `p2p_block_sync.py`: Core's claim in full. Skips on `mine` where undeclared.
+- `p2p_invalid_locator.py`: Core's claim in full. Skips on `mine` where
+  undeclared.
+- `p2p_compactblocks_hb.py`: Core's claim in full, its peers told apart by
+  connection order, not by `-uacomment`. This node picks no
+  high-bandwidth peer
+  ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)).
+- `p2p_net_deadlock.py`: Core's claim in full. Skips on `raw_message`, Core's
+  `sendmsgtopeer`.
+- `p2p_leak.py`: a wire row and a log row per Core check
+  ([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)). The
+  checks before the handshake completes are not ported: they ask what a node
+  sends, not what it logs. The version boundary (bitcoin/bitcoin#36152) is wire
+  only.
+- `p2p_invalid_messages.py`: a wire row and a log row per Core assertion
+  ([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)): magic,
+  size, oversized `inv`, `getdata` and headers, invalid proof of work, duplicate
+  `version`, checksum, message type and the `addrv2` checks. The log rows skip
+  on `debug_log`. Core's whitelist permission is dropped: it grants `Addr`, not
+  `NoBan`. The `addrv2` rows rely on a peer's messages being handled in order
+  ([ISS btclib-node#1739](https://github.com/btclib-org/btclib-node/issues/1739)).
+- `p2p_handshake.py`: the redundant-`verack` check, a wire row and a log row
+  ([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)). The
+  other rows are in *Outbound connections* below.
+- `p2p_addr_relay.py`: the first check of Core's `run_test`, a wire row and a
+  log row ([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)).
+- `p2p_addrv2_relay.py`: the first check of Core's `run_test`, a wire row and a
+  log row ([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)).
+- `p2p_bip434_feature.py`: narrowed to the disconnects a build
+  without BIP434 makes anyway, the pinned release having no `FEATURE` message
+  (added with bitcoin/bitcoin@6a129983c9bf); the shape asserted is read from the
+  build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+  The length and acceptance checks need `-peertimeout` and belong to
+  [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14).
+- `feature_uacomment.py`: a smaller claim: no `testnode{i}` default comment, no
+  length or unsafe-character checks. Skips on `ua_comment`: `cli.py` registers
+  no `-uacomment`
+  ([ISS 3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)).
+- `rpc_uptime.py`: Core's claim in full. Skips on `clock`.
+- `feature_torcontrol.py`:
+  [ISS 23](https://github.com/btclib-org/bitcoin-node-tests/issues/23).
+  `-torcontrol` drives a mock Tor control server the test carries. A smaller
+  claim: the proof-of-work defenses step is asserted as the build under test
+  takes it
+  ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+- `p2p_compactblocks_blocksonly.py`: an option-family row
+  ([ISS 3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)). Skips on
+  `blocks_only`: `cli.py` registers no `-blocksonly`. What a `-blocksonly` node
+  does with a `cmpctblock` is read from the build
+  ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+- `rpc_echo_payload.py`: skips on `rpc_work_queue`: `cli.py` registers neither
+  `-rpcworkqueue` nor `-rpcthreads`
+  ([ISS 3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)). A
+  smaller claim: the refusal is matched on its HTTP status alone.
+- `rpc_getblockfilter.py`: Core's claim in full. Skips on `block_filter_index`:
+  no `-blockfilterindex`, no `getblockfilter`.
+- `rpc_getblockfrompeer.py`: a smaller claim in its literals alone. Skips on
+  `block_from_peer`: no `getblockfrompeer`.
+- `p2p_node_network_limited.py`: Core's claim in full
+  ([ISS 185](https://github.com/btclib-org/bitcoin-node-tests/issues/185)).
+  Skips on `suspend_network`, which is `setnetworkactive`
+  ([ISS btclib-node#1392](https://github.com/btclib-org/btclib-node/issues/1392)).
+- `feature_presegwit_node_upgrade.py`: every assertion of Core's file, the
+  blocks built in Core's shape because a `MiniWallet` block reindexes to full
+  height. Skips on `test_activation_height`. Its restarts name new `extra_args`
+  ([ISS 51](https://github.com/btclib-org/bitcoin-node-tests/issues/51)).
+- `rpc_validateaddress.py`: Core's claim in full, on the main chain
+  ([ISS 153](https://github.com/btclib-org/bitcoin-node-tests/issues/153),
+  [ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63)). Skips
+  on `validate_address`.
+- `rpc_getdescriptorinfo.py`: Core's claim without its `-disablewallet` option
   ([ISS 174](https://github.com/btclib-org/bitcoin-node-tests/issues/174)).
-
-`feature_presegwit_node_upgrade.py`'s row keeps every assertion Core's
-own file makes: a fresh chain with segwit inactive under
-`-testactivationheight=segwit@N`; the height mined below it; a restart
-naming a lower height the chain already runs past refused, with a
-non-zero exit and a stderr equal to Core's own `expected_msg` whole, the
-`ErrorMatch.FULL_TEXT` comparison `assert_start_raises_init_error` makes
-by default; and, restarted with `-reindex` added, a chain one block short
-of the lower height with segwit active. The refusal's stderr is read
-per-build: a build without bitcoin/bitcoin#34276 prints `": "`
-ahead of it, so the body reads the build's own
-`getnetworkinfo` `version` and expects it there
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
-Each restart names `extra_args`
-other than the ones the node last held, which `NodeAdapter.restart`
-(`node.py`) takes for one start
-([ISS 51](https://github.com/btclib-org/bitcoin-node-tests/issues/51)),
-and the refused one is read the way `rpc_users_bitcoind_test.py` and
-`feature_blocksdir_test.py` read theirs, a `RuntimeError`
-carrying the node's stderr. Dropped is the empty stderr Core's own
-`TestNode.stop_node` expects of every stop: a check its harness makes
-around each stop rather than one this file makes, and `NodeAdapter.stop`
-makes it for no test.
-
-The blocks are Core's own shape rather than `MiniWallet.generate`'s: a
-coinbase carrying the witness commitment and, segwit not yet active, no
-witness nonce, which is what Core's own `generate` mines here
-(`GenerateCoinbaseCommitment` and `UpdateUncommittedBlockStructures`,
-`src/validation.cpp`). `CheckWitnessMalleation` refuses that pair once
-segwit's rules apply, and that refusal is what stops the reindexed chain
-short. A `MiniWallet` block carries neither, and a chain of them
-reindexes to its full height instead, measured against the pinned
-bitcoind; so this port builds Core's coinbase itself and submits it over
-`submitblock`. `tests/integration/feature_presegwit_node_upgrade_test.py`'s
-own docstring has the argument, and the wait for `getmempoolinfo`'s
-`loaded` that Core's own start makes and `NodeAdapter.start` does not.
-`btclib-node`'s cell is a counted skip on
-`Capability.TEST_ACTIVATION_HEIGHT`, as the activation-height trio's
-are.
-
-`rpc_validateaddress.py`'s row is Core's own claim in full
-([ISS 153](https://github.com/btclib-org/bitcoin-node-tests/issues/153)): on a
-node started on the main chain, Core's own `self.chain = ""`, with Core's own
-`-prune` value, every address of the file's own `INVALID_DATA` answers `isvalid`
-false with the error and the `error_locations` its row names, and every address
-of its `VALID_DATA` answers the `scriptPubKey` its row names and neither the
-error nor its locations. `NodeAdapter`'s own `chain="main"` (`node.py`) is what
-starts the node there
-([ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63)). Both
-tables are Core's own, copied into `rpc_validateaddress_test.py` from the file
-at this row's pin, so re-checking the pin is also what says whether the copy has
-gone stale. `btclib-node`'s cell is a counted skip on
-`Capability.VALIDATE_ADDRESS` (`capability.py`): `validateaddress` names no
-callback in `btclib_node.rpc.callbacks`'s own dispatch table.
-
-`rpc_getdescriptorinfo.py`'s row is Core's own claim with its one option left
-out ([ISS 174](https://github.com/btclib-org/bitcoin-node-tests/issues/174)):
-every descriptor of the file's own table answers the same asked with its
-checksum as without, answers its own checksummed form -- for a multipath one,
-the first of the expansions its row names, with all of them as
-`multipath_expansion` -- and the `isrange`, `issolvable` and `hasprivatekeys`
-its row names; a missing argument, a wrong type, an empty descriptor and a key
-padded with whitespace are each refused with Core's own code and message. The
-whitespace step is read per-build: without bitcoin/bitcoin#31603 the refusal of
-a public key is worded `key '...' is not valid` and a private key with
-whitespace is accepted, so the body reads the build's own `getnetworkinfo`
-`version`
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)). The
-option is `-disablewallet`, one `capability.py`'s module docstring names as only
-bitcoind's to carry; it is not this file's subject, so the port leaves it out
-rather than making the row bitcoind only, and asks the session's shared
-`bitcoind_adapter`, `getdescriptorinfo` being registered in
-`src/rpc/output_script.cpp` rather than among the wallet's RPCs. Each expected
-checksum is btclib's `descriptors.add_checksum`, which this ledger's
-`descriptors.py` entry pairs with Core's `descsum_create`. The descriptors and
-messages are Core's own, copied into `rpc_getdescriptorinfo_test.py` from the
-file at this row's pin, so re-checking the pin is also what says whether the
-copy has gone stale. `btclib-node`'s cell is a counted skip on
-`Capability.DESCRIPTOR_INFO` (`capability.py`): `getdescriptorinfo` names no
-callback in `btclib_node.rpc.callbacks`'s own dispatch table.
-
-Of the rest of the family's own census, string-literal matches and
-nothing more: `feature_bind_extra.py` and `rpc_bind.py` read the
-sockets a running node has actually bound, over `lsof`
-(`test_framework.netutil.get_bind_addrs`), a fact no step 5 family
-names a mechanism for; `feature_bind_port_discover.py` and
-`feature_bind_port_externalip.py` need a routable, non-loopback address
-already configured on the host's own network interface, which the CI
-environment they were written for provides and this repository's own
-harness does not; `feature_help.py` reads a node's own stdout before
-its RPC ever answers, which `NodeAdapter.start` (`node.py`) never
-captures; `interface_gui.py` needs `bitcoin-gui`, a binary the pinned
-release this repository fetches does not carry;
-`feature_framework_startup_failures.py` relaunches Core's own Python
-harness to test its exception handling, never a node; and
-`tool_bench_sanity_check.py` sets `self.num_nodes` to none at all,
-swept in by the census's own file-prefix regex rather than by anything
-a node does.
-
-A further group of files scores option-family, single mechanism on the
-census's own reading, and each turns out on a closer one to need a
-mechanism this issue does not deliver -- named here rather than ported,
-each against the issue that owns what it is missing.
-
-`feature_prune_stale_fork.py` (`-prune`, `-fastprune`) builds a stale
-fork the same way `mini_wallet.py`'s own `build_fork` does -- a
-header-only parent over `submitheader`, a full child over
-`submitblock` -- prunes it and restarts, which is Core's own subject.
-Reproduced against the pinned release, the sequence crashes the oracle
-itself with `Assertion failed: (!foundInUnlinked)`
-(`validation.cpp`'s own `CheckBlockIndex`): bitcoin/bitcoin's own
-[ISS 35050](https://github.com/bitcoin/bitcoin/issues/35050), fixed on
-`master` at bitcoin/bitcoin@fb47793b99f71f00a93339b88d1e2d7b5afa8e73
-before the pinned release was tagged but never backported into it.
-Rule 3's oracle is not authoritative on this one file until the pin
-names a release carrying that fix --
-[ISS 62](https://github.com/btclib-org/bitcoin-node-tests/issues/62).
-
-`rpc_signer.py` (`-signer=<cmd>`) starts nodes that exec Core's own
-mock signer, `test/functional/mocks/signer.py`, a script of Core's
-source tree that the release does not ship, and asserts on what it
-answered:
-[ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)'s
-own subject, "drives another binary", rather than this issue's.
-
-`feature_framework_miniwallet.py`'s own row is the MiniWallet family's
-first ([ISS bitcoin-node-tests#4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)),
-and a smaller claim than Core's own file: `mini_wallet.py`'s own
-`MiniWallet` carries one of Core's own modes, the default
-`ADDRESS_OP_TRUE` -- a P2TR output whose internal key and single
-tapscript leaf `mini_wallet.py`'s own docstring has, needing no minimum
-scriptSig size or mempool policy flag `RAW_OP_TRUE` would -- and this
-row asks only the subject the issue is about: a coin mined without a
-node's own wallet, cached with no `scantxoutset`, and spendable. Dropped
-along with Core's other modes are `target_vsize` padding
-(`test_tx_padding`) and a second, tagged wallet instance
-(`test_wallet_tagging`), neither bearing on how the cache is fed.
-
-The qualified rows ask what Core's own file does not and other Core
-files rest on: `confirmed_only` for
-[ISS 69](https://github.com/btclib-org/bitcoin-node-tests/issues/69),
-`fee_rate` and TRUC for
-[ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103).
-
-`Capability.MINE` is what these rows' `btclib-node` cells skip on,
-`confirmed_only` aside, the same shape the first family already takes rather
-than a new question: `mini_wallet.py`'s own mechanism produces exactly the fact
-`MINE` already names -- "a block the node accepts as its own new tip, however it
-gets there" -- by client-side construction over `submitblock` rather than a
-node's own wallet. `BtclibNodeAdapter` declares it only on a build that connects
-a submitted block with no peer -- from the commit closing
-[ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071) on
--- and its own `mine` is `MiniWallet.generate`. Each row is a body run against
-both nodes (`tests/integration/conftest.py`'s own module docstring): the
-unqualified row passes. `fee_rate` and TRUC pad with `target_vsize`, so each
-restarts the node under a `-datacarriersize` and asks for
-`Capability.DATACARRIER` after `MINE`, which `BtclibNodeAdapter` does not
-declare: each is a counted skip there, and what
-[ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397),
-[ISS btclib-node#1398](https://github.com/btclib-org/btclib-node/issues/1398)
-and
-[ISS btclib-node#1399](https://github.com/btclib-org/btclib-node/issues/1399)
-name is not reached until it does.
-
-`confirmed_only` has the node itself confirm one of its coins, over
-`generateblock`, so it asks for `Capability.GENERATE` ahead of `Capability.MINE`
--- a node taking a client's block over `submitblock` builds none itself,
-`capability.py` having the distinction -- and its `btclib-node` cell is that
-skip: `BtclibNodeAdapter` declares `Capability.GENERATE` for no build, though a
-build past
-[ISS btclib-node#1396](https://github.com/btclib-org/btclib-node/issues/1396)
-serves `generateblock`.
-
-The census [ISS btclib-org/btclib#2135](https://github.com/btclib-org/btclib/issues/2135)
-counted is re-measured here, against Core's `test/functional/*.py` at
-`f6b19b19` (2026-09-25), asking that issue's own name-set of each file
-whether MiniWallet is the *whole* of what the file asks a node for rather
-than one mechanism among several. This file answers yes, and so do
-`mempool_accept_wtxid.py`, `mempool_resurrect.py`,
-`mempool_spend_coinbase.py`, `mining_template_verification.py`,
-`rpc_generate.py`, `rpc_orphans.py`, `rpc_scantxoutset.py` and
-`rpc_signrawtransactionwithkey.py` --
-[ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)'s own
-remaining ports, not
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
-once this row's mechanism lands.
-
-Reading the census's own remaining files against Core at the pins in
-their own rows or paragraphs below leaves that census whole: every file
-it names is still this issue's, several needing more than this round
-builds.
-
-`mempool_resurrect.py` and `mempool_spend_coinbase.py` are ported, their
-own rows above: `mini_wallet.py`'s own `get_utxo` (a cached coin by its
-own txid, maturity aside), `create_self_transfer` and `send_self_transfer`
-(`utxo_to_spend`, spending a caller-named coin in place of the one
-`get_utxo` would pick) and `resync` (re-reading the tip after a chain
-move this wallet did not itself make) are what `mempool_spend_coinbase.py`
-needed and `build_fork` (Core's own `create_empty_fork`, `blocktools.py`)
-is what `mempool_resurrect.py` needed beyond the mechanism above, each
-added to `mini_wallet.py` and unit-tested against the fake RPC.
-`mempool_resurrect.py`'s own reorg is a fork long enough to outweigh the
-chain this port also mines meanwhile -- `_FORK_LENGTH`, the integration
-module's own constant, narrower than Core's own fixed margin over its
-own intervening blocks, both clearing the same requirement: more work
-than what gets reorged away. `mempool_spend_coinbase.py` reaches the
-same mature/immature boundary by mining exactly `COINBASE_MATURITY`
-blocks from a chain that starts at height zero, rather than
-`invalidateblock`ing blocks off the chain Core's own fixture already
-starts every test deep into; this node carries no such fixture, so this
-port never calls `invalidateblock` at all, a narrower claim than Core's
-own file in the RPCs it exercises, not in the boundary it checks.
-
-Both rows are one body run against both nodes (`tests/integration/conftest.py`'s
-own module docstring), each reading a block's own transactions off `getblock`'s
-raw form. Each runs: `mempool_spend_coinbase.py` has the immature spend refused
-with Core's own `bad-txns-premature-spend-of-coinbase`
-([ISS btclib-node#1328](https://github.com/btclib-org/btclib-node/issues/1328)),
-and `mempool_resurrect.py` is served the `gettxout` that `MiniWallet.resync`
-asks
-([ISS btclib-node#1388](https://github.com/btclib-org/btclib-node/issues/1388)).
-
-`rpc_generate.py`, `rpc_signrawtransactionwithkey.py` and `rpc_scantxoutset.py`
-are ported, their own rows above, each one body run against both nodes
-(`tests/integration/conftest.py`'s own module docstring). Each drives the RPC it
-is named for as its own subject -- `generatetoaddress` and `generateblock`,
-`signrawtransactionwithkey`, `scantxoutset` -- with `MiniWallet` mining the
-coins and funding the outputs that RPC then answers for, and each asks for that
-RPC's own capability first, ahead of `Capability.MINE` wherever it needs a coin:
-`Capability.GENERATE`, `Capability.SIGN_RAW_TRANSACTION` and
-`Capability.SCAN_UTXO_SET` (`capability.py`). `BtclibNodeAdapter` declares none
-of those capabilities for any build, so each `btclib-node` cell is that skip,
-`MINE` never reached. In the dispatch table
-(`src/btclib_node/rpc/callbacks.py`), `generatetoaddress` and `generateblock`
-appear on a build past
-[ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)
-and
-[ISS btclib-node#1396](https://github.com/btclib-org/btclib-node/issues/1396);
-`signrawtransactionwithkey`
-([ISS btclib-node#1400](https://github.com/btclib-org/btclib-node/issues/1400))
-and `scantxoutset`
-([ISS btclib-node#1406](https://github.com/btclib-org/btclib-node/issues/1406))
-appear only on a build carrying the fix each issue asks for. What each port
-builds with btclib where Core asks the node, and what it drops, is in its own
-`tests/integration/<file>_test.py` docstring. `rpc_scantxoutset.py`'s `bitcoind`
-cell is build-dependent: the pinned file expects `start` with a null scan-object
-list refused as a missing argument, which bitcoind does from `v32.0rc1` on, the
-first tag carrying bitcoin/bitcoin@aeca0610865ede44004b42a16ef6318245fe0644,
-while the pinned release refuses the null as a value of the wrong type; the
-bitcoind module reads `getnetworkinfo`'s own `version` and expects whichever the
-running build answers.
-
-`mining_template_verification.py` is ported, its own row above, one body run
-against both nodes (`tests/integration/conftest.py`'s own module docstring). Its
-subject is `getblocktemplate` in BIP23's `proposal` mode, checking a block
-without storing it, so it asks for `Capability.BLOCK_PROPOSAL` (`capability.py`)
-ahead of `Capability.PACKAGE_ACCEPTANCE`, for the package of duplicates
-`testmempoolaccept` refuses, and `Capability.MINE`, `MiniWallet` mining the
-chain the proposals build on and the transaction they carry. `BtclibNodeAdapter`
-declares `Capability.BLOCK_PROPOSAL` for no build, though a build past
-[ISS btclib-node#1427](https://github.com/btclib-org/btclib-node/issues/1427)
-names `getblocktemplate` in its dispatch table, so the `btclib-node` cell is
-that skip, `MINE` never reached. With that ask removed, the row skips next on
-`PACKAGE_ACCEPTANCE`, which a build serving `submitpackage` declares
-([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)).
-The blocks it proposes are built with btclib in the shape of Core's own
-`create_block` and `create_coinbase` (`blocktools.py`), and what the port
-changes from Core's file is in its own
-`tests/integration/mining_template_verification_test.py` docstring.
-
-`mempool_accept_wtxid.py` and `rpc_orphans.py` are ported, their own
-rows above, each one body run against both nodes, `MiniWallet` building
-the transactions and a `Peer` (`peer.py`) standing in for Core's own
-`P2PInterface`: in `mempool_accept_wtxid.py` it records which wtxid the
-node announces and requests each, in `rpc_orphans.py` it sends a child
-ahead of its own parent. What each port builds with btclib where Core's
-framework builds it -- `build_malleated_tx_package`, `tx_in_orphanage`,
-`P2PTxInvStore` -- is in its own `tests/integration/<file>_test.py`
-docstring.
-
-`rpc_orphans.py` asks for `Capability.ORPHANAGE` (`capability.py`) ahead of
-`Capability.MINE` wherever it builds a transaction, and its `btclib-node` cell
-is that skip: `BtclibNodeAdapter` declares `Capability.ORPHANAGE` for no build,
-and a dispatch table names `getorphantxs` only past
-[ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420).
-`mempool_accept_wtxid.py` asks for `Capability.MINE` alone, its subject being
-`sendrawtransaction`, `testmempoolaccept` and the announcement that follows, and
-btclib-node serves both RPCs. A build past
-[ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397)
-runs it and passes.
-
-`rpc_packages.py` also drives MiniWallet alone at first read, but it
-also restarts its node with options -- `-maxmempool` and
-`-persistmempool` -- that `btclib-node`'s own `cli.py` does not
-register, so the option family's own exclusion reaches it too: ISS 14's,
-same as the wallet, log, disk and clock files below. It also calls
-`test_framework.mempool_util.fill_mempool`, now built as
-`mempool_util.fill_mempool`
-([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
-`mempool_cluster.py`, which restarts its node under `-limitclustersize`
-and `-limitclustercount` in turn, and `mempool_sigoplimit.py`, named
-alongside it for the same reason, are ported, each row's own paragraph
-naming what of it is kept.
-
-`p2p_tx_privacy.py` asks for MiniWallet alone too, and is ported, its own row
-above: a second p2p connection holds its handshake open while the first sends a
-transaction, and a `wtxid` announcement is withheld from the second until its
-own handshake completes. Its spy is a `Peer` (`peer.py`) sending `version` and
-`wtxidrelay` by hand and holding back its `verack`, the way
-`tests/integration/p2p_timeouts_test.py` holds a handshake open rather than
-calling `Peer.handshake`; what the port adds to Core's own file is in
-`tests/integration/p2p_tx_privacy_test.py`'s docstring. Its `btclib-node` cell
-is a pass: `P2pManager.promote_connection`, called from `callbacks.verack`
-alone, is what moves a connection into the `connections` table `DownloadManager`
-queues each announcement against, so a connection still in its handshake is
-queued none. Every other MiniWallet-touching file asks for a wallet
-(`createwallet`, out for good, rule 3's own exclusion), the log, the disk or the
-clock alongside MiniWallet, or an option -- ISS 14's once every step-5 mechanism
-lands, the wallet files excepted.
-
-`mempool_package_rbf.py`, the family's other own mempool-policy file
-beside `mempool_truc.py`, sets an option too, `-maxmempool` at every
-start of Core's own file, which its `fill_mempool` needs, and is ported,
-its own row's paragraph below naming what of it is kept.
-`mempool_truc.py` is read this round too and stays open, as
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s.
-It needs no second node and no option at its own base
-`set_test_params` (`self.extra_args = [[]]`), but several of its own
-subtests restart with one in turn
-(`-limitclustercount`/`-limitclustersize`/`-acceptnonstdtxn`/`-minrelaytxfee`/`-persistmempool`),
-which `NodeAdapter.restart` (`node.py`) takes for one start; the
-caller-chosen fee rate and TRUC's own transaction version its own
-self-transfers pass are what `create_self_transfer` and
-`create_self_transfer_multi` take
-([ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103)),
-so it is an open candidate for a port of its own.
-
-`feature_dersig.py`, `feature_cltv.py` and `feature_csv_activation.py` are
-ISS 14's own softfork-activation-height trio, the option and MiniWallet
-families' first tests to need both mechanisms together:
-`-testactivationheight=<deployment>@<height>`
-(`Capability.TEST_ACTIVATION_HEIGHT`, `capability.py`) holds one buried
-deployment inactive until a chosen height, and `MiniWallet.generate`
-(`Capability.MINE`) mines to it with no node wallet. Each is a smaller claim
-than Core's own file, declared rather than silent, the module docstrings of
-`feature_cltv_test.py`, `feature_csv_activation_test.py` and
-`feature_dersig_test.py` carrying the full argument: kept is
-`getdeploymentinfo`'s own transition one block before the configured height,
-and, for `feature_dersig.py` and `feature_cltv.py`, the buried-deployment
-version floor a too-low block version trips once the deployment is active --
-`bad-version(0x...)`, `submitblock`'s own answer and, on a row of its own, the
-same wording in bitcoind's own debug log. `feature_dersig.py`'s own non-DER
-signature is kept too, on a row of its own
-([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)):
-coinbases pay `mini_wallet.py`'s `RAW_P2PK_SCRIPT_PUB_KEY`, Core's own
-`RAW_P2PK` output, `raw_p2pk_script_sig` signs their spends, and the non-DER one
-is mined before activation and refused after it by `testmempoolaccept` and
-`submitblock` alike. `feature_cltv.py`'s own `OP_CHECKLOCKTIMEVERIFY` failure
-reasons are kept too, under the same issue, on rows of their own. They need no
-signature: coinbases pay Core's own `RAW_OP_TRUE` output, a bare `OP_TRUE`, and
-each spend's scriptSig starts with what fails the opcode for one reason. The
-spends are mined in the block before the configured height and refused in a
-block at it, which pins where the script rule starts. The mempool and block rows
-run on regtest's own default activation, BIP65 active from the first block after
-genesis: `testmempoolaccept` refuses each, the node running with Core's own
-`-acceptnonstdtxn` (`Capability.ACCEPT_NON_STANDARD`) since the spends are
-non-standard; and `submitblock` refuses a block carrying each and accepts the
-spend CLTV admits. Needing no `-testactivationheight`, `feature_cltv.py`'s block
-row asks `btclib-node` for `Capability.MINE` alone, and passes on a build past
-[ISS btclib-node#1362](https://github.com/btclib-org/btclib-node/issues/1362).
-`feature_csv_activation.py`'s own body is kept too, under the same issue, on a
-row of its own: BIP68's relative lock times, BIP112's `OP_CHECKSEQUENCEVERIFY`
-and BIP113's median-time-past cutover, at Core's own configured height. Its
-coins are `RAW_P2PK` ones, signed as `feature_dersig.py`'s are, and each BIP112
-spend has the opcode, and the argument it checks where there is one, prepended
-to that signature. Every spend is accepted in the block before the configured
-height, and BIP113's is refused at it, which pins where BIP113 starts; BIP68's
-and BIP112's refusals follow a few blocks on, as in Core's own file. Core's
-`invalidateblock` (`Capability.INVALIDATE_BLOCK`) takes each accepted block back
-off, so that the next check builds on the same tip. `feature_csv_activation.py`
-gains no version-floor row the way its siblings do: `src/validation.cpp`'s own
-`ContextualCheckBlockHeader` reads only `DEPLOYMENT_HEIGHTINCB`,
-`DEPLOYMENT_DERSIG` and `DEPLOYMENT_CLTV` for its version check,
-`DEPLOYMENT_CSV` never joining it, so there is no such refusal for CSV's own
-activation to produce. Every other `btclib-node` cell across the trio is a
-counted skip before `require` reaches `Capability.MINE`, which every row also
-needs: `feature_cltv.py`'s mempool row on `Capability.ACCEPT_NON_STANDARD`, and
-the rest on `Capability.TEST_ACTIVATION_HEIGHT` -- `-testactivationheight` is
-not one of `cli.py`'s registered flags.
-
-`feature_nulldummy.py`'s row is every step of Core's own file, in its
-own order ([ISS 64](https://github.com/btclib-org/bitcoin-node-tests/issues/64)):
-`-testactivationheight=segwit@N` holds NULLDUMMY inactive with segwit
-until the configured height, and each step puts a multisig spend whose
-dummy element is empty or `OP_TRUE`, in a P2SH scriptSig or a
-P2SH-P2WSH witness, to `sendrawtransaction`, to `submitblock` or to
-both. The multisig requires one signature, as Core's own does, and the
-test signs each spend with btclib -- `btclib.script.sig_hash` and
-`btclib.ecc.dsa.sign_` -- so that a node reads the dummy beneath a
-signature ([ISS 165](https://github.com/btclib-org/bitcoin-node-tests/issues/165)).
-Neither sighash commits to the dummy, so tampering it leaves the
-signature valid; a signature bitcoind refuses fails the row on
-`SCRIPT_ERR_SIG_NULLFAIL` instead, a finding for btclib's own tracker.
-The test builds each spend directly as a `btclib.tx.Tx`, the
-way `mempool_sigoplimit.py`'s own port spends its witness script, and
-the coins spent first are coinbases paying the multisig: every
-`MiniWallet` coin is spent through a witness, and bitcoind refuses a
-block carrying one before segwit activates.
-`tests/integration/feature_nulldummy_test.py`'s own docstring
-has what else differs from Core's own file.
-The `btclib-node` cell is a counted skip on
-`Capability.TEST_ACTIVATION_HEIGHT`, as the trio's are.
-
-`feature_dirsymlinks.py`'s row is Core's own claim in full
-([ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7),
-found by [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
-census, disk-family mechanism alone): a node restarted over `blocks/`
-and `chainstate/` each replaced by a symlink to elsewhere starts exactly
-as it does over the plain directories, `NodeAdapter.start` (`node.py`)
-answering the same way whichever the OS resolves the path to. No
-`Capability` is asked for, the fact being about the operating system's
-own symlink resolution rather than about either node's own storage
-format; measured live, both `bitcoind` and `btclib-node`'s own RocksDB
-stores open through the symlink unchanged.
-
-`feature_posix_fs_permissions.py`'s row is a smaller claim than Core's own file
-([ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)): the
-`wallets_path` permission check is dropped on the charter's own "wallet ...
-tests stay out" (step 5 of issue btclib-org/btclib#2220) -- this repository
-starts no node wallet, so no `wallets/` directory of a node's own ever exists to
-check the permissions of. Kept whole: the node's own chain directory and its own
-log file refuse every permission bit but the owner's own read, write and, for
-the directory, execute. No `Capability` is asked for either -- the fact is not
-that `btclib-node` lacks a mechanism, but that it sets one it already has (a
-directory's own mode) differently from bitcoind, which is a disagreement rather
-than a missing capability.
-[ISS btclib-node#1198](https://github.com/btclib-org/btclib-node/issues/1198)
-was that disagreement: the chain directory, every store directory under it and
-`history.log` (`btclib_node.py`'s own `log_path`, the fact `debug_log_path`
-names for bitcoind) came up at the operating system's own umask default, group
-and other readable. A build past it carries the fix.
-
-`rpc_createmultisig.py`'s rows are a smaller claim than Core's own file
-([ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4),
-found by [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
-census) only by `test_sortedmulti_descriptors_bip67`, which reads its
-vectors from Core's own `data/rpc_bip67.json`, a vendored fixture this
-repository does not carry.
-
-The first row is construction: `createmultisig` answering the address,
-redeemScript and descriptor btclib builds, across every `(nsigs, nkeys,
-output_type)` Core's own `m_of_n` list names; falling back to a legacy address
-with a warning where a key is uncompressed; and `test_multisig_script_limit`'s
-own checks -- the "correct encoding" of every key count up to
-`MAX_PUBKEYS_PER_MULTISIG`, the address of a multisig past `OP_16`'s own count,
-and the refusals of too large a legacy redeemScript and of too many keys. Past
-`OP_16`'s count `ScriptPubKey.p2ms` and btclib's descriptor parser both refuse
-the script
-([ISS btclib-org/btclib#2348](https://github.com/btclib-org/btclib/issues/2348)),
-so the port builds it from its own items instead, with
-`btclib.script.script.serialize`. It needs no coin, no mining and no node
-wallet, so it carries no `Capability`. Its `btclib-node` cell is **bitcoind
-only** for a reason other than an option's: `createmultisig` is not in
-`btclib_node`'s own dispatch table (`src/btclib_node/rpc/callbacks.py`), so the
-RPC is absent there.
-
-The (spend) row is `do_multisig`'s spend half, every call Core's own file makes
-of it, with `test_combinerawtransaction_preconditions`
-([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)):
-`MiniWallet` funds each multisig output, and the node signs a spend of it with
-disjoint sets of its keys and merges the partial signatures, over
-`signrawtransactionwithkey` and `combinerawtransaction`
-(`Capability.SIGN_RAW_TRANSACTION`). What Core asks the node to build without
-signing -- the output, the unsigned spend -- btclib builds.
-`combinerawtransaction` refuses a single transaction, or one differing from the
-first, only from `6d86184a8bcc` on, a commit the pinned release does not carry:
-it accepts both. So the row reads `getnetworkinfo`'s `version` against the first
-release tagged with that commit, and on an earlier build asserts what the pinned
-release answers instead: an undecodable transaction and an empty list refused,
-the latter in its own shorter wording, and a single transaction returned as it
-came. A `master` build from that commit's merge until its version reached that
-release's own reports an earlier version and refuses all the same, so the row
-fails against such a build. btclib-node serves neither RPC
-([ISS btclib-node#1400](https://github.com/btclib-org/btclib-node/issues/1400)),
-so it skips on the capability.
-
-[ISS 6](https://github.com/btclib-org/bitcoin-node-tests/issues/6)'s own
-remaining files, `p2p_fingerprint.py` and `p2p_invalid_block.py`, are
-not in this batch: each needs `Capability.MINE` and a raw peer
-conversation well beyond a handshake -- `p2p_fingerprint.py` a
-headers-first reorg onto a fork built and held back rather than
-submitted, `p2p_invalid_block.py` a legacy `OP_TRUE` bare coinbase and
-scriptSig distinct from `MiniWallet`'s own P2TR shape, plus merkle-root
-malleability and a `getdata`-driven send/reject cycle matched against
-`Capability.DEBUG_LOG`'s own wording. Neither mechanism is this batch's
-to build. `p2p_fingerprint.py` asks step 5 for the clock alone, and is
-ported under
-[ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317),
-its paragraph below. `p2p_invalid_block.py` asks for more: the log for
-every refusal it checks, through `send_blocks_and_test`'s own
-`reject_reason`, and the `noban` permission Core's own `noban_tx_relay`
-grants, which keeps its peer connected through the refusals -- so it is
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s,
-the log family's census above.
-
-`p2p_invalid_block.py` is ported, its rows above each Core's whole run as a body
-over a fresh node in `tests/integration/p2p_invalid_block_test.py`, whose module
-docstring has what differs from Core's file. The (wire) row reads each block's
-acceptance or refusal off `getbestblockhash`, and the (log) row asserts besides
-each refusal's own reject reason in the node's log, over `DEBUG_LOG`. Both ask
-for `MINE`, the node mining the blocks that mature the coinbase the run spends,
-and `CLOCK`, for the block ahead of the node's clock; the node restarts with the
-`noban` permission, which asks for no capability. Each `bitcoind` cell is one
-verdict for the pinned release and for Core's `master`. `btclib-node`'s cell on
-each row is a counted skip on `CLOCK`, which no build declares, `MINE` being
-declared per instance by probe.
-
-`p2p_timeouts.py`, `p2p_ping.py` and `mempool_expiry.py` are
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s, each run
-on a single node that no step has dial out, and each combining an option with
-the clock and either the log or `MiniWallet`: `-peertimeout` is
-`Capability.PEER_TIMEOUT` and `-mempoolexpiry` `Capability.MEMPOOL_EXPIRY`
-(`capability.py`). Each is Core's own claim in full, as Core's default run makes
-it, and each body module's own docstring (`tests/integration/<file>_test.py`)
-has how every fact is reached. `p2p_timeouts.py` and `p2p_ping.py` give the wire
-and the log a row each, the log family's rule, and `p2p_timeouts.py`'s refused
-start under a non-positive `-peertimeout` has a row of its own. Both start their
-node with BIP324 and automatic connections turned off, as Core's harness starts
-every node and `BitcoindAdapter` does not;
-`tests/integration/p2p_timeouts_test.py`'s own docstring has the options and why
-each is there. `mempool_expiry.py` checks Core's default expiry and then, over
-the same node restarted, its custom one. Every `btclib-node` cell is a counted
-skip on the option's capability, asked for first: `cli.py` registers neither
-option, and `setmocktime` is named by no callback in its RPC dispatch table.
-
-`feature_includeconf.py` and `feature_reindex_init.py` are
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s, each an
-option and the disk together, each test building its node over a data directory
-of its own through `make_adapter` (`tests/integration/conftest.py`).
-`feature_includeconf.py` gives each of Core's refusals, and the warning an
-`includeconf` inside an included file draws, a row of its own, and the order the
-files are read in another. That row observes the order through `-uacomment`, as
-Core does; the others write no `uacomment` line, matching the whole of the
-node's stderr against Core's own words.
-`tests/integration/feature_includeconf_test.py`'s own docstring has what else
-differs from Core's file. Only the order row asks for a capability, so
-`btclib-node` runs the rest. `btclib-node` agrees with bitcoind on each of them,
-on a build past the issue cited for each: the refusal of `-includeconf` on the
-command line in Core's wording
-([ISS btclib-node#1116](https://github.com/btclib-org/btclib-node/issues/1116),
-[ISS btclib-node#1409](https://github.com/btclib-org/btclib-node/issues/1409)),
-the warning for a nested `includeconf`
-([ISS btclib-node#1403](https://github.com/btclib-org/btclib-node/issues/1403)),
-the refusal of a missing included file
-([ISS btclib-node#1187](https://github.com/btclib-org/btclib-node/issues/1187))
-and the refusal of the double negative `-noincludeconf` given a false value,
-with no warning beside it
-([ISS btclib-node#1402](https://github.com/btclib-org/btclib-node/issues/1402)).
-The order row is a counted skip on `Capability.UA_COMMENT`, which no build
-declares. `feature_reindex_init.py` is Core's own claim in full but for the
-refusal's stderr, read per-build: a build without bitcoin/bitcoin#34276 prints
-`": "` ahead of it, so the body reads the build's own `getnetworkinfo` `version`
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)). Its
-`bitcoind` cell is a counted skip on `Capability.REINDEX_AFTER_FAILURE` on a
-build whose `-help-debug` lists no such `-test` option, which `BitcoindAdapter`
-probes. Its `btclib-node` cell is a counted skip on the same capability, asked
-for first: `cli.py` registers no `-test`.
-
-`feature_reindex.py` and `feature_reindex_readonly.py` are ISS 14's too, the
-option, the disk and the log together, each test building its node over a data
-directory of its own through `make_adapter` as those above do.
-`feature_reindex.py` gives each step of Core's `run_test` a row: the restarts
-alternating `-reindex` and `-reindex-chainstate`, each back at the height mined;
-a block file holding a block ahead of its parent, reindexed with the
-out-of-order block and its child logged; and a reindex stopped once it has
-started, whose next start without `-reindex` opens its block filter index rather
-than wiping it. Each asserts more than Core's file, so that a node ignoring the
-option or the interruption cannot pass: a log line each restart writes only when
-the option took effect, the interruption's own line, and the resumed reindex
-finishing. The interruption's line is read per-build: a build without
-bitcoin/bitcoin#32967 logs `Exit ImportBlocks` where later ones log `Exit
-reindexing`, so the body reads the build's own `getnetworkinfo` `version`
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
-`feature_reindex_readonly.py` is Core's own claim, a reindex of a block file the
-node cannot write to, taken with the file's mode alone: Core also tries the
-immutable flag, which only a run as root needs, and this asserts instead that
-the file is unwritable before the restart. Each module docstring has what else
-differs from Core's file. The out-of-order step's log lines are in Core's
-`reindex` category, which `BitcoindAdapter` enables (`bitcoind.py`'s own
-`_command`). Every `btclib-node` cell is a counted skip on the new
-`Capability.REINDEX`, asked for first: `BtclibNodeAdapter` declares it for no
-build, a build taking `-reindex` or `-reindex-chainstate` being what
-[ISS btclib-node#1415](https://github.com/btclib-org/btclib-node/issues/1415)
-asks for.
-
-`p2p_message_capture.py` and `feature_blocksxor.py` are ISS 14's too, the option
-and the disk together, `feature_blocksxor.py` with MiniWallet besides, as
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags them; each test builds its nodes through `make_adapter`, each node's option
-given from its first start. `p2p_message_capture.py` is Core's own claim, a
-peer's messages written to disk under `-capturemessages` in the record format
-Core's `mini_parser` reads, each record's type checked against the ones a
-`btclib.p2p` payload class names rather than against Core's `MESSAGEMAP`. It
-also asserts the capture directory is named for the peer's own address and holds
-the types the peer sent and the node answered with, so that a node writing some
-other file there cannot pass. `feature_blocksxor.py` is Core's own claim, the
-block and undo files a node wrote under `-blocksxor` XORed back to plain, a
-restart turning the option off refused while the key is stored, and one allowed
-once the key file is gone verifying the chain and writing an all-zero key. That
-last step, and the option turned on, pass on a node ignoring it: the first is
-what Core's `InitBlocksdirXorKey` does anyway for a block directory holding
-files and no key file, and the second is Core's default. So the test also
-asserts the first block file obfuscated under the key, and an all-zero key
-written by a fresh node started with the option off. Its first node starts with
-a `-datacarriersize` too: a build without bitcoin/bitcoin#32406, which
-`v30.0rc1` is the first tag to carry, refuses by default the `OP_RETURN` padding
-of the transactions it sends, and Core's file of that build passes the same
-option. Each module docstring has what else differs from Core's file. Every
-`btclib-node` cell is a counted skip on the option's new capability,
-`Capability.CAPTURE_MESSAGES` or `Capability.BLOCKS_XOR`, asked for first:
-`cli.py` registers neither option.
-
-`feature_remove_pruned_files_on_startup.py` is ISS 14's too, the option and the
-disk together, as
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags it; its test builds its node through `make_adapter`, under Core's
-`-fastprune` and `-prune` from the first start. It is Core's own claim on a
-platform that deletes an open file: `pruneblockchain` deletes the oldest block
-and undo files, among them the ones the test holds open, they stay gone across a
-restart, and a restart with `-reindex` leaves only the files a reindex from
-genesis writes.
-`tests/integration/feature_remove_pruned_files_on_startup_test.py`'s own
-docstring has what differs from Core's file. The `btclib-node` cell is a counted
-skip on `Capability.FASTPRUNE`, asked for first: `cli.py` registers no
-`-fastprune`.
-
-`feature_startupnotify.py` is ISS 14's too, the option and the disk together, as
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags it; its test builds its node through `make_adapter`. It is Core's own
-claim: a start without `-startupnotify` writes no file, and a restart given it
-runs the command once, which appends to a file inside the data directory, and
-answers RPC. `tests/integration/feature_startupnotify_test.py`'s own docstring
-has what differs from Core's file. The `btclib-node` cell is a counted skip on
-`Capability.STARTUP_NOTIFY`: `BtclibNodeAdapter` declares it for no build,
-though a build past
-[ISS btclib-node#1449](https://github.com/btclib-org/btclib-node/issues/1449)
-registers `-startupnotify`.
-
-`rpc_dumptxoutset.py` is ISS 14's too, the clock and the disk together, as
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags it; its test builds its node through `make_adapter`. It keeps every check
-of Core's but the hashes Core asserts as constants: the block hash, the file's
-SHA256 and `txoutset_hash` depend on the coinbase the build writes, and the
-commit this row pins changed that coinbase and every one of them. The test
-asserts each against the same node instead: `getblockhash` at the tip's height,
-the file's metadata and a second dump writing the same bytes, and
-`gettxoutsetinfo`'s own `hash_serialized_3`. The pinned release refuses a dump
-at a height a fork also reaches, so the bitcoind cell reads which the running
-build does from its own version. `tests/integration/rpc_dumptxoutset_test.py`'s
-own docstring has what else differs from Core's file. The `btclib-node` cell is
-a counted skip on `Capability.DUMP_UTXO_SET`: no source file names
-`dumptxoutset`
-([ISS btclib-node#1471](https://github.com/btclib-org/btclib-node/issues/1471)).
-
-`feature_loadblock.py` is ISS 14's too, the option and the disk together, as
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags it; its test takes its nodes from the cluster fixture. It is Core's own
-claim: a node restarted with `-loadblock` naming a file of the first node's
-chain reaches that node's height and best block. Core writes the file with
-`contrib/linearize/`'s own scripts, which are Core's source tree rather than the
-release, as `tool_utxo_to_sqlite.py` below has it; so the test writes the file
-itself, in the format `linearize-data.py` writes, from the blocks `getblock`
-serializes. `tests/integration/feature_loadblock_test.py`'s own docstring has
-what else differs from Core's file. The `btclib-node` cell is a counted skip on
-`Capability.LOAD_BLOCK`: no source file names `loadblock`, reading Core's block
-files being left out by decision
-([ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)).
-
-`feature_port.py` is ISS 14's too, the option and the log together, as
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags it; its test builds its node through `make_adapter`. It is Core's own
-claim: a node restarted with `-port` listens on every address at the last port
-given and on the loopback address at the port after it, a `-bind` naming a port
-overrides `-port`, a `-bind` naming none takes `-port`'s, an onion bind naming
-none takes the port after it, and a `-port` out of range stops the start with
-Core's own error. `BitcoindAdapter` passes a `-bind` of its own, so the bitcoind
-test runs on `UnboundBitcoindAdapter`
-(`tests/integration/bitcoind_adapters_test.py`), which leaves it out, as Core's
-own test keeps its framework's off. `tests/integration/feature_port_test.py`'s
-own docstring has what else differs from Core's file. The `btclib-node` cell is
-a counted skip on `Capability.LISTEN_ADDRESS`: `BtclibNodeAdapter` declares it
-for no build, though a build registers `-bind`; a `-bind` ending `=onion` binds
-a further listener, but only a build past
-[ISS btclib-node#1644](https://github.com/btclib-org/btclib-node/issues/1644)
-tags its connections as Tor, and only one past
-[ISS btclib-node#1666](https://github.com/btclib-org/btclib-node/issues/1666)
-binds a default onion listener where no `-bind` is given;
-[ISS btclib-node#1257](https://github.com/btclib-org/btclib-node/issues/1257) is
-the listener binding every interface with no `-bind`.
-
-`feature_maxtipage.py` is ISS 14's too, an option and the clock beside
-node-linking:
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags it for multi-node linkage, its `connect_nodes` and `sync_all`, which the
-node-linking section below answers, and its test takes its nodes from the
-cluster fixture. It is Core's own claim: a restarted node stays in initial block
-download while each block a connected miner relays is older than the maximum tip
-age by its clock, and leaves it on the first block exactly that old, for the
-default of a day, for each of Core's hour values under `-maxtipage` and for the
-largest value the option takes. Each block is built client-side at the time
-Core's `setmocktime` gives the miner and submitted over `submitblock`, where
-Core's `generate` has the miner build it;
-`tests/integration/feature_maxtipage_test.py`'s own docstring has what else
-differs from Core's file. The `btclib-node` cell is a counted skip on
-`Capability.MAX_TIP_AGE`: `BtclibNodeAdapter` declares it for no build, though a
-build past
-[ISS btclib-node#1474](https://github.com/btclib-org/btclib-node/issues/1474)
-registers `-maxtipage`.
-
-`p2p_blockfilters.py` is ISS 14's too, an option and the log beside
-node-linking, its test taking its nodes from the cluster fixture. It is Core's
-own claim in full, Core's chain lengths included: a node under
-`-blockfilterindex` and `-peerblockfilters` signals `NODE_COMPACT_FILTERS` and
-serves `cfcheckpt`, `cfheaders` and `cfilter` for its active chain and for a
-block it reorged away from, each matching `getblockfilter`; a node under the
-index alone does not signal it and drops a peer asking for any of them; a
-request out of range, of an unknown type or for an unknown block is dropped,
-each in Core's own words in the node's log; and `-peerblockfilters` without the
-index, or an unknown index type, refuses the start. Serving is
-`Capability.PEER_BLOCK_FILTERS`, beside `Capability.BLOCK_FILTER_INDEX`'s index,
-and the log the refusals are read from is `Capability.DEBUG_LOG`;
-`tests/integration/p2p_blockfilters_test.py`'s own docstring has what differs
-from Core's file. The `bitcoind` cell is one verdict for the pinned release and
-for Core's `master`. The `btclib-node` cell is a counted skip on
-`Capability.PEER_BLOCK_FILTERS`: `BtclibNodeAdapter` declares it for no build,
-though a build past
-[ISS btclib-node#1395](https://github.com/btclib-org/btclib-node/issues/1395)
-registers `-peerblockfilters`.
-
-`p2p_getaddr_caching.py` is ISS 14's too, an option and the clock, as
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags it; its test builds its node through `make_adapter`. It is Core's own
-claim: a node listening on a loopback bind and on onion binds beside it, its
-address table filled over `addpeeraddress`, answers every `getaddr` through one
-bind with the same `MAX_ADDR_TO_SEND` addresses while its clock moves by
-minutes, through each bind a different answer, and through each a new answer
-once the clock has moved past the cache's lifetime. `BitcoindAdapter` passes a
-`-bind` of its own, so the bitcoind test runs on `UnboundBitcoindAdapter`, which
-leaves it out, as `feature_port.py`'s own bitcoind test does. The test names the
-loopback bind beside the onion ones.
-`tests/integration/p2p_getaddr_caching_test.py`'s own docstring has what else
-differs from Core's file. The `btclib-node` cell is a counted skip on
-`Capability.LISTEN_ADDRESS`, and the test asks for `Capability.KNOWN_ADDRESSES`
-and `Capability.CLOCK` besides, which no build declares either
-([ISS btclib-node#1443](https://github.com/btclib-org/btclib-node/issues/1443)).
-
-`mempool_reorg.py` is ISS 14's too, MiniWallet, the clock and node-linking
-together, each of its tests taking a pair of nodes from the cluster fixture. It
-is Core's own claim in full, on a chain mined to the height Core's framework
-caches. The (coinbase) row checks that a reorg returns a coinbase spend to the
-mempool, or drops it where the reorg makes that coinbase immature, and drops a
-spend time-locked past the new tip's median time past; it asks for
-`Capability.INVALIDATE_BLOCK`, beside `MINE` and `CONNECT`. The (relay) row
-checks that a transaction a reorg returns from a disconnected block is served to
-a peer asking for it before the node has announced it, where one no block has
-held is not; it asks for `Capability.CLOCK`, beside `MINE`, `CONNECT` and
-`DISCONNECT`. `tests/integration/mempool_reorg_test.py`'s own docstring has what
-differs from Core's file. Each `bitcoind` cell is one verdict for the pinned
-release and for Core's `master`. `btclib-node`'s cell on each row is a counted
-skip on `INVALIDATE_BLOCK` and on `CLOCK` respectively, which no build declares,
-`MINE` being declared per instance by probe: `setmocktime`
-([ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479))
-names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch table,
-and `invalidateblock`
-([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480))
-is served with no adapter probe for it.
-
-`interface_rpc.py` is ISS 14's too, an option, which
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-sets aside for the `bitcoin-cli` binary. Only its work queue step goes through
-that binary, and what the step asserts of the server, the refusal's status and
-the "Work queue depth exceeded" sent with it, is read off the HTTP reply here
-instead; what the binary makes of that reply is `interface_bitcoin_cli.py`'s
-subject ([ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)).
-Each test takes its node from the cluster fixture, and a request whose HTTP
-exchange is under test is sent as written, over `bitcoin_core_rpc`'s own
-`http_request` with the node's own RPC connection and credential, the status and
-the body read back. It is Core's own claim otherwise: `getrpcinfo` lists itself
-as the one call running and names the node's debug log (`Capability.RPC_INFO`);
-a batch is answered member by member in each member's own JSON-RPC version, a
-notification left out; a legacy request's error is an HTTP error status and a
-newer request's is not; a notification runs and is answered with no content, an
-invalid one running nothing (`Capability.GENERATE`, its notification being
-`generatetoaddress`); and a node with one RPC thread and a queue of one refuses
-the request beyond them (`Capability.RPC_WORK_QUEUE`).
-`tests/integration/interface_rpc_test.py`'s own docstring has what differs from
-Core's file. The `bitcoind` cells are one verdict for the pinned release and for
-Core's `master`. On `btclib-node` the `getrpcinfo` row is a counted skip on
-`Capability.RPC_INFO`, which no build declares
-([ISS btclib-node#1486](https://github.com/btclib-org/btclib-node/issues/1486)),
-and the work queue row on `Capability.RPC_WORK_QUEUE`, which no build declares
-either. The notification row checks the requests that are no notification and
-skips on `Capability.GENERATE`. The batch and status code rows pass on a build
-past
-[ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109),
-which parses each request as Core's `JSONRPCRequest` does (`rpc/jsonrpc.py`).
-
-`p2p_ibd_txrelay.py` is ISS 14's too, an option, the log and the clock, as
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags it, and node-linking besides: the census reads its nodes as never
-connected, where Core's own `setup_network` links them, and each of its tests
-takes the pair from the cluster fixture. It is Core's own claim, its coinbase
-check read per-build as below. Both nodes, started with `-minrelaytxfee`, send
-each other a `feefilter` of `MAX_MONEY` rounded down to `FeeFilterRounder`'s top
-bucket in initial block download, and of the minimum relay fee once out of it,
-read off `getpeerinfo`. While a block older than the maximum tip age keeps it
-there, the node under test asks for no transaction a peer announces and
-processes none a peer sends unasked; once out, it asks for the old block's
-coinbase by its wtxid and processes that transaction. Its coinbase check is read
-per-build: a block connected during initial block download stays out of the
-recently-confirmed filter only on a build carrying bitcoin/bitcoin#34054, first
-released in `v31.0rc1`, so the body reads the build's own `getnetworkinfo`
-`version` and asserts, on an older build, that the coinbase is not asked for.
-The (log) row reads the processing in the node's own log, in Core's own words;
-the (wire) row sends the same transactions and reads nothing of them past a ping
-round trip. Each asks for `Capability.MIN_RELAY_TX_FEE` beside `MINE`, `CLOCK`
-and `CONNECT`, and the (log) row for `DEBUG_LOG` too.
-`tests/integration/p2p_ibd_txrelay_test.py`'s own docstring has what differs
-from Core's file. Each `bitcoind` cell is one verdict for the pinned release and
-for Core's `master`. `btclib-node`'s cell on each row is a counted skip on
-`CLOCK`, `setmocktime` naming no callback in the dispatch table
-([ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479)).
-Past the skip, the top bucket such a build rounds to follows `-minrelaytxfee`,
-where Core's follows `DEFAULT_MIN_RELAY_TX_FEE`
-([ISS btclib-node#1374](https://github.com/btclib-org/btclib-node/issues/1374)).
-
-`feature_bip68_sequence.py` is ISS 14's too, MiniWallet and the option together,
-and its row is Core's own claim in full, one body over a pair of nodes started
-with Core's own `-testactivationheight`, on a chain mined to the height Core's
-framework caches. The mempool refuses a version-2 spend `non-BIP68-final` while
-a relative lock time on one of its inputs is not met, by height or by time, and
-takes it once every one is, or where the disable flag is set, or as a version-1
-spend; `invalidateblock` and a longer fork each return a spend to the mempool,
-evicting the child whose lock that leaves unmet; a block carrying a spend the
-mempool refuses becomes the tip while the deployment is inactive;
-`getdeploymentinfo` reports it active one block before the configured height;
-and the second node takes a version-2 spend. The blocks Core's node mines under
-`setmocktime` are built here carrying the times it gives them, so no
-`Capability.CLOCK` is asked for; the row asks for
-`Capability.TEST_ACTIVATION_HEIGHT` and `INVALIDATE_BLOCK` beside `MINE` and
-`CONNECT`. `tests/integration/feature_bip68_sequence_test.py`'s own docstring
-has what differs from Core's file. The `bitcoind` cell is one verdict for the
-pinned release and for Core's `master`. `btclib-node`'s cell is a counted skip
-on `TEST_ACTIVATION_HEIGHT`, `cli.py` registering no `-testactivationheight`;
-past that, `INVALIDATE_BLOCK` is declared for no build, though a build can serve
-`invalidateblock`
-([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480)).
-
-`mempool_accept.py` is ISS 14's too, an option and MiniWallet, as
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags it. It is Core's own claim in full on a build with bitcoin/bitcoin#32406
-and bitcoin/bitcoin#29954: `testmempoolaccept` answers each raw transaction
-Core's file builds with Core's own verdict, reject reason and fees, refuses
-garbage with Core's own RPC errors, and leaves the mempool as it found it, and
-`getmempoolinfo` reports the default relay fees and bare multisig not permitted,
-as the node is started. It asks for `Capability.PERMIT_BARE_MULTISIG` and
-`MINE`. `tests/integration/mempool_accept_test.py`'s own docstring has what
-differs from Core's file, the census's `-txindex` among it. Both
-bitcoin/bitcoin#32406 and bitcoin/bitcoin#29954 are first in `v30.0rc1`. Without
-bitcoin/bitcoin#32406, the several-outputs, large-output and maximal-size
-`OP_RETURN` checks give way to one: a transaction with a second `OP_RETURN`
-output is refused as `multi-op-return`. Without bitcoin/bitcoin#29954,
-`getmempoolinfo` has no `permitbaremultisig`, so that assertion is skipped and
-the `bare-multisig` refusal is the check. The `bitcoind` cell is one verdict for
-the pinned release and for Core's `master`: an allowed transaction's
-`vsize_adjusted` and `vsize_bip141` are expected where the build's own
-`getnetworkinfo` `version` reads at or past the first release carrying
-bitcoin/bitcoin#32800, and absent where it reads older
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), the test
-file's own `_VSIZE_FIELDS_VERSION` naming the known limit. `btclib-node`'s cell
-names, per build, the issue its failure is filed as. A build past
-[ISS btclib-node#1497](https://github.com/btclib-org/btclib-node/issues/1497)
-registers `-permitbaremultisig`, so the body runs past `PERMIT_BARE_MULTISIG`
-and `MINE`. An older build registers none, and there the body is a counted skip
-on `PERMIT_BARE_MULTISIG`. The assertion that fails differs by build. A build
-answering a confirmed transaction `missing-inputs` where the body expects
-`txn-already-known` fails there
-([ISS btclib-node#1765](https://github.com/btclib-org/btclib-node/issues/1765));
-one answering that as Core does fails on an allowed transaction's answer, which
-carries `vsize_adjusted`, `vsize` and `vsize_bip141`
-([ISS btclib-node#1757](https://github.com/btclib-org/btclib-node/issues/1757))
-but no `fees` object
-([ISS btclib-node#1799](https://github.com/btclib-org/btclib-node/issues/1799)).
-
-`mempool_cluster.py` is ISS 14's too, MiniWallet and both cluster options
-together, and its row is Core's own claim in full, one body over one node
-restarted under each of Core's own `-limitclustersize` values and then each of
-its `-limitclustercount` values. `getmempoolcluster` refuses a transaction the
-mempool does not hold, and reports a cluster's weight, its transaction count and
-its chunks, a child paying more than its parent sharing its chunk, as a
-prioritised one does, and one paying less taking a chunk of its own; a
-transaction, a replacement and a merger that would take a cluster past either
-limit, and a package past the count, are refused `too-large-cluster`, where a
-replacement keeping the cluster's count or size and a spend of each cluster
-apart are taken; and a merger or a package that replaces transactions forms a
-cluster without them. The row asks for `Capability.LIMIT_CLUSTER_SIZE` and
-`LIMIT_CLUSTER_COUNT`, then `MEMPOOL_GRAPH` (`capability.py`), naming
-`getmempoolancestors` and `getmempooldescendants`, then `CLUSTER_LINEARIZATION`,
-naming `getmempoolcluster`, `getmempoolfeeratediagram` and `getmempoolinfo`'s
-own `optimal`, then `PACKAGE_ACCEPTANCE`, naming `submitpackage`, ahead of
-`MINE`. `tests/integration/mempool_cluster_test.py`'s own docstring has what
-differs from Core's file. The `bitcoind` cell is one verdict for the pinned
-release and for Core's `master`. `BitcoindAdapter` declares
-`LIMIT_CLUSTER_SIZE`, `LIMIT_CLUSTER_COUNT` and `CLUSTER_LINEARIZATION` only
-where the build's `-help-debug` lists `-limitclustercount` (`bitcoind.py`'s own
-`_has_cluster_mempool`), so the file is a counted skip on `LIMIT_CLUSTER_SIZE`
-on a release before the cluster mempool. `btclib-node`'s cell is a counted skip
-on `LIMIT_CLUSTER_SIZE`, its `cli.py` registering no `-limitclustersize`
-([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383));
-past that, `getmempoolcluster`, `getmempoolancestors` and `submitpackage` are
-served only by a build past
-[ISS btclib-node#1499](https://github.com/btclib-org/btclib-node/issues/1499),
-[ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501)
-and
-[ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)
-respectively.
-
-`feature_minchainwork.py` is ISS 14's too, an option and the clock beside
-node-linking, its test taking its nodes from the cluster fixture. It is Core's
-own claim in full, over a line of nodes each dialling the one before it, the
-second and the third under `-minimumchainwork`. While the chain the first node
-mines has less work than the option names, no block passes the second node: the
-third keeps the genesis block as its only chain tip, the second's best block is
-not the first's, and the third answers a peer's `getheaders` with no header. One
-block more takes the work past it, every node syncs, and the third answers the
-same request while its clock, set ahead, keeps it in initial block download. A
-value that is not hex refuses the start in Core's own words. It asks for
-`Capability.MINIMUM_CHAIN_WORK` beside `CLOCK`, `PEER_TIMEOUT`, `MINE` and
-`CONNECT`. `tests/integration/feature_minchainwork_test.py`'s own docstring has
-what differs from Core's file. Core's
-`test_outbound_insufficient_work_disconnect` (bitcoin/bitcoin#36426) is the
-`(outbound)` row, a body of its own that asks for `MINIMUM_CHAIN_WORK`, `MINE`,
-`TYPED_OUTBOUND` and `DEBUG_LOG`. The `bitcoind` cell of each row is one verdict
-for the pinned release and for Core's `master`. `btclib-node`'s cell is a
-counted skip on `MINIMUM_CHAIN_WORK`, which `BtclibNodeAdapter` declares for no
-build, though a build past
-[ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)
-registers `-minimumchainwork`.
-
-`mempool_packages.py` is ISS 14's too, though
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-does not name it: the step-5 mechanisms it asks for are MiniWallet and the
-`-limitclustercount` option together, beside node-linking. Its row is Core's own
-claim in full, one body over a pair of nodes, the second under Core's own
-smaller `-limitclustercount`, on a chain mined to the height Core's framework
-caches. A build before the cluster mempool has no such option, and the body
-there is Core's own file of that build in the limits alone: the chain and the
-family are as long as the default ancestor and descendant limits, the second
-node is under smaller `-limitancestorcount` and `-limitdescendantcount`, and a
-transaction past the chain or the family is refused `too-long-mempool-chain`. A
-chain of transactions spending one coin is checked transaction by transaction,
-once each has been announced to a peer: `getrawmempool` and `getmempoolentry`
-agree on the count, size and fees of its ancestors and of its descendants, and
-on the transaction it spends and the one spending it; `gettxspendingprevout`
-names it as the spender of each of its inputs; and `getmempoolancestors` and
-`getmempooldescendants`, bare and verbose, list the rest of the chain.
-`prioritisetransaction`'s delta is in the ancestor or descendant fees of every
-relative, and in a mined transaction's modified fee once `invalidateblock`
-returns it to the mempool. The second node holds the parent of a family the
-first node holds whole, each entry it holds within its own count and agreeing
-with the first node's. A longer fork returns a block's transactions to the
-mempool in the order they had before. The row asks for `MEMPOOL_GRAPH`
-(`capability.py`), naming `getmempoolancestors`, `getmempooldescendants` and
-`gettxspendingprevout`, then `INVALIDATE_BLOCK`, `CONNECT` and `MINE`; it reads
-`LIMIT_CLUSTER_COUNT` to choose the limits, and asks for nothing more.
-`tests/integration/mempool_packages_test.py`'s own docstring has what differs
-from Core's file. The `bitcoind` cell is one verdict for the pinned release and
-for Core's `master`. `btclib-node`'s cell is a counted skip on `MEMPOOL_GRAPH`,
-which `BtclibNodeAdapter` declares for no build: `getmempoolancestors`,
-`getmempooldescendants` and `gettxspendingprevout` are served only by a build
-past
-[ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501),
-and `prioritisetransaction` only by one past
-[ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502).
-
-`feature_versionbits_warning.py` is ISS 14's too, the option and the disk
-together; its test builds its node through `make_adapter`, under `-alertnotify`
-from the first start. It is Core's own claim: blocks a `Peer` sends signalling a
-version bit no deployment uses raise no warning over a period in which fewer
-than the threshold signal it, and after a period reaching the threshold and one
-more, then a restart, the node reports "Unknown new rules activated" in
-`getmininginfo`'s and `getnetworkinfo`'s `warnings`, and its command appends
-that warning to a file. In between, blocks reaching the threshold on a bit
-BIP323 reserves raise no warning, which the test asserts only where the running
-build carries BIP323, read from its own version: Core's `master` does and the
-pinned release does not.
-`tests/integration/feature_versionbits_warning_test.py`'s own docstring has what
-else differs from Core's file. The `btclib-node` cell is a counted skip on
-`Capability.ALERT_NOTIFY`, asked for first: `BtclibNodeAdapter` declares it for
-no build, though a build past
-[ISS btclib-node#1475](https://github.com/btclib-org/btclib-node/issues/1475)
-registers `-alertnotify`.
-
-`mempool_package_rbf.py` is ISS 14's too, MiniWallet and the `-maxmempool`
-option together, beside node-linking. Its row keeps every check of Core's own,
-each of Core's subtests a body over a fresh node of its own, in Core's order. A
-child pays for its parent to replace a package, `testmempoolaccept` refusing the
-replacement it takes over `submitpackage`, and a peer comes to hold the
-replacement too, which it can only take as a package, its parent alone paying
-less than what it would evict; a child pays for its parent to replace one lone
-transaction. A replacement is refused where it pays less in all than what it
-replaces, or more by less than the incremental relay fee of its own size, and
-where its package's fee rate does not exceed its parent's own. One conflicting
-with more clusters than Core's `MAX_REPLACEMENT_CANDIDATES` is refused; before
-the cluster mempool, one replacing more transactions than that, with the
-package's own message and chains of a transaction and its child, as Core's file
-of that build has it. A package of a child and a pair of its parents replaces
-nothing: where only the first parent conflicts, the second enters alone and the
-replacement is refused, the child then having an ancestor in the mempool, and
-where each conflicts, the package is refused for being more than a parent and
-its child. One whose parent pays less than the parent it conflicts with is
-refused, not improving the feerate diagram, and a zero-fee TRUC parent and a
-child paying for both replace a package. With the mempool full, a child
-double-spending its parent's own mempool parent is refused. Each body asks for
-`Capability.PACKAGE_ACCEPTANCE` (`capability.py`) first, naming `submitpackage`
-and a `testmempoolaccept` handed a package, then the basic body for `CONNECT`
-and the last for `MAXMEMPOOL` and `DATACARRIER`, then `MINE`. That last body
-restarts its node with a `-datacarriersize` over the padding `fill_mempool`
-adds, which a build without bitcoin/bitcoin#32406, first in `v30.0rc1`, refuses
-by default. `tests/integration/mempool_package_rbf_test.py`'s own docstring has
-what differs from Core's file. The `bitcoind` cell is one verdict for the pinned
-release and for Core's `master`. `btclib-node`'s cell is a counted skip on
-`PACKAGE_ACCEPTANCE` where the build serves no `submitpackage`. A build past
-[ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)
-serves it and fails the replacement bodies, replacing a conflict at all being
-[ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)'s.
-
-`p2p_headers_sync_with_minchainwork.py` is ISS 14's too, an option, the log and
-the clock beside node-linking, its test taking its nodes from the cluster
-fixture. Its row is Core's own claim in full: every node is restarted under
-Core's own options, each but the first under a `-minimumchainwork` floor and the
-last also giving the first `noban`, and the first node dials each of the others.
-While the chain the first node mines has less work than a node's floor, that
-node logs "Ignoring low-work chain" at the chain's height and keeps the genesis
-block as its only chain tip, where the `noban` node logs "Synchronizing
-blockheaders" at that height and holds the chain as a headers-only tip; each
-node syncs once the chain has the work its floor names. The first and the second
-node, disconnected, each mine a chain of their own past the next locator entry,
-and once reconnected, their clocks held, every node syncs. A peer's headers
-forking from genesis, with less work than the chain, are reported by
-`getpeerinfo` as presynced. With the first node's clock set more than
-`MAX_FUTURE_BLOCK_TIME` behind the genesis block's median time, the same headers
-from a new peer make it abort and say why on stderr, which
-`NodeAdapter.wait_until_stopped` reads
-([ISS 318](https://github.com/btclib-org/bitcoin-node-tests/issues/318)). It
-asks for `Capability.MINIMUM_CHAIN_WORK` first, then `GENERATE`, `DEBUG_LOG`,
-`CLOCK`, `CONNECT` and `DISCONNECT`.
-`tests/integration/p2p_headers_sync_with_minchainwork_test.py`'s own docstring
-has what differs from Core's file. The abort is a step of Core's `master` alone:
-the pinned release keeps presyncing instead, and the test checks that there. The
-`bitcoind` cell is one verdict for the pinned release and for Core's `master`.
-`btclib-node`'s cell is a counted skip on `MINIMUM_CHAIN_WORK`, which
-`BtclibNodeAdapter` declares for no build, though a build past
-[ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)
-registers `-minimumchainwork`; past it, `GENERATE` is declared for no build,
-though a build past
-[ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)
-serves `generatetoaddress`.
-
-`p2p_unrequested_blocks.py` is one of ISS 14's files in the log family's census
-above, an option and the log beside node-linking, its test taking its nodes from
-the cluster fixture. Its row is Core's own claim in full, over a pair of nodes
-not linked, the second restarted under `-minimumchainwork`, each mining a block
-of its own and each fed blocks by a peer. The first node takes a block extending
-its tip; the second stores no header of one on a chain below its floor, and its
-log says so. The first node keeps the header alone of a block forking from
-genesis that nobody asked for, and stores without connecting a block of that
-fork with as much work as its tip or more. A block whose parent it has no header
-for drops the peer; given that header, the node stores every block of a deep
-fork but the one more than Core's `MIN_BLOCKS_TO_KEEP` past its tip. The fork's
-first block, sent again unasked, is ignored; an `inv` for a later block of the
-fork makes the node ask for the first, and once it arrives the node reorganises
-onto the fork. A block spending an immature coinbase drops the peer, the node
-staying on its chain with that block stored, and a header extending its fork
-drops the next peer. The first node then dials the second, and both reach one
-tip. It asks for `Capability.MINIMUM_CHAIN_WORK` first, then `GENERATE`,
-`DEBUG_LOG` and `CONNECT`. `tests/integration/p2p_unrequested_blocks_test.py`'s
-own docstring has what differs from Core's file. The `bitcoind` cell is one
-verdict for the pinned release and for Core's `master`, the pinned release's own
-copy of the file differing from the pin only in handing each `create_block` a
-coinbase of its own `create_coinbase` rather than a height. `btclib-node`'s cell
-is a counted skip on `MINIMUM_CHAIN_WORK`, which `BtclibNodeAdapter` declares
-for no build, though a build past
-[ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)
-registers `-minimumchainwork`; past it, `GENERATE` is declared for no build,
-though a build past
-[ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)
-serves `generatetoaddress`.
-
-`p2p_1p1c_network.py` is ISS 14's too, though
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-does not name it: the step-5 mechanism it asks for is MiniWallet, beside
-node-linking. Its row is Core's own claim in full, one body over a line of
-nodes, each dialling the one before it. A peer of each node but the first sends
-it part of Core's packages: one node the children and a parent paying enough,
-the next that parent, the last that parent and the parents paying no fee. Every
-node's mempool then holds that parent alone, and the node sent the children
-keeps them as orphans, where no other node keeps any. Once the peers disconnect
-no node keeps an orphan, and `submitpackage` takes each package on the first
-node: a parent paying no fee and a child paying for both, with a witness and
-without; a pair of parents and a child of both; and a parent paying no fee into
-a pair of outputs and a child spending each. Every node's mempool comes to agree
-with the first's, each parent paying no fee relayed with its child. It asks for
-`Capability.ORPHANAGE` first, as `p2p_opportunistic_1p1c.py`'s relay of a parent
-with its child does, then `PACKAGE_ACCEPTANCE`, naming `submitpackage`, then
-`CONNECT` and `MINE`. `tests/integration/p2p_1p1c_network_test.py`'s own
-docstring has what differs from Core's file. The `bitcoind` cell is one verdict
-for the pinned release and for Core's `master`, the pinned release's own copy of
-the file being the pin's; a build without bitcoin/bitcoin#33892 passes by what
-Core's file did before it, each parent paying the relay fee, which the body
-reads off `getnetworkinfo`'s `version`. `btclib-node`'s cell is a counted skip
-on `ORPHANAGE`: `BtclibNodeAdapter` declares it for no build, and a dispatch
-table names `getorphantxs` only past
-[ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420).
-Past that, only a build past
-[ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)
-serves `submitpackage` and only one past
-[ISS btclib-node#1473](https://github.com/btclib-org/btclib-node/issues/1473)
-takes a parent paying too little with a child paying for it, and a build past
-[ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)
-registers `-whitelist`, which each node restarts with, as Core's
-`noban_tx_relay` starts it.
-
-`mempool_ephemeral_dust.py` is ISS 14's too, MiniWallet and the `-minrelaytxfee`
-option beside node-linking, which
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-tags it with. Its rows keep every check of Core's own, each of Core's subtests a
-body over a fresh pair of nodes of its own, in Core's order. A TRUC parent
-paying no fee, with a dust output of no value, is refused alone for paying too
-little, and as dust once a fee delta takes it past that; it enters with a child
-spending the dust, as a package the peer comes to hold too, and takes no fee
-delta once in the mempool. A parent with dust is refused where it pays a fee,
-even with a delta taking its fee to zero, where it pays none and is given a
-delta, and where it carries a second dust output. A block does not take a parent
-left childless by a replacement of its child, and a new child spending its dust
-enters alone. A restart of both nodes drops a package from both mempools. With
-no relay floor, a parent is allowed alone with one output of a satoshi, of the
-P2TR dust threshold, or of a satoshi less. A non-TRUC parent enters with its
-child too. A child leaving a parent's dust unspent is refused, alone, beside its
-parent, and as the sweep of a batch of parents. A reorg returns to the mempool,
-unchecked, a parent with dust and a child leaving that dust unspent, and keeps a
-returned parent's descendants in the mempool; a parent paying a fee, or with a
-second dust output, does not come back. The bodies ask for
-`Capability.PACKAGE_ACCEPTANCE` first where they submit a package, then
-`ORPHANAGE` where a package reaches the second node only as Core's 1p1c relay
-takes it, `MIN_RELAY_TX_FEE`, `CONNECT`, `DISCONNECT` for the reorg body,
-`GENERATE` where Core's `generate` mines from the node's own mempool, and
-`MINE`. `tests/integration/mempool_ephemeral_dust_test.py`'s own docstring has
-what differs from Core's file. The `bitcoind` cells are one verdict for the
-pinned release and for Core's `master`; a build without bitcoin/bitcoin#33892 or
-bitcoin/bitcoin#33616 passes by what Core's file did before them, in the bodies
-they change. `btclib-node`'s cells: the package bodies are counted skips on
-`PACKAGE_ACCEPTANCE` where the build serves no `submitpackage`, and on the next
-capability they ask for on a build past
-[ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494),
-which serves it. The nonzero-dust body passes on a build past
-[ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332).
-The reorg body fails on a build where a mined parent with a second dust output
-comes back into the mempool, which Core's `IsStandardTx` would refuse as `dust`,
-and passes on a build past
-[ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382).
-Past `PACKAGE_ACCEPTANCE`, `prioritisetransaction` is served on a build past
-[ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502),
-`generatetoaddress` on one past
-[ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404),
-`-whitelist` is registered on one past
-[ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320),
-which the first bodies restart with, and an orphan is kept on one past
-[ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420).
-
-`feature_notifications.py` is ISS 14's too, though
-[ISS 14's census](https://github.com/btclib-org/bitcoin-node-tests/issues/14#issuecomment-5839832569)
-does not name it: the step-5 mechanisms it asks for are an option and the disk,
-the file each command writes. Its rows are Core's own claims about its first
-node, each over a node of its own started with one option. `-blocknotify` runs
-its command for each block the node mines, the file it writes named for the
-block's hash. `-alertnotify` runs its command with the warning raised by a chain
-of invalid blocks with more work than the node's own, their headers submitted
-first and then the blocks, tip first. `-shutdownnotify` runs its command once
-the node is stopped. Each asks first for the capability naming its option,
-`Capability.BLOCK_NOTIFY`, `ALERT_NOTIFY` or `SHUTDOWN_NOTIFY`, then for `MINE`
-where it mines. The warning's wording is read from the running build: a release
-from Core's `v31.0rc1` on names the invalid chain, as the pin's file expects,
-and an earlier one says it does not fully agree with its peers;
-`tests/integration/feature_notifications_bitcoind_test.py`'s own
-`_names_the_invalid_chain` has where `master` changed.
-`tests/integration/feature_notifications_test.py`'s own docstring has what
-differs from Core's file. The step not ported is `-walletnotify`, on the file's
-second node, whose wallet shares the first node's descriptors, built from an
-extended private key the client generates: *The node wallet* below lists both
-among what a port of Core's wallet tests waits on. The `bitcoind` cells are one
-verdict for the pinned release and for Core's `master`, the pinned release's own
-copy of the file differing from the pin in its wallet steps, in leaving each
-command's path unquoted and in handing `create_block` a coinbase of its own
-`create_coinbase` rather than a height. `btclib-node`'s cells are counted skips
-on each capability: `BtclibNodeAdapter` declares none of them, though a build
-past
-[ISS btclib-node#1519](https://github.com/btclib-org/btclib-node/issues/1519)
-registers `-blocknotify` and `-shutdownnotify` and one past
-[ISS btclib-node#1475](https://github.com/btclib-org/btclib-node/issues/1475)
-`-alertnotify`.
-
-`feature_settings.py` is one of ISS 14's files in the log family's census above,
-an option and the disk beside the log. Its row is Core's own claim in full, over
-a node started with no `bitcoin.conf` of the harness's own. A node writes its
-settings file at its first start, holding Core's `_warning_` alone. It logs each
-value of the file at the next start, warning about each one it does not use, and
-leaves the values in the file when it stops. A file that is not valid JSON, not
-a JSON object, or that holds a key twice refuses the start in Core's own words.
-`-nosettings` on the command line, then in `bitcoin.conf`'s `[regtest]` section,
-starts the node over such a file, and `-settings=<path>` reads another file. A
-`wallet` value in the file that is not a list of strings refuses the start for
-each value Core's list names. The first test asks for `Capability.SETTINGS_FILE`
-first, then `DEBUG_LOG`; the wallet test asks for `SETTINGS_FILE`, then
-`NODE_WALLET`. `tests/integration/feature_settings_test.py`'s own docstring has
-what differs from Core's file, the invalid-JSON refusal's wording being read
-from the running build's version. The `bitcoind` cell is one verdict for the
-pinned release and for Core's `master`, whose copies of the file are the pin's.
-`btclib-node`'s cell is a counted skip on `SETTINGS_FILE`: `BtclibNodeAdapter`
-declares it for no build, and a build past
-[ISS btclib-node#1523](https://github.com/btclib-org/btclib-node/issues/1523)
-registers `-settings`.
-
-`feature_assumevalid.py` is one of ISS 14's files in the log family's census
-above, an option beside the log. Its row is Core's own claim in full, over
-several nodes, none of them linked to another. A chain buries a coinbase spend
-carrying an invalid signature deep enough that a node given `-assumevalid` at
-the spending block's own hash may skip checking it. A node given no such option
-checks every block, catches the spend, drops the peer sending it, and reports
-the chain past it invalid; one given the option and the whole chain takes it
-whole, the log naming where the skip starts and where it ends. A node fed only
-part of the chain's headers is not buried deep enough yet for the skip and
-rejects the spend the same way the first node does. One fed a competing,
-higher-work header chain ahead of the real one leaves the real chain's first
-block off its own best header chain, so that block is checked and accepted
-regardless, carrying no spend of its own; one fed a block at the same height
-outside the option's own chain entirely is checked and accepted the same way. A
-last node, synced to the chain's first block, is restarted under a chainstate
-reindex, once naming a hash absent from its own headers and once naming the real
-hash under a chain-work floor no chain this short reaches, hitting each check
-without a race against its own header download. The row asks for
-`Capability.ASSUME_VALID` first, then `DEBUG_LOG`, then `CHAIN_TIPS`, then
-`MINIMUM_CHAIN_WORK` and `REINDEX` for the reindexed node alone.
-`tests/integration/feature_assumevalid_test.py`'s own docstring has what differs
-from Core's file, among it the log lines an older release leaves out or names
-differently. The `bitcoind` cell is one verdict for the pinned release and for
-Core's `master`, the pinned release's own copy of the file differing from the
-pin only in handing each `create_block` a coinbase of its own `create_coinbase`
-rather than a height. `btclib-node`'s cell is a counted skip on `ASSUME_VALID`:
-`BtclibNodeAdapter` declares it for no build
-([ISS btclib-node#1576](https://github.com/btclib-org/btclib-node/issues/1576)).
-
-`feature_rbf.py` is ISS 14's too, MiniWallet, the node wallet and an option
-together. Its row is Core's own claim in full, over one node. A transaction
-spending what another in the mempool spends replaces it where it pays for it,
-with each refusal in Core's own words. A replacement paying what it replaces or
-less is refused, and so is one paying more by less than the incremental relay
-fee of its own size, one whose fee rate does not improve the mempool's feerate
-diagram, one reaching more clusters than Core's `MAX_REPLACEMENT_LIMIT`, and one
-spending an output of what it replaces, directly or through a descendant. A long
-chain of transactions and a wide tree are each replaced by one paying their fees
-in all. A replacement adding an unconfirmed input is taken where the diagram
-improves and refused where it does not. A fee changed by `prioritisetransaction`
-counts in both the absolute check and the rate check, a transaction not
-signalling BIP125 is replaced all the same, `createrawtransaction` and
-`fundrawtransaction` mark an input replaceable where asked, and
-`-incrementalrelayfee`, at each setting Core tries, is what a replacement must
-add, to the satoshi. The row asks for `Capability.INCREMENTAL_RELAY_FEE` first,
-then `DATACARRIER`, `NODE_WALLET`, `GENERATE` and `MINE`. The replacement rules
-are the cluster mempool's (bitcoin/bitcoin#33629) or the earlier ones, and the
-body reads which runs off the node's own `help`, asserting each one's wording
-and its verdict on an unconfirmed input.
-`tests/integration/feature_rbf_test.py`'s own docstring has what else differs
-from Core's file. The `bitcoind` cell is one verdict for the pinned release and
-for Core's `master`, the pinned release's own copy of the file differing from
-the pin only in the `-deprecatedrpc` options `master`'s node is given, and the
-earlier rules' wording is asserted on a build before the cluster mempool.
-`btclib-node`'s cell is a counted skip on `INCREMENTAL_RELAY_FEE`:
-`BtclibNodeAdapter` declares it for no build, though a build past
-[ISS btclib-node#1596](https://github.com/btclib-org/btclib-node/issues/1596)
-registers `-incrementalrelayfee`.
-
-`p2p_permissions.py` is one of ISS 14's files in the log family's census above,
-an option beside the wire and the log. Its rows keep every check of Core's own,
-each a body over nodes of its own, a second one only where the check links it. A
-node restarted with `-whitelist` grants a peer dialling it the permissions the
-value names, `getpeerinfo` listing them: a bare address grants the default set,
-a list replaces it, `all` grants every permission, `forcerelay` implies `relay`,
-and the legacy `-whitelistrelay` and `-whitelistforcerelay` change the default
-set and are ignored beside a list. A `-whitebind` grants its own flags, merged
-with a `-whitelist`'s, to a peer dialling its port. A whitelist's `out`
-direction grants a node's permissions to the peer it dials, and a list naming
-none grants them to an inbound peer alone. A malformed value, an unknown
-permission, a netmask that is no netmask, an unresolvable `-whitebind` and a
-`-whitebind` beside `-listen` turned off each stop the start with Core's own
-message. A peer granted `forcerelay` sends a transaction the node's mempool
-holds already, and the node relays it to a node it is linked to; a transaction
-its policy rejects for dust is neither accepted nor relayed, the log naming
-both. Every row asks for `Capability.PEER_PERMISSIONS`; the `out` row and the
-relay row ask for `CONNECT` too, and the relay row for `MINE` and `DEBUG_LOG`.
-`tests/integration/p2p_permissions_test.py`'s own docstring has what differs
-from Core's file, among it the peer, which is a `Peer` where the permissions are
-read on an inbound connection. Every body passes on older releases too, so no
-row is read per-build. The `bitcoind` cells are one verdict for the pinned
-release and for Core's `master`, the pinned release's own copy of the file being
-the pin's. `btclib-node`'s cells are counted skips on `PEER_PERMISSIONS`:
-`BtclibNodeAdapter` declares it for no build, though a build past
-[ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)
-registers `-whitelist`, and one past
-[ISS btclib-node#1625](https://github.com/btclib-org/btclib-node/issues/1625)
-also `-whitebind`.
-
-[ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)'s
-files are those a planning pass for ISS 14 found to need no mechanism the
-adapter lacks, outside ISS 14's own scope: `feature_shutdown.py`,
-`rpc_signmessagewithprivkey.py`, `rpc_estimatefee.py`, `rpc_getchaintips.py`,
-`rpc_preciousblock.py`, `rpc_invalidateblock.py`,
-`feature_chain_tiebreaks.py`, `p2p_sendheaders.py` and `p2p_fingerprint.py`.
-`rpc_getchaintips.py`, `rpc_preciousblock.py`, `rpc_invalidateblock.py`,
-`rpc_signmessagewithprivkey.py`, `feature_chain_tiebreaks.py`,
-`p2p_sendheaders.py`, `p2p_fingerprint.py` and `rpc_estimatefee.py` are
-ported, their rows in the table above.
-
-`feature_shutdown.py` is not ported. Its node is asked to `stop` over RPC
-while a `waitfornewblock` call on a second connection is still pending, and
-`TestNode.stop_node` then waits for the process to exit on its own, with a
-success exit code and nothing on stderr (`TestNode.wait_until_stopped`,
-`test_framework/test_node.py`). That exit is the file's subject, and
-`NodeAdapter.wait_until_stopped` is the wait that reads it
-([ISS 318](https://github.com/btclib-org/bitcoin-node-tests/issues/318)).
-`NodeAdapter.stop` would not do: it sends the process `SIGTERM`, which ends a
-node the RPC left running, so a port ending in it cannot tell the RPC's
-shutdown from the signal's.
-
-`rpc_getchaintips.py`'s row is Core's own claim in full. Nodes are linked in a
-line, as Core's `setup_network` links them, and the first reports its active tip
-alone. With the network split between the second and the third node, each half
-mines a chain of its own, the second half's longer, and reports its own tip
-alone. Once joined, the first node reports the long tip as active and the short
-one as a `valid-fork`. Isolated again, the first node is given the headers of a
-block whose coinbase pays too much and of a child of it: that chain is its
-`headers-only` tip, and the block itself, once submitted, turns it `invalid`.
-The test asks for `Capability.CONNECT`, then `GENERATE`, then `DISCONNECT`, then
-`CHAIN_TIPS`. `tests/integration/rpc_getchaintips_test.py`'s own docstring has
-what differs from Core's file, the cached chain Core starts on being mined by
-the first node here. The `bitcoind` cell is one verdict for the pinned release
-and for Core's `master`, whose copy of the file is the pin's. `btclib-node`'s
-cell is a counted skip on `GENERATE`: `BtclibNodeAdapter` declares it for no
-build, though a build past
-[ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)
-serves `generatetoaddress`, one past
-[ISS btclib-node#1533](https://github.com/btclib-org/btclib-node/issues/1533)
-`submitheader`, and its dispatch table names `getchaintips`.
-
-`rpc_preciousblock.py`'s row is Core's own claim in full. The nodes start
-unlinked on a clean chain, and each mines blocks of its own. Handed each other's
-blocks over `submitblock`, the first node reorgs to the second node's longer
-chain. The first and the second node then each mine a branch of equal length on
-it, and neither reorgs once handed the other's branch and linked to it:
-`preciousblock` moves each to the other's tip and back. A block the first node
-mines on the second node's branch takes the second node to it, and
-`preciousblock` on the first node's branch no longer moves it. The third node
-mines a branch as long as that chain; linked, the second node keeps its tip and
-the third its own, until `preciousblock` names the other's. The test asks for
-`Capability.PRECIOUS_BLOCK`, then `GENERATE`, then `CONNECT`.
-`tests/integration/rpc_preciousblock_test.py`'s own docstring has what differs
-from Core's file. The `bitcoind` cell is one verdict for the pinned release and
-for Core's `master`, whose copy of the file is the pin's. `btclib-node`'s cell
-is a counted skip on `PRECIOUS_BLOCK`: `BtclibNodeAdapter` declares it for no
-build, though a build past
-[ISS btclib-node#1534](https://github.com/btclib-org/btclib-node/issues/1534)
-serves `preciousblock`, and one past
-[ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)
-`generatetoaddress`.
-
-`rpc_invalidateblock.py`'s row is Core's own claim in full. The nodes start
-unlinked on a clean chain, and the first and the second node each mine a chain
-of their own, the second node's longer. Linked, the first node reorgs to the
-second node's chain and is given the header of a block on top of it.
-Invalidating a block of that chain takes the first node back to its own, with no
-header left beyond its tip; reconsidering that chain's tip counts the header
-beyond it again. With the second and the third node linked, each invalidates a
-block of the shared chain, and the third mines a block on what is left: no node
-reorgs to a chain of less work. Reconsidering the header, with an ancestor of it
-invalidated, makes the header's last ancestor holding its block data the tip.
-Reconsidering a block reconsiders its invalidated ancestors and its invalidated
-descendants, and an unknown block is refused. The test asks for
-`Capability.GENERATE`, then `CONNECT`, then `INVALIDATE_BLOCK`, which names
-`reconsiderblock` too. `tests/integration/rpc_invalidateblock_test.py`'s own
-docstring has what differs from Core's file, among it the check an older release
-leaves out. The `bitcoind` cell is one verdict for the pinned release and for
-Core's `master`, whose copy of the file is the pin's. `btclib-node`'s cell is a
-counted skip on `GENERATE`: `BtclibNodeAdapter` declares it for no build, though
-a build past each of
-[ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404),
-[ISS btclib-node#1533](https://github.com/btclib-org/btclib-node/issues/1533),
-[ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480)
-and
-[ISS btclib-node#1536](https://github.com/btclib-org/btclib-node/issues/1536)
-serves `generatetoaddress`, `submitheader`, `invalidateblock` and
-`reconsiderblock` respectively.
-
-`rpc_signmessagewithprivkey.py`'s row is Core's own claim in full. One node
-signs a message with Core's own regtest key, and the signature is the one Core's
-file names. It verifies under the key's P2PKH address and is refused under its
-P2SH-P2WPKH and P2WPKH ones. Either call given the wrong number of arguments is
-refused, and so are a key, an address and a signature the node cannot decode,
-each with Core's own error code and message. The test asks for
-`Capability.SIGN_MESSAGE_WITH_PRIVKEY` alone.
-`tests/integration/rpc_signmessagewithprivkey_test.py`'s own docstring has what
-differs from Core's file, btclib deriving the key's addresses where Core asks
-the node's `deriveaddresses`. The `bitcoind` cell is one verdict for the pinned
-release and for Core's `master`, whose copy of the file is the pin's.
-`btclib-node`'s cell is a counted skip on `SIGN_MESSAGE_WITH_PRIVKEY` no file
-naming `signmessagewithprivkey` or `verifymessage`
-([ISS btclib-node#1538](https://github.com/btclib-org/btclib-node/issues/1538)).
-
-`feature_chain_tiebreaks.py`'s row is Core's own claim in full. Of the blocks of
-equal work a node holds, it takes as its tip the one whose chain it held in full
-first. A peer feeds each node blocks. Given the headers of sibling blocks on its
-tip and then their blocks, the first node takes the block it received first, and
-headers alone do not move it. Given the blocks of deeper descendants whose
-parents' blocks it lacks, and then those parents, it takes a block whose chain
-was complete first rather than the block it received first; invalidating that
-block and its sibling takes it to the block it received first. The second node,
-given blocks of equal work on its own tip, takes the first of them, keeps it as
-its tip across a restart, and takes a block built on it. The test asks for
-`Capability.INVALIDATE_BLOCK`, then `GENERATE`.
-`tests/integration/feature_chain_tiebreaks_test.py`'s own docstring has what
-differs from Core's file, among it the restart's tip check, which `bitcoind`
-runs only where its version says it carries Core's change. The `bitcoind` cell
-is one verdict for the pinned release and for Core's `master`, whose copy of the
-file is the pin's. `btclib-node`'s cell is a counted skip on `INVALIDATE_BLOCK`:
-`BtclibNodeAdapter` declares it for no build, though a build past each of
-[ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480),
-[ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)
-and
-[ISS btclib-node#1533](https://github.com/btclib-org/btclib-node/issues/1533)
-serves `invalidateblock`, `generatetoaddress` and `submitheader` respectively.
-
-`p2p_sendheaders.py`'s row is Core's own claim in full. A node announces a new
-block to a peer by an `inv` until the peer sends `sendheaders`, and by the
-block's header after it. Another node, linked as Core's `setup_network` links
-it, mines the chains that reorganise the first, and the test connects a peer
-reading only `inv`s and a peer offering no `NODE_NETWORK`. A reorganisation
-connecting no more than Core's `MAX_BLOCKS_TO_ANNOUNCE` blocks is announced by
-their headers and a longer one by an `inv`, until the peer asks for the tip's
-headers or announces the tip. Headers leading to as much work as the tip or more
-are fetched at once and those leading to less are not, and every header that
-does not connect is answered with a `getheaders`. The test asks for
-`Capability.GENERATE`, then `CONNECT` and `INVALIDATE_BLOCK`.
-`tests/integration/p2p_sendheaders_test.py`'s own docstring has what differs
-from Core's file. The `bitcoind` cell is one verdict for the pinned release and
-for Core's `master`, whose copy of the file is the pin's. `btclib-node`'s cell
-is a counted skip on `GENERATE`: `BtclibNodeAdapter` declares it for no build,
-though a build past
-[ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)
-serves `generatetoaddress` and one past
-[ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480)
-`invalidateblock`.
-
-`p2p_fingerprint.py`'s row is Core's own claim in full. A node withholds a block
-off its active chain, and its header, from a peer asking for either once the
-block is a month or more older than the node's best header. With the node's
-clock set back, the node mines a chain and a peer announces by their headers a
-longer fork built from below the tip, sending each block once the node asks for
-it. The stale tip the node leaves is served, block and header, while the best
-header is as old as it; once the clock is released and the node mines a block of
-the present, neither is. A block of the active chain as old as the stale one is
-still served. The test asks for `Capability.MINE`, then `CLOCK`.
-`tests/integration/p2p_fingerprint_test.py`'s own docstring has what differs
-from Core's file. The `bitcoind` cell is one verdict for the pinned release and
-for Core's `master`, whose copy of the file is the pin's. `btclib-node`'s cell
-is a counted skip on `CLOCK`, no file under its `src/` naming `setmocktime`.
-
-`rpc_estimatefee.py`'s row is Core's own claim in full. One node refuses
-`estimatesmartfee` and `estimaterawfee` given too few or too many arguments, an
-argument of the wrong type, an unknown estimate mode, fee rate estimator, named
-parameter or option key, or a confirmation target past the estimator's maximum,
-each with Core's own error code and message, and answers each valid call. The
-test asks for `Capability.ESTIMATE_SMART_FEE` alone, which names
-`estimaterawfee` too. `tests/integration/rpc_estimatefee_test.py`'s own
-docstring has the steps a node is asked only where its own `help` says it
-carries them: `estimatesmartfee`'s `options` argument, which the pinned release
-does not take, and the refusal of an unknown fee rate estimator. The `bitcoind`
-cell is one verdict for the pinned release and for Core's `master`, whose copy
-of the file is the pin's. `btclib-node`'s cell is a counted skip on
-`ESTIMATE_SMART_FEE`, no file naming `estimatesmartfee` or `estimaterawfee`
-([ISS btclib-node#1543](https://github.com/btclib-org/btclib-node/issues/1543)).
+  Skips on `descriptor_info`.
+- `feature_framework_miniwallet.py`: a smaller claim: the default address mode
+  only, no padding or tagging test
+  ([ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)).
+  `confirmed_only`
+  ([ISS 69](https://github.com/btclib-org/bitcoin-node-tests/issues/69)) skips
+  on `generate`. `fee_rate` and TRUC
+  ([ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103)) skip
+  on `datacarrier`. Until it is declared,
+  [ISS btclib-node#1397](https://github.com/btclib-org/btclib-node/issues/1397),
+  [ISS btclib-node#1398](https://github.com/btclib-org/btclib-node/issues/1398)
+  and
+  [ISS btclib-node#1399](https://github.com/btclib-org/btclib-node/issues/1399)
+  are not reached.
+- `mempool_resurrect.py`: `MiniWallet.resync` needs `gettxout`
+  ([ISS btclib-node#1388](https://github.com/btclib-org/btclib-node/issues/1388)).
+- `mempool_spend_coinbase.py`: a narrower claim: it mines to maturity and never
+  calls `invalidateblock`. The immature spend is refused as in Core
+  ([ISS btclib-node#1328](https://github.com/btclib-org/btclib-node/issues/1328)).
+- `rpc_generate.py`: skips on `generate`
+  ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404),
+  [ISS btclib-node#1396](https://github.com/btclib-org/btclib-node/issues/1396)).
+- `rpc_signrawtransactionwithkey.py`: skips on `sign_raw_transaction`
+  ([ISS btclib-node#1400](https://github.com/btclib-org/btclib-node/issues/1400)).
+- `rpc_scantxoutset.py`: skips on `scan_utxo_set`
+  ([ISS btclib-node#1406](https://github.com/btclib-org/btclib-node/issues/1406)).
+- `mining_template_verification.py`: skips on `block_proposal`
+  ([ISS btclib-node#1427](https://github.com/btclib-org/btclib-node/issues/1427)),
+  then asks for `package_acceptance`
+  ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)).
+- `mempool_accept_wtxid.py`: a `Peer` stands in for Core's
+  `P2PInterface`.
+- `rpc_orphans.py`: skips on `orphanage`
+  ([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
+- `p2p_tx_privacy.py`: a `Peer` sends `version` and `wtxidrelay` by hand
+  and holds back its `verack`.
+- `mempool_package_rbf.py`: sets `-maxmempool` at every start. The reason for
+  the skip is `package_acceptance`
+  ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494));
+  for the failure, that the replacement `submitpackage` makes is refused
+  ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)).
+- `feature_dersig.py`: a smaller claim: kept are `getdeploymentinfo`'s
+  transition, the version floor (`bad-version`) and the non-DER signature
+  ([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)).
+  Skips on `test_activation_height`: `cli.py` registers no
+  `-testactivationheight`.
+- `feature_cltv.py`: as `feature_dersig.py`, with the `OP_CHECKLOCKTIMEVERIFY`
+  failure reasons
+  ([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)). The
+  mempool row also skips on `accept_non_standard`; the block row needs only
+  `mine`
+  ([ISS btclib-node#1362](https://github.com/btclib-org/btclib-node/issues/1362)).
+- `feature_csv_activation.py`: BIP68, BIP112 and BIP113 at Core's configured
+  height. No version-floor row: Core's `ContextualCheckBlockHeader` reads no
+  `DEPLOYMENT_CSV`. Skips on `test_activation_height`.
+- `feature_nulldummy.py`: every step of Core's file
+  ([ISS 64](https://github.com/btclib-org/bitcoin-node-tests/issues/64)), the
+  spends signed with btclib
+  ([ISS 165](https://github.com/btclib-org/bitcoin-node-tests/issues/165)).
+  Skips on `test_activation_height`.
+- `feature_dirsymlinks.py`: Core's claim in full
+  ([ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)). Asks for
+  no capability: the fact is the operating system's symlink resolution.
+- `feature_posix_fs_permissions.py`: a smaller claim: no `wallets_path` check,
+  no node wallet being started
+  ([ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)).
+- `rpc_createmultisig.py`: a smaller claim: `test_sortedmulti_descriptors_bip67`
+  is dropped, its vectors being a fixture this repository does not carry
+  ([ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)). The
+  construction row needs `createmultisig`, which btclib-node's dispatch table
+  does not name. A script past `OP_16`'s count is built by hand, btclib
+  refusing it
+  [ISS btclib-org/btclib#2348](https://github.com/btclib-org/btclib/issues/2348).
+  The (spend) row skips on `sign_raw_transaction`
+  ([ISS btclib-node#1400](https://github.com/btclib-org/btclib-node/issues/1400),
+  [ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)).
+- `p2p_invalid_block.py`: Core's whole run as a body per row, wire and log.
+  Skips on `clock`.
+- `p2p_timeouts.py`: Core's claim in full; a refused start under a non-positive
+  `-peertimeout` has a row of its own. Skips on `peer_timeout`: `cli.py`
+  registers no `-peertimeout`, and `setmocktime` names no callback
+  ([ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479)).
+- `p2p_ping.py`: Core's claim in full. Skips on `peer_timeout`, as
+  `p2p_timeouts.py`.
+- `mempool_expiry.py`: Core's claim in full. Skips on `mempool_expiry`: `cli.py`
+  registers no `-mempoolexpiry`.
+- `feature_includeconf.py`: a row per refusal of Core's file. The order row
+  skips on `ua_comment`; the others run
+  ([ISS btclib-node#1116](https://github.com/btclib-org/btclib-node/issues/1116),
+  [ISS btclib-node#1409](https://github.com/btclib-org/btclib-node/issues/1409),
+  [ISS btclib-node#1403](https://github.com/btclib-org/btclib-node/issues/1403),
+  [ISS btclib-node#1187](https://github.com/btclib-org/btclib-node/issues/1187),
+  [ISS btclib-node#1402](https://github.com/btclib-org/btclib-node/issues/1402)).
+- `feature_reindex_init.py`: Core's claim in full. Skips on
+  `reindex_after_failure`: `cli.py` registers no `-test`.
+- `feature_reindex.py`: a row per step of Core's `run_test`. Skips on `reindex`
+  ([ISS btclib-node#1415](https://github.com/btclib-org/btclib-node/issues/1415)).
+- `feature_reindex_readonly.py`: Core's claim, with the file's mode alone and
+  not the immutable flag. Skips on `reindex`
+  ([ISS btclib-node#1415](https://github.com/btclib-org/btclib-node/issues/1415)).
+- `p2p_message_capture.py`: Core's claim. Skips on `capture_messages`: `cli.py`
+  registers no `-capturemessages`.
+- `feature_blocksxor.py`: Core's claim, with the first block file asserted
+  obfuscated. Skips on `blocks_xor`: `cli.py` registers no `-blocksxor`.
+- `feature_remove_pruned_files_on_startup.py`: Core's claim. Skips on
+  `fastprune`: `cli.py` registers no `-fastprune`.
+- `feature_startupnotify.py`: Core's claim. Skips on `startup_notify`
+  ([ISS btclib-node#1449](https://github.com/btclib-org/btclib-node/issues/1449)).
+- `rpc_dumptxoutset.py`: every check of Core's file but the hashes it asserts as
+  constants, asserted against the same node. Skips on `dump_utxo_set`
+  ([ISS btclib-node#1471](https://github.com/btclib-org/btclib-node/issues/1471)).
+- `feature_loadblock.py`: Core's claim, the test writing the block file itself
+  in the format `linearize-data.py` writes. Skips on `load_block`, left out by
+  decision
+  ([ISS btclib-node#573](https://github.com/btclib-org/btclib-node/issues/573)).
+- `feature_port.py`: Core's claim; bitcoind's test runs on
+  `UnboundBitcoindAdapter`, which leaves out its `-bind`. Skips on
+  `listen_address`
+  ([ISS btclib-node#1257](https://github.com/btclib-org/btclib-node/issues/1257)).
+  Onion binds:
+  ([ISS btclib-node#1644](https://github.com/btclib-org/btclib-node/issues/1644),
+  [ISS btclib-node#1666](https://github.com/btclib-org/btclib-node/issues/1666)).
+- `feature_maxtipage.py`: Core's claim, its blocks built client-side. Skips on
+  `max_tip_age`
+  ([ISS btclib-node#1474](https://github.com/btclib-org/btclib-node/issues/1474)).
+- `p2p_blockfilters.py`: Core's claim in full. Skips on `peer_block_filters`
+  ([ISS btclib-node#1395](https://github.com/btclib-org/btclib-node/issues/1395)).
+- `p2p_getaddr_caching.py`: Core's claim, bitcoind's test running on
+  `UnboundBitcoindAdapter`. Skips on `listen_address`, and asks for
+  `known_addresses` and `clock` besides
+  ([ISS btclib-node#1443](https://github.com/btclib-org/btclib-node/issues/1443)).
+- `mempool_reorg.py`: Core's claim in full. The (coinbase) row skips on
+  `invalidate_block`
+  ([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480)),
+  the (relay) row on `clock`
+  ([ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479)).
+- `interface_rpc.py`: the work queue step is read off the HTTP reply, not
+  through `bitcoin-cli`
+  ([ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)).
+  `getrpcinfo` skips on `rpc_info`
+  ([ISS btclib-node#1486](https://github.com/btclib-org/btclib-node/issues/1486)),
+  the work queue row on `rpc_work_queue`, the notification row on `generate`.
+  The batch and status rows rest on requests being parsed as Core does
+  ([ISS btclib-node#1109](https://github.com/btclib-org/btclib-node/issues/1109)).
+- `p2p_ibd_txrelay.py`: Core's claim. Skips on `clock`
+  ([ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479)).
+  The top `feefilter` bucket follows `-minrelaytxfee`, not Core's default
+  ([ISS btclib-node#1374](https://github.com/btclib-org/btclib-node/issues/1374)).
+- `feature_bip68_sequence.py`: Core's claim in full. Skips on
+  `test_activation_height`, then `invalidate_block`
+  ([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480)).
+- `mempool_accept.py`: Core's claim in full. It reaches a confirmed
+  transaction's answer
+  ([ISS btclib-node#1765](https://github.com/btclib-org/btclib-node/issues/1765))
+  and an allowed transaction's fields
+  ([ISS btclib-node#1757](https://github.com/btclib-org/btclib-node/issues/1757),
+  [ISS btclib-node#1799](https://github.com/btclib-org/btclib-node/issues/1799)).
+- `mempool_cluster.py`: Core's claim in full. Skips on `limit_cluster_size`
+  ([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383)),
+  then asks for `mempool_graph`
+  ([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501)),
+  `cluster_linearization`
+  ([ISS btclib-node#1499](https://github.com/btclib-org/btclib-node/issues/1499))
+  and `package_acceptance`
+  ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)).
+- `feature_minchainwork.py`: Core's claim in full. Skips on `minimum_chain_work`
+  ([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)).
+  Core's `test_outbound_insufficient_work_disconnect` (bitcoin/bitcoin#36426) is
+  the (outbound) row, which also asks for `mine`, `typed_outbound` and
+  `debug_log`.
+- `mempool_packages.py`: Core's claim in full. Skips on `mempool_graph`
+  ([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501));
+  it needs `prioritisetransaction` too
+  ([ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502)).
+- `feature_versionbits_warning.py`: Core's claim. Skips on `alert_notify`
+  ([ISS btclib-node#1475](https://github.com/btclib-org/btclib-node/issues/1475)).
+- `p2p_headers_sync_with_minchainwork.py`: Core's claim in full. Skips on
+  `minimum_chain_work`
+  ([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)),
+  then `generate`
+  ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)).
+  The abort step reads stderr through `NodeAdapter.wait_until_stopped`
+  ([ISS 318](https://github.com/btclib-org/bitcoin-node-tests/issues/318)).
+- `p2p_unrequested_blocks.py`: Core's claim in full. Skips on
+  `minimum_chain_work`
+  ([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)),
+  then `generate`
+  ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)).
+- `p2p_1p1c_network.py`: Core's claim in full. The reasons are `orphanage`
+  ([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)),
+  `submitpackage`
+  ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)),
+  a parent paying too little taken with its child
+  ([ISS btclib-node#1473](https://github.com/btclib-org/btclib-node/issues/1473)),
+  and `-whitelist`
+  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)).
+- `mempool_ephemeral_dust.py`: a row per subtest of Core's file. The package
+  bodies skip on `package_acceptance`
+  ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)),
+  then ask for `prioritisetransaction`
+  ([ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502)),
+  `generate`
+  ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)),
+  `-whitelist`
+  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320))
+  and `orphanage`
+  ([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
+  The nonzero-dust body needs `-minrelaytxfee`
+  ([ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332)).
+  In the reorg body, a mined parent with a second dust output returns to
+  the mempool
+  ([ISS btclib-node#1382](https://github.com/btclib-org/btclib-node/issues/1382)).
+- `feature_notifications.py`: a row per option. Skips on `block_notify` and
+  `shutdown_notify`
+  ([ISS btclib-node#1519](https://github.com/btclib-org/btclib-node/issues/1519)),
+  `alert_notify`
+  ([ISS btclib-node#1475](https://github.com/btclib-org/btclib-node/issues/1475)).
+  `-walletnotify` is not ported: it needs the node wallet (*The node wallet*
+  below).
+- `feature_settings.py`: Core's claim in full. Skips on `settings_file`
+  ([ISS btclib-node#1523](https://github.com/btclib-org/btclib-node/issues/1523)).
+- `feature_assumevalid.py`: Core's claim in full. Skips on `assume_valid`
+  ([ISS btclib-node#1576](https://github.com/btclib-org/btclib-node/issues/1576)).
+- `feature_rbf.py`: Core's claim in full. Skips on `incremental_relay_fee`
+  ([ISS btclib-node#1596](https://github.com/btclib-org/btclib-node/issues/1596)).
+- `p2p_permissions.py`: Core's claim in full. Skips on `peer_permissions`
+  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320),
+  [ISS btclib-node#1625](https://github.com/btclib-org/btclib-node/issues/1625)).
+- `feature_shutdown.py`: has no row
+  ([ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)). Its
+  subject is the exit of a node asked to `stop` over RPC, which
+  `NodeAdapter.wait_until_stopped` reads
+  ([ISS 318](https://github.com/btclib-org/bitcoin-node-tests/issues/318));
+  `NodeAdapter.stop` sends `SIGTERM` and cannot tell them apart.
+- `rpc_getchaintips.py`: Core's claim in full. Skips on `generate`
+  ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404));
+  it needs `submitheader` too
+  ([ISS btclib-node#1533](https://github.com/btclib-org/btclib-node/issues/1533)).
+- `rpc_preciousblock.py`: Core's claim in full. Skips on `precious_block`
+  ([ISS btclib-node#1534](https://github.com/btclib-org/btclib-node/issues/1534)),
+  then `generate`
+  ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)).
+- `rpc_invalidateblock.py`: Core's claim in full. Skips on `generate`
+  ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404));
+  it needs `submitheader`
+  ([ISS btclib-node#1533](https://github.com/btclib-org/btclib-node/issues/1533)),
+  `invalidateblock`
+  ([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480))
+  and `reconsiderblock`
+  ([ISS btclib-node#1536](https://github.com/btclib-org/btclib-node/issues/1536)).
+- `rpc_signmessagewithprivkey.py`: Core's claim in full. Skips on
+  `sign_message_with_privkey`
+  ([ISS btclib-node#1538](https://github.com/btclib-org/btclib-node/issues/1538)).
+- `feature_chain_tiebreaks.py`: Core's claim in full. Skips on
+  `invalidate_block`
+  ([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480));
+  it needs `generatetoaddress`
+  ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404))
+  and `submitheader`
+  ([ISS btclib-node#1533](https://github.com/btclib-org/btclib-node/issues/1533)).
+- `p2p_sendheaders.py`: Core's claim in full. Skips on `generate`
+  ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404));
+  it needs `invalidateblock`
+  ([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480)).
+- `p2p_fingerprint.py`: Core's claim in full. Skips on `clock`: `setmocktime` is
+  named by no callback
+  ([ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479)).
+- `rpc_estimatefee.py`: Core's claim in full. Skips on `estimate_smart_fee`
+  ([ISS btclib-node#1543](https://github.com/btclib-org/btclib-node/issues/1543)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

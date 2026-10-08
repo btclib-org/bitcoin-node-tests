@@ -7,7 +7,7 @@ r"""Core's `feature_cltv`, rewritten on this harness: btclib-node.
 `feature_cltv_test.py` beside this module holds the bodies, run here
 against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). `Capability.TEST_ACTIVATION_HEIGHT` is not
-declared (`TF2.md`'s activation-trio paragraph has the measurement), nor
+declared (`feature_dersig_btclib_node_test.py` has the measurement), nor
 is `Capability.ACCEPT_NON_STANDARD` (`btclib_node.py`'s own docstring
 has it), so every body asking for either is a counted skip; the block
 refusals ask for neither.

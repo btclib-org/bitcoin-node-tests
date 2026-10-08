@@ -59,6 +59,7 @@ import secrets
 from typing import TYPE_CHECKING
 
 import pytest
+from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import (
     BlockFilterType,
     CFCheckpt,
@@ -71,7 +72,6 @@ from btclib.p2p import (
     Pong,
     ServiceFlags,
 )
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require

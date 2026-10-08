@@ -54,14 +54,8 @@ import secrets
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
-from btclib.p2p import (
-    SendTxRcncl,
-    ServiceFlags,
-    Verack,
-    Version,
-    WtxidRelay,
-    magic_from_chain,
-)
+from bitcoin_core_rpc import magic_from_chain
+from btclib.p2p import SendTxRcncl, ServiceFlags, Verack, Version, WtxidRelay
 from btclib.p2p.limits import PROTOCOL_VERSION
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter

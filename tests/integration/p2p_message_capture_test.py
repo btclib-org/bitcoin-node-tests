@@ -42,7 +42,8 @@ import pkgutil
 from typing import TYPE_CHECKING
 
 import btclib.p2p
-from btclib.p2p import Payload, magic_from_chain
+from bitcoin_core_rpc import magic_from_chain
+from btclib.p2p import Payload
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import free_ports, wait_until

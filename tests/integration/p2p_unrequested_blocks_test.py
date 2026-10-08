@@ -54,7 +54,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import pytest
-from bitcoin_core_rpc import RpcError
+from bitcoin_core_rpc import RpcError, magic_from_chain
 from btclib.block.block import Block
 from btclib.block.build import build_block, build_coinbase
 from btclib.block.mining import mine
@@ -68,7 +68,6 @@ from btclib.p2p import (
     Inventory,
     InventoryType,
 )
-from btclib.p2p.magic import magic_from_chain
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import SEQUENCE_FINAL
 

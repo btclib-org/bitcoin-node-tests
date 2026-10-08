@@ -303,8 +303,9 @@ here.
 
 ### The one constraint
 
-**This package is built on btclib and bitcoin-core-rpc, imports no node,
-and reaches one only over a socket.** Rule 1 of
+**This package is built on btclib, its sibling packages and
+bitcoin-core-rpc, imports no node, and reaches one only over a socket.**
+Rule 1 of
 [ISS 2220](https://github.com/btclib-org/btclib/issues/2220). A test is
 written in btclib's names, consensus constants keeping Core's spelling
 and no alias layer (rule 2).

@@ -22,6 +22,7 @@ import secrets
 import time
 from typing import TYPE_CHECKING, Self, override
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import (
     GetData,
     Inv,
@@ -31,7 +32,6 @@ from btclib.p2p import (
     Pong,
     TxPayload,
 )
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.node import wait_until
 from bitcoin_node_tests.peer import Listener, Peer

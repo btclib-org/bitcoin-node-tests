@@ -34,6 +34,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.block.block import Block
 from btclib.p2p import (
     BlockPayload,
@@ -45,7 +46,6 @@ from btclib.p2p import (
     PrefilledTransaction,
     SendCmpct,
 )
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require

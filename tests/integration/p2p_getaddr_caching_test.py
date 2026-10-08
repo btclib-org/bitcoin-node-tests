@@ -48,9 +48,9 @@ import time
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import Addr, GetAddr
 from btclib.p2p.limits import MAX_ADDR_TO_SEND
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import free_port, free_ports

@@ -22,13 +22,13 @@ from unittest.mock import PropertyMock, patch
 import pytest
 from btclib.block.block import Block, bip34_commitment
 from btclib.block.mining import VERSION
-from btclib.curves.curve import secp256k1
-from btclib.ecc.dsa import verify_
 from btclib.script import sig_hash
 from btclib.script.script import parse
 from btclib.script.script import serialize as script_serialize
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
+from btclib_ecc.curves.curve import secp256k1
+from btclib_ecc.ecc.dsa import verify_
 
 from bitcoin_node_tests.capability import Capability
 from bitcoin_node_tests.mini_wallet import (

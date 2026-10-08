@@ -68,9 +68,8 @@ import time
 from typing import TYPE_CHECKING
 
 import pytest
-from bitcoin_core_rpc import RpcError
+from bitcoin_core_rpc import RpcError, magic_from_chain
 from btclib.p2p import ServiceFlags
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import free_ports

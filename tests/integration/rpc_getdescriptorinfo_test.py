@@ -58,8 +58,8 @@ from typing import TYPE_CHECKING
 import pytest
 from bitcoin_core_rpc import RpcError
 from btclib.b58 import wif_from_prv_key
-from btclib.curves import secp256k1
-from btclib.descriptors.descriptors import add_checksum
+from btclib_ecc.curves import secp256k1
+from btclib_wallet.descriptors.descriptors import add_checksum
 
 from bitcoin_node_tests.capability import Capability, require
 from tests.integration.script_verify_flag_test import bitcoind_version

@@ -62,9 +62,9 @@ from contextlib import nullcontext
 from decimal import Decimal
 from typing import TYPE_CHECKING, override
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.amount import btc_from_sats, sats_from_btc
 from btclib.p2p import GetData, Inv, Inventory, InventoryType, TxPayload
-from btclib.p2p.magic import magic_from_chain
 from btclib.tx import Tx
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter

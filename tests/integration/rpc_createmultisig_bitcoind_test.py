@@ -48,10 +48,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 from bitcoin_core_rpc import RpcError
-from btclib.curves import secp256k1
-from btclib.descriptors import descriptors
 from btclib.key import PrvKeyData
 from btclib.script.script_pub_key import ScriptPubKey
+from btclib_ecc.curves import secp256k1
+from btclib_wallet.descriptors import descriptors
 
 from tests.integration.rpc_createmultisig_test import (
     M_OF_N,
@@ -113,9 +113,12 @@ def test_address_redeemscript_and_descriptor_match_btclibs_own_construction(
     """Every `(nsigs, nkeys, output_type)` Core's own file names, matched."""
     for nsigs, nkeys in M_OF_N:
         keys = _KEYS[:nkeys]
-        expected_redeem_script = descriptors.parse(
-            f"multi({nsigs},{','.join(keys)})", network="regtest"
-        ).redeem_script()
+        # a bare `multi()` takes at most three keys, so it sits in a `wsh()`
+        wsh = descriptors.parse(
+            f"wsh(multi({nsigs},{','.join(keys)}))", network="regtest"
+        )
+        assert isinstance(wsh, descriptors.WshDescriptor)
+        expected_redeem_script = wsh.inner.redeem_script()
         for output_type in OUTPUT_TYPES:
             result = bitcoind_adapter.rpc.call(
                 "createmultisig", [nsigs, keys, output_type]

@@ -30,6 +30,7 @@ from collections import Counter
 from collections.abc import Iterator
 
 import pytest
+from bitcoin_core_rpc import magic_from_chain
 from btclib.block import genesis_block
 from btclib.exceptions import BTClibValueError
 from btclib.p2p import (
@@ -46,7 +47,6 @@ from btclib.p2p import (
     WtxidRelay,
 )
 from btclib.p2p.limits import MAX_LOCATOR_SZ
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.node import free_port
 from bitcoin_node_tests.peer import Listener, Peer

@@ -30,9 +30,9 @@ from __future__ import annotations
 import secrets
 
 import pytest
+from bitcoin_core_rpc import magic_from_chain
 from btclib.block import genesis_block
 from btclib.p2p import BlockPayload, GetData, Inventory, Ping, Pong
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.peer import Peer

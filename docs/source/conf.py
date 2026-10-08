@@ -69,7 +69,7 @@ extensions = [
 # nobody. Without the extension it is an unknown directive, which -W turns
 # into a failed build -- the open questions belong in the issue tracker
 
-# the standard library and the two siblings this package depends on --
+# the standard library and the two siblings mapped below --
 # `latest` for the two, being the build of each one's main: a name a
 # sibling removed is the break a build here should report. No pytest
 # entry: this tree's own adapter modules import no test runner
@@ -102,7 +102,7 @@ intersphinx_cache_limit = 0
 # than a nitpick_ignore_regex that would give the check up entirely:
 #
 # - a name an annotation spells the way the module imported it --
-#   `Octets` from btclib.alias, `musig2.` for btclib.ecc.musig2 -- which
+#   `Octets` from btclib.alias -- which
 #   btclib's own build resolves by searching its own objects, where an
 #   inventory answers the full name alone. autodoc_type_aliases is the
 #   rejected alternative: mapping `Octets` to its full name renders a

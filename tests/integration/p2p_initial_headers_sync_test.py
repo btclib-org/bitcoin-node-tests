@@ -42,14 +42,8 @@ import time
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
-from btclib.p2p import (
-    GetHeaders,
-    Headers,
-    Inv,
-    Inventory,
-    InventoryType,
-    magic_from_chain,
-)
+from bitcoin_core_rpc import magic_from_chain
+from btclib.p2p import GetHeaders, Headers, Inv, Inventory, InventoryType
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require

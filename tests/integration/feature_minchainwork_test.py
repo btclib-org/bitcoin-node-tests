@@ -71,9 +71,9 @@ import time
 from typing import TYPE_CHECKING
 
 import pytest
+from bitcoin_core_rpc import magic_from_chain
 from btclib.block.block_header import BlockHeader
 from btclib.p2p import GetHeaders, Headers, Ping, Pong
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require

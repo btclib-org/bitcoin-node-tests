@@ -59,9 +59,8 @@ import time
 from typing import TYPE_CHECKING
 
 import pytest
-from bitcoin_core_rpc import RpcError
+from bitcoin_core_rpc import RpcError, magic_from_chain
 from btclib.p2p import GetData, Inv, Inventory, InventoryType, Ping, Pong, TxPayload
-from btclib.p2p.magic import magic_from_chain
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability, require

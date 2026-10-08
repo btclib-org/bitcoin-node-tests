@@ -64,6 +64,7 @@ from contextlib import nullcontext
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.block.block import Block
 from btclib.block.mining import mine
 from btclib.p2p import (
@@ -76,7 +77,6 @@ from btclib.p2p import (
     PrefilledTransaction,
     SendCmpct,
 )
-from btclib.p2p.magic import magic_from_chain
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter

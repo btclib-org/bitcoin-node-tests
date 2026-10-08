@@ -50,11 +50,11 @@ from typing import TYPE_CHECKING, Any
 import pytest
 from bitcoin_core_rpc import RpcError
 from btclib.b58 import wif_from_prv_key
-from btclib.curves import secp256k1
 from btclib.key import PrvKeyData, PubKeyData
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
+from btclib_ecc.curves import secp256k1
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet

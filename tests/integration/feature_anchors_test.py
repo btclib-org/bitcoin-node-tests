@@ -59,9 +59,9 @@ from base64 import b32decode
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.hashes import hash256
 from btclib.p2p import ServiceFlags
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require

@@ -69,13 +69,13 @@ from typing import TYPE_CHECKING
 
 import pytest
 from bitcoin_core_rpc import RpcError
-from btclib.curves.curve import mult
-from btclib.curves.sec_point import bytes_from_point
-from btclib.descriptors.descriptors import add_checksum
 from btclib.key import PubKeyData
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
+from btclib_ecc.curves.curve import mult
+from btclib_ecc.curves.sec_point import bytes_from_point
+from btclib_wallet.descriptors.descriptors import add_checksum
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import (

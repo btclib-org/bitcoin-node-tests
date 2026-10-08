@@ -49,11 +49,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from btclib.curves.curve import secp256k1
 from btclib.key import PubKeyData
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx import Tx, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
+from btclib_ecc.curves.curve import secp256k1
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet

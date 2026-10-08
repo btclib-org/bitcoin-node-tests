@@ -6,8 +6,8 @@
 
 Core's functional tests, rewritten on `btclib`, run against any node that
 speaks bitcoin's RPC and p2p (issue btclib-org/btclib#2220). It imports
-`btclib` and `bitcoin-core-rpc`; it imports no node, reaching one only
-over a process, an RPC socket or a p2p socket.
+`btclib`, `btclib-ecc`, `btclib-wallet` and `bitcoin-core-rpc`; it imports
+no node, reaching one only over a process, an RPC socket or a p2p socket.
 
 The adapter under this package -- `CONTRIBUTING.md`'s *The public
 surface* names its modules -- is each a submodule with its own

@@ -20,13 +20,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from btclib.p2p import (
-    Addr,
-    NetworkAddress,
-    ServiceFlags,
-    TimestampedNetworkAddress,
-    magic_from_chain,
-)
+from bitcoin_core_rpc import magic_from_chain
+from btclib.p2p import Addr, NetworkAddress, ServiceFlags, TimestampedNetworkAddress
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.peer import Listener

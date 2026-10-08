@@ -40,7 +40,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from btclib.p2p import magic_from_chain
+from bitcoin_core_rpc import magic_from_chain
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability, require

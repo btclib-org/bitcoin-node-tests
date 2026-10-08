@@ -53,10 +53,10 @@ import pytest
 from bitcoin_core_rpc import RpcError
 from btclib.block.block import Block
 from btclib.block.block_filter import BasicBlockFilter
-from btclib.curves import secp256k1
 from btclib.key import PrvKeyData
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx.limits import COINBASE_MATURITY
+from btclib_ecc.curves import secp256k1
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet

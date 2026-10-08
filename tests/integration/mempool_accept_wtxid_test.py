@@ -42,9 +42,9 @@ import time
 from contextlib import ExitStack, suppress
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.hashes import hash160
 from btclib.p2p import GetData, Inv, InventoryType, Ping, Pong
-from btclib.p2p.magic import magic_from_chain
 from btclib.script.script import serialize as script_serialize
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.script.witness import Witness

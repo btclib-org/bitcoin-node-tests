@@ -160,6 +160,7 @@ from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING, override
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.block.block import Block
 from btclib.block.mining import mine
 from btclib.p2p import (
@@ -179,7 +180,6 @@ from btclib.p2p import (
     SendHeaders,
     TxPayload,
 )
-from btclib.p2p.magic import magic_from_chain
 from btclib.script.script import serialize as script_serialize
 from btclib.script.witness import Witness
 from btclib.tx import Tx

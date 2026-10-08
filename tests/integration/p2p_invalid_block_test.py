@@ -59,6 +59,7 @@ from contextlib import nullcontext
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.block.block import Block, merkle_root_and_mutated_from_transactions
 from btclib.block.build import build_coinbase
 from btclib.block.limits import MAX_FUTURE_BLOCK_TIME
@@ -66,7 +67,6 @@ from btclib.block.mining import candidate_block_header, mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
 from btclib.p2p import BlockPayload, GetData, Headers
-from btclib.p2p.magic import magic_from_chain
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY, SEQUENCE_FINAL
 

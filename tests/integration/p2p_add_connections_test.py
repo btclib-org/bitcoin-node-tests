@@ -44,8 +44,8 @@ import secrets
 from typing import TYPE_CHECKING
 
 import pytest
-from bitcoin_core_rpc import RpcError
-from btclib.p2p import ServiceFlags, Verack, Version, WtxidRelay, magic_from_chain
+from bitcoin_core_rpc import RpcError, magic_from_chain
+from btclib.p2p import ServiceFlags, Verack, Version, WtxidRelay
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import wait_until

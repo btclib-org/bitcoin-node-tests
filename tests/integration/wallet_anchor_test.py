@@ -56,7 +56,6 @@ import time
 from typing import TYPE_CHECKING
 
 from btclib.block.limits import MAX_FUTURE_BLOCK_TIME
-from btclib.descriptors.descriptors import add_checksum
 from btclib.script.engine import PAY_TO_ANCHOR
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.script.witness import Witness
@@ -64,6 +63,7 @@ from btclib.tx.limits import COINBASE_MATURITY
 from btclib.tx.out_point import OutPoint
 from btclib.tx.tx_in import TxIn
 from btclib.tx.tx_out import TxOut
+from btclib_wallet.descriptors.descriptors import add_checksum
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet

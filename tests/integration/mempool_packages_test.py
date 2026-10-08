@@ -86,10 +86,9 @@ from contextlib import suppress
 from typing import TYPE_CHECKING
 
 import pytest
-from bitcoin_core_rpc import RpcError
+from bitcoin_core_rpc import RpcError, magic_from_chain
 from btclib.amount import sats_from_btc
 from btclib.p2p import GetData, Inv, InventoryType, Ping, Pong
-from btclib.p2p.magic import magic_from_chain
 from btclib.tx import Tx
 
 from bitcoin_node_tests.capability import Capability, require

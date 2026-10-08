@@ -95,7 +95,7 @@ from functools import partial
 from typing import TYPE_CHECKING
 
 import pytest
-from bitcoin_core_rpc import RpcError
+from bitcoin_core_rpc import RpcError, magic_from_chain
 from btclib.p2p import (
     GetData,
     Inv,
@@ -110,7 +110,6 @@ from btclib.p2p import (
     Version,
     WtxidRelay,
 )
-from btclib.p2p.magic import magic_from_chain
 from btclib.script.witness import Witness
 from btclib.tx import Tx
 from btclib.tx.limits import COINBASE_MATURITY

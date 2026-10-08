@@ -195,7 +195,6 @@ from btclib.block.build import build_block, build_coinbase
 from btclib.block.mining import VERSION, mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS, subsidy
-from btclib.ecc.dsa import sign_
 from btclib.key import PrvKeyData, PubKeyData
 from btclib.script import sig_hash
 from btclib.script.script import serialize as script_serialize
@@ -205,6 +204,7 @@ from btclib.script.taproot import serialize as tapscript_serialize
 from btclib.script.witness import Witness
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
+from btclib_ecc.ecc.dsa import sign_
 
 if TYPE_CHECKING:
     from bitcoin_node_tests.node import NodeAdapter

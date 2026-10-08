@@ -61,9 +61,9 @@ from __future__ import annotations
 import contextlib
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import Message, Ping
 from btclib.p2p.limits import MAX_PROTOCOL_MESSAGE_LENGTH
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require

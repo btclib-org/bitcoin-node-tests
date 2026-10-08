@@ -51,8 +51,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import GetData, Inv, Inventory, InventoryType, NotFound, TxPayload
-from btclib.p2p.magic import magic_from_chain
 from btclib.tx import Tx, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 

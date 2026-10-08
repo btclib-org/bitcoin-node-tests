@@ -72,8 +72,6 @@ from typing import TYPE_CHECKING
 import pytest
 from bitcoin_core_rpc import RpcError, RPCErrorCode
 from btclib.consensus import MAX_BLOCK_WEIGHT, WITNESS_SCALE_FACTOR
-from btclib.curves.curve import secp256k1
-from btclib.ecc.dsa import sign_
 from btclib.key import PrvKeyData
 from btclib.script import sig_hash
 from btclib.script.engine import PAY_TO_ANCHOR
@@ -82,6 +80,8 @@ from btclib.script.script_pub_key import ScriptPubKey
 from btclib.script.witness import Witness
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import SEQUENCE_FINAL
+from btclib_ecc.curves.curve import secp256k1
+from btclib_ecc.ecc.dsa import sign_
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require

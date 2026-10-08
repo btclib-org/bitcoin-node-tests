@@ -57,9 +57,9 @@ from __future__ import annotations
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.block.block_header import BlockHeader
 from btclib.p2p import GetHeaders, Headers
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.peer import Listener

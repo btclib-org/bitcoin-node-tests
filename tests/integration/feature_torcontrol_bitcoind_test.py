@@ -43,7 +43,7 @@ the sequence a fresh onion service takes to come up -- `PROTOCOLINFO`,
 order -- over a mock Tor control server this module ports alongside the
 test, exactly where Core's own file keeps it: test infrastructure, not
 this repository's own harness, the plain `socket`/`threading` choice
-matching `capability.py`'s own reason for carrying no third project
+matching `capability.py`'s own reason for carrying no test runner
 dependency.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration

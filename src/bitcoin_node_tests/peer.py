@@ -70,7 +70,7 @@ class Peer:
 
     :param address: `(host, port)` to dial, a `NodeAdapter.p2p_address`.
     :param magic: the four octets of the message start,
-        `btclib.p2p.magic_from_chain("regtest")` for every node this
+        `bitcoin_core_rpc.magic_from_chain("regtest")` for every node this
         step drives.
     :param timeout: the wait of the dial, and of every call on this peer
         given no `timeout` of its own, `send` and a bare `receive`

@@ -21,9 +21,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import GetBlocks, GetHeaders, Headers, Inv, InventoryType
 from btclib.p2p.limits import MAX_LOCATOR_SZ
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.peer import Peer

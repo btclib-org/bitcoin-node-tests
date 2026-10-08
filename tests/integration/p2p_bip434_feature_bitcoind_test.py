@@ -54,8 +54,8 @@ import secrets
 from typing import TYPE_CHECKING
 
 import pytest
+from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import Feature, Ping, Pong, ServiceFlags, Verack, Version, WtxidRelay
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.peer import Peer
 

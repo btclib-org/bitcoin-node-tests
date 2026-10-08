@@ -52,8 +52,8 @@ from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import pytest
+from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import TxPayload
-from btclib.p2p.magic import magic_from_chain
 from btclib.tx import Tx, TxOut
 from btclib.tx.limits import COINBASE_MATURITY, SEQUENCE_FINAL
 

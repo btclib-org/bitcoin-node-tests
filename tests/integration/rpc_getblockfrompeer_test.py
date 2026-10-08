@@ -47,10 +47,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from bitcoin_core_rpc import RpcError
+from bitcoin_core_rpc import RpcError, magic_from_chain
 from btclib.block.block import Block
 from btclib.p2p import Headers, ServiceFlags
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import connect_nodes, wait_until, wait_until_tips_agree

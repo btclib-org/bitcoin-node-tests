@@ -35,7 +35,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
-from btclib.descriptors.descriptors import add_checksum
+from btclib_wallet.descriptors.descriptors import add_checksum
 
 from bitcoin_node_tests.capability import Capability, require
 from tests.integration.wallet_signmessagewithaddress_test import refused

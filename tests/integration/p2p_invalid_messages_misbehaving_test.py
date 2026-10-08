@@ -61,11 +61,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.block import genesis_block
 from btclib.block.block_header import BlockHeader
 from btclib.p2p import GetData, Headers, Inv, Inventory
 from btclib.p2p.limits import MAX_HEADERS_RESULTS, MAX_INV_SZ
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require

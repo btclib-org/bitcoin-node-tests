@@ -55,6 +55,7 @@ import time
 from contextlib import ExitStack, suppress
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import (
     Inv,
     InventoryType,
@@ -66,7 +67,6 @@ from btclib.p2p import (
     Version,
     WtxidRelay,
 )
-from btclib.p2p.magic import magic_from_chain
 from btclib.tx.limits import COINBASE_MATURITY
 
 from bitcoin_node_tests.capability import Capability, require

@@ -77,6 +77,7 @@ from contextlib import ExitStack, nullcontext
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.block.block import Block, bip34_commitment
 from btclib.block.build import build_block, build_coinbase
 from btclib.block.mining import mine
@@ -84,7 +85,6 @@ from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
 from btclib.key import PrvKeyData
 from btclib.p2p import BlockPayload, Headers
-from btclib.p2p.magic import magic_from_chain
 from btclib.script.script import serialize
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY, SEQUENCE_FINAL

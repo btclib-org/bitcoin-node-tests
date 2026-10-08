@@ -48,13 +48,13 @@ import shlex
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from bitcoin_core_rpc import magic_from_chain
 from btclib.block.block import Block
 from btclib.block.build import build_block, build_coinbase
 from btclib.block.mining import VERSION, mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
 from btclib.p2p import BlockPayload
-from btclib.p2p.magic import magic_from_chain
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import free_ports, wait_until

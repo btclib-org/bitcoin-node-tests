@@ -360,15 +360,15 @@ commit  b6fc3cf0046d3106e0dfb30f320d48514eff6fb2  2026-09-28
 behind  0 revisions; that commit is the tip of the path
 ```
 
-Verdict: **covered**, and wider than Core's file: `curves/curve.py`,
-`curves/curve_group.py`, `curves/curve_group_2.py`,
+Verdict: **covered**, and wider than Core's file: `btclib_ecc`'s
+`curves/curve.py`, `curves/curve_group.py`, `curves/curve_group_2.py`,
 `curves/curve_group_f.py` and `curves/sec_point.py` carry every curve
-btclib has rather than secp256k1 alone. What the arithmetic is asserted
+it has rather than secp256k1 alone. What the arithmetic is asserted
 against is not a vector file but the `btclib_secp256k1` bindings, which
 `curves.curve.mult` and its variants delegate to for secp256k1 and which
-btclib's own suite validates the Python arm against. Core's file warns
-that it is slow and side-channel vulnerable; btclib's `SECURITY.md`
-publishes the same about its Python arm.
+`btclib_ecc`'s own suite validates the Python arm against. Core's file
+warns that it is slow and side-channel vulnerable; `btclib_ecc`'s
+`SECURITY.md` publishes the same about its Python arm.
 
 ### `test/functional/test_framework/crypto/siphash.py`
 
@@ -580,8 +580,7 @@ Verdict: **covered**. `message_start` is BIP325's rule for a signet's
 p2p magic: the challenge script, serialized with its CompactSize length,
 SHA256d, then truncated to the magic's own width.
 `bitcoin_core_rpc.magic_from_signet_challenge` is that same derivation,
-re-exported as `btclib.p2p.magic.magic_from_signet_challenge`, and its
-own docstring states the rule in the same words Core's function
+and its own docstring states the rule in the same words Core's function
 implements. `DEFAULT_SIGNET_CHALLENGE` there is Core's own
 `SIGNET_DEFAULT_CHALLENGE` -- both constants compare equal, byte for
 byte -- and `magic_from_chain("signet")` is the constant table entry

@@ -21,7 +21,7 @@ signature: `EvalScript` (`src/script/interpreter.cpp`) reaches the dummy
 only past its signature loop, so a node is asked to find the dummy
 beneath a signature, as Core's own file asks it. Each signature is
 btclib's own -- `btclib.script.sig_hash`'s `legacy` for the P2SH spends
-and `segwit_v0` for the P2SH-P2WSH one, `btclib.ecc.dsa.sign_` over
+and `segwit_v0` for the P2SH-P2WSH one, `btclib_ecc.ecc.dsa.sign_` over
 either -- and neither sighash commits to a scriptSig or a witness, so
 the tampered dummy leaves it valid and NULLDUMMY the only refusal.
 Nothing here asserts a claim about the signature itself. Under the
@@ -61,7 +61,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 from bitcoin_core_rpc import RpcError
-from btclib.ecc.dsa import sign_
 from btclib.key import PrvKeyData
 from btclib.script import sig_hash
 from btclib.script.script import serialize
@@ -69,6 +68,7 @@ from btclib.script.script_pub_key import ScriptPubKey
 from btclib.script.witness import Witness
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
+from btclib_ecc.ecc.dsa import sign_
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block

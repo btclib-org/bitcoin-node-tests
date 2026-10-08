@@ -85,7 +85,7 @@ counterpart, asking `require` for nothing, is a bitcoind-only test.
 ever turn into a `pass` or a `fail`, unlike an ordinary skip.
 
 **This module imports no test runner.** `pyproject.toml`'s own
-`[project] dependencies` name two packages and no third (this
+`[project] dependencies` name no test runner (this
 package's own `__init__.py` says so), and Core's own test framework
 runs under no `pytest` at all -- objective 2 of
 ISS btclib-org/btclib#2220 is that Core can adopt this suite, which a

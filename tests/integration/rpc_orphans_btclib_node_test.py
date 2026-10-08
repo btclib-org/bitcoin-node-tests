@@ -6,9 +6,9 @@ r"""Core's `rpc_orphans`, rewritten on tf2's own harness: btclib-node.
 
 `rpc_orphans_test.py` beside this module is the body, run here against
 the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `Capability.ORPHANAGE` is not declared
-(`btclib_node.py`'s own docstring is why), so each is a counted skip
-ahead of `Capability.MINE`.
+btclib-org/btclib#2220). `Capability.ORPHANAGE` is declared
+where the build names `getorphantxs` (`btclib_node.py`'s own docstring):
+each test is a counted skip on the released build and passes on `main`.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/rpc_orphans_btclib_node_test.py

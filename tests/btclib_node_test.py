@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import sys
+from functools import _lru_cache_wrapper
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -38,6 +39,8 @@ def test_capabilities_gain_rpc_auth_config_where_the_build_writes_a_cookie(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -61,6 +64,8 @@ def test_capabilities_gain_rpc_auth_negation_where_the_build_negates(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -84,6 +89,8 @@ def test_capabilities_gain_inbound_eviction_where_the_build_evicts(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -107,6 +114,8 @@ def test_capabilities_gain_mine_where_the_build_connects_alone(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -128,6 +137,8 @@ def test_capabilities_gain_ban_where_the_build_serves_a_ban_list(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -149,6 +160,8 @@ def test_capabilities_gain_min_relay_tx_fee_where_the_build_sets_it(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -172,6 +185,8 @@ def test_capabilities_gain_permit_bare_multisig_where_the_build_reads_it(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=True),
     ):
@@ -195,6 +210,8 @@ def test_capabilities_gain_chain_tips_where_the_build_serves_them(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=True),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -218,6 +235,8 @@ def test_capabilities_gain_disconnect_where_the_build_serves_it(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=True),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -241,12 +260,62 @@ def test_capabilities_gain_package_acceptance_where_the_build_serves_it(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=True),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
         adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
     assert adapter.capabilities == frozenset(
         {Capability.CONNECT, Capability.PACKAGE_ACCEPTANCE}
+    )
+
+
+def test_capabilities_gain_orphanage_where_the_build_serves_it(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a `getorphantxs`-serving build declares it."""
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=False),
+        patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
+        patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
+        patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=True),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
+    ):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities == frozenset({Capability.CONNECT, Capability.ORPHANAGE})
+
+
+def test_capabilities_gain_listen_address_where_the_build_reads_bind(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a `-bind`-reading build declares it."""
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=False),
+        patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
+        patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
+        patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=True),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
+    ):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities == frozenset(
+        {Capability.CONNECT, Capability.LISTEN_ADDRESS}
     )
 
 
@@ -264,6 +333,8 @@ def test_capabilities_gain_v2transport_where_the_build_speaks_bip324(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=True),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -287,6 +358,8 @@ def test_capabilities_stay_connect_alone_where_the_build_does_not(
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -362,6 +435,8 @@ def test_capabilities_drop_mine_on_another_chain(tmp_path: Path) -> None:
         patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
         patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
         patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -670,6 +745,69 @@ def test_submitpackage_probe_answers_from_the_table_s_keys(
     assert answer is served
 
 
+def test_serves_getorphantxs_reads_the_probe_s_own_return_code() -> None:
+    """`_serves_getorphantxs` is `_GETORPHANTXS_PROBE` exiting zero."""
+    btclib_node_module._serves_getorphantxs.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._serves_getorphantxs("fake-python-main") is True
+    run.assert_called_once_with(
+        ["fake-python-main", "-c", btclib_node_module._GETORPHANTXS_PROBE],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_serves_getorphantxs_is_false_where_the_table_lacks_it() -> None:
+    """A nonzero exit -- the RPC missing, or no such table -- is `False`."""
+    btclib_node_module._serves_getorphantxs.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
+        assert btclib_node_module._serves_getorphantxs("fake-python-release") is False
+
+
+@pytest.mark.parametrize(
+    "callbacks, served",
+    [
+        ('{"getorphantxs": None}', True),
+        ('{"getblockcount": None}', False),
+        ('{"getblockcount": "getorphantxs"}', False),
+        ("[]", False),
+    ],
+)
+def test_getorphantxs_probe_answers_from_the_table_s_keys(
+    callbacks: str, served: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_GETORPHANTXS_PROBE` answers from the keys of a stub `callbacks`."""
+    package = tmp_path / "btclib_node" / "rpc"
+    package.mkdir(parents=True)
+    (tmp_path / "btclib_node" / "__init__.py").write_text("")
+    (package / "__init__.py").write_text("")
+    (package / "callbacks.py").write_text(f"callbacks = {callbacks}\n")
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path))
+    btclib_node_module._serves_getorphantxs.cache_clear()
+    answer = btclib_node_module._serves_getorphantxs(sys.executable)
+    btclib_node_module._serves_getorphantxs.cache_clear()
+    assert answer is served
+
+
+def test_binds_address_reads_the_probe_s_own_return_code() -> None:
+    """`_binds_address` is `_BIND_PROBE` exiting zero."""
+    btclib_node_module._binds_address.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._binds_address("fake-python-main") is True
+    run.assert_called_once_with(
+        ["fake-python-main", "-c", btclib_node_module._BIND_PROBE],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_binds_address_is_false_where_the_parse_refuses() -> None:
+    """A nonzero exit -- the flag refused -- is `False`."""
+    btclib_node_module._binds_address.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
+        assert btclib_node_module._binds_address("fake-python-release") is False
+
+
 def test_sets_min_relay_fee_reads_the_probe_s_own_return_code() -> None:
     """`_sets_min_relay_fee` is `_MIN_RELAY_FEE_PROBE` exiting zero."""
     btclib_node_module._sets_min_relay_fee.cache_clear()
@@ -708,6 +846,89 @@ def test_permits_bare_multisig_is_false_where_the_parse_refuses() -> None:
         assert (
             btclib_node_module._permits_bare_multisig("fake-python-pre-1497") is False
         )
+
+
+def _run_probe_on_stub_config(
+    fn: _lru_cache_wrapper[bool],
+    body: str,
+    tmp_path: Path,
+    mp: pytest.MonkeyPatch,
+) -> bool:
+    """Run `fn` against a `btclib_node.cli.build_config` stub with `body`."""
+    package = tmp_path / "btclib_node"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "cli.py").write_text(
+        f"from types import SimpleNamespace\ndef build_config(argv):\n    {body}\n"
+    )
+    mp.setenv("PYTHONPATH", str(tmp_path))
+    fn.cache_clear()
+    answer = fn(sys.executable)
+    fn.cache_clear()
+    return answer
+
+
+@pytest.mark.parametrize(
+    "body, binds",
+    [
+        ('return SimpleNamespace(bind=("127.0.0.1:18555",))', True),
+        ("return SimpleNamespace(bind=())", False),
+        ("return SimpleNamespace()", False),
+        ("raise SystemExit(2)", False),
+    ],
+)
+def test_bind_probe_answers_from_the_parsed_config(
+    body: str, binds: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_BIND_PROBE` answers from `bind` on a stub `build_config`."""
+    answer = _run_probe_on_stub_config(
+        btclib_node_module._binds_address, body, tmp_path, monkeypatch
+    )
+    assert answer is binds
+
+
+@pytest.mark.parametrize(
+    "body, sets",
+    [
+        (
+            "return SimpleNamespace(min_relay_feerate=SimpleNamespace(sats_per_kvbyte=10))",
+            True,
+        ),
+        (
+            "return SimpleNamespace(min_relay_feerate=SimpleNamespace(sats_per_kvbyte=1000))",
+            False,
+        ),
+        ("return SimpleNamespace()", False),
+        ("raise SystemExit(2)", False),
+    ],
+)
+def test_min_relay_fee_probe_answers_from_the_parsed_config(
+    body: str, sets: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_MIN_RELAY_FEE_PROBE` answers from `min_relay_feerate` on a stub."""
+    answer = _run_probe_on_stub_config(
+        btclib_node_module._sets_min_relay_fee, body, tmp_path, monkeypatch
+    )
+    assert answer is sets
+
+
+@pytest.mark.parametrize(
+    "body, permits_off",
+    [
+        ("return SimpleNamespace(permit_bare_multisig=False)", True),
+        ("return SimpleNamespace(permit_bare_multisig=True)", False),
+        ("return SimpleNamespace()", False),
+        ("raise SystemExit(2)", False),
+    ],
+)
+def test_bare_multisig_probe_answers_from_the_parsed_config(
+    body: str, permits_off: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_BARE_MULTISIG_PROBE` answers from `permit_bare_multisig` on a stub."""
+    answer = _run_probe_on_stub_config(
+        btclib_node_module._permits_bare_multisig, body, tmp_path, monkeypatch
+    )
+    assert answer is permits_off
 
 
 def test_speaks_v2_reads_the_probe_s_own_return_code() -> None:

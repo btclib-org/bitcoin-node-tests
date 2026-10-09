@@ -76,6 +76,7 @@ from tests.conftest import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Iterator
+    from typing import Any
 
 # one tally per process, shared by every fixture and test below:
 # `pytest_sessionfinish` reports it once, rather than once per node this
@@ -257,7 +258,7 @@ def pytest_runtest_makereport(
     """
     del item, call
     report = yield
-    longrepr = report.longrepr
+    longrepr: Any = report.longrepr
     chain = getattr(longrepr, "chain", None)
     if chain is None and hasattr(longrepr, "reprtraceback"):
         # `--tb=native` gives a representation with no chain

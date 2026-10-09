@@ -6,11 +6,12 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from functools import _lru_cache_wrapper
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -574,6 +575,54 @@ def test_log_path_read_on_a_start_timeout_is_log_path(tmp_path: Path) -> None:
     assert adapter._log_path() == adapter.log_path
 
 
+def _assert_probed_in_own_home(run: Mock, executable: str, probe: str) -> None:
+    """Assert `run` was called once, with `probe` and a `HOME` of its own."""
+    run.assert_called_once()
+    assert run.call_args.args == ([executable, "-c", probe],)
+    env = run.call_args.kwargs["env"]
+    assert env["HOME"] != os.environ.get("HOME")
+    assert env["USERPROFILE"] == env["HOME"]
+
+
+@pytest.mark.parametrize(
+    "probe, field",
+    [
+        (btclib_node_module._accepts_v1transport, "v1transport=True"),
+        (btclib_node_module._speaks_v2, "v2transport=False"),
+    ],
+)
+def test_a_config_probe_runs_in_a_home_of_its_own(
+    probe: _lru_cache_wrapper[bool],
+    field: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The home `build_config` sees is a directory no other probe shares."""
+    homes = tmp_path / "homes"
+    package = tmp_path / "btclib_node"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "cli.py").write_text(
+        "from pathlib import Path\n"
+        "from types import SimpleNamespace\n"
+        "def build_config(argv):\n"
+        f"    with open({str(homes)!r}, 'a') as f:\n"
+        "        f.write(str(Path.home()) + '\\n')\n"
+        f"    return SimpleNamespace({field})\n"
+    )
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path))
+    answers = []
+    for _ in range(2):
+        probe.cache_clear()
+        answers.append(probe(sys.executable))
+    probe.cache_clear()
+    first, second = homes.read_text().splitlines()
+    assert answers == [True, True]
+    assert first != second
+    assert Path.home() not in (Path(first), Path(second))
+    assert not Path(first).exists()
+
+
 def test_writes_auth_cookie_reads_the_probe_s_own_return_code() -> None:
     """`_writes_auth_cookie` is `import btclib_node.rpc.auth` exiting zero."""
     btclib_node_module._writes_auth_cookie.cache_clear()
@@ -627,10 +676,8 @@ def test_negates_rpcauth_reads_the_probe_s_own_return_code() -> None:
     btclib_node_module._negates_rpcauth.cache_clear()
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
         assert btclib_node_module._negates_rpcauth("fake-python-1165") is True
-    run.assert_called_once_with(
-        ["fake-python-1165", "-c", btclib_node_module._NEGATION_PROBE],
-        check=False,
-        capture_output=True,
+    _assert_probed_in_own_home(
+        run, "fake-python-1165", btclib_node_module._NEGATION_PROBE
     )
 
 
@@ -876,11 +923,7 @@ def test_binds_address_reads_the_probe_s_own_return_code() -> None:
     btclib_node_module._binds_address.cache_clear()
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
         assert btclib_node_module._binds_address("fake-python-main") is True
-    run.assert_called_once_with(
-        ["fake-python-main", "-c", btclib_node_module._BIND_PROBE],
-        check=False,
-        capture_output=True,
-    )
+    _assert_probed_in_own_home(run, "fake-python-main", btclib_node_module._BIND_PROBE)
 
 
 def test_binds_address_is_false_where_the_parse_refuses() -> None:
@@ -895,10 +938,8 @@ def test_sets_min_relay_fee_reads_the_probe_s_own_return_code() -> None:
     btclib_node_module._sets_min_relay_fee.cache_clear()
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
         assert btclib_node_module._sets_min_relay_fee("fake-python-1332") is True
-    run.assert_called_once_with(
-        ["fake-python-1332", "-c", btclib_node_module._MIN_RELAY_FEE_PROBE],
-        check=False,
-        capture_output=True,
+    _assert_probed_in_own_home(
+        run, "fake-python-1332", btclib_node_module._MIN_RELAY_FEE_PROBE
     )
 
 
@@ -914,10 +955,8 @@ def test_permits_bare_multisig_reads_the_probe_s_own_return_code() -> None:
     btclib_node_module._permits_bare_multisig.cache_clear()
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
         assert btclib_node_module._permits_bare_multisig("fake-python-1497") is True
-    run.assert_called_once_with(
-        ["fake-python-1497", "-c", btclib_node_module._BARE_MULTISIG_PROBE],
-        check=False,
-        capture_output=True,
+    _assert_probed_in_own_home(
+        run, "fake-python-1497", btclib_node_module._BARE_MULTISIG_PROBE
     )
 
 
@@ -1018,11 +1057,7 @@ def test_speaks_v2_reads_the_probe_s_own_return_code() -> None:
     btclib_node_module._speaks_v2.cache_clear()
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
         assert btclib_node_module._speaks_v2("fake-python-1675") is True
-    run.assert_called_once_with(
-        ["fake-python-1675", "-c", btclib_node_module._V2_PROBE],
-        check=False,
-        capture_output=True,
-    )
+    _assert_probed_in_own_home(run, "fake-python-1675", btclib_node_module._V2_PROBE)
 
 
 def test_speaks_v2_is_false_where_the_parse_refuses() -> None:
@@ -1063,11 +1098,7 @@ def test_accepts_v1transport_reads_the_probe_s_own_return_code() -> None:
     btclib_node_module._accepts_v1transport.cache_clear()
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
         assert btclib_node_module._accepts_v1transport("fake-python-f1") is True
-    run.assert_called_once_with(
-        ["fake-python-f1", "-c", btclib_node_module._V1_PROBE],
-        check=False,
-        capture_output=True,
-    )
+    _assert_probed_in_own_home(run, "fake-python-f1", btclib_node_module._V1_PROBE)
 
 
 def test_accepts_v1transport_is_false_where_the_parse_refuses() -> None:

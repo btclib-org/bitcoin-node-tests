@@ -420,7 +420,9 @@ empty `permissions` on `main` and none on the release
 
 from __future__ import annotations
 
+import os
 import subprocess
+import tempfile
 from collections.abc import Sequence
 from functools import lru_cache
 from pathlib import Path
@@ -462,6 +464,27 @@ _CHAIN_DIRS = {
     "signet": "signet",
     "regtest": "regtest",
 }
+
+
+def _config_probe_passes(executable: str, probe: str) -> bool:
+    """Return whether `probe`, run by `executable`, exits zero.
+
+    `build_config` writes `settings.json` under `~/.btclib` where no
+    `-datadir` is given. Probes run at once by several xdist workers
+    rename one temporary file over each other, and one of them fails.
+    Each probe gets a home of its own.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    :param probe: the program `executable` runs with `-c`.
+    """
+    with tempfile.TemporaryDirectory() as home:
+        result = subprocess.run(  # noqa: S603
+            [executable, "-c", probe],
+            check=False,
+            capture_output=True,
+            env={**os.environ, "HOME": home, "USERPROFILE": home},
+        )
+    return result.returncode == 0
 
 
 @lru_cache
@@ -535,7 +558,7 @@ def _negates_rpcauth(executable: str) -> bool:
     """Return whether `executable`'s own btclib-node negates `-rpcauth`.
 
     Asks the build's own `cli.build_config` -- which reads the command
-    line as `main` does, and takes no lock and creates no directory -- to
+    line as `main` does, and takes no lock -- to
     read `-rpcauth` followed by its negation, and answers whether the
     resulting config's `rpc_auth_invalid`, where the build has one, is
     false -- and where it has none, whether it returned: `_NEGATION_PROBE`
@@ -547,12 +570,7 @@ def _negates_rpcauth(executable: str) -> bool:
 
     :param executable: the interpreter `btclib-node` is installed into.
     """
-    probe = subprocess.run(  # noqa: S603
-        [executable, "-c", _NEGATION_PROBE],
-        check=False,
-        capture_output=True,
-    )
-    return probe.returncode == 0
+    return _config_probe_passes(executable, _NEGATION_PROBE)
 
 
 # `update_chain` handed a node still at `SyncingHeaders`: a build that
@@ -642,12 +660,7 @@ def _sets_min_relay_fee(executable: str) -> bool:
 
     :param executable: the interpreter `btclib-node` is installed into.
     """
-    probe = subprocess.run(  # noqa: S603
-        [executable, "-c", _MIN_RELAY_FEE_PROBE],
-        check=False,
-        capture_output=True,
-    )
-    return probe.returncode == 0
+    return _config_probe_passes(executable, _MIN_RELAY_FEE_PROBE)
 
 
 # exits 0 only where `-permitbaremultisig=0` turns
@@ -671,12 +684,7 @@ def _permits_bare_multisig(executable: str) -> bool:
 
     :param executable: the interpreter `btclib-node` is installed into.
     """
-    probe = subprocess.run(  # noqa: S603
-        [executable, "-c", _BARE_MULTISIG_PROBE],
-        check=False,
-        capture_output=True,
-    )
-    return probe.returncode == 0
+    return _config_probe_passes(executable, _BARE_MULTISIG_PROBE)
 
 
 # exits 0 only where `-nov2transport` turns `Config.v2transport` off; a
@@ -700,12 +708,7 @@ def _speaks_v2(executable: str) -> bool:
 
     :param executable: the interpreter `btclib-node` is installed into.
     """
-    probe = subprocess.run(  # noqa: S603
-        [executable, "-c", _V2_PROBE],
-        check=False,
-        capture_output=True,
-    )
-    return probe.returncode == 0
+    return _config_probe_passes(executable, _V2_PROBE)
 
 
 # exits 0 only where `-v1transport=1` is accepted and `Config.v1transport`
@@ -726,12 +729,7 @@ def _accepts_v1transport(executable: str) -> bool:
 
     :param executable: the interpreter `btclib-node` is installed into.
     """
-    probe = subprocess.run(  # noqa: S603
-        [executable, "-c", _V1_PROBE],
-        check=False,
-        capture_output=True,
-    )
-    return probe.returncode == 0
+    return _config_probe_passes(executable, _V1_PROBE)
 
 
 # exits 0 only where the dispatch table holds `Capability.CHAIN_TIPS`'s RPC
@@ -886,12 +884,7 @@ def _binds_address(executable: str) -> bool:
 
     :param executable: the interpreter `btclib-node` is installed into.
     """
-    probe = subprocess.run(  # noqa: S603
-        [executable, "-c", _BIND_PROBE],
-        check=False,
-        capture_output=True,
-    )
-    return probe.returncode == 0
+    return _config_probe_passes(executable, _BIND_PROBE)
 
 
 class BtclibNodeAdapter(NodeAdapter):

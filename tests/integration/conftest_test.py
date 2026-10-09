@@ -412,3 +412,32 @@ def test_make_adapter_builds_with_the_tracerpc_option(
     """)
     result = pytester.runpytest_subprocess(*args)
     result.assert_outcomes(passed=1)
+
+
+@pytest.mark.parametrize("tb", ["auto", "native"])
+@pytest.mark.parametrize("args", [(), ("-p", "xdist", "-n", "2")])
+def test_a_failure_report_prints_no_line_past_the_bound(
+    pytester: pytest.Pytester,
+    monkeypatch: pytest.MonkeyPatch,
+    args: tuple[str, ...],
+    tb: str,
+) -> None:
+    """A long message prints as lines of at most 2300, its end kept.
+
+    A GitHub runner stalls on a line of some megabytes (issue
+    btclib-org/bitcoin-node-tests#442). `CI` is set because pytest then
+    prints the one-line summary's message whole.
+    """
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    monkeypatch.setenv("CI", "true")
+    pytester.makeconftest(
+        "    from tests.integration.conftest import pytest_runtest_makereport\n"
+    )
+    pytester.makepyfile("""
+        def test_a_long_message():
+            raise AssertionError("x" * 10_000 + "THE END")
+    """)
+    result = pytester.runpytest_subprocess(f"--tb={tb}", *args)
+    result.assert_outcomes(failed=1)
+    assert max(map(len, result.outlines)) <= 2300
+    result.stdout.fnmatch_lines(["FAILED *cut] ...x*THE END"])

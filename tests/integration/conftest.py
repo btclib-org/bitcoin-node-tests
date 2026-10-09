@@ -75,7 +75,8 @@ from tests.conftest import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Generator, Iterator
+    from typing import Any
 
 # one tally per process, shared by every fixture and test below:
 # `pytest_sessionfinish` reports it once, rather than once per node this
@@ -223,6 +224,51 @@ def pytest_collection_modifyitems(
         marker = item.get_closest_marker("scaled_timeout")
         if marker is not None:
             item.add_marker(pytest.mark.timeout(scaled(float(marker.args[0]))))
+
+
+# A line of a failure report past twice this keeps its first and last
+# `_KEPT` characters. A GitHub runner stalls on a line of some megabytes,
+# and a node that echoes the transaction it refused to decode makes one
+# (issue btclib-org/bitcoin-node-tests#442).
+_KEPT = 1000
+
+
+def _clipped(text: str) -> str:
+    """Cut the middle out of every line of `text` longer than twice `_KEPT`."""
+    return "\n".join(
+        line
+        if len(line) <= 2 * _KEPT
+        else f"{line[:_KEPT]}... [{len(line) - 2 * _KEPT} cut] ...{line[-_KEPT:]}"
+        for line in text.split("\n")
+    )
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_makereport(
+    item: pytest.Item, call: pytest.CallInfo[None]
+) -> Generator[None, pytest.TestReport, pytest.TestReport]:
+    """Clip the lines of a failure report, whatever prints them.
+
+    The traceback and the one-line summary both carry the exception's
+    message whole; the terminal, the JUnit report and an xdist
+    controller's copy all read this report.
+
+    :param item: unused; the hook's own signature names it.
+    :param call: unused; the hook's own signature names it.
+    """
+    del item, call
+    report = yield
+    longrepr: Any = report.longrepr
+    chain = getattr(longrepr, "chain", None)
+    if chain is None and hasattr(longrepr, "reprtraceback"):
+        # `--tb=native` gives a representation with no chain
+        chain = [(longrepr.reprtraceback, longrepr.reprcrash, None)]
+    for traceback, crash, _ in chain or ():
+        for entry in traceback.reprentries:
+            entry.lines = [_clipped(line) for line in entry.lines]
+        if crash is not None:
+            crash.message = _clipped(crash.message)
+    return report
 
 
 @pytest.fixture(scope="session")

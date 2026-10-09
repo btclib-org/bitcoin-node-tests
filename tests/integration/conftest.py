@@ -233,13 +233,12 @@ _MAX_REPORT_LINE = 2000
 
 def _clipped(text: str) -> str:
     """Cut every line of `text` to `_MAX_REPORT_LINE` characters."""
-    lines = []
-    for line in text.split("\n"):
-        if len(line) > _MAX_REPORT_LINE:
-            cut = len(line) - _MAX_REPORT_LINE
-            line = f"{line[:_MAX_REPORT_LINE]}... [{cut} characters cut]"
-        lines.append(line)
-    return "\n".join(lines)
+    return "\n".join(
+        line
+        if len(line) <= _MAX_REPORT_LINE
+        else f"{line[:_MAX_REPORT_LINE]}... [{len(line) - _MAX_REPORT_LINE} cut]"
+        for line in text.split("\n")
+    )
 
 
 @pytest.hookimpl(wrapper=True)

@@ -436,4 +436,4 @@ def test_a_failure_report_prints_no_line_past_the_bound(
     result = pytester.runpytest_subprocess(*args)
     result.assert_outcomes(failed=1)
     assert max(map(len, result.outlines)) <= 2200
-    result.stdout.fnmatch_lines(["FAILED *characters cut]"])
+    result.stdout.fnmatch_lines(["FAILED *cut]"])

@@ -391,8 +391,8 @@ def a_package_replaces_no_more_clusters_than_the_limit(
     is refused, and so is one reaching that many chains and a lone
     transaction besides; one reaching exactly that many chains is taken.
 
-    A build before the cluster mempool counts the transactions replaced
-    instead, as Core's file of that build does: its chains are two
+    A build without `Capability.CLUSTER_REPLACEMENT` counts the transactions
+    replaced instead, as Core's file of that build does: its chains are two
     transactions long, one more than half the limit of them are replaced
     by the first package, and the refusal is the package's own message,
     naming the child.
@@ -403,7 +403,7 @@ def a_package_replaces_no_more_clusters_than_the_limit(
     # the cluster mempool's own count is the larger one, so the coins it
     # needs are mined whichever build this is
     node, packages = _node(cluster, skip_counts, coins=_MAX_REPLACEMENT_CANDIDATES + 2)
-    clustered = Capability.CLUSTER_LINEARIZATION in node.capabilities
+    clustered = Capability.CLUSTER_REPLACEMENT in node.capabilities
     chain_length = 3 if clustered else 2
     num_coins = (
         _MAX_REPLACEMENT_CANDIDATES + 1

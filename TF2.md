@@ -787,7 +787,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_users.py` (`-rpcuser`/`-rpcpassword`) | same | same | pass | pass |
 | `rpc_users.py` (`-norpccookiefile`) | same | same | pass | pass |
 | `p2p_block_sync.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
-| `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) |
+| `p2p_compactblocks_hb.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `p2p_getdata.py` | `aaf941202667` | 2026-07-31 | pass | pass |
 | `p2p_invalid_locator.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `p2p_invalid_messages.py` (wire) | `3fd68a95e68b` | 2026-04-07 | pass | pass |
@@ -868,14 +868,14 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_setban.py` (bantime) | same | same | pass | pass |
 | `p2p_disconnect_ban.py` (disconnectnode) | [`dcd90fbe54cf`](https://github.com/bitcoin/bitcoin/commit/dcd90fbe54cf) | 2026-04-07 | pass | pass |
 | `mempool_datacarrier.py` | `fa5f29774872` | 2025-12-16 | pass, the policy asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
-| `mempool_dust.py` | `fa5f29774872` | 2025-12-16 | pass | fail ([ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594)) on the build; skip (dust_relay_fee) on a build past [ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594) |
+| `mempool_dust.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (dust_relay_fee) |
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
 | `mempool_package_limits.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass; skip (limit_cluster_count) on a build before the cluster mempool | skip (limit_cluster_count) |
 | `mempool_updatefromblock.py` | `fa6b05c96ffb` | 2026-03-12 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 | `p2p_leak_tx.py` (in block) | `fa5f29774872` | 2025-12-16 | pass, the `getpeerinfo` fields asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
 | `p2p_leak_tx.py` (replaced) | same | same | pass | skip |
 | `p2p_leak_tx.py` (unannounced) | same | same | pass | skip |
-| `feature_utxo_set_hash.py` | `58eeab790d98` | 2026-05-13 | pass | fail ([ISS btclib-node#1598](https://github.com/btclib-org/btclib-node/issues/1598)) on the build; pass on a build past [ISS btclib-node#1598](https://github.com/btclib-org/btclib-node/issues/1598) |
+| `feature_utxo_set_hash.py` | `58eeab790d98` | 2026-05-13 | pass | pass |
 | `rpc_getdescriptoractivity.py` | `3fd68a95e68b` | 2026-04-07 | pass | skip |
 | `rpc_getdescriptoractivity.py` (mempool) | same | same | pass | skip |
 | `rpc_getblockstats.py` | `b7cbd804284b` | 2026-05-25 | pass | skip (stats) |
@@ -964,7 +964,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `wallet_anchor.py` | [`609d265ebc51`](https://github.com/bitcoin/bitcoin/commit/609d265ebc51) | 2025-09-03 | pass | skip (node_wallet) |
 | `wallet_disable.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | bitcoind only |
 | `mempool_accept_wtxid.py` | [`3f5211cba8e7`](https://github.com/bitcoin/bitcoin/commit/3f5211cba8e7) | 2026-01-21 | pass | pass |
-| `rpc_orphans.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (orphanage) on the build; pass on a build past [ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420) |
+| `rpc_orphans.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | pass |
 | `mining_template_verification.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (block_proposal) |
 | `p2p_i2p_ports.py` | [`fa20275db32c`](https://github.com/bitcoin/bitcoin/commit/fa20275db32c) | 2025-10-21 | pass | skip (i2p_sam) |
 | `p2p_i2p_sessions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass, the session lines' wording asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (i2p_sam) |
@@ -1012,27 +1012,27 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_orphan_handling.py` (maximal package) | same | same | pass | skip |
 | `p2p_compactblocks.py` (sendcmpct) | [`28641fd195db`](https://github.com/bitcoin/bitcoin/commit/28641fd195db) | 2026-07-31 | pass | pass |
 | `p2p_compactblocks.py` (construction) | same | same | pass | pass |
-| `p2p_compactblocks.py` (requests) | same | same | pass | fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) |
-| `p2p_compactblocks.py` (getblocktxn requests) | same | same | pass | fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) |
+| `p2p_compactblocks.py` (requests) | same | same | pass | pass |
+| `p2p_compactblocks.py` (getblocktxn requests) | same | same | pass | pass |
 | `p2p_compactblocks.py` (getblocktxn handler) | same | same | pass | pass |
-| `p2p_compactblocks.py` (not at tip) | same | same | pass | fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) |
+| `p2p_compactblocks.py` (not at tip) | same | same | pass | pass |
 | `p2p_compactblocks.py` (low work, wire) | same | same | pass | pass |
 | `p2p_compactblocks.py` (low work, log) | same | same | pass | skip |
-| `p2p_compactblocks.py` (incorrect blocktxn) | same | same | pass | fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) |
+| `p2p_compactblocks.py` (incorrect blocktxn) | same | same | pass | pass |
 | `p2p_compactblocks.py` (end to end) | same | same | pass | pass |
-| `p2p_compactblocks.py` (invalid tx) | same | same | pass | fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) |
+| `p2p_compactblocks.py` (invalid tx) | same | same | pass | pass |
 | `p2p_compactblocks.py` (empty getblocktxn, wire) | same | same | pass, the disconnect asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | pass |
 | `p2p_compactblocks.py` (empty getblocktxn, log) | same | same | pass, the disconnect asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
-| `p2p_compactblocks.py` (multiple blocktxn, wire) | same | same | pass | fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) |
+| `p2p_compactblocks.py` (multiple blocktxn, wire) | same | same | pass | pass |
 | `p2p_compactblocks.py` (multiple blocktxn, log) | same | same | pass | skip |
 | `p2p_compactblocks.py` (invalid sendcmpct, wire) | same | same | pass, the disconnect asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | pass |
 | `p2p_compactblocks.py` (invalid sendcmpct, log) | same | same | pass, the disconnect asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
-| `p2p_compactblocks.py` (invalid cmpctblock) | same | same | pass | fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) |
+| `p2p_compactblocks.py` (invalid cmpctblock) | same | same | pass | pass |
 | `p2p_compactblocks.py` (sendcmpct, outbound) | same | same | pass | skip |
-| `p2p_compactblocks.py` (stalling peer) | same | same | pass | fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) |
+| `p2p_compactblocks.py` (stalling peer) | same | same | pass | pass |
 | `p2p_compactblocks.py` (parallel reconstruction) | same | same | pass | skip |
-| `p2p_compactblocks.py` (high-bandwidth states) | same | same | pass | fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) |
-| `p2p_compactblocks.py` (ignored) | same | same | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)) |
+| `p2p_compactblocks.py` (high-bandwidth states) | same | same | pass | pass |
+| `p2p_compactblocks.py` (ignored) | same | same | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS btclib-node#1890](https://github.com/btclib-org/btclib-node/issues/1890)) |
 | `feature_startupnotify.py` | [`fa71c15f8610`](https://github.com/bitcoin/bitcoin/commit/fa71c15f8610) | 2025-11-26 | pass | skip (startup_notify) |
 | `rpc_dumptxoutset.py` | [`58eeab790d98`](https://github.com/bitcoin/bitcoin/commit/58eeab790d98) | 2026-05-13 | pass, the dump at a forked height asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (dump_utxo_set) |
 | `feature_loadblock.py` | [`fa4fc8c1d7b5`](https://github.com/bitcoin/bitcoin/commit/fa4fc8c1d7b5) | 2026-05-22 | pass | skip (load_block) |
@@ -1070,19 +1070,19 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_ibd_txrelay.py` (wire) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (clock) |
 | `p2p_ibd_txrelay.py` (log) | same | same | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (clock) |
 | `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (test_activation_height) |
-| `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), the null-data and bare-multisig checks per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | fail ([ISS btclib-node#1765](https://github.com/btclib-org/btclib-node/issues/1765)) on the build; fail ([ISS btclib-node#1799](https://github.com/btclib-org/btclib-node/issues/1799)) on a build past [ISS btclib-node#1765](https://github.com/btclib-org/btclib-node/issues/1765) |
+| `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), the null-data and bare-multisig checks per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | fail ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)) on the build; fail ([ISS btclib-node#1889](https://github.com/btclib-org/btclib-node/issues/1889)) on a build past [ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334) |
 | `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass; skip (limit_cluster_size) on a build before the cluster mempool | skip (limit_cluster_size) |
 | `feature_minchainwork.py` | [`c502b65c007b`](https://github.com/bitcoin/bitcoin/commit/c502b65c007b) | 2026-10-03 | pass | skip (minimum_chain_work) |
 | `feature_minchainwork.py` (outbound) | same | same | pass | skip |
 | `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mempool_graph) |
 | `feature_versionbits_warning.py` | [`5bd990a3ddb1`](https://github.com/bitcoin/bitcoin/commit/5bd990a3ddb1) | 2026-06-03 | pass, the reserved bit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
-| `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass, the replacement limit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (package_acceptance) on the build; fail ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)) on a build past [ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494) |
+| `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass, the replacement limit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)) on the build; skip (maxmempool) on a build past [ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334) |
 | `p2p_headers_sync_with_minchainwork.py` | [`ff3e2e4ebdce`](https://github.com/bitcoin/bitcoin/commit/ff3e2e4ebdce) | 2026-08-19 | pass | skip (minimum_chain_work) |
 | `p2p_unrequested_blocks.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (minimum_chain_work) |
-| `p2p_1p1c_network.py` | [`95ef0fc5e781`](https://github.com/bitcoin/bitcoin/commit/95ef0fc5e781) | 2025-12-29 | pass, the fees asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (orphanage) on the build; pass on a build past [ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494) |
-| `mempool_ephemeral_dust.py` | [`7c8030143925`](https://github.com/bitcoin/bitcoin/commit/7c8030143925) | 2026-02-25 | pass, `test_non_truc` asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (package_acceptance) on the build; skip (generate) on a build past [ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494) |
+| `p2p_1p1c_network.py` | [`95ef0fc5e781`](https://github.com/bitcoin/bitcoin/commit/95ef0fc5e781) | 2025-12-29 | pass, the fees asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | pass |
+| `mempool_ephemeral_dust.py` | [`7c8030143925`](https://github.com/bitcoin/bitcoin/commit/7c8030143925) | 2026-02-25 | pass, `test_non_truc` asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (generate) |
 | `mempool_ephemeral_dust.py` (nonzero dust) | same | same | pass | pass |
-| `mempool_ephemeral_dust.py` (reorg) | same | same | pass, the reorg asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | fail ([ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594)) on the build; pass on a build past [ISS btclib-node#1594](https://github.com/btclib-org/btclib-node/issues/1594) |
+| `mempool_ephemeral_dust.py` (reorg) | same | same | pass, the reorg asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | pass |
 | `feature_notifications.py` (`-blocknotify`) | [`469b0e59a29a`](https://github.com/bitcoin/bitcoin/commit/469b0e59a29a) | 2026-09-01 | pass | skip (block_notify) |
 | `feature_notifications.py` (`-alertnotify`) | same | same | pass, the warning's wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
 | `feature_notifications.py` (`-shutdownnotify`) | same | same | pass | skip |
@@ -1144,9 +1144,7 @@ prose in the later sections.
 - `p2p_invalid_locator.py`: Core's claim in full. Skips on `mine` where
   undeclared.
 - `p2p_compactblocks_hb.py`: Core's claim in full, its peers told apart by
-  connection order, not by `-uacomment`. This node picks no
-  high-bandwidth peer
-  ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)).
+  connection order, not by `-uacomment`.
 - `p2p_net_deadlock.py`: Core's claim in full. Skips on `raw_message`, Core's
   `sendmsgtopeer`.
 - `p2p_leak.py`: a wire row and a log row per Core check
@@ -1244,14 +1242,12 @@ prose in the later sections.
   ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)).
 - `mempool_accept_wtxid.py`: a `Peer` stands in for Core's
   `P2PInterface`.
-- `rpc_orphans.py`: skips on `orphanage`
-  ([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
+- `rpc_orphans.py`: Core's claim in full.
 - `p2p_tx_privacy.py`: a `Peer` sends `version` and `wtxidrelay` by hand
   and holds back its `verack`.
-- `mempool_package_rbf.py`: sets `-maxmempool` at every start. The reason for
-  the skip is `package_acceptance`
-  ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494));
-  for the failure, that the replacement `submitpackage` makes is refused
+- `mempool_package_rbf.py`: the mempool-ancestor body alone restarts with
+  `-maxmempool`, and skips on `maxmempool` where the node does not declare
+  it. The release refuses the replacement `submitpackage` makes, `main` takes it
   ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)).
 - `feature_dersig.py`: a smaller claim: kept are `getdeploymentinfo`'s
   transition, the version floor (`bad-version`) and the non-DER signature
@@ -1361,12 +1357,11 @@ prose in the later sections.
 - `feature_bip68_sequence.py`: Core's claim in full. Skips on
   `test_activation_height`, then `invalidate_block`
   ([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480)).
-- `mempool_accept.py`: Core's claim in full. It reaches a confirmed
-  transaction's answer
-  ([ISS btclib-node#1765](https://github.com/btclib-org/btclib-node/issues/1765))
-  and an allowed transaction's fields
-  ([ISS btclib-node#1757](https://github.com/btclib-org/btclib-node/issues/1757),
-  [ISS btclib-node#1799](https://github.com/btclib-org/btclib-node/issues/1799)).
+- `mempool_accept.py`: Core's claim in full. The release stops at a
+  replacement it refuses
+  ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)),
+  and `main` at an oversize transaction it cannot decode
+  ([ISS btclib-node#1889](https://github.com/btclib-org/btclib-node/issues/1889)).
 - `mempool_cluster.py`: Core's claim in full. Skips on `limit_cluster_size`
   ([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383)),
   then asks for `mempool_graph`
@@ -1398,23 +1393,15 @@ prose in the later sections.
   ([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)),
   then `generate`
   ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)).
-- `p2p_1p1c_network.py`: Core's claim in full. The reasons are `orphanage`
-  ([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)),
-  `submitpackage`
-  ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)),
-  a parent paying too little taken with its child
-  ([ISS btclib-node#1473](https://github.com/btclib-org/btclib-node/issues/1473)),
-  and `-whitelist`
-  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)).
+- `p2p_1p1c_network.py`: Core's claim in full.
 - `mempool_ephemeral_dust.py`: a row per subtest of Core's file. The package
-  bodies skip on `package_acceptance`
-  ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)),
-  then ask for `prioritisetransaction`
-  ([ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502)),
-  `generate`
-  ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404))
+  bodies skip on `generate`
+  ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)),
+  and ask for `prioritisetransaction`
+  ([ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502))
   and `-whitelist`
-  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)).
+  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320))
+  besides.
   The nonzero-dust body needs `-minrelaytxfee`
   ([ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332)).
   In the reorg body, a mined parent with a dust output and a fee returns to
@@ -2197,12 +2184,13 @@ high-bandwidth mode.
 
 `btclib-node`'s cell on each log row is a counted skip, and on the
 outbound-`sendcmpct` and parallel-reconstruction rows a counted skip on
-`TYPED_OUTBOUND`. On each other row asking for `MINE`, each row that asks for a
-block as a compact one, takes a `cmpctblock`, or has a peer selected for
-high-bandwidth mode fails, the node never receiving a block as a `cmpctblock` or
-selecting such a peer
-([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321)).
-The other rows pass: announcing a new block as a `cmpctblock`, and reporting in
+`TYPED_OUTBOUND`. Of the other rows asking for `MINE`, the ignored row fails:
+the node takes a `cmpctblock` from a peer that has sent no `sendcmpct`
+([ISS btclib-node#1890](https://github.com/btclib-org/btclib-node/issues/1890)).
+The rest pass: receiving a block as a `cmpctblock` and selecting a peer
+for high-bandwidth mode
+([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321));
+announcing a new block as a `cmpctblock`, and reporting in
 `getpeerinfo` a peer asking for that
 ([ISS btclib-node#1223](https://github.com/btclib-org/btclib-node/issues/1223));
 answering `getchaintips`
@@ -2239,9 +2227,10 @@ that the orphanage fills to its bound and that its child is taken in with
 its parent if still kept, and not if evicted. The parent-in-mempool row
 reads `getnetworkinfo`'s `version`, bitcoin/bitcoin#31385 changing no RPC;
 the others read `getorphantxs`'s `help`.
-`btclib-node`'s cell on each row is a counted skip, on `ORPHANAGE` or on a
-later capability above
-([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)).
+`ORPHANAGE` is declared
+([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)),
+so `btclib-node`'s cell on each row is a counted skip on a later capability
+above.
 Core's node starts with `-inboundrelaypercent` besides, an option the
 pinned release refuses as unknown: the orphanage check sending many
 orphans passes Core's own value only to a bitcoind whose

@@ -124,6 +124,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.ASSUME_VALID,
             Capability.INCREMENTAL_RELAY_FEE,
             Capability.PEER_PERMISSIONS,
+            Capability.CLUSTER_REPLACEMENT,
         }
     )
 
@@ -227,6 +228,7 @@ def test_capabilities_drop_the_cluster_ones_where_help_lists_no_cluster_option(
         adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
     assert adapter.capabilities == BitcoindAdapter.capabilities - {
         Capability.CLUSTER_LINEARIZATION,
+        Capability.CLUSTER_REPLACEMENT,
         Capability.LIMIT_CLUSTER_COUNT,
         Capability.LIMIT_CLUSTER_SIZE,
     }

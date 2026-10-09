@@ -412,3 +412,28 @@ def test_make_adapter_builds_with_the_tracerpc_option(
     """)
     result = pytester.runpytest_subprocess(*args)
     result.assert_outcomes(passed=1)
+
+
+@pytest.mark.parametrize("args", [(), ("-p", "xdist", "-n", "2")])
+def test_a_failure_report_prints_no_line_past_the_bound(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch, args: tuple[str, ...]
+) -> None:
+    """A message of a million characters prints as lines of at most 2200.
+
+    A GitHub runner stalls on a line of some megabytes (issue
+    btclib-org/bitcoin-node-tests#442). `CI` is set because pytest then
+    prints the one-line summary's message whole.
+    """
+    monkeypatch.setenv("PYTHONPATH", str(_ROOT))
+    monkeypatch.setenv("CI", "true")
+    pytester.makeconftest(
+        "    from tests.integration.conftest import pytest_runtest_makereport\n"
+    )
+    pytester.makepyfile("""
+        def test_a_long_message():
+            raise AssertionError("x" * 1_000_000)
+    """)
+    result = pytester.runpytest_subprocess(*args)
+    result.assert_outcomes(failed=1)
+    assert max(map(len, result.outlines)) <= 2200
+    result.stdout.fnmatch_lines(["FAILED *characters cut]"])

@@ -336,6 +336,15 @@ released `2026.9.24` (`422d2640`) and at `main` (`93c1d066`) alike
 ([ISS btclib-node#1494](https://github.com/btclib-org/btclib-node/issues/1494)).
 A build that names none does not gain the capability.
 
+`Capability.CLUSTER_REPLACEMENT` is declared per instance, by
+`_replaces_by_cluster`'s own probe: a build whose `btclib_node.mempool.Mempool`
+has `check_package_replacement`, which counts a replacement's conflicts by
+cluster as Core's `ReplacementChecks` does -- `main` from `cd82fd74`, the
+change that closed
+[ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334).
+The released `2026.10.8` has no such method, so an instance built against it
+does not gain the capability.
+
 `Capability.MIN_RELAY_TX_FEE` is declared per instance, by
 `_sets_min_relay_fee`'s own probe: a build whose `cli.py` registers
 `-minrelaytxfee` -- `v2026.10.4` (`f1732715`) and `main` (`6777a6a8`), from
@@ -803,6 +812,33 @@ def _serves_submitpackage(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# exits 0 only where `Mempool` has the check that counts a replacement's
+# conflicts by cluster
+_CLUSTER_REPLACEMENT_PROBE = """\
+from btclib_node.mempool import Mempool
+raise SystemExit(0 if hasattr(Mempool, "check_package_replacement") else 1)
+"""
+
+
+@lru_cache
+def _replaces_by_cluster(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node replaces by cluster.
+
+    Asks the build's own `mempool.Mempool` whether it has
+    `check_package_replacement`: `_CLUSTER_REPLACEMENT_PROBE` above.
+    Otherwise in the standing of `_writes_auth_cookie` above: no node
+    started, no port bound, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _CLUSTER_REPLACEMENT_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 # exits 0 only where the dispatch table holds `Capability.ORPHANAGE`'s RPC
 _GETORPHANTXS_PROBE = """\
 from btclib_node.rpc.callbacks import callbacks
@@ -908,6 +944,7 @@ class BtclibNodeAdapter(NodeAdapter):
         `_serves_disconnect` answers `Capability.DISCONNECT`,
         `_serves_submitpackage` answers `Capability.PACKAGE_ACCEPTANCE`,
         `_serves_getorphantxs` answers `Capability.ORPHANAGE`,
+        `_replaces_by_cluster` answers `Capability.CLUSTER_REPLACEMENT`,
         `_binds_address` answers `Capability.LISTEN_ADDRESS`, and
         `_speaks_v2` answers `Capability.V2TRANSPORT`. The
         class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
@@ -938,6 +975,7 @@ class BtclibNodeAdapter(NodeAdapter):
                 (_serves_disconnect, Capability.DISCONNECT),
                 (_serves_submitpackage, Capability.PACKAGE_ACCEPTANCE),
                 (_serves_getorphantxs, Capability.ORPHANAGE),
+                (_replaces_by_cluster, Capability.CLUSTER_REPLACEMENT),
                 (_binds_address, Capability.LISTEN_ADDRESS),
                 (_speaks_v2, Capability.V2TRANSPORT),
             )

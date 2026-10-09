@@ -492,6 +492,11 @@ class Capability(Enum):
     `getmempoolfeeratediagram` and `getmempoolinfo`'s own `optimal`
     (`mempool_cluster.py`). Named for what it keeps rather than for an
     RPC's own spelling, as `ORPHANAGE` is.
+    `CLUSTER_REPLACEMENT` -- count the conflicts of a replacement by the
+    clusters they are in, and refuse one reaching more than Core's 100 of
+    them, as `ReplacementChecks` does from the cluster mempool on
+    (`mempool_package_rbf.py`). A build without it counts the transactions
+    replaced instead.
     `MINIMUM_CHAIN_WORK` -- recognise `-minimumchainwork`, Core's own
     debug-only floor, in hex, on chain work: a node whose tip is below it
     stays in initial block download and answers `getheaders` empty to a
@@ -664,6 +669,7 @@ class Capability(Enum):
     ASSUME_VALID = "assume_valid"
     INCREMENTAL_RELAY_FEE = "incremental_relay_fee"
     PEER_PERMISSIONS = "peer_permissions"
+    CLUSTER_REPLACEMENT = "cluster_replacement"
 
 
 class SkipCounts:

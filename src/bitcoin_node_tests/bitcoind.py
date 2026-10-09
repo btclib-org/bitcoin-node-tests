@@ -96,6 +96,7 @@ _WALLET_ONLY = frozenset({Capability.MINE, Capability.NODE_WALLET})
 _CLUSTER_MEMPOOL_ONLY = frozenset(
     {
         Capability.CLUSTER_LINEARIZATION,
+        Capability.CLUSTER_REPLACEMENT,
         Capability.LIMIT_CLUSTER_COUNT,
         Capability.LIMIT_CLUSTER_SIZE,
     }
@@ -437,9 +438,10 @@ class BitcoindAdapter(NodeAdapter):
     `getmempoolcluster` and `getmempoolfeeratediagram` are RPCs
     (`src/rpc/mempool.cpp`), `optimal` a field of `getmempoolinfo`, and
     `-limitclustercount` and `-limitclustersize` flags
-    (`src/init.cpp`). They are declared only by a build
-    whose `-help-debug` lists `-limitclustercount`,
-    `_has_cluster_mempool` being the probe.
+    (`src/init.cpp`). `Capability.CLUSTER_REPLACEMENT` is too: the
+    replacement limit counts clusters (`src/policy/rbf.cpp`). They are
+    declared only by a build whose `-help-debug` lists
+    `-limitclustercount`, `_has_cluster_mempool` being the probe.
     `Capability.MINIMUM_CHAIN_WORK` is unconditional too:
     `-minimumchainwork` is this binary's own debug-only flag
     (`src/init.cpp`).
@@ -566,6 +568,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.ASSUME_VALID,
             Capability.INCREMENTAL_RELAY_FEE,
             Capability.PEER_PERMISSIONS,
+            Capability.CLUSTER_REPLACEMENT,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

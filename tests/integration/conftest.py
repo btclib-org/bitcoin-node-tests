@@ -225,18 +225,19 @@ def pytest_collection_modifyitems(
             item.add_marker(pytest.mark.timeout(scaled(float(marker.args[0]))))
 
 
-# The longest line a failure report prints. A GitHub runner stalls on a
-# line of some megabytes, and a node that echoes the transaction it
-# refused to decode makes one (issue btclib-org/bitcoin-node-tests#442).
-_MAX_REPORT_LINE = 2000
+# A line of a failure report past twice this keeps its first and last
+# `_KEPT` characters. A GitHub runner stalls on a line of some megabytes,
+# and a node that echoes the transaction it refused to decode makes one
+# (issue btclib-org/bitcoin-node-tests#442).
+_KEPT = 1000
 
 
 def _clipped(text: str) -> str:
-    """Cut every line of `text` to `_MAX_REPORT_LINE` characters."""
+    """Cut the middle out of every line of `text` longer than twice `_KEPT`."""
     return "\n".join(
         line
-        if len(line) <= _MAX_REPORT_LINE
-        else f"{line[:_MAX_REPORT_LINE]}... [{len(line) - _MAX_REPORT_LINE} cut]"
+        if len(line) <= 2 * _KEPT
+        else f"{line[:_KEPT]}... [{len(line) - 2 * _KEPT} cut] ...{line[-_KEPT:]}"
         for line in text.split("\n")
     )
 
@@ -256,7 +257,12 @@ def pytest_runtest_makereport(
     """
     del item, call
     report = yield
-    for traceback, crash, _ in getattr(report.longrepr, "chain", ()):
+    longrepr = report.longrepr
+    chain = getattr(longrepr, "chain", None)
+    if chain is None and hasattr(longrepr, "reprtraceback"):
+        # `--tb=native` gives a representation with no chain
+        chain = [(longrepr.reprtraceback, longrepr.reprcrash, None)]
+    for traceback, crash, _ in chain or ():
         for entry in traceback.reprentries:
             entry.lines = [_clipped(line) for line in entry.lines]
         if crash is not None:

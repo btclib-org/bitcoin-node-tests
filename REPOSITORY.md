@@ -309,6 +309,11 @@ done
 #  "target":"tag"}
 ```
 
+A `v*` tag push that brings an unsigned commit is refused. A tag on a
+commit already on `main` is accepted whether it is signed, unsigned or
+lightweight, so the rule does not check a tag's signature
+(btclib-org/.github#1635).
+
 ## Merge methods
 
 **Squash is the only method GitHub can be asked for**, and auto-merge

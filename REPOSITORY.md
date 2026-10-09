@@ -111,9 +111,11 @@ against Bitcoin Core` produces `bitcoind / Regtest against Bitcoin Core`.
 A context is matched by name, not by the workflow that reported it, so
 moving a job is free and renaming one is not.
 
-`node-integration.yml`'s other jobs -- `btclib-node`, `core-master` and
-`btclib-node-main` -- produce no required check: each runs with
-`continue-on-error: true` and reports rather than gates. `btclib-node`
+`node-integration.yml`'s other jobs -- `older-core`, `btclib-node`,
+`core-master` and `btclib-node-main` -- produce no required check: each
+runs with `continue-on-error: true` and reports rather than gates.
+`older-core` runs v29.4 and v30.3, which do not move; it is informational
+by decision, so that a flake on an older release blocks no merge. `btclib-node`
 installs btclib-node's latest release unpinned, so a new release moving
 a cell of `TF2.md`'s `btclib-node` column would fail a pull request for a
 reason outside it; `core-master` and

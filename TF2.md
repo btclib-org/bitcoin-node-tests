@@ -1245,9 +1245,9 @@ prose in the later sections.
 - `rpc_orphans.py`: Core's claim in full.
 - `p2p_tx_privacy.py`: a `Peer` sends `version` and `wtxidrelay` by hand
   and holds back its `verack`.
-- `mempool_package_rbf.py`: sets `-maxmempool` at every start, and skips on
-  `maxmempool` where the node does not declare it. The release refuses the
-  replacement `submitpackage` makes, `main` takes it
+- `mempool_package_rbf.py`: the mempool-ancestor body alone restarts with
+  `-maxmempool`, and skips on `maxmempool` where the node does not declare
+  it. The release refuses the replacement `submitpackage` makes, `main` takes it
   ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)).
 - `feature_dersig.py`: a smaller claim: kept are `getdeploymentinfo`'s
   transition, the version floor (`bad-version`) and the non-DER signature
@@ -2184,10 +2184,10 @@ high-bandwidth mode.
 
 `btclib-node`'s cell on each log row is a counted skip, and on the
 outbound-`sendcmpct` and parallel-reconstruction rows a counted skip on
-`TYPED_OUTBOUND`. On each other row asking for `MINE`, the ignored row fails:
+`TYPED_OUTBOUND`. Of the other rows asking for `MINE`, the ignored row fails:
 the node takes a `cmpctblock` from a peer that has sent no `sendcmpct`
 ([ISS btclib-node#1890](https://github.com/btclib-org/btclib-node/issues/1890)).
-The other rows pass: receiving a block as a `cmpctblock` and selecting a peer
+The rest pass: receiving a block as a `cmpctblock` and selecting a peer
 for high-bandwidth mode
 ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321));
 announcing a new block as a `cmpctblock`, and reporting in

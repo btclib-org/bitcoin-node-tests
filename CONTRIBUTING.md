@@ -676,6 +676,15 @@ python .github/scripts/btclib_node_verdict.py \
     TF2.md integration.xml release
 ```
 
+`older-core` is `TF2_BITCOIND` pointed at the release under test, v29.4
+or v30.3, with only the bitcoind tests run; each release's sha256 is in
+the job's matrix:
+
+```shell
+TF2_INTEGRATION=1 TF2_BITCOIND=<v29.4 or v30.3 bitcoind> \
+    uv run pytest tests/integration/*_bitcoind_test.py
+```
+
 `core-master` is `TF2_BITCOIND` pointed at a `bitcoind` built locally
 from Bitcoin Core's own `master`, the job's own `Configure the build`
 step naming the CMake options; its own verdict on a failure unique to
@@ -690,13 +699,15 @@ rule back from the endpoint rather than restating it. So a diff does not
 reach a review without having passed them or passing them beside it on
 the same sha, which is the reliance `REVIEWING.md` provides for.
 
-`node-integration.yml`'s other jobs -- `btclib-node`, `core-master` and
-`btclib-node-main` -- gate nothing anywhere: `continue-on-error: true` in
-the workflow itself says so for each. `btclib-node` installs
-btclib-node's latest release unpinned, so a new release moving a cell of
-`TF2.md`'s `btclib-node` column turns it red for a reason outside any
-pull request; `core-master` and `btclib-node-main` track
-Core's own `master` and btclib-node's own `main` rather than the pinned
+`node-integration.yml`'s other jobs -- `older-core`, `btclib-node`,
+`core-master` and `btclib-node-main` -- gate nothing anywhere:
+`continue-on-error: true` in the workflow itself says so for each.
+`older-core` runs v29.4 and v30.3, which do not move; it is informational
+by decision, so that a flake on an older release blocks no merge.
+`btclib-node` installs btclib-node's latest release unpinned, so a new
+release moving a cell of `TF2.md`'s `btclib-node` column turns it red for
+a reason outside any pull request; `core-master` and `btclib-node-main`
+track Core's own `master` and btclib-node's own `main` rather than the pinned
 release under test, by [ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8)'s
 decision of 2026-09-25.
 

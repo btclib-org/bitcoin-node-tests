@@ -70,6 +70,11 @@ name: node-integration
 # job, so a cron here would be a row the calendar gives nobody, the
 # finding `tests/grid_test.py::schedules` exists for, exactly as the
 # header above already argues for `bitcoind` and `btclib-node`.
+#
+# `older-core` is ISS 434's: the releases v29.4 and v30.3, informational
+# beside the pinned one, so that CI checks ISS 354's rule (every port
+# passes on every build). Releases do not move, so it also runs on pull
+# requests.
 
 on:
   push:
@@ -117,6 +122,71 @@ jobs:
       # `btclib_node_python` skips with, so it exempts that skip whatever
       # module it happens in, and every other skip still fails the job
       skip-reason-prefix: "no btclib_node importable by "
+
+  older-core:
+    name: Regtest against Core ${{ matrix.version }}
+    # Informational, like `core-master`. A job of its own because
+    # `continue-on-error` is not allowed on a job that calls a reusable
+    # workflow, which `bitcoind` does. Drop a row when Core stops
+    # supporting that release.
+    #
+    # Each sha256 is the one the guix builders Emzy, Sjors and achow101
+    # attested, identical in all three, in bitcoin-core/guix.sigs at
+    # <version>/<builder>/all.SHA256SUMS.
+    if: ${{ !github.event.pull_request.draft && github.event.action != 'closed' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: "29.4"
+            sha256: e15bff6f6d21a315c4af25d2e8ae933a22bd51e924e0e90ab0474e1e11516331
+          - version: "30.3"
+            sha256: 4753cd70416c629a2090503e8545a3c05e94a0f5037f8fb97b4c35c6e1afee0e
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - name: Check out btclib-org/.github's scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: btclib-org/.github
+          ref: main
+          path: standard
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Install bitcoind
+        id: bitcoind
+        env:
+          VERSION: ${{ matrix.version }}
+          SHA256: ${{ matrix.sha256 }}
+        run: |
+          daemon=$(uv run --no-project --python 3.15 \
+            standard/.github/scripts/install_bitcoind.py \
+            "$VERSION" "$SHA256")
+          echo "path=$daemon" >> "$GITHUB_OUTPUT"
+          "$daemon" -version | head -n 1
+      - name: Run the integration tests
+        env:
+          BITCOIND_PATH: ${{ steps.bitcoind.outputs.path }}
+        run: |
+          export TF2_INTEGRATION=1
+          export TF2_BITCOIND="$BITCOIND_PATH"
+          uv run --locked --no-default-groups --group test \
+            pytest tests/integration/*_bitcoind_test.py \
+            --junitxml=integration.xml
+      - name: Fail if the node tests did not run
+        if: ${{ !cancelled() }}
+        run: |
+          uv run --locked --no-default-groups --group test \
+            python .github/scripts/check_node_ran.py integration.xml
 
   btclib-node:
     name: Regtest against btclib-node

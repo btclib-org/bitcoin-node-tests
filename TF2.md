@@ -1032,7 +1032,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_compactblocks.py` (stalling peer) | same | same | pass | pass |
 | `p2p_compactblocks.py` (parallel reconstruction) | same | same | pass | skip |
 | `p2p_compactblocks.py` (high-bandwidth states) | same | same | pass | pass |
-| `p2p_compactblocks.py` (ignored) | same | same | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS btclib-node#1890](https://github.com/btclib-org/btclib-node/issues/1890)) |
+| `p2p_compactblocks.py` (ignored) | same | same | pass, the ignored `cmpctblock` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS btclib-node#1890](https://github.com/btclib-org/btclib-node/issues/1890)) on the build; pass on a build past [ISS btclib-node#1897](https://github.com/btclib-org/btclib-node/issues/1897) |
 | `feature_startupnotify.py` | [`fa71c15f8610`](https://github.com/bitcoin/bitcoin/commit/fa71c15f8610) | 2025-11-26 | pass | skip (startup_notify) |
 | `rpc_dumptxoutset.py` | [`58eeab790d98`](https://github.com/bitcoin/bitcoin/commit/58eeab790d98) | 2026-05-13 | pass, the dump at a forked height asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (dump_utxo_set) |
 | `feature_loadblock.py` | [`fa4fc8c1d7b5`](https://github.com/bitcoin/bitcoin/commit/fa4fc8c1d7b5) | 2026-05-22 | pass | skip (load_block) |
@@ -1070,7 +1070,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_ibd_txrelay.py` (wire) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (clock) |
 | `p2p_ibd_txrelay.py` (log) | same | same | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (clock) |
 | `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (test_activation_height) |
-| `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), the null-data and bare-multisig checks per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | fail ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)) on the build; fail ([ISS btclib-node#1889](https://github.com/btclib-org/btclib-node/issues/1889)) on a build past [ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334) |
+| `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), the null-data and bare-multisig checks per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | fail ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)) on the build; pass on a build past [ISS btclib-node#1889](https://github.com/btclib-org/btclib-node/issues/1889) |
 | `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass; skip (limit_cluster_size) on a build before the cluster mempool | skip (limit_cluster_size) |
 | `feature_minchainwork.py` | [`c502b65c007b`](https://github.com/bitcoin/bitcoin/commit/c502b65c007b) | 2026-10-03 | pass | skip (minimum_chain_work) |
 | `feature_minchainwork.py` (outbound) | same | same | pass | skip |
@@ -1360,8 +1360,7 @@ prose in the later sections.
 - `mempool_accept.py`: Core's claim in full. The release stops at a
   replacement it refuses
   ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)),
-  and `main` at an oversize transaction it cannot decode
-  ([ISS btclib-node#1889](https://github.com/btclib-org/btclib-node/issues/1889)).
+  and `main` passes.
 - `mempool_cluster.py`: Core's claim in full. Skips on `limit_cluster_size`
   ([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383)),
   then asks for `mempool_graph`
@@ -2184,9 +2183,12 @@ high-bandwidth mode.
 
 `btclib-node`'s cell on each log row is a counted skip, and on the
 outbound-`sendcmpct` and parallel-reconstruction rows a counted skip on
-`TYPED_OUTBOUND`. Of the other rows asking for `MINE`, the ignored row fails:
-the node takes a `cmpctblock` from a peer that has sent no `sendcmpct`
-([ISS btclib-node#1890](https://github.com/btclib-org/btclib-node/issues/1890)).
+`TYPED_OUTBOUND`. Of the other rows asking for `MINE`, the ignored row
+fails on the release, which takes a `cmpctblock` from a peer that has sent
+no `sendcmpct`
+([ISS btclib-node#1890](https://github.com/btclib-org/btclib-node/issues/1890)),
+and passes on `main`, past
+[ISS btclib-node#1897](https://github.com/btclib-org/btclib-node/issues/1897).
 The rest pass: receiving a block as a `cmpctblock` and selecting a peer
 for high-bandwidth mode
 ([ISS btclib-node#1321](https://github.com/btclib-org/btclib-node/issues/1321));

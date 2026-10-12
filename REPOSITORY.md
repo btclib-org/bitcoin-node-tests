@@ -238,10 +238,10 @@ JSON
 `main-self-merge` requires a pull request, with the maintainer as the
 only bypass actor and in **`pull_request` mode**, which excuses the
 approving review and nothing else: a direct push to `main` is refused for
-everyone. When the maintainer uses it is [`GOVERNANCE.md`'s *How a
-decision is made*](https://github.com/btclib-org/.github/blob/main/GOVERNANCE.md#how-a-decision-is-made),
-and the commands that land a pull request are `CONTRIBUTING.md`'s
-*Landing it*.
+everyone. btclib-org/.github's
+[`GOVERNANCE.md`](https://github.com/btclib-org/.github/blob/main/GOVERNANCE.md#how-a-decision-is-made),
+*How a decision is made*, says when the maintainer uses it, and the
+commands that land a pull request are `CONTRIBUTING.md`'s *Landing it*.
 
 ```shell
 gh api -X POST repos/btclib-org/bitcoin-node-tests/rulesets --input - <<'JSON'

@@ -102,6 +102,9 @@ nothing.
 | `lint / Dependency review` | `lint.yml`, calling `reusable-lint.yml` |
 | `lint / Sign-off` | `lint.yml`, calling `reusable-lint.yml` |
 
+A merge through the maintainer's bypass waits for none of these checks,
+as `CONTRIBUTING.md`'s *Landing it* says.
+
 A job whose whole body is a call to a reusable workflow contributes no
 name of its own: the context joins the calling job's id to the called
 job's own name, so `docs.yml`'s `docs` job calling a job named `Build the

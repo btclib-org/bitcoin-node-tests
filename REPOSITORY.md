@@ -138,17 +138,17 @@ for Actions — so nothing else can satisfy one.
 
 ## Branch protection
 
-Classic protection carries the required checks with `strict`, one
-approving review, `dismiss_stale_reviews`, linear history, no force
-pushes, no deletions, `required_conversation_resolution`, and
-`enforce_admins` **off**. The whole object is `PUT` once, here, on a
+Classic protection carries the required checks with `strict` off (section 11
+has the ground), one approving review, `dismiss_stale_reviews`, linear
+history, no force pushes, no deletions, `required_conversation_resolution`,
+and `enforce_admins` **off**. The whole object is `PUT` once, here, on a
 branch that has none; every later change `PATCH`es the sub-endpoint it is
 about, a partial `PUT` dropping the rest:
 
 ```shell
 gh api -X PUT repos/btclib-org/bitcoin-node-tests/branches/main/protection \
   --input - <<'JSON'
-{"required_status_checks": {"strict": true, "checks": [
+{"required_status_checks": {"strict": false, "checks": [
    {"context": "test: every job passed", "app_id": 15368},
    {"context": "docs / Build the documentation", "app_id": 15368},
    {"context": "lint / Lint and type-check", "app_id": 15368}]},
@@ -178,12 +178,16 @@ gh api repos/btclib-org/bitcoin-node-tests/branches/main/protection \
          enforce_admins: .enforce_admins.enabled,
          linear: .required_linear_history.enabled,
          conversation: .required_conversation_resolution.enabled}'
+# (Read on 2026-10-13, after strict was turned off.)
 # {"checks":[["test: every job passed",15368],
 #            ["docs / Build the documentation",15368],
-#            ["lint / Lint and type-check",15368]],
+#            ["lint / Lint and type-check",15368],
+#            ["bitcoind / Regtest against Bitcoin Core",15368],
+#            ["lint / Dependency review",15368],
+#            ["lint / Sign-off",15368]],
 #  "conversation":true,"enforce_admins":false,"linear":true,
 #  "reviews":{"dismiss_stale_reviews":true,
-#             "required_approving_review_count":1},"strict":true}
+#             "required_approving_review_count":1},"strict":false}
 ```
 
 `bitcoind / Regtest against Bitcoin Core` joins the required checks once
@@ -195,7 +199,7 @@ sentence above's reason for never repeating the whole `PUT`:
 branch=repos/btclib-org/bitcoin-node-tests/branches/main
 gh api -X PATCH "$branch"/protection/required_status_checks \
   --input - <<'JSON'
-{"strict": true, "checks": [
+{"strict": false, "checks": [
    {"context": "test: every job passed", "app_id": 15368},
    {"context": "docs / Build the documentation", "app_id": 15368},
    {"context": "lint / Lint and type-check", "app_id": 15368},
@@ -210,13 +214,14 @@ Read back:
 ```shell
 gh api "$branch"/protection/required_status_checks \
   --jq '{checks: [.checks[] | [.context, .app_id]], strict}'
+# (Read on 2026-10-13, after strict was turned off.)
 # {"checks":[["test: every job passed",15368],
 #            ["docs / Build the documentation",15368],
 #            ["lint / Lint and type-check",15368],
 #            ["bitcoind / Regtest against Bitcoin Core",15368],
 #            ["lint / Dependency review",15368],
 #            ["lint / Sign-off",15368]],
-#  "strict":true}
+#  "strict":false}
 ```
 
 Three rulesets sit beside it, additive — rules aggregate across rulesets

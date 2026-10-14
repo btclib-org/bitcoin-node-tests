@@ -190,9 +190,8 @@ gh api repos/btclib-org/bitcoin-node-tests/branches/main/protection \
 #             "required_approving_review_count":1},"strict":false}
 ```
 
-`bitcoind / Regtest against Bitcoin Core` joins the required checks once
-`node-integration.yml` carries a `bitcoind` job trusted as a gate. Adding
-a check is a later change, so it goes through the sub-endpoint alone, the
+`bitcoind / Regtest against Bitcoin Core` is a required check, added after
+the rest. A check added later goes through the sub-endpoint alone, the
 sentence above's reason for never repeating the whole `PUT`:
 
 ```shell

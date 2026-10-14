@@ -190,9 +190,10 @@ gh api repos/btclib-org/bitcoin-node-tests/branches/main/protection \
 #             "required_approving_review_count":1},"strict":false}
 ```
 
-`bitcoind / Regtest against Bitcoin Core` is a required check, added after
-the rest. A check added later goes through the sub-endpoint alone, the
-sentence above's reason for never repeating the whole `PUT`:
+`bitcoind / Regtest against Bitcoin Core`, `lint / Dependency review` and
+`lint / Sign-off` were added after the `PUT` above. A check added later
+goes through the sub-endpoint alone, the sentence above's reason for never
+repeating the whole `PUT`:
 
 ```shell
 branch=repos/btclib-org/bitcoin-node-tests/branches/main

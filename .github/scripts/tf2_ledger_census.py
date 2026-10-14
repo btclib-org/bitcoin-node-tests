@@ -33,9 +33,43 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 _GH = shutil.which("gh") or "gh"
+
+# gh's stderr for a server error. A secondary rate limit is not
+# retried: GitHub asks to wait as long as its retry-after header says,
+# which gh's stderr does not carry, or at least a minute.
+_TRANSIENT = re.compile(r"HTTP 5\d\d")
+_ATTEMPTS = 3
+
+
+def _gh_output(*args: str) -> str:
+    """Return the stdout of a `gh` call, printing gh's stderr where it fails.
+
+    A call failing with a server error is made `_ATTEMPTS` times at
+    most, waiting longer before each retry; the last error, or any
+    other, is raised.
+    """
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            return subprocess.run(  # noqa: S603
+                [_GH, *args],
+                capture_output=True,
+                check=True,
+                encoding="utf-8",
+            ).stdout
+        except subprocess.CalledProcessError as error:
+            print(
+                f"gh {' '.join(args)} failed: {error.stderr.strip()}", file=sys.stderr
+            )
+            if attempt == _ATTEMPTS or not _TRANSIENT.search(error.stderr):
+                raise
+            time.sleep(5 * attempt)
+
 
 _UPSTREAM_DIR = "test/functional/test_framework"
 _UPSTREAM_REPO = "bitcoin/bitcoin"
@@ -49,13 +83,7 @@ def _default_branch_tip(repo: str) -> str:
     :param repo: the repository, `owner/name`.
     :returns: the commit sha.
     """
-    result = subprocess.run(  # noqa: S603
-        [_GH, "api", f"repos/{repo}/commits/HEAD", "--jq", ".sha"],
-        capture_output=True,
-        check=True,
-        encoding="utf-8",
-    )
-    return result.stdout.strip()
+    return _gh_output("api", f"repos/{repo}/commits/HEAD", "--jq", ".sha").strip()
 
 
 def upstream_python_files(repo: str, directory: str, sha: str) -> list[str]:
@@ -76,21 +104,16 @@ def upstream_python_files(repo: str, directory: str, sha: str) -> list[str]:
     :returns: each `.py` path under `directory`, relative to it.
     :raises RuntimeError: where the API reports the listing truncated.
     """
-    result = subprocess.run(  # noqa: S603
-        [
-            _GH,
+    tree = json.loads(
+        _gh_output(
             "api",
             "--method",
             "GET",
             f"repos/{repo}/git/trees/{sha}",
             "-f",
             "recursive=1",
-        ],
-        capture_output=True,
-        check=True,
-        encoding="utf-8",
+        )
     )
-    tree = json.loads(result.stdout)
     if tree.get("truncated"):
         msg = (
             f"repos/{repo}/git/trees/{sha}?recursive=1 reports truncated: true --"
@@ -117,9 +140,8 @@ def ledger_entries(ledger_text: str) -> set[str]:
 
 
 def _open_issue_number(title: str) -> str | None:
-    result = subprocess.run(  # noqa: S603
-        [
-            _GH,
+    issues = json.loads(
+        _gh_output(
             "issue",
             "list",
             "--state",
@@ -128,12 +150,8 @@ def _open_issue_number(title: str) -> str | None:
             f'"{title}" in:title',
             "--json",
             "number",
-        ],
-        capture_output=True,
-        check=True,
-        encoding="utf-8",
+        )
     )
-    issues = json.loads(result.stdout)
     return str(issues[0]["number"]) if issues else None
 
 

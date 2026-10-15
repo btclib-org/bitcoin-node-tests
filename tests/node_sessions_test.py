@@ -13,6 +13,7 @@ started. The process `start` spawns is a `MagicMock`, as in `node_test.py`.
 from __future__ import annotations
 
 import json
+import select
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import TYPE_CHECKING, cast, override
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from collections.abc import Set as AbstractSet
     from pathlib import Path
+    from socket import socket
 
     from bitcoin_node_tests.capability import Capability
 
@@ -75,6 +77,12 @@ class _Server(ThreadingHTTPServer):
             self.ended += 1
             self._lock.notify_all()
 
+    @override
+    def shutdown_request(self, request: socket | tuple[bytes, socket]) -> None:
+        # count after the close, not in `finish`, which runs before it
+        super().shutdown_request(request)
+        self.count_ended()
+
     def wait_ended(self, count: int) -> None:
         """Block until `count` connections have ended, or fail."""
         with self._lock:
@@ -95,11 +103,6 @@ class _Handler(BaseHTTPRequestHandler):
     def setup(self) -> None:
         super().setup()
         self._server.count_accepted()
-
-    @override
-    def finish(self) -> None:
-        super().finish()
-        self._server.count_ended()
 
     def do_POST(self) -> None:
         """Answer one JSON-RPC 2.0 request, keeping the connection open."""
@@ -217,6 +220,19 @@ def test_restart_asks_over_a_fresh_connection(
     assert server.accepted == 2
 
 
+def _wait_for_hang_up(adapter: NodeAdapter) -> None:
+    """Block until the client's kept socket sees the server's close, or fail.
+
+    The server having closed does not mean the client has seen it yet. The
+    socket is reached through `NodeAdapter._sessions`,
+    `_ThreadSessions._local` and `SessionTransport._connections`.
+    """
+    session = adapter._sessions._local.session
+    (connection,) = session._connections.values()
+    readable, _, _ = select.select([connection.sock], [], [], _WAIT)
+    assert readable
+
+
 def test_a_connection_the_node_hung_up_on_is_replaced(
     server: _Server, adapter: _HttpAdapter
 ) -> None:
@@ -224,6 +240,7 @@ def test_a_connection_the_node_hung_up_on_is_replaced(
     server.hang_up = True
     assert adapter.rpc.call("getblockcount") == "getblockcount"
     server.wait_ended(1)
+    _wait_for_hang_up(adapter)
     assert adapter.rpc.call("getblockcount") == "getblockcount"
     assert server.accepted == 2
 

@@ -934,7 +934,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_sendtxrcncl.py` (kept, log) | same | same | pass | skip |
 | `feature_reindex.py` (reindex) | [`9e6546c517cd`](https://github.com/bitcoin/bitcoin/commit/9e6546c517cd) | 2026-06-21 | pass | skip (reindex) |
 | `feature_reindex.py` (out of order) | same | same | pass | skip (reindex) |
-| `feature_reindex.py` (interrupted) | same | same | pass, the interruption's log line asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (reindex) |
+| `feature_reindex.py` (interrupted) | same | same | pass | skip (reindex) |
 | `feature_reindex_readonly.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (reindex) |
 | `p2p_feefilter.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | pass |
 | `p2p_feefilter.py` (forcerelay) | same | same | pass | pass |

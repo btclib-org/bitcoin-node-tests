@@ -35,6 +35,14 @@ What differs from Core's file:
   `sync_all` calls are what check that a package replacement reaches a
   peer over p2p; elsewhere Core's file reads nothing from it, the syncs
   its `generate` calls make asserting nothing about a replacement;
+- the basic body's nodes restart with the
+  `-whitelist=noban,in,out@127.0.0.1` that Core's `noban_tx_relay` gives
+  the nodes of the tests that need a quick sync, where the node declares
+  `Capability.PEER_PERMISSIONS`; Core's file does not set it. Without it
+  a node announces to an inbound peer after a Poisson delay averaging
+  Core's `INBOUND_INVENTORY_BROADCAST_INTERVAL`
+  (`src/net_processing.cpp`), so the peer can trail by more than
+  `sync_all`'s default wait, half of what Core's `sync_mempools` waits;
 - Core's `MiniWallet` mines its coins once, for every subtest; here each
   body's own mines, to maturity, the coins that body spends;
 - a block Core's node mines from its own mempool is built here
@@ -116,6 +124,9 @@ _HEAVY_CHILD_MAX_VSIZE = 1000
 # `10000 * DEFAULT_FEE` BTC/kvB, in satoshis per 1000 virtual bytes
 _PARENT_FEE_PER_CONFLICT = 10_000
 _CHILD_FEE_RATE = 10_000 * _DEFAULT_FEE
+
+# what Core's own `noban_tx_relay` starts every node with
+_NOBAN = "-whitelist=noban,in,out@127.0.0.1"
 
 # what Core's own `set_test_params` starts its nodes with, for
 # `fill_mempool`
@@ -261,6 +272,9 @@ def a_child_pays_to_replace_its_parents_conflicts(
         Capability.MINE,
     ):
         require(capability, node.capabilities, skip_counts)
+    if Capability.PEER_PERMISSIONS in node.capabilities:
+        for each in nodes:
+            each.restart([_NOBAN])
     connect_nodes(peer, node)
     packages = _Packages(MiniWallet(node))
     packages.wallet.generate(COINBASE_MATURITY + 1)

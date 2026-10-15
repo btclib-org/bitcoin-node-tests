@@ -109,8 +109,8 @@ against it does not gain the capability.
 arguments", so an instance built against it does not gain the capability.
 
 `BtclibNodeAdapter._command` adds `-v1transport=1` where
-`_accepts_v1transport`'s probe holds: `Peer` speaks v1 only, and
-btclib-node refuses v1 under `-v1transport=0`
+`_accepts_v1transport`'s probe holds: a `Peer` speaks v1 unless asked
+for v2, and btclib-node refuses v1 under `-v1transport=0`
 ([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)).
 A build without the flag, such as the PyPI `2026.9.24`, gets no
 `-v1transport`.
@@ -1026,9 +1026,9 @@ class BtclibNodeAdapter(NodeAdapter):
         (ISS btclib-org/btclib-node#1257).
 
         `-v1transport=1` is added where `_accepts_v1transport` holds,
-        since `Peer` speaks v1 only and btclib-node refuses v1 under
-        `-v1transport=0`; a build without the flag refuses it, so gets
-        nothing.
+        since a `Peer` speaks v1 unless asked for v2 and btclib-node
+        refuses v1 under `-v1transport=0`; a build without the flag
+        refuses it, so gets nothing.
         """
         isolation = [] if self._chain == "regtest" else ["-connect=0", "-listen=1"]
         v1 = ["-v1transport=1"] if _accepts_v1transport(self._executable) else []

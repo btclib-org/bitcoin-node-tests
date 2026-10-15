@@ -36,8 +36,8 @@ day back, and a time read off the wall clock fails.
 
 Core's `test_addpeeraddress` makes its type and range checks on its first
 node and the rest on its second; here one node answers all of them. Its
-`test_service_flags` is a `v1` connection here, `Peer` speaking no other,
-so it asserts the names of a `v1` peer's services.
+`test_service_flags` is a `v1` connection here, so it asserts the names
+of a `v1` peer's services.
 
 Core's blank-address checks differ between builds. In each the step asks
 the build a call that changes nothing and asserts what that build answers:

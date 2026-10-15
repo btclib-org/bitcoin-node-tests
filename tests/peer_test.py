@@ -46,6 +46,12 @@ from btclib.p2p import (
     Version,
     WtxidRelay,
 )
+from btclib.p2p.bip324 import (
+    LENGTH_LEN,
+    MESSAGE_IDS,
+    REKEY_INTERVAL,
+    contents_from_message,
+)
 from btclib.p2p.limits import MAX_LOCATOR_SZ
 
 from bitcoin_node_tests.node import free_port
@@ -885,3 +891,173 @@ def test_listener_timeout_is_scaled_by_the_global_factor() -> None:
             dialler.close()
     finally:
         scaled_listener.close()
+
+
+# BIP324's v2 transport: a dialling `Peer` and the one a `Listener`
+# accepted speak it to each other, one as the initiator and one as the
+# responder, so each side's handshake is the other's test
+
+
+@pytest.fixture
+def v2_pair(listener: Listener) -> Iterator[tuple[Peer, Peer]]:
+    """Yield a v2 `Peer` dialling `listener`, and the v2 `Peer` it accepted."""
+    accepted: list[Peer] = []
+    thread = threading.Thread(
+        target=lambda: accepted.append(listener.accept(supports_v2_p2p=True))
+    )
+    thread.start()
+    dialled = Peer(listener.address, _MAGIC, timeout=5.0, supports_v2_p2p=True)
+    thread.join(timeout=5.0)
+    (responder,) = accepted
+    try:
+        yield dialled, responder
+    finally:
+        dialled.close()
+        responder.close()
+
+
+def test_v2_peers_share_a_session_and_exchange_messages(
+    v2_pair: tuple[Peer, Peer],
+) -> None:
+    """Both sides derive one session, and a message crosses either way."""
+    dialled, accepted = v2_pair
+    assert dialled.supports_v2_p2p
+    assert accepted.supports_v2_p2p
+    assert dialled._cipher is not None
+    assert accepted._cipher is not None
+    assert dialled._cipher.session_id == accepted._cipher.session_id
+    dialled.send(Ping(7))
+    assert Ping.parse(accepted.receive().payload).nonce == 7
+    accepted.send(Pong(7))
+    message = dialled.receive()
+    assert message.command == "pong"
+    assert message.magic == _MAGIC
+
+
+def test_v2_peers_agree_past_a_rekeying(v2_pair: tuple[Peer, Peer]) -> None:
+    """More packets than `REKEY_INTERVAL` decrypt in order."""
+    dialled, accepted = v2_pair
+    for nonce in range(REKEY_INTERVAL + 1):
+        dialled.send(Ping(nonce))
+    for nonce in range(REKEY_INTERVAL + 1):
+        assert Ping.parse(accepted.receive().payload).nonce == nonce
+
+
+def test_a_decoy_is_dropped_by_the_receiving_peer(v2_pair: tuple[Peer, Peer]) -> None:
+    """A packet sent as a decoy is never returned, nor counted."""
+    dialled, accepted = v2_pair
+    dialled.send(Ping(1), is_decoy=True)
+    dialled.send(Ping(2))
+    assert Ping.parse(accepted.receive().payload).nonce == 2
+    assert accepted.message_count == Counter({"ping": 1})
+
+
+def test_a_message_of_an_unknown_short_id_is_dropped(
+    v2_pair: tuple[Peer, Peer],
+) -> None:
+    """A type `message_from_contents` refuses is dropped, and the peer stays."""
+    dialled, accepted = v2_pair
+    assert dialled._cipher is not None
+    dialled.send_raw(dialled._cipher.encrypt(bytes([len(MESSAGE_IDS)]) + b"x"))
+    dialled.send(Ping(3))
+    assert Ping.parse(accepted.receive().payload).nonce == 3
+    assert accepted.message_count == Counter({"ping": 1})
+
+
+def test_a_packet_read_across_two_waits_keeps_its_length(
+    v2_pair: tuple[Peer, Peer],
+) -> None:
+    """The decrypted length outlives a wait that times out before the rest."""
+    dialled, accepted = v2_pair
+    assert dialled._cipher is not None
+    ping = Ping(9).to_message(_MAGIC)
+    packet = dialled._cipher.encrypt(contents_from_message("ping", ping.payload))
+    dialled.send_raw(packet[:LENGTH_LEN])
+    with pytest.raises(TimeoutError):
+        accepted.receive(timeout=0.2)
+    dialled.send_raw(packet[LENGTH_LEN:])
+    assert Ping.parse(accepted.receive().payload).nonce == 9
+
+
+def test_a_v2_listener_peer_takes_a_v1_version_as_v1(listener: Listener) -> None:
+    """A node opening with v1's `version` gets a v1 peer, which answers it."""
+    dialler = _FakeDialler(listener.address)
+    results: dict[str, Peer] = {}
+
+    def accept_and_answer() -> None:
+        peer = listener.accept(supports_v2_p2p=True)
+        results["peer"] = peer
+        peer.handshake()
+
+    thread = threading.Thread(target=accept_and_answer)
+    thread.start()
+    try:
+        assert dialler.open_handshake() == ["version", "wtxidrelay", "verack"]
+        thread.join(timeout=5.0)
+        assert not results["peer"].supports_v2_p2p
+    finally:
+        results["peer"].close()
+        dialler.close()
+
+
+def test_a_v2_peer_dialling_a_v1_node_raises_and_closes(
+    fake_node: _FakeNode, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A node closing on the v2 key fails the dial, and the socket is closed."""
+    created: list[socket.socket] = []
+    create_connection = socket.create_connection
+
+    def recording(*args: object, **kwargs: object) -> socket.socket:
+        connection = create_connection(*args, **kwargs)  # type: ignore[arg-type]
+        created.append(connection)
+        return connection
+
+    monkeypatch.setattr(socket, "create_connection", recording)
+
+    def accept_and_close() -> None:
+        fake_node.accept()
+        fake_node.close()
+
+    thread = threading.Thread(target=accept_and_close)
+    thread.start()
+    with pytest.raises(ConnectionError):
+        Peer(("127.0.0.1", fake_node.port), _MAGIC, timeout=5.0, supports_v2_p2p=True)
+    thread.join(timeout=5.0)
+    (connection,) = created
+    assert connection.fileno() == -1
+
+
+def test_a_v2_peer_refuses_garbage_past_bip324_s_bound(listener: Listener) -> None:
+    """No garbage terminator within BIP324's bound fails the handshake."""
+    dialler = _FakeDialler(listener.address)
+    try:
+        assert dialler._connection is not None
+        # a key -- any 64 octets decode -- then garbage with no terminator
+        dialler._connection.sendall(bytes(64) + bytes(4095 + 16))
+        with pytest.raises(ValueError, match="no garbage terminator"):
+            listener.accept(supports_v2_p2p=True)
+    finally:
+        dialler.close()
+
+
+def test_a_v1_peer_refuses_to_send_a_decoy(fake_node: _FakeNode) -> None:
+    """A decoy is a v2 packet, which a v1 connection has no way to send."""
+    with (
+        _connect_and_accept(fake_node) as peer,
+        pytest.raises(ValueError, match="decoy"),
+    ):
+        peer.send(Ping(1), is_decoy=True)
+
+
+def test_a_v1_peer_refuses_octets_without_its_magic(listener: Listener) -> None:
+    """A v2 key reaching a v1 peer is refused on its first four octets."""
+    dialler = _FakeDialler(listener.address)
+    peer = listener.accept()
+    try:
+        assert dialler._connection is not None
+        dialler._connection.sendall(bytes(64))
+        with pytest.raises(ValueError, match="magic bytes mismatch"):
+            peer.receive()
+    finally:
+        peer.close()
+        dialler.close()

@@ -202,13 +202,12 @@ class Capability(Enum):
     against the pinned `31.1`), so this is what lets a test hold one of
     them back long enough to observe the boundary at all
     ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
-    `V2TRANSPORT` -- accept BIP324 v2 connections *from another node of
-    this kind*, the way Core's own `-v2transport` does: `getpeerinfo`'s
-    `transport_protocol_type` reads `v2` on such a connection. Not a fact
-    about a `Peer` (`peer.py`): that class speaks only the plaintext v1
-    wire format, so this capability is unconditional on node-to-node
-    connections alone -- issue
-    [bitcoin-node-tests#36](https://github.com/btclib-org/bitcoin-node-tests/issues/36).
+    `V2TRANSPORT` -- accept BIP324 v2 connections, the way Core's own
+    `-v2transport` does: `getpeerinfo`'s `transport_protocol_type` reads
+    `v2` on such a connection, from another node of this kind or from a
+    `Peer` (`peer.py`) asked for v2 -- issues
+    [bitcoin-node-tests#36](https://github.com/btclib-org/bitcoin-node-tests/issues/36)
+    and [bitcoin-node-tests#175](https://github.com/btclib-org/bitcoin-node-tests/issues/175).
     `DATACARRIER` -- recognise `-datacarrier` and `-datacarriersize`,
     Core's own pair of relay-policy knobs for an `OP_RETURN` output: the
     first turns its relay on or off, the second bounds how large one may

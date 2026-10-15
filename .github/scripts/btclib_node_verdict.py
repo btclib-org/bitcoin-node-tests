@@ -379,6 +379,10 @@ _ROWS: dict[str, str] = {
     "p2p_add_connections::test_manual_connection_past_the_outbound_capacity": (
         "`p2p_add_connections.py` (`manual`)"
     ),
+    "p2p_v2_encrypted::test_inbound_connections_and_blocks": (
+        "`p2p_v2_encrypted.py` (inbound)"
+    ),
+    "p2p_v2_encrypted::test_outbound_connections": "`p2p_v2_encrypted.py` (outbound)",
     "feature_includeconf::test_includeconf_files_are_read_in_order": (
         "`feature_includeconf.py` (order)"
     ),

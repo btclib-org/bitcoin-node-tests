@@ -274,6 +274,7 @@ scope. What would need a hand-rolled cipher is not: that is tf2's." The
 `ChaCha20Poly1305` for the construction
 ([ISS btclib-org/btclib#2474](https://github.com/btclib-org/btclib/issues/2474),
 landed as PR btclib-org/btclib#2516).
+`peer.py` uses btclib's.
 
 ### `test/functional/test_framework/crypto/chacha20.py`
 
@@ -697,9 +698,10 @@ Verdict: **covered in part**. `EncryptedP2PState`'s keys and packets are
 for the ids both hold. `SHORTID` also holds `feature`, which
 `MESSAGE_IDS` does not: `message_from_contents` raises on its id.
 
-The handshake is tf2's: the keypair and garbage each side sends,
-sending the garbage terminator and finding the peer's (`Cipher` derives
-both), the decoy packets, the version packet and `MAX_GARBAGE_LEN`.
+The handshake is tf2's, and `peer.py`'s `Peer` holds it: the keypair and
+garbage each side sends, sending the garbage terminator and finding the
+peer's (`Cipher` derives both), the decoy packets, the version packet,
+the v1 `version` a responder reads first, and `MAX_GARBAGE_LEN`.
 `bip324.py` leaves them to its caller.
 
 ### `test/functional/test_framework/wallet.py`
@@ -932,6 +934,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_expiry.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mempool_expiry) |
 | `p2p_add_connections.py` | [`4c79f3a34d00`](https://github.com/bitcoin/bitcoin/commit/4c79f3a34d00) | 2026-09-14 | pass | skip (typed_outbound) |
 | `p2p_add_connections.py` (`manual`) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
+| `p2p_v2_encrypted.py` (inbound) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | fail ([ISS btclib-node#1973](https://github.com/btclib-org/btclib-node/issues/1973)) |
+| `p2p_v2_encrypted.py` (outbound) | same | same | pass | skip |
 | `feature_includeconf.py` (order) | [`fa71c15f8610`](https://github.com/bitcoin/bitcoin/commit/fa71c15f8610) | 2025-11-26 | pass | skip (ua_comment) |
 | `feature_includeconf.py` (double negative) | same | same | pass | pass |
 | `feature_includeconf.py` (`-includeconf`) | same | same | pass | pass |
@@ -1336,6 +1340,12 @@ prose in the later sections.
   `p2p_timeouts.py`.
 - `mempool_expiry.py`: Core's claim in full. Skips on `mempool_expiry`: `cli.py`
   registers no `-mempoolexpiry`.
+- `p2p_v2_encrypted.py`: Core's claim, split into an inbound row and an
+  outbound row ([ISS 175](https://github.com/btclib-org/bitcoin-node-tests/issues/175)).
+  The inbound row fails on `getnetworkinfo`'s connection counts, every step
+  before them passing
+  ([ISS btclib-node#1973](https://github.com/btclib-org/btclib-node/issues/1973)).
+  The outbound row skips on `typed_outbound`.
 - `feature_includeconf.py`: a row per refusal of Core's file. The order row
   skips on `ua_comment`; the others run
   ([ISS btclib-node#1116](https://github.com/btclib-org/btclib-node/issues/1116),
@@ -1556,7 +1566,7 @@ the other side
 ([ISS btclib-node#1197](https://github.com/btclib-org/btclib-node/issues/1197)),
 so `connect_nodes` now passes `v2transport` explicitly rather than leaning on a
 fallback, matching Core's own `connect_nodes`'s `peer_advertises_v2` parameter,
-here with a default of `False`, the one wire `Peer` speaks -- a `btclib-node`
+here with a default of `False` -- a `btclib-node`
 build without `-v2transport` reads and type-checks the argument without acting
 on it
 ([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)).
@@ -1565,10 +1575,11 @@ A test whose subject is BIP324 itself, `v2transport_option_test.py`, passes
 before it and passes after, on every `btclib-node` build measured.
 
 This suite runs `btclib-node` with `-v1transport` on wherever the build accepts
-it (`BtclibNodeAdapter._command`, decided by a probe), because `Peer` speaks v1
-only and btclib-node refuses v1 once `-v1transport` is off
+it (`BtclibNodeAdapter._command`, decided by a probe), because a `Peer` speaks
+v1 unless a test asks for v2, and btclib-node refuses v1 once `-v1transport` is
+off
 ([ISS btclib-node#1190](https://github.com/btclib-org/btclib-node/issues/1190)).
-With v1 off the node drops every `Peer` at its first bytes and refuses `addnode`
+With v1 off the node drops a v1 `Peer` at its first bytes and refuses `addnode`
 and `addconnection` with `v2transport` off. A build without the flag gets none.
 
 `rpc_setban.py` is ported, its own rows above. Core's own file restarts a node
@@ -1978,7 +1989,7 @@ its backlog holds the node's connection until `accept` hands it over as
 a `Peer` whose `handshake` answers the node's own `version`, the order
 Core's `P2PInterface.on_version` follows on a connection the test did
 not open. `NodeAdapter.add_outbound_connection` (`node.py`) is Core's
-`addconnection`, `v2transport` off because `Peer` speaks v1 alone, and
+`addconnection`, `v2transport` off as a `Peer` speaks v1 by default, and
 `Capability.TYPED_OUTBOUND` is what a test asks for before calling it.
 `Peer.message_count` is Core's own `message_count`, the tally a port
 reads what the node sent from. `peer_test.py` drives the listener
@@ -2440,11 +2451,11 @@ docstring has what differs from Core's file. The Tor proxy hands the
 first IPv4 address it is asked for to a socket that reads the start of
 what the node sends, and the body waits for a v2 start and then a v1
 one. Core's file answers every other IPv4 connection through the Tor
-proxy in BIP324's v2 transport, which `Peer` does not speak; the body
-closes them instead. It asks for `Capability.PRIVATE_BROADCAST` and the
-capability of every option its node is given but `-test=addrman` and
-`-dnsseed` off. Core's file at the pinned release differs from the pin
-in its factories' signatures alone.
+proxy in BIP324's v2 transport; the body closes them instead, nothing
+Core's file reads being on them. It asks for
+`Capability.PRIVATE_BROADCAST` and the capability of every option its
+node is given but `-test=addrman` and `-dnsseed` off. Core's file at the
+pinned release differs from the pin in its factories' signatures alone.
 `BitcoindAdapter` declares `Capability.PRIVATE_BROADCAST` only where the
 build's `-help` lists `-privatebroadcast` (`bitcoind.py`'s own
 `_has_private_broadcast`), so the private broadcast files are a counted

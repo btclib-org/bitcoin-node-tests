@@ -310,11 +310,9 @@ class BitcoindAdapter(NodeAdapter):
     (measured against `-help`'s own listing) -- node-to-node connections
     already report `transport_protocol_type: v2` in `getpeerinfo` with
     no argument at all, and `-v2transport=0` on either side falls back to
-    `v1`. This is a fact about a connection between two adapters of this
-    kind, not about a `Peer` (`peer.py`): that class speaks only the
-    plaintext v1 wire format, so a `Peer` reaches this node over v1
-    regardless of `-v2transport`, BIP324's own detection accepting a v1
-    handshake from either side.
+    `v1`. A `Peer` (`peer.py`) reaches this node over v1 unless it is
+    asked for v2, BIP324's own detection accepting a v1 handshake from
+    either side.
     `Capability.DATACARRIER`, `Capability.PERMIT_BARE_MULTISIG`,
     `Capability.DUST_RELAY_FEE`, `Capability.BYTES_PER_SIGOP` and
     `Capability.MAXMEMPOOL` are unconditional too: `-datacarrier`,

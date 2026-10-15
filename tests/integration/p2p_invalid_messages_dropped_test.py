@@ -6,8 +6,8 @@
 
 Read from Core's `test/functional/p2p_invalid_messages.py`
 (`3fd68a95e68b`, 2026-04-07)'s own `test_duplicate_version_msg`,
-`test_checksum` and `test_msgtype` (its non-v2 branch, this repository's
-own `Peer` speaking no other): `p2p_invalid_messages_test.py`'s own
+`test_checksum` and `test_msgtype` (its non-v2 branch, the one Core
+takes without `--v2transport`): `p2p_invalid_messages_test.py`'s own
 docstring is where the other shape, a header `V1Transport::readHeader`
 refuses outright, is argued -- these three instead reach
 `V1Transport::GetReceivedMessage` (`src/net.cpp`), which sets

@@ -8,41 +8,9 @@
 against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220); its own docstring is where the wire fact each of these
 three asks for -- the connection survives a malformed message rather than being
-dropped -- is argued. PyPI's `2026.9.24` does not keep it: every one of the
-three reaches `P2pManager.discourage` and a `stop()`, one layer or another,
-where Core only logs and continues. `main` keeps it for all three.
+dropped -- is argued. PyPI's `2026.10.8` and `main` keep it on all three.
 
-`test_wrong_checksum_keeps_the_connection` and
-`test_invalid_msgtype_keeps_the_connection` are one mechanism on the released
-build, measured live: `Connection.run`'s own `except Exception` around
-`parse_messages` (`connection.py`) discourages and stops on *any*
-`BTClibException` out of `frame_message`, and
-`btclib.p2p.message._command_from_bytes` raises one for an invalid command
-exactly the way `Message.parse`'s own checksum check does -- so a bad checksum
-and an invalid message type take the same branch to the same outcome. [ISS
-btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130) names
-the checksum case; this reproduces both by the same measurement, no second issue
-needed for the second branch of one handler.
-
-`test_duplicate_version_keeps_the_connection` is a different mechanism there:
-`handle_p2p_handshake`'s own dispatch (`p2p/main.py`) discourages and stops a
-`version`/`verack`/`wtxidrelay`/`sendaddrv2` that arrives once the
-connection is already `Connected`, before the `version` callback's own
-"if `conn.version_message` is not `None`: return" guard is ever reached
--- the guard is live only for a repeat sent ahead of this node's own
-`verack`, not after it, which is where Core's own test and this one send
-theirs.
-[ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)
-names it.
-
-Each `*_keeps_the_connection` test below runs the body its bitcoind
-counterpart runs, and is expected to fail on the released build rather than
-to pass or to skip -- neither an `xfail` nor a `pytest.skip.Exception` -- so
-this keeps reproducing the two issues above rather than hiding them, the
-same convention `p2p_invalid_messages_misbehaving_btclib_node_test.py`
-already holds for [ISS
-btclib-node#1145](https://github.com/btclib-org/btclib-node/issues/1145).
-`TF2.md`'s per-test table carries the verdict these three failures are.
+`TF2.md`'s per-test table carries each test's verdict.
 
 The log half is not reached by any of this: this node's own `Logger`
 (`log.py`) writes English, not Core's, so `Capability.DEBUG_LOG` is not
@@ -78,7 +46,7 @@ pytestmark = pytest.mark.integration
 def test_duplicate_version_keeps_the_connection(
     btclib_node_adapter: BtclibNodeAdapter,
 ) -> None:
-    """The target: fails on the released build (ISS btclib-node#1133)."""
+    """The target: the wire half the body module names, over btclib-node."""
     duplicate_version_keeps_the_connection(btclib_node_adapter)
 
 
@@ -92,7 +60,7 @@ def test_duplicate_version_is_logged(
 def test_wrong_checksum_keeps_the_connection(
     btclib_node_adapter: BtclibNodeAdapter,
 ) -> None:
-    """The target: fails on the released build (ISS btclib-node#1130)."""
+    """The target: the wire half the body module names, over btclib-node."""
     wrong_checksum_keeps_the_connection(btclib_node_adapter)
 
 
@@ -106,7 +74,7 @@ def test_wrong_checksum_is_logged(
 def test_invalid_msgtype_keeps_the_connection(
     btclib_node_adapter: BtclibNodeAdapter,
 ) -> None:
-    """The target: fails on the released build, as ISS btclib-node#1130."""
+    """The target: the wire half the body module names, over btclib-node."""
     invalid_msgtype_keeps_the_connection(btclib_node_adapter)
 
 

@@ -731,6 +731,7 @@ class BitcoindAdapter(NodeAdapter):
             "-debug=validation",
             "-debug=i2p",
             "-debug=mempoolrej",
+            "-debug=http",
             *isolation,
         ]
 

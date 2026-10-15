@@ -348,6 +348,7 @@ def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:
     assert "-debug=validation" in command
     assert "-debug=i2p" in command
     assert "-debug=mempoolrej" in command
+    assert "-debug=http" in command
     assert "-debug=privatebroadcast" not in command
 
 

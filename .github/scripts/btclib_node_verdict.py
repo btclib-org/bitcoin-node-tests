@@ -163,6 +163,12 @@ _ROWS: dict[str, str] = {
     "p2p_invalid_messages_misbehaving::test_invalid_pow_header_is_logged": (
         "`p2p_invalid_messages.py` (invalid pow, log)"
     ),
+    "p2p_invalid_messages_misbehaving::test_noncontinuous_headers_disconnects_the_peer": (
+        "`p2p_invalid_messages.py` (noncontinuous, wire)"
+    ),
+    "p2p_invalid_messages_misbehaving::test_noncontinuous_headers_is_logged": (
+        "`p2p_invalid_messages.py` (noncontinuous, log)"
+    ),
     "p2p_invalid_messages_dropped::test_duplicate_version_keeps_the_connection": (
         "`p2p_invalid_messages.py` (dup version, wire)"
     ),
@@ -863,6 +869,18 @@ _ROWS: dict[str, str] = {
     ),
     "feature_config_args::test_private_broadcast_is_refused_without_a_proxy_and_warns_without_randomizing": (
         "`feature_config_args.py` (`-privatebroadcast`)"
+    ),
+    "p2p_nobloomfilter_messages::test_filtered_block_request_disconnects_the_peer": (
+        "`p2p_nobloomfilter_messages.py` (filtered block, wire)"
+    ),
+    "p2p_nobloomfilter_messages::test_filtered_block_request_is_logged": (
+        "`p2p_nobloomfilter_messages.py` (filtered block, log)"
+    ),
+    "interface_http::test_excessive_request_size_is_refused": (
+        "`interface_http.py` (excessive request size, wire)"
+    ),
+    "interface_http::test_excessive_request_size_is_logged": (
+        "`interface_http.py` (excessive request size, log)"
     ),
 }
 

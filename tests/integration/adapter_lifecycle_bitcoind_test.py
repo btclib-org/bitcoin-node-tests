@@ -4,12 +4,9 @@
 
 """`NodeAdapter`'s own lifecycle against a real node: bitcoind.
 
-What `tests/node_test.py` and `tests/bitcoind_test.py` fake, run against
-the process itself. `adapter_lifecycle_test.py` beside this module is the
-body of `stop` reporting a node killed out from under the adapter
-([ISS 84](https://github.com/btclib-org/bitcoin-node-tests/issues/84))
-and of `mine` extending the tip, run here against bitcoind, the oracle.
-The scenarios about bitcoind and its adapter stay here:
+`adapter_lifecycle_test.py` beside this module is the body, run here
+against bitcoind, the oracle. The scenarios about bitcoind and its adapter
+stay here:
 `mine` after a `restart` and over a datadir an earlier adapter left,
 both about the wallet `BitcoindAdapter.mine` pays to
 ([ISS 86](https://github.com/btclib-org/bitcoin-node-tests/issues/86)),

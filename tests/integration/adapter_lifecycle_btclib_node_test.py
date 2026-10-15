@@ -4,15 +4,9 @@
 
 """`NodeAdapter`'s own lifecycle against a real node: btclib-node.
 
-`adapter_lifecycle_test.py` beside this module is the body of `stop`
-reporting a node killed out from under the adapter
-([ISS 84](https://github.com/btclib-org/bitcoin-node-tests/issues/84))
-and of `mine` extending the tip
-([ISS 56](https://github.com/btclib-org/bitcoin-node-tests/issues/56)),
-run here against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `mine` is a counted skip on `Capability.MINE`
-for a build that does not declare it.
-
+`adapter_lifecycle_test.py` beside this module is the body, run here
+against the target rather than the oracle (rule 3 of issue
+btclib-org/btclib#2220).
 `adapter_lifecycle_bitcoind_test.py` keeps the scenarios about bitcoind's
 wallet and its server timeout; its docstring lists them.
 

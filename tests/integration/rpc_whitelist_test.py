@@ -23,9 +23,10 @@ below is generated the way Core's own `share/rpcauth/rpcauth.py`
 generates one (`salt$hmac_sha256(salt, password)`), read from that
 script rather than run: this repository ships no copy of it.
 
-`Capability.RPC_AUTH_CONFIG` is asked before `bitcoin.conf` is written:
-constructing an adapter spawns nothing, and `btclib_node.py`'s own
-docstring is where that capability's per-executable probe is argued.
+`Capability.RPC_AUTH_CONFIG` is asked before `bitcoin.conf` is written,
+so a build without it skips before the data directory exists.
+`btclib_node.py`'s own docstring is where that capability's
+per-executable probe is argued.
 
 `rpc_whitelist_bitcoind_test.py` and `rpc_whitelist_btclib_node_test.py`
 run it, `tests/integration/conftest.py`'s own module docstring having how.

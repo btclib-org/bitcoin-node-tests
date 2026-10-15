@@ -71,7 +71,9 @@ debug log for details.`, the whole text Core's `rpc_users.py` compares,
 anchored past `_wait_for_rpc`'s own `stderr: ` (`node.py`) and at the
 message's end, so that a stderr carrying anything beside the refusal
 fails it. Every one of the malformed values refuses with that generic
-init error on both nodes, as does a cookie the node cannot write:
+init error on bitcoind and on btclib-node from
+[PR btclib-node#1319](https://github.com/btclib-org/btclib-node/pull/1319)
+(release `v2026.10.4`) on, as does a cookie the node cannot write:
 `__init__.py`'s own `RPC_INIT_ERROR` in btclib-node is that string
 verbatim, raised whenever `rpc_manager.start_listener()` fails for any
 reason, cookie generation included.
@@ -122,7 +124,7 @@ __all__ = [
 # flag with no value at all, dropped: it exercises `argparse`'s own
 # "expected one argument" on btclib-node rather than
 # `Capability.RPC_AUTH_CONFIG`'s own credential parsing, which the
-# other seven already cover between them. `-rpcauth=""` reaches each
+# other values already cover between them. `-rpcauth=""` reaches each
 # node's own argv as the two literal quote characters -- this harness
 # passes `extra_args` straight to `subprocess.Popen`, with no shell in
 # between to unquote them -- rather than as an empty string; refused all

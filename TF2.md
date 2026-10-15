@@ -1009,7 +1009,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_orphan_handling.py` (prefer outbound) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (announcers) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (parents change) | same | same | pass | skip |
-| `p2p_orphan_handling.py` (maximal package) | same | same | pass | skip |
+| `p2p_orphan_handling.py` (maximal package) | same | same | pass, a connection per call on a libevent build ([ISS 461](https://github.com/btclib-org/bitcoin-node-tests/issues/461)) | skip |
 | `p2p_compactblocks.py` (sendcmpct) | [`28641fd195db`](https://github.com/bitcoin/bitcoin/commit/28641fd195db) | 2026-07-31 | pass | pass |
 | `p2p_compactblocks.py` (construction) | same | same | pass | pass |
 | `p2p_compactblocks.py` (requests) | same | same | pass | pass |

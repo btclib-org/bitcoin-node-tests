@@ -103,7 +103,11 @@ What differs from Core's file besides:
   past the delay a parent's request waits. The refused parent's check
   reads the latest `getdata` its peer had, which names the child: that
   peer was asked for the parent when it relayed it, under the wtxid that
-  is also its txid.
+  is also its txid;
+- the maximal-package check asks `testmempoolaccept` about each large
+  orphan over a connection of its own per call where the node serves
+  HTTP through libevent (`rpc_echo_payload_test.py`'s module
+  docstring has why); Core's keeps one connection.
 
 An orphan is taken into the mempool once a block confirms its parent
 past the pinned release, from
@@ -157,6 +161,10 @@ from tests.integration.p2pk_coins_test import (
     p2pk_new_utxo,
     p2pk_self_transfer,
     p2pk_self_transfer_multi,
+)
+from tests.integration.rpc_echo_payload_test import (
+    client_per_call,
+    serves_through_libevent,
 )
 from tests.integration.rpc_orphans_test import in_orphanage
 
@@ -1082,9 +1090,10 @@ def a_maximal_ancestor_package_is_protected_in_the_orphanage(
     wallet, clock = _wallet(node, 1)
     large_orphans = [_large_orphan() for _ in range(_LARGE_ORPHANS)]
 
+    rpc = client_per_call(node) if serves_through_libevent(node) else node.rpc
     # each is an orphan, and within the standard size an orphan is kept at
     for large_orphan in large_orphans:
-        (result,) = node.rpc.call(
+        (result,) = rpc.call(
             "testmempoolaccept", [[large_orphan.serialize(True).hex()]]
         )
         assert not result["allowed"]

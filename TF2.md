@@ -259,12 +259,21 @@ commit  fa5f29774872d18febc0df38831a6e45f3de69cc  2025-12-16
 behind  0 revisions; that commit is the tip of the path
 ```
 
-Verdict: **tf2's by decision**.
+Verdict: **covered in part**. `p2p/bip324.py`: `FSChaCha20Poly1305` is
+Core's class of that name, rekeying every `REKEY_INTERVAL` packets, and
+`Cipher.encrypt` and `Cipher.decrypt` run it over a packet.
+btclib's `tests/p2p/bip324_test.py` drives it with BIP324's packet
+vectors. The module needs btclib's `bip324` extra.
+
+What Core writes out by hand -- `pad16` and
+`aead_chacha20_poly1305_encrypt` and `_decrypt` -- is not btclib's.
 [ISS 1066](https://github.com/btclib-org/btclib/issues/1066) drew the
-line: what btclib builds out of the standard library is in, and a
-hand-rolled cipher is not. BIP324's v2 transport is tf2's to hold, with
-its own cipher, as Core holds its own (rule 6 of
-[ISS btclib-org/btclib#2220](https://github.com/btclib-org/btclib/issues/2220)).
+line: "What btclib can build out of the Python standard library is in
+scope. What would need a hand-rolled cipher is not: that is tf2's." The
+`bip324` extra brings in `cryptography`, and `bip324.py` uses its
+`ChaCha20Poly1305` for the construction
+([ISS btclib-org/btclib#2474](https://github.com/btclib-org/btclib/issues/2474),
+landed as PR btclib-org/btclib#2516).
 
 ### `test/functional/test_framework/crypto/chacha20.py`
 
@@ -275,10 +284,14 @@ commit  fa5f29774872d18febc0df38831a6e45f3de69cc  2025-12-16
 behind  0 revisions; that commit is the tip of the path
 ```
 
-Verdict: **tf2's by decision**. ISS btclib-org/btclib#1066, the same line.
-`muhash.py` carries a private `_chacha20_block` because `MuHash3072`'s
-element hash is a keyed ChaCha20 keystream and nothing else in btclib
-needs one; its `__all__` publishes `MuHash3072` alone.
+Verdict: **covered in part**. `p2p/bip324.py`: `FSChaCha20` is Core's
+class of that name, the cipher of the packet lengths, over
+`cryptography`'s ChaCha20, and `bip324_test.py` drives it with BIP324's
+packet vectors. `chacha20_block`, `chacha20_doubleround` and `rotl32`
+are the hand-written cipher that ISS btclib-org/btclib#1066 keeps out of
+btclib. `muhash.py` carries a private `_chacha20_block` because
+`MuHash3072`'s element hash is a keyed ChaCha20 keystream and nothing
+else in btclib needs one; its `__all__` publishes `MuHash3072` alone.
 
 ### `test/functional/test_framework/crypto/ellswift.py`
 
@@ -289,10 +302,13 @@ commit  3fd68a95e68b4c6f3bb6c59d41dd196001110f3a  2026-04-07
 behind  0 revisions; that commit is the tip of the path
 ```
 
-Verdict: **covered**. `ecc/ellswift.py`: `create_var` for
-`ellswift_create`, `encode_var` for `xelligatorswift`, `decode_var` for
-`xswiftec`, and `xdh` for `ellswift_ecdh_xonly`, over `_xswiftec_var`
-and `_xswiftec_inv_var`.
+Verdict: **covered**. `btclib_ecc`'s `ecc/ellswift.py`: `create_var` for
+`ellswift_create`, `encode_var` for `xelligatorswift` and `decode_var`
+for `xswiftec`, over `_xswiftec_var` and `_xswiftec_inv_var`.
+`ellswift_ecdh_xonly` returns the bare x-coordinate of the shared point:
+it is `decode_var` and a point multiplication, a composition of tf2's
+from parts btclib already has. btclib's `xdh` is the tagged hash that
+`v2_p2p.py`'s `v2_ecdh` takes of both encodings and that x-coordinate.
 
 ### `test/functional/test_framework/crypto/hkdf.py`
 
@@ -334,7 +350,10 @@ behind  0 revisions; that commit is the tip of the path
 
 Verdict: **tf2's by decision**. ISS btclib-org/btclib#1066, the same
 line: an authenticator written out by hand is what that issue put on
-tf2's side.
+tf2's side. btclib publishes no Poly1305 of its own.
+`bip324_cipher.py` imports `Poly1305` for its hand-written AEAD, which
+`bip324.FSChaCha20Poly1305` replaces, so a test that wants a packet's
+tag asks that class and not this file.
 
 ### `test/functional/test_framework/crypto/ripemd160.py`
 
@@ -487,7 +506,7 @@ wallet to that node, and BIP157 is what replaced them.
 ```text
 repo    bitcoin/bitcoin
 path    test/functional/test_framework/netutil.py
-commit  59ebf558f3458bbc9038c7bf2958f2f224485ee1  2026-09-02
+commit  0cd0789c86b39ba0ae4670068d5be351cdcf92ae  2026-10-06
 behind  0 revisions; that commit is the tip of the path
 ```
 
@@ -499,7 +518,7 @@ tables. `btclib` imports `socket` nowhere.
 ```text
 repo    bitcoin/bitcoin
 path    test/functional/test_framework/p2p.py
-commit  e4d80e7001e9996a2836225f45a905dd16ffc777  2026-08-18
+commit  8dc80cafa2ee5932c9ff499c02d6ab8e3cf2f5ef  2026-10-08
 behind  0 revisions; that commit is the tip of the path
 ```
 
@@ -612,7 +631,7 @@ repository's.
 ```text
 repo    bitcoin/bitcoin
 path    test/functional/test_framework/test_framework.py
-commit  3cb91bc7da67158fe6dc79886239f867245f1158  2026-10-06
+commit  fa4308dfbf3a59f95deac382fa955570f814e8ca  2026-10-12
 behind  0 revisions; that commit is the tip of the path
 ```
 
@@ -624,7 +643,7 @@ derives from.
 ```text
 repo    bitcoin/bitcoin
 path    test/functional/test_framework/test_node.py
-commit  a4bc96966faa9efcd7b387907d51b4ac53f7039d  2026-09-29
+commit  fa4308dfbf3a59f95deac382fa955570f814e8ca  2026-10-12
 behind  0 revisions; that commit is the tip of the path
 ```
 
@@ -647,7 +666,7 @@ Verdict: **tf2's (harness)**. The framework driven from a python shell.
 ```text
 repo    bitcoin/bitcoin
 path    test/functional/test_framework/util.py
-commit  a4bc96966faa9efcd7b387907d51b4ac53f7039d  2026-09-29
+commit  8dc80cafa2ee5932c9ff499c02d6ab8e3cf2f5ef  2026-10-08
 behind  0 revisions; that commit is the tip of the path
 ```
 
@@ -668,9 +687,20 @@ commit  6a129983c9bf8efa1081f9a8b462c3635d1cfb39  2026-06-04
 behind  0 revisions; that commit is the tip of the path
 ```
 
-Verdict: **tf2's by decision**. ISS btclib-org/btclib#1066 put BIP324's
-transport on tf2's side. Its non-cipher halves are btclib's:
-`ecc/ellswift.py` is the key exchange and `kdf.hkdf` the key schedule.
+Verdict: **covered in part**. `EncryptedP2PState`'s keys and packets are
+`p2p/bip324.py`'s `Cipher`. Its constructor is `v2_ecdh`
+(`ecc/ellswift.py`'s `xdh`) followed by `initialize_v2_transport`
+(`kdf.hkdf_extract` and `kdf.hkdf_expand`). `v2_enc_packet` and
+`v2_receive_packet` are `Cipher.encrypt`, `Cipher.decrypt_length` and
+`Cipher.decrypt`. `SHORTID` and `MSGTYPE_TO_SHORTID` are
+`MESSAGE_IDS`, with `contents_from_message` and `message_from_contents`,
+for the ids both hold. `SHORTID` also holds `feature`, which
+`MESSAGE_IDS` does not: `message_from_contents` raises on its id.
+
+The handshake is tf2's: the keypair and garbage each side sends,
+sending the garbage terminator and finding the peer's (`Cipher` derives
+both), the decoy packets, the version packet and `MAX_GARBAGE_LEN`.
+`bip324.py` leaves them to its caller.
 
 ### `test/functional/test_framework/wallet.py`
 

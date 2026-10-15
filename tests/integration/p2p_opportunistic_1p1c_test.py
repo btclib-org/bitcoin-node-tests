@@ -89,7 +89,11 @@ What differs from Core's file besides:
 - Core's `RAW_P2PK` wallet signs a transaction's first input alone,
   drawing signatures until the scriptSig is of one fixed length; here
   every input is signed, under btclib's deterministic nonce, whatever
-  the length.
+  the length;
+- the large-orphans check asks `testmempoolaccept` about each large
+  orphan over a connection of its own per call where the node serves
+  HTTP through libevent (`rpc_echo_payload_test.py`'s module
+  docstring has why); Core's keeps one connection.
 
 Core's node starts with `-inboundrelaypercent=100` besides, an option
 bitcoin/bitcoin@0bd3d3dfa562724e3dbc4cec2d4290e4561655cd adds and
@@ -164,6 +168,10 @@ from tests.integration.p2pk_coins_test import (
     p2pk_new_utxo,
     p2pk_self_transfer,
     p2pk_tx,
+)
+from tests.integration.rpc_echo_payload_test import (
+    client_per_call,
+    serves_through_libevent,
 )
 from tests.integration.script_verify_flag_test import bitcoind_version
 
@@ -927,12 +935,13 @@ def an_orphan_outlives_large_orphans_from_other_peers(
     clock = Clock(node)
     large_orphans = [_large_orphan() for _ in range(_LARGE_ORPHANS)]
 
+    rpc = client_per_call(node) if serves_through_libevent(node) else node.rpc
     # each is an orphan, and within the standard size an orphan is kept at
     for large_orphan in large_orphans:
         assert large_orphan.vsize <= _LARGE_VSIZE
         assert large_orphan.weight < _MAX_STANDARD_TX_WEIGHT
         assert 3 * large_orphan.vsize >= 2 * _LARGE_VSIZE
-        (result,) = node.rpc.call(
+        (result,) = rpc.call(
             "testmempoolaccept", [[large_orphan.serialize(True).hex()]]
         )
         assert not result["allowed"]

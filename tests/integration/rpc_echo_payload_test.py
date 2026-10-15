@@ -64,7 +64,11 @@ if TYPE_CHECKING:
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
-__all__ = ["a_payload_is_answered_or_refused_never_left_to_time_out"]
+__all__ = [
+    "a_payload_is_answered_or_refused_never_left_to_time_out",
+    "client_per_call",
+    "serves_through_libevent",
+]
 
 # Core's own `set_test_params`: enough callers to fill both worker threads
 # and the queue behind them
@@ -78,7 +82,7 @@ _DECODE_FAILED = "TX decode failed. Make sure the tx has at least one input."
 _SERVICE_UNAVAILABLE = 503
 
 
-def _serves_through_libevent(node: NodeAdapter) -> bool:
+def serves_through_libevent(node: NodeAdapter) -> bool:
     """Whether `node` is a bitcoind listing the `libevent` log category.
 
     `logging` lists every category; a build past bitcoin/bitcoin#35597,
@@ -92,7 +96,7 @@ def _serves_through_libevent(node: NodeAdapter) -> bool:
     return "libevent" in categories
 
 
-def _client_per_call(node: NodeAdapter) -> BitcoinCoreRpcClient:
+def client_per_call(node: NodeAdapter) -> BitcoinCoreRpcClient:
     """Return `node`'s client over a connection of its own for each call.
 
     Covers a node authenticating by its cookie, as the cluster's are, and
@@ -139,11 +143,11 @@ def a_payload_is_answered_or_refused_never_left_to_time_out(
     node.restart(["-rpcworkqueue=2", "-rpcthreads=2"])
     # json-serializable, but not hex
     data = "z" + random.randbytes(1_999_000).hex()
-    per_call = _serves_through_libevent(node)
+    per_call = serves_through_libevent(node)
     with ThreadPoolExecutor(max_workers=_CALLERS) as callers:
         futures = [
             callers.submit(
-                _call_repeatedly, _client_per_call(node) if per_call else node.rpc, data
+                _call_repeatedly, client_per_call(node) if per_call else node.rpc, data
             )
             for _ in range(_CALLERS)
         ]

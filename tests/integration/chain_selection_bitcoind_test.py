@@ -4,26 +4,24 @@
 
 """`NodeAdapter`'s own `chain`, against a real node: bitcoind.
 
-[ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63):
-a node started on each chain `BitcoindAdapter.chains` names answers
-`getblockchaininfo` with that chain, writes its cookie and its log where
-the adapter reads them, accepts a connection on its p2p port, and holds
-no peer -- `_command`'s own
-`-connect=0`, `-dnsseed=0` and `-fixedseeds=0` being what keeps any chain
-but regtest off the real network.
+`chain_selection_test.py` beside this module is the body, run here
+against bitcoind, the oracle, once for each chain
+`BitcoindAdapter.chains` names
+([ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63)).
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """
 
 from __future__ import annotations
 
-import socket
 from typing import TYPE_CHECKING
 
 import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.node import free_ports
+from tests.integration.chain_selection_test import (
+    node_starts_on_the_chain_it_is_given,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -37,22 +35,7 @@ pytestmark = pytest.mark.integration
 def test_node_starts_on_the_chain_it_is_given(
     make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path, chain: str
 ) -> None:
-    """`getblockchaininfo`'s `chain` is the one the adapter was built with."""
-    rpc_port, p2p_port = free_ports(2)
-    adapter = make_adapter(
-        BitcoindAdapter,
-        bitcoind_path,
-        tmp_path / "node",
-        rpc_port,
-        p2p_port,
-        chain=chain,
+    """The oracle: the chain the adapter was built with, over bitcoind."""
+    node_starts_on_the_chain_it_is_given(
+        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path, chain
     )
-    adapter.start()
-    try:
-        assert adapter.rpc.call("getblockchaininfo")["chain"] == chain
-        assert adapter.rpc.call("getpeerinfo") == []
-        assert adapter.debug_log_path.exists()
-        with socket.create_connection(adapter.p2p_address, timeout=10):
-            pass
-    finally:
-        adapter.stop()

@@ -13,8 +13,8 @@ module was written.
 The measurements below are as of the PyPI release `2026.9.24`.
 
 `Capability.MINE` is declared per instance, by `_connects_alone`'s
-own probe. `mine` below builds and solves each block client-side and
-hands it to `submitblock`, and a node with no peer never leaves
+own probe. `mine` (`NodeAdapter.mine`) builds and solves each block
+client-side and hands it to `submitblock`, and a node with no peer never leaves
 `NodeStatus.SyncingHeaders`, so what decides is whether the build's own
 `main.update_chain` connects a block at that status: `main` from
 btclib-node PR 1152 (`84277406`) on, the fix
@@ -431,8 +431,7 @@ from typing import TYPE_CHECKING, override
 from bitcoin_core_rpc import BitcoinCoreRpcClient
 
 from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import NodeAdapter, wait_until
+from bitcoin_node_tests.node import NodeAdapter
 from bitcoin_node_tests.timeout_factor import rpc_client_timeout
 
 if TYPE_CHECKING:
@@ -979,31 +978,6 @@ class BtclibNodeAdapter(NodeAdapter):
         if probed:
             self.capabilities = type(self).capabilities | probed
 
-    def mine(self, count: int = 1) -> list[str]:
-        """Mine `count` blocks client-side, return their hashes once connected.
-
-        `MiniWallet.generate` (`mini_wallet.py`) builds, solves and submits
-        each block, extending whatever tip the node answers now, and pays
-        its coinbase to that class's own anyone-can-spend script: a caller
-        that means to spend what it mines holds a `MiniWallet` of its own
-        instead. `submitblock` answering `None` says the block was stored,
-        not that it became the tip: connecting it is `main.update_chain`'s
-        job rather than `rpc/callbacks.py`'s own `submit_block`, so this
-        polls `getbestblockhash` until it names the last block, where
-        `BitcoindAdapter.mine`'s own `generatetoaddress` answers only once
-        connected.
-
-        :param count: how many blocks to mine.
-        :returns: the mined blocks' own hashes, oldest first, the shape of
-            `BitcoindAdapter.mine`'s own.
-        :raises TimeoutError: the node stored the last block and never made
-            it its tip.
-        """
-        hashes = [block_hash.hex() for block_hash in MiniWallet(self).generate(count)]
-        if hashes:
-            wait_until(lambda: self.rpc.call("getbestblockhash") == hashes[-1])
-        return hashes
-
     @override
     def _command(self) -> list[str]:
         """Return btclib-node's own argv, over `python -m btclib_node`.
@@ -1112,5 +1086,5 @@ class BtclibNodeAdapter(NodeAdapter):
 
     @override
     def _log_path(self) -> Path:
-        """Return `log_path`, for `start`'s own `TimeoutError`."""
+        """Return `log_path`, for `start`'s own errors."""
         return self.log_path

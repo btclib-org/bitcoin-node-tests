@@ -808,7 +808,7 @@ class BitcoindAdapter(NodeAdapter):
 
     @override
     def _log_path(self) -> Path:
-        """Return `debug_log_path`, for `start`'s own `TimeoutError`."""
+        """Return `debug_log_path`, for `start`'s own errors."""
         return self.debug_log_path
 
     def _load_miner_wallet(self) -> None:
@@ -830,6 +830,7 @@ class BitcoindAdapter(NodeAdapter):
         method = "loadwallet" if _MINER_WALLET in names else "createwallet"
         self.rpc.call(method, [_MINER_WALLET])
 
+    @override
     def mine(self, count: int = 1) -> list[str]:
         """Mine `count` blocks to this adapter's wallet, return their hashes.
 

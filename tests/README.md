@@ -67,8 +67,8 @@ way, that gate being the lint gate's and not a pytest one.
 
 The import graph, the calling convention and input validation are each a
 generic walk over the public surface, and this step does not build one:
-`node_test.py`, `bitcoind_test.py`, `btclib_node_test.py` and
-`peer_test.py` hold each function to what it does by hand rather than to
+`node_test.py`, `bitcoind_test.py`, `btclib_node_test.py`, `btcd_test.py`
+and `peer_test.py` hold each function to what it does by hand rather than to
 a rule a walk would enforce over every one of them at once, which is
 what a repository electing one of these conventions buys over the
 per-function tests this step already has.

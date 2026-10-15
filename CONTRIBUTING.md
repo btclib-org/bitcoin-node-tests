@@ -288,11 +288,11 @@ and no alias layer (rule 2).
 
 ### The public surface
 
-The adapter under `src/bitcoin_node_tests/` -- `bitcoind`, `btclib_node`,
-`capability`, `debug_log`, `feature_block`, `mempool_util`, `mini_wallet`,
-`node`, `peer`, `socks5`, `timeout_factor` -- is each its own submodule
-with its own `__all__`, and `docs/source/bitcoin_node_tests.rst` gives each an
-`automodule` section of its own. The package root re-exports none of
+The adapter under `src/bitcoin_node_tests/` -- `bitcoind`, `btcd`,
+`btclib_node`, `capability`, `debug_log`, `feature_block`, `mempool_util`,
+`mini_wallet`, `node`, `peer`, `socks5`, `timeout_factor` -- is each its own
+submodule with its own `__all__`, and `docs/source/bitcoin_node_tests.rst`
+gives each an `automodule` section of its own. The package root re-exports none of
 them and keeps an empty `__all__` by decision, a caller importing the
 submodule it needs instead. **Every module and every package declares `__all__`**,
 at every depth of the tree, and `tests/all_test.py` is the census.
@@ -311,12 +311,13 @@ is the one part of the tree that does, gated on `TF2_INTEGRATION` and
 skipping itself without it, matching the switch btclib's own
 `tests/integration/` carries -- named `TF2_INTEGRATION` here rather than
 `BTCLIB_INTEGRATION`, tf2 being this repository's own label.
-`TF2_BITCOIND` and `TF2_BTCLIB_NODE_PYTHON` name the two nodes:
-a `bitcoind` on `PATH` or named directly, and the interpreter
+`TF2_BITCOIND`, `TF2_BTCLIB_NODE_PYTHON` and `TF2_BTCD` name the nodes:
+a `bitcoind` on `PATH` or named directly, the interpreter
 `btclib-node` is importable by -- never this project's own, which
 carries no group installing it (`pyproject.toml`'s comment on
-`[dependency-groups]` has why). Both skip cleanly, naming what to set,
-rather than failing on a program this repository does not ship.
+`[dependency-groups]` has why) -- and a `btcd` on `PATH` or named
+directly. Each skips cleanly, naming what to set, rather than failing on
+a program this repository does not ship.
 
 ```shell
 TF2_INTEGRATION=1 uv run pytest tests/integration
@@ -354,8 +355,8 @@ TF2_INTEGRATION=1 \
     uv run pytest tests/integration
 ```
 
-Both nodes at once run every test that needs one against both, a
-disagreement between them being a finding rather than a failure of the
+Several nodes named at once run every test that needs one against each,
+a disagreement between them being a finding rather than a failure of the
 suite (rule 3 of
 [ISS 2220](https://github.com/btclib-org/btclib/issues/2220)).
 
@@ -523,7 +524,7 @@ reason. `node.wait_until` is the shared, scaled loop
 `tests/integration/`'s own test modules poll a predicate through, rather
 than each reimplementing one unscaled beside it
 ([ISS 90](https://github.com/btclib-org/bitcoin-node-tests/issues/90)).
-Each RPC client either adapter builds bounds a call by `timeout_factor.py`'s
+Each RPC client every adapter builds bounds a call by `timeout_factor.py`'s
 own `rpc_client_timeout`: Core's own `rpc_timeout`, scaled, then halved.
 The same `pytest_configure` scales `pyproject.toml`'s own per-test
 `timeout` by the factor, unless pytest-timeout's own `--timeout` or
@@ -652,6 +653,18 @@ python .github/scripts/btclib_node_verdict.py \
     TF2.md integration.xml release
 ```
 
+`btcd` is `TF2_BTCD` pointed at the btcd release the job installs,
+with only the btcd tests run, and `.github/scripts/check_node_ran.py`
+over its JUnit report; the release's sha256 is in the job's `env`:
+
+```shell
+TF2_INTEGRATION=1 TF2_BTCD=<btcd v0.26.2> \
+    uv run --locked --no-default-groups --group test \
+    pytest tests/integration/*_btcd_test.py --junitxml=integration.xml
+uv run --locked --no-default-groups --group test \
+    python .github/scripts/check_node_ran.py integration.xml
+```
+
 `older-core` is `TF2_BITCOIND` pointed at the release under test, v29.4
 or v30.3, with only the bitcoind tests run; each release's sha256 is in
 the job's matrix:
@@ -676,10 +689,12 @@ reach a review without having passed them or passing them beside it on
 the same sha, which is the reliance `REVIEWING.md` provides for.
 
 `node-integration.yml`'s other jobs -- `older-core`, `btclib-node`,
-`core-master` and `btclib-node-main` -- gate nothing anywhere:
+`btcd`, `core-master` and `btclib-node-main` -- gate nothing anywhere:
 `continue-on-error: true` in the workflow itself says so for each.
 `older-core` runs v29.4 and v30.3, which do not move; it is informational
 by decision, so that a flake on an older release blocks no merge.
+`btcd` runs a pinned release too; README.md's opening says when a test it
+fails is a finding.
 `btclib-node` installs btclib-node's latest release unpinned, so a new
 release moving a cell of `TF2.md`'s `btclib-node` column turns it red for
 a reason outside any pull request; `core-master` and `btclib-node-main`

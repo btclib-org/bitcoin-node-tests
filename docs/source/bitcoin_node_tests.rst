@@ -11,6 +11,13 @@ bitcoin\_node\_tests.bitcoind module
    :members:
    :show-inheritance:
 
+bitcoin\_node\_tests.btcd module
+--------------------------------
+
+.. automodule:: bitcoin_node_tests.btcd
+   :members:
+   :show-inheritance:
+
 bitcoin\_node\_tests.btclib\_node module
 ----------------------------------------
 

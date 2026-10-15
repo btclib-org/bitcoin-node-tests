@@ -8,7 +8,7 @@ Two switches per node, and `TF2_INTEGRATION` gates both: these tests
 start a real process, open a real socket and write to disk, none of
 which an ordinary `uv run pytest` should do to somebody who asked for
 the unit suite. The second switch is the node itself -- found on `PATH`
-or named for bitcoind, importable by the named interpreter for
+or named for bitcoind and btcd, importable by the named interpreter for
 btclib-node -- because an opt-in that fails for a missing program would
 report a defect that is not one.
 
@@ -26,30 +26,29 @@ against a Core developer's own build* has the full mapping, and
 `--nocleanup`, `--v2transport` and `--v1transport` are named there too,
 neither needing a flag of its own here.
 
-A Core test converged onto both nodes is one body
+A Core test converged onto several nodes is one body
 ([ISS 125](https://github.com/btclib-org/bitcoin-node-tests/issues/125)):
 a function in `<file>_test.py`, named for Core's own file
 (`p2p_block_sync_test.py`), taking the adapters it runs on and
 `skip_counts`. Its name carries no `test_` prefix, so pytest collects no
-test from that module. `<file>_bitcoind_test.py` and
-`<file>_btclib_node_test.py` each call it from a test of the same name
-with the prefix, handing it their own node's fixture --
-`bitcoind_adapter` or `btclib_node_adapter` for one node,
-`bitcoind_cluster` or `btclib_node_cluster` for several. The body asks
+test from that module. Each `<file>_<node>_test.py` calls it from a test
+of the same name with the prefix, handing it that node's own fixture:
+`<node>_adapter` for one node, `<node>_cluster` for several, where
+`<node>` is `bitcoind`, `btclib_node` or `btcd`. The body asks
 `require` of the instances it was handed, never of an adapter class:
 `BtclibNodeAdapter.__init__` widens an instance's `capabilities` by
 probing the build it runs. A body that writes into its node's data
 directory, or starts it on a chain other than regtest or with an option
 from its first start, takes `make_adapter`, the adapter class, the
-node's executable fixture (`bitcoind_path` or `btclib_node_python`) and
-`tmp_path` instead, and `skip_counts` where it asks for a capability: it
-builds the node itself over a data directory in `tmp_path`, asks
-`require` of that instance, and stops the node before it returns
-(`feature_includeconf_test.py`). The two test modules
-stay two, rather than one parametrized over both nodes, because the CI
+node's executable fixture (`bitcoind_path`, `btclib_node_python` or
+`btcd_path`) and `tmp_path` instead, and `skip_counts` where it asks for
+a capability: it builds the node itself over a data directory in
+`tmp_path`, asks `require` of that instance, and stops the node before
+it returns (`feature_includeconf_test.py`). The test modules stay one
+per node, rather than one parametrized over the nodes, because the CI
 jobs select a node's tests by module: `node-integration.yml`'s
-`btclib-node` jobs run `*_btclib_node_test.py`, and its `core-master`
-job `*_bitcoind_test.py`.
+`btclib-node` jobs run `*_btclib_node_test.py`, its `core-master` job
+`*_bitcoind_test.py`, and its `btcd` job `*_btcd_test.py`.
 """
 
 from __future__ import annotations
@@ -63,6 +62,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from bitcoin_node_tests.btcd import BtcdAdapter
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import SkipCounts
 from bitcoin_node_tests.node import NodeAdapter, free_ports
@@ -86,6 +86,12 @@ if TYPE_CHECKING:
 # `pytest_testnodedown` below are what turn that into the single total
 # rule 4 asks for.
 _skip_counts = SkipCounts()
+
+# how the skip of a target node that is not installed starts:
+# `node-integration.yml`'s `bitcoind` job passes it as its
+# `skip-reason-prefix`, so that job runs without either target and fails
+# on any other skip
+NO_TARGET = "no target node: "
 
 # whether `--timeout` or `PYTEST_TIMEOUT` named a bound, read before
 # `pytest_configure` writes its own into `config.option.timeout`
@@ -396,8 +402,8 @@ def btclib_node_python() -> str:
     )
     if probe.returncode != 0:
         pytest.skip(
-            f"no btclib_node importable by {python}: install it there, or name"
-            " another interpreter in TF2_BTCLIB_NODE_PYTHON"
+            f"{NO_TARGET}no btclib_node importable by {python}: install it"
+            " there, or name another interpreter in TF2_BTCLIB_NODE_PYTHON"
         )
     return python
 
@@ -433,8 +439,8 @@ def btclib_node_cluster(
     """Yield `bitcoind_cluster`'s factory, over `BtclibNodeAdapter`s instead.
 
     The same factory, so that one body taking a cluster runs against
-    either node: the module docstring's own paragraph on one body over
-    both nodes is the contract this fixture keeps.
+    each node: the module docstring's own paragraph on one body over
+    several nodes is the contract this fixture keeps.
     """
     yield from _cluster(
         make_adapter,
@@ -499,3 +505,41 @@ def mixed_cluster(
             btclib_node.stop()
         finally:
             bitcoind.stop()
+
+
+@pytest.fixture(scope="session")
+def btcd_path() -> str:
+    """Return the btcd to run, skipping the whole module without one."""
+    _require_integration()
+    path = os.environ.get("TF2_BTCD") or shutil.which("btcd")
+    if path is None:
+        pytest.skip(f"{NO_TARGET}no btcd: name one in TF2_BTCD or put it on PATH")
+    return path
+
+
+@pytest.fixture(scope="session")
+def btcd_adapter(
+    btcd_path: str,
+    tmp_path_factory: pytest.TempPathFactory,
+    make_adapter: AdapterFactory,
+) -> Iterator[BtcdAdapter]:
+    """Yield a `BtcdAdapter` over a regtest node started this session."""
+    rpc_port, p2p_port = free_ports(2)
+    adapter = make_adapter(
+        BtcdAdapter, btcd_path, tmp_path_factory.mktemp("btcd"), rpc_port, p2p_port
+    )
+    adapter.start()
+    try:
+        yield adapter
+    finally:
+        adapter.stop()
+
+
+@pytest.fixture
+def btcd_cluster(
+    btcd_path: str,
+    tmp_path_factory: pytest.TempPathFactory,
+    make_adapter: AdapterFactory,
+) -> Iterator[Callable[[int], list[BtcdAdapter]]]:
+    """Yield `bitcoind_cluster`'s factory, over `BtcdAdapter`s instead."""
+    yield from _cluster(make_adapter, BtcdAdapter, btcd_path, tmp_path_factory, "btcd")

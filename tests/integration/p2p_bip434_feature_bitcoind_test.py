@@ -39,8 +39,8 @@ observe. A `pytest.skip` was tried first and reverted: bitcoind is rule
 3's own oracle, and
 `btclib-org/.github`'s `reusable-integration-bitcoind.yml` fails the
 required job on any skip whose reason does not start with its own
-`skip-reason-prefix` -- which `node-integration.yml`'s `bitcoind` job
-sets to the start of `btclib_node_python`'s own skip message -- so a
+`skip-reason-prefix` -- `tests/integration/conftest.py`'s `NO_TARGET`,
+which `node-integration.yml`'s `bitcoind` job passes -- so a
 build-dependent skip on this row would have failed every pull request
 touching this file, discovered only by dispatching
 `node-integration.yml` rather than by any local gate.

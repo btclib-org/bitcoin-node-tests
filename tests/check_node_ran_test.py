@@ -25,8 +25,8 @@ from bitcoin_node_tests.capability import Capability
 _SCRIPT = Path(__file__).parents[1] / ".github" / "scripts" / "check_node_ran.py"
 
 _NO_NODE = (
-    "no btclib_node importable by /usr/bin/python3: install it there, or name"
-    " another interpreter in TF2_BTCLIB_NODE_PYTHON"
+    "no target node: no btclib_node importable by /usr/bin/python3: install it"
+    " there, or name another interpreter in TF2_BTCLIB_NODE_PYTHON"
 )
 
 

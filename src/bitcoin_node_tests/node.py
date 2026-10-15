@@ -5,7 +5,7 @@
 """`NodeAdapter`: how a node starts, stops and restarts, and its RPC.
 
 Step 3 of [ISS 2220](https://github.com/btclib-org/btclib/issues/2220):
-one base class over what `bitcoind.py` and `btclib_node.py` share --
+one base class over what every adapter shares --
 spawning a process, waiting for its RPC to answer, and tearing it down
 again -- with each subclass supplying only what differs: the command
 line an option is spelled with, and how RPC authenticates (rule 1 of
@@ -38,6 +38,7 @@ from urllib.request import Request
 from bitcoin_core_rpc import BitcoinCoreRpcClient, HttpError, RpcError, RPCErrorCode
 from bitcoin_core_rpc.transport import HttpTransport, SessionTransport
 
+from bitcoin_node_tests.mini_wallet import MiniWallet
 from bitcoin_node_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
@@ -411,6 +412,17 @@ def _size(path: Path) -> int:
     return path.stat().st_size if path.exists() else 0
 
 
+def _log_since(log_path: Path | None, log_offset: int) -> str:
+    """Return a startup error's log section, or `""` where there is no log.
+
+    :param log_path: the file the node logs to, `None` where none is known.
+    :param log_offset: `log_path`'s size before the process was spawned.
+    """
+    if log_path is None:
+        return ""
+    return f"\n-- {log_path} since this start:\n{_read_output(log_path, log_offset)}"
+
+
 def _wait_for_rpc(
     rpc: _RpcProbe,
     process: _Process,
@@ -422,11 +434,11 @@ def _wait_for_rpc(
 ) -> None:
     """Poll `rpc` until it answers, or fail with what the process did instead.
 
-    Shared by both adapters below rather than duplicated: a process
+    Shared by every adapter rather than duplicated: a process
     exiting before its RPC ever answers is failed on that exit code
     rather than left to time out, `bitcoin-core-rpc`'s own transport
     failure -- an empty answer, a refused connection -- being the same
-    "not yet listening" either node's own startup answers with.
+    "not yet listening" every node's own startup answers with.
 
     An answer is not always progress, though: an `RpcError` whose `code`
     is not `RPCErrorCode.IN_WARMUP`, or an `HttpError` whose `status` is
@@ -465,7 +477,8 @@ def _wait_for_rpc(
         read back into the error raised on an early exit or a timeout.
     :param timeout: how long to wait before giving up.
     :param log_path: the file the node logs to, read back into the error
-        raised on a timeout; `None` where the adapter knows no such file.
+        raised on an early exit or a timeout, since a node may log a failed
+        start there alone; `None` where the adapter knows no such file.
     :param log_offset: `log_path`'s size before the process was spawned,
         where this start's own lines begin.
     :raises TimeoutError: the RPC never answered within `timeout`,
@@ -483,6 +496,7 @@ def _wait_for_rpc(
                 f"node process exited with {exit_code} before its RPC "
                 f"answered -- stderr: {_read_output(stderr_path)}"
             )
+            err_msg += _log_since(log_path, log_offset)
             raise RuntimeError(err_msg)
         try:
             rpc.call("getblockchaininfo")
@@ -511,9 +525,7 @@ def _wait_for_rpc(
         f"(ignored errors: {dict(ignored)}{latest}) "
         f"-- stderr: {_read_output(stderr_path)}"
     )
-    if log_path is not None:
-        err_msg += f"\n-- {log_path} since this start:\n"
-        err_msg += _read_output(log_path, log_offset)
+    err_msg += _log_since(log_path, log_offset)
     raise TimeoutError(err_msg) from last_error
 
 
@@ -531,7 +543,7 @@ class NodeAdapter(ABC):
     client (`_rpc_client`) and its own `capabilities`; this class is the
     process and RPC plumbing every node needs regardless -- rule 1's
     "how it starts, stops and restarts" and "how RPC authenticates",
-    answered once here and specialised twice.
+    answered once here and specialised per node.
 
     `datadir`, `rpc_port` and `p2p_port` are the caller's to allocate --
     `free_port` above, and a fixture's own `tmp_path` -- rather than this
@@ -586,6 +598,10 @@ class NodeAdapter(ABC):
 
     capabilities: AbstractSet[Capability]
     chains: AbstractSet[str] = frozenset({_DEFAULT_CHAIN})
+    # whether `start` sends the process's stdout to `os.devnull` rather
+    # than to ours: `True` for a node that prints its whole log there as
+    # well as to its log file
+    _discards_stdout: bool = False
 
     def __init__(
         self,
@@ -642,8 +658,8 @@ class NodeAdapter(ABC):
     def _log_path(self) -> Path | None:
         """Return the file this node logs to, or `None` where none is known.
 
-        What `start` reads back into the `TimeoutError` it raises on an
-        RPC that never answered; a subclass whose node writes a log at a
+        What `start` reads back into the error it raises on an early exit
+        or an RPC that never answered; a subclass whose node writes a log at a
         path of this datadir's names it.
         """
         return None
@@ -701,7 +717,8 @@ class NodeAdapter(ABC):
 
         :raises RuntimeError: this adapter already holds a process, which
             `stop` ends; or the process exited before answering, the
-            message carrying what it wrote to stderr.
+            message carrying what it wrote to stderr and, where
+            `_log_path` names one, to its log since this start.
         :raises TimeoutError: the RPC never answered; the message carries
             the failures waited out, what the process wrote to stderr and,
             where `_log_path` names one, to its log since this start.
@@ -724,6 +741,7 @@ class NodeAdapter(ABC):
         with tempfile.NamedTemporaryFile(dir=stderr_dir, delete=False) as stderr_file:
             process = subprocess.Popen(  # noqa: S603
                 [*self._command(), *extra_args],
+                stdout=subprocess.DEVNULL if self._discards_stdout else None,
                 stderr=stderr_file,
             )
         stderr_path = Path(stderr_file.name)
@@ -941,6 +959,44 @@ class NodeAdapter(ABC):
         host, port = address
         self.rpc.call("addconnection", [f"{host}:{port}", connection_type, v2transport])
 
+    def mine(self, count: int = 1) -> list[str]:
+        """Mine `count` blocks client-side, return their hashes once connected.
+
+        `Capability.MINE` (`capability.py`) is what a caller checks before
+        calling this. A node that builds no block itself is mined this
+        way; `BitcoindAdapter.mine` overrides it with `generatetoaddress`.
+
+        `MiniWallet.generate` (`mini_wallet.py`) builds, solves and submits
+        each block, extending whatever tip the node answers now, and pays
+        its coinbase to that class's own anyone-can-spend script: a caller
+        that means to spend what it mines holds a `MiniWallet` of its own
+        instead. `submitblock` answering `None` says the block was stored,
+        and a node may connect it later, so this polls `getbestblockhash`
+        until it names the last block.
+
+        :param count: how many blocks to mine.
+        :returns: the mined blocks' own hashes, oldest first, the shape of
+            `generatetoaddress`'s answer.
+        :raises TimeoutError: the node stored the last block and never made
+            it its tip.
+        """
+        hashes = [block_hash.hex() for block_hash in MiniWallet(self).generate(count)]
+        if hashes:
+            wait_until(lambda: self.rpc.call("getbestblockhash") == hashes[-1])
+        return hashes
+
+    def dial(self, address: str, *, v2transport: bool) -> None:
+        """Have this node dial `address` once, as `connect_nodes` asks.
+
+        Core's own `addnode <address> onetry <v2transport>`. A subclass
+        whose node spells the call another way overrides this.
+
+        :param address: `host:port` to dial.
+        :param v2transport: `addnode`'s own third argument, whether the
+            node dials over BIP324.
+        """
+        self.rpc.call("addnode", [address, "onetry", v2transport])
+
 
 def _peer_ids(peers: object) -> set[object]:
     """Return every `id` a `getpeerinfo` answer carries, or an empty set.
@@ -990,7 +1046,9 @@ def _wait_for_handshake(node: NodeAdapter, peer_id: object, deadline: float) -> 
     `fSuccessfullyConnected`, since `m_ping_start` starts at the clock's
     own epoch and so the first ping already goes out on the next
     message loop; its absence is read as btclib-node's own guarantee
-    already met, rather than as a field to wait for.
+    already met, rather than as a field to wait for. btcd gives the same
+    guarantee: its `peerLifecycleHandler` (`server.go`) adds a peer to
+    what `getpeerinfo` lists once that peer's `verack` arrives.
 
     :param node: the node whose own peer is polled.
     :param peer_id: the `id` `getpeerinfo` gave that peer.
@@ -1049,9 +1107,10 @@ def connect_nodes(
     """Connect `first` to `second`, over `addnode onetry` and `getpeerinfo`.
 
     Core's own `connect_nodes` (`test/functional/test_framework.py`):
-    `addnode ... "onetry"` asks `first` to dial `second`'s own p2p
-    address once, immediately. Core then waits for `getpeerinfo` to show
-    the connection on *both* sides, matched by subversion, before
+    `addnode ... "onetry"`, `NodeAdapter.dial`, asks `first` to dial
+    `second`'s own p2p address once, immediately. Core then waits for
+    `getpeerinfo` to show the connection on *both* sides, matched by
+    subversion, before
     waiting for each side's own `pong` to confirm the handshake is
     actually done; this matches the same three waits, by a criterion
     each side can actually be read off rather than by subversion, since
@@ -1108,7 +1167,7 @@ def connect_nodes(
     host, port = second.p2p_address
     address = f"{host}:{port}"
     before_second = _peer_ids(second.rpc.call("getpeerinfo"))
-    first.rpc.call("addnode", [address, "onetry", v2transport])
+    first.dial(address, v2transport=v2transport)
     deadline = time.monotonic() + timeout
 
     first_peer = _wait_for_peer(

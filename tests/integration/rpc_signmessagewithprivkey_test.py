@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_signmessagewithprivkey`, one body over either node.
+"""Core's `rpc_signmessagewithprivkey`, one body over each node.
 
 Read from Core's `test/functional/rpc_signmessagewithprivkey.py`
 (`fa5f29774872`, 2025-12-16), a file needing no mechanism the adapter
@@ -24,9 +24,9 @@ names is kept, and holds btclib's derivation to it.
 Every step is the same at `v31.1`, the release `bitcoind.py` pins, whose
 copy of the file is the pin's.
 
-`rpc_signmessagewithprivkey_bitcoind_test.py` and
-`rpc_signmessagewithprivkey_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `rpc_signmessagewithprivkey_<node>_test.py` module beside this one
+runs it, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -42,9 +42,8 @@ from tests.integration.wallet_signmessagewithaddress_test import refused
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["a_message_signed_with_a_private_key_verifies"]
 
@@ -67,12 +66,12 @@ _RPC_INVALID_ADDRESS_OR_KEY = -5
 
 
 def a_message_signed_with_a_private_key_verifies(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

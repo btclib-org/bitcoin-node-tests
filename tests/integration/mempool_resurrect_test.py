@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_resurrect`, one body over either node.
+"""Core's `mempool_resurrect`, one body over each node.
 
 Read from Core's `test/functional/mempool_resurrect.py` (`fa5f29774872`,
 2025-12-16) rather than ported: that file spends coinbases into two mined
@@ -21,8 +21,7 @@ docstring has why), and `MiniWallet.resync` picking up the reorged tip
 afterwards: this class has no `scantxoutset` to rebuild its coin cache
 from, so nothing here calls `rescan_utxos` either.
 
-`mempool_resurrect_bitcoind_test.py` and
-`mempool_resurrect_btclib_node_test.py` run it,
+Each `mempool_resurrect_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -36,8 +35,6 @@ from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet, build_fork
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -67,11 +64,11 @@ _SPEND_COUNT = 3
 
 
 def a_reorg_returns_spent_coinbases_to_the_mempool(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Core's own subject: an orphaned block's txs resurrect, then reconfirm.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.MINE, adapter.capabilities, skip_counts)

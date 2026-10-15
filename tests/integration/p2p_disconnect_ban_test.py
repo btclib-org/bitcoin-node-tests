@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_disconnect_ban`, its `disconnectnode` half, over either node.
+"""Core's `p2p_disconnect_ban`, its `disconnectnode` half, over each node.
 
 Read from Core's `test/functional/p2p_disconnect_ban.py` (`dcd90fbe54cf`,
 2026-04-07), the section its own log names "Test disconnectnode RPCs":
@@ -21,8 +21,7 @@ ephemeral port no reconnection returns to. The node id Core drops next
 is the first entry again, whichever it is, and so is it here -- either
 connection dropped leaves `node1` one peer.
 
-`p2p_disconnect_ban_bitcoind_test.py` and
-`p2p_disconnect_ban_btclib_node_test.py` run it,
+Each `p2p_disconnect_ban_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -39,8 +38,6 @@ from bitcoin_node_tests.node import connect_nodes, wait_until
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -55,12 +52,12 @@ def _peers(node: NodeAdapter) -> list[dict[str, object]]:
 
 
 def disconnectnode_drops_a_peer_by_address_and_by_node_id(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own subject: `disconnectnode`'s refusals and both its forms.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_tx_privacy`, one body over either node.
+"""Core's `p2p_tx_privacy`, one body over each node.
 
 Read from Core's `test/functional/p2p_tx_privacy.py` (`fa5f29774872`,
 2025-12-16): a transaction is announced only to a peer that had
@@ -43,9 +43,8 @@ node's clock: the node announces to an inbound peer on its own timer,
 and the second transaction's announcement is that timer firing for the
 spy after the node took the first one in.
 
-`p2p_tx_privacy_bitcoind_test.py` and `p2p_tx_privacy_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `p2p_tx_privacy_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -78,9 +77,8 @@ from bitcoin_node_tests.timeout_factor import scaled
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "a_tx_is_announced_only_to_a_peer_past_its_handshake",
@@ -124,12 +122,12 @@ def _wait_for_inv_match(spy: Peer, expected: tuple[InventoryType, bytes]) -> Non
 
 
 def a_tx_is_announced_only_to_a_peer_past_its_handshake(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `run_test`, in its order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

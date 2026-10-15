@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_utxo_set_hash`, one body over either node.
+"""Core's `feature_utxo_set_hash`, one body over each node.
 
 Read from Core's `test/functional/feature_utxo_set_hash.py`
 (`58eeab790d98`, 2026-05-13) and narrowed to what the MiniWallet family
@@ -37,9 +37,8 @@ one spend. Dropped is Core's own two hard-coded `hash_serialized_3` and
 node-wallet addresses, its own mining order), which this harness's own
 MiniWallet-mined chain has no reason to reproduce.
 
-`feature_utxo_set_hash_bitcoind_test.py` and
-`feature_utxo_set_hash_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_utxo_set_hash_<node>_test.py` module beside this one runs
+it, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -58,8 +57,6 @@ from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -115,11 +112,11 @@ def _hash_serialized_3(utxo_set: dict[bytes, Coin]) -> bytes:
 
 
 def independent_muhash_matches_gettxoutsetinfo(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """`CoinStats`, walked off the node's own blocks, agrees with the node.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.MINE, adapter.capabilities, skip_counts)

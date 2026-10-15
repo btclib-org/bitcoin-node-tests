@@ -2,17 +2,16 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_invalid_locator`, one body over either node.
+"""Core's `p2p_invalid_locator`, one body over each node.
 
-Read from Core's `test/functional/p2p_invalid_locator.py` (`fa5f29774872`,
-2025-12-16): a locator over `MAX_LOCATOR_SZ` gets the sending peer
-disconnected, for both `getheaders` and `getblocks`; one at the bound
-gets an ordinary answer instead -- a `headers` message for the first, an
-`inv` for the second. Core's own node starts from a 200-block cached
-chain; this one mines its own, past `MAX_LOCATOR_SZ` so that every
-height a locator names exists (`Capability.MINE`).
-`p2p_invalid_locator_bitcoind_test.py` and
-`p2p_invalid_locator_btclib_node_test.py` run it,
+Read from Core's `test/functional/p2p_invalid_locator.py`
+(`fa5f29774872`, 2025-12-16): a locator over `MAX_LOCATOR_SZ` gets the
+sending peer disconnected, for both `getheaders` and `getblocks`; one at
+the bound gets an ordinary answer instead -- a `headers` message for the
+first, an `inv` for the second. Core's own node starts from a 200-block
+cached chain; this one mines its own, past `MAX_LOCATOR_SZ` so that
+every height a locator names exists (`Capability.MINE`). Each
+`p2p_invalid_locator_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -30,8 +29,6 @@ from bitcoin_node_tests.peer import Peer
 from bitcoin_node_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -98,12 +95,10 @@ def _assert_answers_within(
             )
 
 
-def max_locator_size(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def max_locator_size(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Core's own subject: over the bound disconnects, at the bound answers.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.MINE, adapter.capabilities, skip_counts)

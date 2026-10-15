@@ -9,9 +9,9 @@ node declares its capabilities, a test needing one the node lacks skips,
 and the run prints a skip count per capability -- a number the node's own
 tracker can read, never a silent pass. A capability names what a node
 *can do*, not how it spells the call that does it: `Capability.CONNECT`
-covers what `node.connect_nodes` does today because that is the one way
-both adapters answer it alike, and a node reaching it another way would
-still declare the same member.
+covers what `node.connect_nodes` does, and `BtcdAdapter`, whose node
+takes `addnode` with one argument fewer, declares the same member and
+spells the call its own way in `dial`.
 
 A fact that differs between two builds of one node is read from the
 build under test, never fixed as a class-wide constant

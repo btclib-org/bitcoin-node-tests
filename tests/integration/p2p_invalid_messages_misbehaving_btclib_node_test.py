@@ -12,9 +12,9 @@ splits into a wire half and a log half are argued.
 The wire half is the same fact on this node too, on PyPI's `2026.10.8` and
 on `main` (`afd4c584`) alike. The `inv`, `getdata` and `headers` callbacks
 (`p2p/callbacks.py`) each call `_refuse_past_bound` before parsing, and
-`BlockIndex._validate_header_batch` (`chainstate/block_index.py`) goes through
-`_assert_valid_pow` and `_assert_continuous`. Each raises `MisbehavingError`,
-which `_drop` (`p2p/main.py`) hands to
+`_process_headers` calls `check_headers_pow` (`chainstate/block_index.py`),
+which goes through `_assert_valid_pow` and `_assert_continuous`. Each raises
+`MisbehavingError`, which `_drop` (`p2p/main.py`) hands to
 `P2pManager.maybe_discourage_and_disconnect`.
 
 The log half is not: this node's own `Logger` (`log.py`) writes English,

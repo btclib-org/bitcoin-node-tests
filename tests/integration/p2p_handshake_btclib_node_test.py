@@ -8,8 +8,6 @@
 target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
 The wire half passes on PyPI's `2026.10.8` and on `main`: both keep the
 connection on a `verack` arriving once it is `Connected`, as Core does.
-PyPI's `2026.9.24` dropped it
-([ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)).
 The log half is a counted skip on every build, `Capability.DEBUG_LOG` being
 bitcoind's alone. Every other body has the node dial the test, and is a
 counted skip on every build too, `Capability.TYPED_OUTBOUND` being declared

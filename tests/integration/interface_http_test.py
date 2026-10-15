@@ -83,6 +83,10 @@ _NETWORK_ERRORS = (
 # limit: a `master` build from that merge up to the move to `32.99`
 # (`f3fec67c3e`, 2026-09-11) reports `319900` and carries the server, so
 # this test fails against such a build
+#
+# `rpc_echo_payload_test.py` answers the same question from the `logging`
+# categories, with a shorter window. It is private to that module on this
+# branch's base, so the version test is kept here
 _HTTP_SERVER_VERSION = 320000
 
 

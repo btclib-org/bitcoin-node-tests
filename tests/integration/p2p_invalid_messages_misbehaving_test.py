@@ -316,7 +316,7 @@ def _mined_headers(
 def _without_the_middle(headers: list[BlockHeader]) -> Headers:
     """Return `headers` less the middle one, a sequence with a gap."""
     middle = len(headers) // 2
-    return Headers(headers[:middle] + headers[middle + 1 :], check_validity=False)
+    return Headers(headers[:middle] + headers[middle + 1 :])
 
 
 def noncontinuous_headers_disconnects_the_peer(
@@ -332,7 +332,7 @@ def noncontinuous_headers_disconnects_the_peer(
         peer.handshake()
         peer.send(Headers(headers))
         peer.sync_with_ping()
-        peer.send(_without_the_middle(headers), check_validity=False)
+        peer.send(_without_the_middle(headers))
         peer.wait_for_disconnect()
 
 
@@ -352,5 +352,5 @@ def noncontinuous_headers_is_logged(
             peer.send(Headers(headers))
             peer.sync_with_ping()
         with assert_debug_log(log_path, _NONCONTINUOUS_LOG):
-            peer.send(_without_the_middle(headers), check_validity=False)
+            peer.send(_without_the_middle(headers))
             peer.wait_for_disconnect()

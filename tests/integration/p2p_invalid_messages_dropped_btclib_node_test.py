@@ -8,10 +8,7 @@
 against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220); its own docstring is where the wire fact each of these
 three asks for -- the connection survives a malformed message rather than being
-dropped -- is argued. PyPI's `2026.9.24` dropped the connection on all three
-([ISS btclib-node#1130](https://github.com/btclib-org/btclib-node/issues/1130),
-[ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)).
-`2026.10.8` and `main` keep it.
+dropped -- is argued. PyPI's `2026.10.8` and `main` keep it on all three.
 
 Each `*_keeps_the_connection` test below runs the body its bitcoind
 counterpart runs, with neither an `xfail` nor a `pytest.skip.Exception`.

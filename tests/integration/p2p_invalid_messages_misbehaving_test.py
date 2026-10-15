@@ -2,12 +2,13 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_invalid_messages`, four more of its own checks, over either node.
+"""Core's `p2p_invalid_messages`, its `Misbehaving` checks, over either node.
 
 Read from Core's `test/functional/p2p_invalid_messages.py`
 (`3fd68a95e68b`, 2026-04-07)'s own `test_oversized_inv_msg`,
 `test_oversized_getdata_msg`, `test_oversized_headers_msg` (each through
-the shared `test_oversized_msg`) and `test_invalid_pow_headers_msg`, none
+the shared `test_oversized_msg`), `test_invalid_pow_headers_msg` and
+`test_noncontinuous_headers_msg`, none
 ported by `p2p_invalid_messages_test.py`: that module's own docstring
 narrows to `test_magic_bytes` and `test_size`, and Core's own
 `InvalidMessagesTest.run_test` runs every one of these on the same node,
@@ -19,14 +20,15 @@ exempt this connection from the discourage-and-disconnect
 `net_processing.cpp`'s own `Misbehaving` schedules
 (`PeerManagerImpl::MaybeDiscourageAndDisconnect`, `if
 (pnode.HasPermission(NetPermissionFlags::NoBan)) { ... never disconnect
-... }`), which is what the four checks below are about; dropping it is
+... }`), which is what the checks below are about; dropping it is
 the same narrowing `test_magic_bytes` already made.
 
-Each of Core's own four calls `assert_debug_log(['Misbehaving', ...])`
-around an oversized or PoW-invalid message and then waits for a
+Each of Core's own checks calls `assert_debug_log(['Misbehaving', ...])`
+around an oversized, PoW-invalid or non-continuous message and then waits for a
 disconnect: two facts of one action, so each gets a wire half and a log
-half of its own, the log family's own rule (issue #5). The wire half
-needs nothing this step does not already give every node under test; the
+half of its own, the log family's own rule (issue #5). The oversized and
+PoW wire halves need nothing this step does not already give every node
+under test, and the non-continuous one asks for `Capability.MINE`. The
 log half is bitcoind's own wording for *why*, `Capability.DEBUG_LOG`
 gating it as `p2p_invalid_messages_test.py`'s own two log halves already
 do.
@@ -50,6 +52,14 @@ searched until the header's own displayed hash starts with `f`, Core's
 own test's criterion and, under `0x207fffff`'s target (whose own top
 byte is `0x7f`), sufficient on its own: any hash Core's own
 `CheckProofOfWork` would refuse for exceeding this target.
+
+`noncontinuous_headers_*` mine the blocks Core's own check mines
+(`Capability.MINE`), send their headers in order, and then send them
+again with one header dropped. Core drops a random one past the first and
+before the last; this drops the middle one. The wire half reads the
+first send as the connection surviving a `sync_with_ping`, and the second
+as a disconnect. The log half reads the first send as no `Misbehaving`
+line, Core's own `unexpected_msgs`, and the second as Core's wording.
 
 `p2p_invalid_messages_misbehaving_bitcoind_test.py` and
 `p2p_invalid_messages_misbehaving_btclib_node_test.py` run every body,
@@ -81,6 +91,8 @@ if TYPE_CHECKING:
 __all__ = [
     "invalid_pow_header_disconnects_the_peer",
     "invalid_pow_header_is_logged",
+    "noncontinuous_headers_disconnects_the_peer",
+    "noncontinuous_headers_is_logged",
     "oversized_getdata_disconnects_the_peer",
     "oversized_getdata_is_logged",
     "oversized_headers_disconnects_the_peer",
@@ -91,6 +103,11 @@ __all__ = [
 
 _MAGIC = magic_from_chain("regtest")
 _GENESIS_HEADER = genesis_block("regtest").header
+
+# the blocks Core's own `test_noncontinuous_headers_msg` mines
+_NONCONTINUOUS_BLOCKS = 10
+
+_NONCONTINUOUS_LOG = ["Misbehaving", "non-continuous headers sequence"]
 
 
 def _oversized_inv() -> Inv:
@@ -282,3 +299,58 @@ def invalid_pow_header_is_logged(
         peer.handshake()
         peer.send(Headers([header]))
         peer.wait_for_disconnect()
+
+
+def _mined_headers(
+    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+) -> list[BlockHeader]:
+    """Mine Core's blocks, and return their headers, oldest first."""
+    require(Capability.MINE, adapter.capabilities, skip_counts)
+    headers = []
+    for block_hash in adapter.mine(_NONCONTINUOUS_BLOCKS):
+        raw = adapter.rpc.call("getblockheader", [block_hash, False])
+        headers.append(BlockHeader.parse(bytes.fromhex(str(raw))))
+    return headers
+
+
+def _without_the_middle(headers: list[BlockHeader]) -> Headers:
+    """Return `headers` less the middle one, a sequence with a gap."""
+    middle = len(headers) // 2
+    return Headers(headers[:middle] + headers[middle + 1 :], check_validity=False)
+
+
+def noncontinuous_headers_disconnects_the_peer(
+    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """Check the wire half: only a `headers` message with a gap drops the peer.
+
+    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param skip_counts: the session's own tally.
+    """
+    headers = _mined_headers(adapter, skip_counts)
+    with Peer(adapter.p2p_address, _MAGIC) as peer:
+        peer.handshake()
+        peer.send(Headers(headers))
+        peer.sync_with_ping()
+        peer.send(_without_the_middle(headers), check_validity=False)
+        peer.wait_for_disconnect()
+
+
+def noncontinuous_headers_is_logged(
+    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+) -> None:
+    """Check the log half: bitcoind's own wording, only for the gap.
+
+    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param skip_counts: the session's own tally.
+    """
+    log_path = _debug_log(adapter, skip_counts)
+    headers = _mined_headers(adapter, skip_counts)
+    with Peer(adapter.p2p_address, _MAGIC) as peer:
+        peer.handshake()
+        with assert_debug_log(log_path, [], _NONCONTINUOUS_LOG):
+            peer.send(Headers(headers))
+            peer.sync_with_ping()
+        with assert_debug_log(log_path, _NONCONTINUOUS_LOG):
+            peer.send(_without_the_middle(headers), check_validity=False)
+            peer.wait_for_disconnect()

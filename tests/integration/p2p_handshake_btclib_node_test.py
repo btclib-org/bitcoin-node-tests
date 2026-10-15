@@ -6,15 +6,14 @@
 
 `p2p_handshake_test.py` beside this module is the body, run here against the
 target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
-The wire half fails on PyPI's `2026.9.24`: `handle_p2p_handshake`
-(`p2p/main.py`) discourages and stops a `verack` arriving once the
-connection is already `Connected`
+The wire half passes on PyPI's `2026.10.8` and on `main`: both keep the
+connection on a `verack` arriving once it is `Connected`, as Core does.
+PyPI's `2026.9.24` dropped it
 ([ISS btclib-node#1133](https://github.com/btclib-org/btclib-node/issues/1133)).
-A `main` past that issue ignores it, as Core does. The log half is a counted
-skip on every build, `Capability.DEBUG_LOG` being bitcoind's alone. Every
-other body has the node dial the test, and is a counted skip on every build
-too, `Capability.TYPED_OUTBOUND` being declared by none (`btclib_node.py`'s
-own docstring).
+The log half is a counted skip on every build, `Capability.DEBUG_LOG` being
+bitcoind's alone. Every other body has the node dial the test, and is a
+counted skip on every build too, `Capability.TYPED_OUTBOUND` being declared
+by none (`btclib_node.py`'s own docstring).
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_handshake_btclib_node_test.py
@@ -51,7 +50,7 @@ pytestmark = pytest.mark.integration
 def test_redundant_verack_keeps_the_connection(
     btclib_node_adapter: BtclibNodeAdapter,
 ) -> None:
-    """The target: fails on the released build (ISS btclib-node#1133)."""
+    """The target: the wire half the body module names, over btclib-node."""
     redundant_verack_keeps_the_connection(btclib_node_adapter)
 
 

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_invalid_messages`, four more of its own checks: bitcoind.
+"""Core's `p2p_invalid_messages`, its `Misbehaving` checks: bitcoind.
 
 Read from Core's `test/functional/p2p_invalid_messages.py`:
 `p2p_invalid_messages_misbehaving_test.py` beside this module is the body,
@@ -20,6 +20,8 @@ import pytest
 from tests.integration.p2p_invalid_messages_misbehaving_test import (
     invalid_pow_header_disconnects_the_peer,
     invalid_pow_header_is_logged,
+    noncontinuous_headers_disconnects_the_peer,
+    noncontinuous_headers_is_logged,
     oversized_getdata_disconnects_the_peer,
     oversized_getdata_is_logged,
     oversized_headers_disconnects_the_peer,
@@ -89,3 +91,17 @@ def test_invalid_pow_header_is_logged(
 ) -> None:
     """The oracle: the log half the body module names, over bitcoind."""
     invalid_pow_header_is_logged(bitcoind_adapter, skip_counts)
+
+
+def test_noncontinuous_headers_disconnects_the_peer(
+    bitcoind_adapter: BitcoindAdapter, skip_counts: SkipCounts
+) -> None:
+    """The oracle: the wire half the body module names, over bitcoind."""
+    noncontinuous_headers_disconnects_the_peer(bitcoind_adapter, skip_counts)
+
+
+def test_noncontinuous_headers_is_logged(
+    bitcoind_adapter: BitcoindAdapter, skip_counts: SkipCounts
+) -> None:
+    """The oracle: the log half the body module names, over bitcoind."""
+    noncontinuous_headers_is_logged(bitcoind_adapter, skip_counts)

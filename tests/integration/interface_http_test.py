@@ -84,9 +84,9 @@ _NETWORK_ERRORS = (
 # (`f3fec67c3e`, 2026-09-11) reports `319900` and carries the server, so
 # this test fails against such a build
 #
-# `rpc_echo_payload_test.py` answers the same question from the `logging`
-# categories, with a shorter window. It is private to that module on this
-# branch's base, so the version test is kept here
+# `serves_through_libevent` (`rpc_echo_payload_test.py`) reads the `logging`
+# categories instead, which bitcoin/bitcoin#35597 changed. This test follows
+# #35182, so it reads the version
 _HTTP_SERVER_VERSION = 320000
 
 

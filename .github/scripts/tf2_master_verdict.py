@@ -97,10 +97,44 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 _GH = shutil.which("gh") or "gh"
+
+# gh's stderr for a server error. A secondary rate limit is not
+# retried: GitHub asks to wait as long as its retry-after header says,
+# which gh's stderr does not carry, or at least a minute.
+_TRANSIENT = re.compile(r"HTTP 5\d\d")
+_ATTEMPTS = 3
+
+
+def _gh_output(*args: str) -> str:
+    """Return the stdout of a `gh` call, printing gh's stderr where it fails.
+
+    A call failing with a server error is made `_ATTEMPTS` times at
+    most, waiting longer before each retry; the last error, or any
+    other, is raised.
+    """
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            return subprocess.run(  # noqa: S603
+                [_GH, *args],
+                capture_output=True,
+                check=True,
+                encoding="utf-8",
+            ).stdout
+        except subprocess.CalledProcessError as error:
+            print(
+                f"gh {' '.join(args)} failed: {error.stderr.strip()}", file=sys.stderr
+            )
+            if attempt == _ATTEMPTS or not _TRANSIENT.search(error.stderr):
+                raise
+            time.sleep(5 * attempt)
+
 
 _UPSTREAM_REPO = "bitcoin/bitcoin"
 
@@ -236,9 +270,8 @@ def _latest_commit(path: str) -> tuple[str, str] | None:
         renamed away answers with the commit that removed it, which the
         pin's history does not hold, so it reads as moved.
     """
-    result = subprocess.run(  # noqa: S603
-        [
-            _GH,
+    commits = json.loads(
+        _gh_output(
             "api",
             "--method",
             "GET",
@@ -247,12 +280,8 @@ def _latest_commit(path: str) -> tuple[str, str] | None:
             f"path={path}",
             "-f",
             "per_page=1",
-        ],
-        capture_output=True,
-        check=True,
-        encoding="utf-8",
+        )
     )
-    commits = json.loads(result.stdout)
     if not commits:
         return None
     commit = commits[0]
@@ -270,23 +299,17 @@ def _in_pin_history(pin: str, commit: str) -> bool:
         commit as the pin or behind it, False where the commit is ahead
         of the pin or on a line the pin's history does not hold.
     """
-    result = subprocess.run(  # noqa: S603
-        [
-            _GH,
-            "api",
-            "--method",
-            "GET",
-            f"repos/{_UPSTREAM_REPO}/compare/{pin}...{commit}",
-            "-f",
-            "per_page=1",
-            "--jq",
-            ".status",
-        ],
-        capture_output=True,
-        check=True,
-        encoding="utf-8",
+    status = _gh_output(
+        "api",
+        "--method",
+        "GET",
+        f"repos/{_UPSTREAM_REPO}/compare/{pin}...{commit}",
+        "-f",
+        "per_page=1",
+        "--jq",
+        ".status",
     )
-    return result.stdout.strip() in _IN_PIN_HISTORY
+    return status.strip() in _IN_PIN_HISTORY
 
 
 def has_moved(pin: str, latest_commit: str) -> bool:

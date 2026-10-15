@@ -6,8 +6,9 @@
 
 Its only external dependency is `gh`, called for the default branch tip,
 for the recursive tree listing, and for the tracking issue. Every test
-here replaces `subprocess.run` with `FakeGh`, which answers each call the
-way a real `gh api`/`gh issue` would rather than reaching GitHub.
+that reaches it replaces `subprocess.run`: with `FakeGh`, which answers
+each call the way a real `gh api`/`gh issue` would rather than reaching
+GitHub, or with `_failing_gh`'s stand-in, which fails as gh does.
 
 The script is loaded by path, `.github/scripts` being no package, the
 same idiom `tf2_ledger_test.py` uses for `check_vendored_vectors.py`.
@@ -19,6 +20,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
 
@@ -250,3 +252,105 @@ def test_main_usage_error(census: ModuleType, monkeypatch: pytest.MonkeyPatch) -
     """Too few or too many arguments is a usage error, exit 2."""
     monkeypatch.setattr(sys, "argv", ["prog", "one-arg"])
     assert census.main() == 2
+
+
+def _failing_gh(
+    census: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    stderrs: list[str],
+    stdout: str,
+) -> tuple[list[list[str]], list[int]]:
+    """Make `gh` fail with each of `stderrs` in turn, then answer `stdout`.
+
+    Returns the argv of every call and the seconds slept between them.
+    """
+    calls: list[list[str]] = []
+    slept: list[int] = []
+
+    def run(argv: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        calls.append(argv)
+        if len(calls) <= len(stderrs):
+            raise subprocess.CalledProcessError(1, argv, stderr=stderrs[len(calls) - 1])
+        return subprocess.CompletedProcess(argv, 0, stdout=stdout)
+
+    monkeypatch.setattr(census.subprocess, "run", run)
+    monkeypatch.setattr(census.time, "sleep", slept.append)
+    return calls, slept
+
+
+# each gh call whose output the script reads: the call, what gh answers,
+# what it returns
+_CALLS: dict[str, tuple[Callable[[ModuleType], object], str, object]] = {
+    "tip": (lambda m: m._default_branch_tip("r"), "abc\n", "abc"),
+    "trees": (
+        lambda m: m.upstream_python_files("r", "d", "abc"),
+        '{"tree": []}',
+        [],
+    ),
+    "issue-list": (lambda m: m._open_issue_number("A title"), "[]", None),
+}
+
+
+@pytest.mark.parametrize("name", list(_CALLS))
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        "gh: Not Found (HTTP 404)\n",
+        "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n",
+        "gh: You have exceeded a secondary rate limit (HTTP 403)\n",
+    ],
+)
+def test_a_failed_gh_call_prints_its_stderr_and_is_not_retried(
+    census: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    name: str,
+    stderr: str,
+) -> None:
+    """Each call through `_gh_output` shows gh's words, once, and gives up.
+
+    [ISS 457](https://github.com/btclib-org/bitcoin-node-tests/issues/457).
+    """
+    call, stdout, _ = _CALLS[name]
+    calls, slept = _failing_gh(census, monkeypatch, [stderr], stdout)
+
+    with pytest.raises(subprocess.CalledProcessError):
+        call(census)
+
+    assert stderr.strip() in capsys.readouterr().err
+    assert len(calls) == 1
+    assert slept == []
+
+
+@pytest.mark.parametrize("name", list(_CALLS))
+def test_a_server_error_is_retried_and_the_retry_answers(
+    census: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    name: str,
+) -> None:
+    """A 5xx is waited out in each `_gh_output` call, and each failure shown."""
+    call, stdout, expected = _CALLS[name]
+    stderr = "gh: Bad Gateway (HTTP 502)\n"
+    calls, slept = _failing_gh(census, monkeypatch, [stderr, stderr], stdout)
+
+    assert call(census) == expected
+
+    assert len(calls) == 3
+    assert slept == [5, 10]
+    assert capsys.readouterr().err.count(stderr.strip()) == 2
+
+
+def test_a_server_error_that_persists_is_raised_after_the_last_attempt(
+    census: ModuleType, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Three attempts in all, and then the error is the caller's."""
+    call, stdout, _ = next(iter(_CALLS.values()))
+    calls, _ = _failing_gh(
+        census, monkeypatch, ["gh: Bad Gateway (HTTP 502)\n"] * 4, stdout
+    )
+
+    with pytest.raises(subprocess.CalledProcessError):
+        call(census)
+
+    assert len(calls) == 3

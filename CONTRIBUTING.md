@@ -289,9 +289,9 @@ and no alias layer (rule 2).
 ### The public surface
 
 The adapter under `src/bitcoin_node_tests/` -- `bitcoind`, `btclib_node`,
-`capability`, `debug_log`, `mempool_util`, `mini_wallet`, `node`, `peer`,
-`socks5`, `timeout_factor` -- is each its own submodule with its own
-`__all__`, and `docs/source/bitcoin_node_tests.rst` gives each an
+`capability`, `debug_log`, `feature_block`, `mempool_util`, `mini_wallet`,
+`node`, `peer`, `socks5`, `timeout_factor` -- is each its own submodule
+with its own `__all__`, and `docs/source/bitcoin_node_tests.rst` gives each an
 `automodule` section of its own. The package root re-exports none of
 them and keeps an empty `__all__` by decision, a caller importing the
 submodule it needs instead. **Every module and every package declares `__all__`**,

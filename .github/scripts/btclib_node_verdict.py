@@ -886,6 +886,8 @@ _ROWS: dict[str, str] = {
     "interface_http::test_excessive_request_size_is_logged": (
         "`interface_http.py` (excessive request size, log)"
     ),
+    "feature_block::test_blocks_are_judged": "`feature_block.py` (wire)",
+    "feature_block::test_blocks_are_judged_and_logged": "`feature_block.py` (log)",
 }
 
 # the modules whose tests are this repository's own harness rather than

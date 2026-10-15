@@ -32,6 +32,13 @@ bitcoin\_node\_tests.debug\_log module
    :members:
    :show-inheritance:
 
+bitcoin\_node\_tests.feature\_block module
+------------------------------------------
+
+.. automodule:: bitcoin_node_tests.feature_block
+   :members:
+   :show-inheritance:
+
 bitcoin\_node\_tests.mempool\_util module
 -----------------------------------------
 

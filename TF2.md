@@ -1249,6 +1249,10 @@ prose in the later sections.
   `-maxmempool`, and skips on `maxmempool` where the node does not declare
   it. The release refuses the replacement `submitpackage` makes, `main` takes it
   ([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)).
+  The basic body restarts its nodes with the `noban` permission, where the node
+  declares `peer_permissions`, so that relay does not wait on the inventory
+  trickle ([ISS 469](https://github.com/btclib-org/bitcoin-node-tests/issues/469)).
+  Core's file does not set `noban_tx_relay`.
 - `feature_dersig.py`: a smaller claim: kept are `getdeploymentinfo`'s
   transition, the version floor (`bad-version`) and the non-DER signature
   ([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)).

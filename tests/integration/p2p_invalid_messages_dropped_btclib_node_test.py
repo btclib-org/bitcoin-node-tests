@@ -10,9 +10,7 @@ btclib-org/btclib#2220); its own docstring is where the wire fact each of these
 three asks for -- the connection survives a malformed message rather than being
 dropped -- is argued. PyPI's `2026.10.8` and `main` keep it on all three.
 
-Each `*_keeps_the_connection` test below runs the body its bitcoind
-counterpart runs, with neither an `xfail` nor a `pytest.skip.Exception`.
-`TF2.md`'s per-test table carries its verdict.
+`TF2.md`'s per-test table carries each test's verdict.
 
 The log half is not reached by any of this: this node's own `Logger`
 (`log.py`) writes English, not Core's, so `Capability.DEBUG_LOG` is not

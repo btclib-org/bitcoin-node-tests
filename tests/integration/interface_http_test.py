@@ -86,7 +86,7 @@ _NETWORK_ERRORS = (
 #
 # `serves_through_libevent` (`rpc_echo_payload_test.py`) reads the `logging`
 # categories instead, which bitcoin/bitcoin#35597 changed. This test follows
-# #35182, so it reads the version
+# bitcoin/bitcoin#35182, so it reads the version
 _HTTP_SERVER_VERSION = 320000
 
 

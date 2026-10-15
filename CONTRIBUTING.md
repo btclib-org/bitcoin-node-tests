@@ -688,6 +688,9 @@ track Core's own `master` and btclib-node's own `main` rather than the pinned
 release under test, by [ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8)'s
 decision of 2026-09-25.
 
+`verified-signatures.yml` reports after each push to `main` whether every
+commit pushed is `verified`; [the standard's *Signatures*][s-sigs] has the rule.
+
 | workflow | when | what it varies |
 | --- | --- | --- |
 | `test` | pull request, push | -- |
@@ -695,6 +698,7 @@ decision of 2026-09-25.
 | `node-integration` | pull request, push | -- |
 | `claude-review` | pull request, and `@claude` in a comment | -- |
 | `links` | weekly | -- |
+| `verified-signatures` | push to `main` | -- |
 | `vendored-vectors` | weekly | the pins in `TF2.md`, and the census |
 
 Which day each of the rest runs is section 10 of

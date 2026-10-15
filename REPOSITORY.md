@@ -233,8 +233,7 @@ gh api -X POST repos/btclib-org/bitcoin-node-tests/rulesets --input - <<'JSON'
 {"name": "main-integrity", "target": "branch", "enforcement": "active",
  "conditions": {"ref_name": {"include": ["refs/heads/main"], "exclude": []}},
  "bypass_actors": [],
- "rules": [{"type": "required_signatures"},
-           {"type": "required_linear_history"},
+ "rules": [{"type": "required_linear_history"},
            {"type": "non_fast_forward"},
            {"type": "deletion"}]}
 JSON
@@ -267,17 +266,25 @@ JSON
 `3296421` is `fametrano`'s account id,
 `gh api users/fametrano --jq .id`.
 
-Classic protection's own copy of the signature rule is off, and
-`main-integrity` above is what requires a signature: [the standard states
-that value for every
+Classic protection's own copy of the signature rule is off, as it is in
+every ruleset over `main`: [the standard states that value for every
 repository](https://github.com/btclib-org/.github/blob/main/README.md#branch-protection-and-rulesets).
-Read on 2026-09-27:
+Read on 2026-10-15:
 
 ```shell
 gh api repos/btclib-org/bitcoin-node-tests/branches/main/protection \
   --jq '.required_signatures.enabled'
 # false
 ```
+
+So nothing refuses an unsigned commit at the push.
+`verified-signatures.yml` checks after the push: for each commit pushed it
+reads `.commit.verification.verified` from the API and fails naming any
+whose value is not `true`. A red run is read in the Actions tab; the check
+is not a required one. What a pull request writes to `main` is the squash
+GitHub composes, which carries its web-flow key, and [the standard asks for
+a verified commit and not for a particular
+signer](https://github.com/btclib-org/.github/blob/main/README.md#signatures).
 
 ## Tag protection
 
@@ -310,8 +317,8 @@ for id in $(gh api repos/btclib-org/bitcoin-node-tests/rulesets \
 done
 # {"bypass":[],"enforcement":"active","include":["refs/heads/main"],
 #  "methods":[],"name":"main-integrity",
-#  "rules":["required_signatures","required_linear_history",
-#           "non_fast_forward","deletion"],"target":"branch"}
+#  "rules":["required_linear_history","non_fast_forward","deletion"],
+#  "target":"branch"}
 # {"bypass":[[3296421,"pull_request"]],"enforcement":"active",
 #  "include":["refs/heads/main"],"methods":[["squash"]],
 #  "name":"main-self-merge","rules":["pull_request"],"target":"branch"}

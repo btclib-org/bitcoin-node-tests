@@ -914,7 +914,10 @@ class NodeAdapter(ABC):
         self.rpc.call("setmocktime", [timestamp])
 
     def add_outbound_connection(
-        self, address: tuple[str, int], connection_type: str
+        self,
+        address: tuple[str, int],
+        connection_type: str,
+        v2transport: bool = False,
     ) -> None:
         """Have this node dial `address` as an outbound `connection_type`.
 
@@ -925,16 +928,18 @@ class NodeAdapter(ABC):
         this suite listens with. `Capability.TYPED_OUTBOUND`
         (`capability.py`) is what a caller checks before calling this.
 
-        `v2transport` is passed `False`, the wire a `Peer` speaks by
+        `v2transport` defaults to `False`, the wire a `Peer` speaks by
         default, as `connect_nodes` above defaults to it.
 
         :param address: `(host, port)` to dial, a `Listener.address`.
         :param connection_type: `outbound-full-relay`, `block-relay-only`,
             `addr-fetch`, `feeler` or `manual`, the last where the build's
             own `help addconnection` names it.
+        :param v2transport: `addconnection`'s own `v2transport` argument,
+            whether the node dials over BIP324's v2 transport.
         """
         host, port = address
-        self.rpc.call("addconnection", [f"{host}:{port}", connection_type, False])
+        self.rpc.call("addconnection", [f"{host}:{port}", connection_type, v2transport])
 
 
 def _peer_ids(peers: object) -> set[object]:

@@ -268,8 +268,8 @@ class Peer:
     def _receive_packet(self, cipher: Cipher) -> tuple[bytes, bool]:
         """Return the next v2 packet's contents, and whether it is a decoy.
 
-        :raises BTClibValueError: the packet failed authentication, which
-            ends the connection.
+        :raises BTClibValueError: the packet failed authentication; BIP324
+            has the connection closed on it.
         """
         if self._contents_len is None:
             self._contents_len = cipher.decrypt_length(self._take(LENGTH_LEN))
@@ -394,8 +394,8 @@ class Peer:
         """Return the next v1 message.
 
         The magic is checked first, as Core's `P2PConnection._on_data`
-        does: a peer that cannot parse the node's octets as v1 closes the
-        connection, and a v2 node then dials it again over v1.
+        does: a v2 key raises here, the caller closes the connection, and a
+        v2 node then dials it again over v1.
         """
         while True:
             head = self._buffer[: len(self._magic)]
@@ -416,7 +416,7 @@ class Peer:
         """Return the next v2 message, decoys dropped.
 
         A message whose type `message_from_contents` refuses is dropped,
-        and the connection kept, as Core does.
+        and the connection kept, as Core's node does.
         """
         while True:
             contents, ignore = self._receive_packet(cipher)

@@ -136,9 +136,8 @@ def _add_outbound_p2p_connection(
     dials again over v1.
     """
     with Listener(_MAGIC) as listener:
-        host, port = listener.address
-        node.rpc.call(
-            "addconnection", [f"{host}:{port}", "outbound-full-relay", advertise_v2_p2p]
+        node.add_outbound_connection(
+            listener.address, "outbound-full-relay", v2transport=advertise_v2_p2p
         )
         if advertise_v2_p2p and not supports_v2_p2p:
             with listener.accept() as refused, pytest.raises(ValueError, match="magic"):

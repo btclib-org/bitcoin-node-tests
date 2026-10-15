@@ -274,7 +274,7 @@ scope. What would need a hand-rolled cipher is not: that is tf2's." The
 `ChaCha20Poly1305` for the construction
 ([ISS btclib-org/btclib#2474](https://github.com/btclib-org/btclib/issues/2474),
 landed as PR btclib-org/btclib#2516).
-`peer.py` uses btclib's.
+`peer.py` reaches the construction through btclib's `Cipher`.
 
 ### `test/functional/test_framework/crypto/chacha20.py`
 

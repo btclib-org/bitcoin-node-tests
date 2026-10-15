@@ -73,7 +73,8 @@ _SENT_BY_NODE = frozenset({"version", "verack", "pong"})
 
 def _subclasses(cls: type) -> Iterator[type]:
     """Yield every subclass of `cls`, at any depth."""
-    for subclass in cls.__subclasses__():
+    subclasses: list[type] = cls.__subclasses__()
+    for subclass in subclasses:
         yield subclass
         yield from _subclasses(subclass)
 

@@ -4,12 +4,12 @@
 
 """`NodeAdapter`'s own lifecycle against a real node: bitcoind.
 
-What `tests/node_test.py` and `tests/bitcoind_test.py` fake, run against
-the process itself: `mine` after a `restart` and over a datadir an
-earlier adapter left
+`adapter_lifecycle_test.py` beside this module is the body, run here
+against bitcoind, the oracle. The scenarios about bitcoind and its adapter
+stay here:
+`mine` after a `restart` and over a datadir an earlier adapter left,
+both about the wallet `BitcoindAdapter.mine` pays to
 ([ISS 86](https://github.com/btclib-org/bitcoin-node-tests/issues/86)),
-`stop` reporting a node killed out from under the adapter
-([ISS 84](https://github.com/btclib-org/bitcoin-node-tests/issues/84)),
 and a kept RPC connection still open after idling past bitcoind's default
 `-rpcservertimeout`
 ([ISS 336](https://github.com/btclib-org/bitcoin-node-tests/issues/336)).
@@ -19,8 +19,6 @@ and a kept RPC connection still open after idling past bitcoind's default
 
 from __future__ import annotations
 
-import os
-import signal
 import time
 from typing import TYPE_CHECKING
 
@@ -30,6 +28,10 @@ from bitcoin_core_rpc import transport
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import free_ports
+from tests.integration.adapter_lifecycle_test import (
+    mine_extends_the_tip_by_the_blocks_it_returns,
+    stop_reports_a_node_killed_out_from_under_it,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -99,27 +101,22 @@ def test_mine_over_a_datadir_an_earlier_adapter_left(
 def test_stop_reports_a_node_killed_out_from_under_it(
     make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
 ) -> None:
-    """A node gone before `stop` is raised, and nothing is left to stop."""
-    rpc_port, p2p_port = free_ports(2)
-    adapter = make_adapter(
-        BitcoindAdapter, bitcoind_path, tmp_path / "node", rpc_port, p2p_port
+    """The oracle: a node killed before `stop`."""
+    stop_reports_a_node_killed_out_from_under_it(
+        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path
     )
-    adapter.start()
-    running = adapter._running
-    process = None if running is None else running.process
-    try:
-        assert process is not None
-        os.kill(process.pid, signal.SIGKILL)
-        process.wait()
-        with pytest.raises(
-            RuntimeError, match=r"^node process exited with -9 before stop was called"
-        ):
-            adapter.stop()
-    finally:
-        if process is not None and process.poll() is None:
-            process.kill()
-            process.wait()
-    adapter.stop()
+
+
+def test_mine_extends_the_tip_by_the_blocks_it_returns(
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: each `mine` moves the tip onto its last hash."""
+    mine_extends_the_tip_by_the_blocks_it_returns(
+        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path, skip_counts
+    )
 
 
 def test_a_kept_connection_outlives_the_default_server_timeout(

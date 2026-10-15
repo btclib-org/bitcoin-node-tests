@@ -4,22 +4,12 @@
 
 """Core's `p2p_getdata`, rewritten on tf2's own harness: btclib-node.
 
-The same request `p2p_getdata_bitcoind_test.py` makes, against the
-target rather than the oracle (rule 3 of issue btclib-org/btclib#2220):
-an invalid `getdata` does not stop a later valid one from being served,
-asked for genesis rather than Core's own mined tip -- that module's own
-docstring has why. Held in its own module so that a job running one and
-not the other -- `.github/workflows/node-integration.yml`'s `btclib-node`
-jobs, which run `*_btclib_node_test.py` -- can select it by module name.
-
-Expected to fail on the released build rather than to pass or to skip --
-neither an `xfail` nor a `pytest.skip.Exception` -- so this keeps
-reproducing [ISS
-btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)
-rather than hiding it: `block_db` never stores genesis, so neither this nor
-`getblock` can serve the one block a fresh regtest node, mined or not,
-starts at. `TF2.md`'s per-test table carries the verdict this failure is,
-not a decoration on this module.
+`p2p_getdata_test.py` beside this module is the body, run here against
+the target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
+A build with the defect of
+[ISS btclib-node#1072](https://github.com/btclib-org/btclib-node/issues/1072)
+fails it: `block_db` never stores genesis, so it cannot serve the block
+this test asks for.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_getdata_btclib_node_test.py
@@ -27,38 +17,22 @@ not a decoration on this module.
 
 from __future__ import annotations
 
-import secrets
+from typing import TYPE_CHECKING
 
 import pytest
-from bitcoin_core_rpc import magic_from_chain
-from btclib.block import genesis_block
-from btclib.p2p import BlockPayload, GetData, Inventory, Ping, Pong
 
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-from bitcoin_node_tests.peer import Peer
+from tests.integration.p2p_getdata_test import (
+    invalid_getdata_does_not_stop_a_later_valid_one,
+)
+
+if TYPE_CHECKING:
+    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 
 pytestmark = pytest.mark.integration
-
-_MAGIC = magic_from_chain("regtest")
-_MSG_BLOCK = 2
-_GENESIS_HASH = genesis_block("regtest").header.hash
 
 
 def test_invalid_getdata_does_not_stop_a_later_valid_one(
     btclib_node_adapter: BtclibNodeAdapter,
 ) -> None:
-    """The target: the same request `p2p_getdata_bitcoind_test.py` makes."""
-    with Peer(btclib_node_adapter.p2p_address, _MAGIC) as peer:
-        peer.handshake()
-
-        # CInv(t=0, h=0), Core's own invalid entry
-        peer.send(GetData([Inventory()]))
-
-        nonce = secrets.randbelow(2**63)
-        peer.send(Ping(nonce))
-        peer.wait_for("pong", predicate=lambda m: Pong.parse(m.payload).nonce == nonce)
-
-        peer.send(GetData([Inventory(_MSG_BLOCK, _GENESIS_HASH)]))
-        message = peer.wait_for("block")
-        received = BlockPayload.parse(message.payload, check_validity=False)
-        assert received.block.header.hash == _GENESIS_HASH
+    """The target: the invalid item first, the valid one still served."""
+    invalid_getdata_does_not_stop_a_later_valid_one(btclib_node_adapter)

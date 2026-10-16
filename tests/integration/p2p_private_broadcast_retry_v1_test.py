@@ -33,9 +33,9 @@ What differs from Core's file:
 - Core's node starts on its harness's cached chain. Here `MiniWallet`
   mines a coin to maturity first.
 - The Tor proxy closes every connection to an IPv4 address other than the
-  first, where Core forwards each to a peer answering in v2: `Peer`
-  (`peer.py`) speaks v1 alone. The node retries each in v1, and the retry
-  is closed too. Nothing Core's file reads is on those connections.
+  first, where Core forwards each to a peer answering in v2. The node
+  retries each in v1, and the retry is closed too. Nothing Core's file
+  reads is on those connections.
 
 `p2p_private_broadcast_retry_v1_bitcoind_test.py` and
 `p2p_private_broadcast_retry_v1_btclib_node_test.py` run it,

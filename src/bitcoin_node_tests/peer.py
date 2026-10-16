@@ -20,6 +20,13 @@ has to remember to.
 `Listener` is the other direction, Core's `peer_accept_connection`: a
 socket the node is made to dial, the node's own outbound connection
 arriving there as a `Peer` like any other.
+
+A connection speaks the v1 wire unless it is asked for BIP324's v2
+transport, Core's `supports_v2_p2p`. The handshake is Core's
+`EncryptedP2PState` (`test/functional/test_framework/v2_p2p.py`), the
+dialling side as the initiator and the accepting side as the responder.
+Its ciphers, its key schedule and its packets are
+`btclib.p2p.bip324`'s, its key exchange `btclib.ecc.ellswift`'s.
 """
 
 from __future__ import annotations
@@ -32,7 +39,8 @@ import time
 from collections import Counter
 from typing import TYPE_CHECKING, Self
 
-from btclib.exceptions import IncompleteMessageError
+from btclib.ecc.ellswift import ELL_SIZE
+from btclib.exceptions import BTClibValueError, IncompleteMessageError
 from btclib.p2p import (
     Message,
     Payload,
@@ -44,6 +52,16 @@ from btclib.p2p import (
     Version,
     WtxidRelay,
 )
+from btclib.p2p.bip324 import (
+    HEADER_LEN,
+    LENGTH_LEN,
+    TAG_LEN,
+    Cipher,
+    contents_from_message,
+    message_from_contents,
+)
+from btclib_ecc.curves import secp256k1
+from btclib_ecc.ecc.ellswift import create_var
 
 from bitcoin_node_tests.timeout_factor import scaled
 
@@ -64,6 +82,15 @@ _SERVICES = ServiceFlags.NODE_NETWORK | ServiceFlags.NODE_WITNESS
 
 _USER_AGENT = b"/bitcoin-node-tests:0/"
 
+# BIP324's bound on the garbage either side sends ahead of its terminator
+_MAX_GARBAGE_LEN = 4095
+
+# Core's `EncryptedP2PState.complete_handshake`: up to this many decoy
+# packets ahead of the version packet, each of 1 to `_MAX_DECOY_LEN`
+# octets
+_MAX_DECOYS = 10
+_MAX_DECOY_LEN = 100
+
 
 class Peer:
     """One p2p connection to a node, driven by hand rather than by a peer.
@@ -76,6 +103,10 @@ class Peer:
         given no `timeout` of its own, `send` and a bare `receive`
         included, before `--timeout-factor`'s own scaling
         (`timeout_factor.scaled`).
+    :param supports_v2_p2p: open the connection with BIP324's v2
+        handshake, which returns once the node's version packet is read.
+        A node that speaks only v1 closes the connection, and the
+        constructor raises.
 
     `message_count` is Core's `P2PInterface.message_count`: how many
     messages of each command `receive` has returned, those `wait_for`
@@ -85,20 +116,37 @@ class Peer:
     """
 
     def __init__(
-        self, address: tuple[str, int], magic: bytes, *, timeout: float = 30.0
+        self,
+        address: tuple[str, int],
+        magic: bytes,
+        *,
+        timeout: float = 30.0,
+        supports_v2_p2p: bool = False,
     ) -> None:
         timeout = scaled(timeout)
         connection = socket.create_connection(address, timeout=timeout)
         self._adopt(connection, magic, timeout, dialled=True)
+        if supports_v2_p2p:
+            self._v2_handshake_or_close()
 
     @classmethod
-    def _accepted(cls, connection: socket.socket, magic: bytes, timeout: float) -> Self:
+    def _accepted(
+        cls,
+        connection: socket.socket,
+        magic: bytes,
+        timeout: float,
+        *,
+        supports_v2_p2p: bool,
+    ) -> Self:
         """Return a `Peer` over a connection the node dialled, for `Listener`.
 
         :param timeout: already scaled, as `Listener.__init__` scales it.
+        :param supports_v2_p2p: as `Listener.accept`'s.
         """
         peer = cls.__new__(cls)
         peer._adopt(connection, magic, timeout, dialled=False)
+        if supports_v2_p2p:
+            peer._v2_handshake_or_close()
         return peer
 
     def _adopt(
@@ -111,8 +159,134 @@ class Peer:
         self._timeout = timeout
         self._dialled = dialled
         self._buffer = b""
+        self._cipher: Cipher | None = None
+        # the length of the packet being read, once decrypted: the
+        # length cipher has moved past it, so a wait that times out
+        # before the rest arrives keeps it for the next read
+        self._contents_len: int | None = None
+        # the received garbage, which the first packet after it
+        # authenticates
+        self._aad = b""
         self.message_count: Counter[str] = Counter()
         self.last_message: dict[str, Message] = {}
+
+    def _v2_handshake_or_close(self) -> None:
+        """Run the v2 handshake, closing the socket where it raises."""
+        try:
+            self._v2_handshake()
+        except BaseException:
+            self.close()
+            raise
+
+    def _v2_handshake(self) -> None:
+        """Run BIP324's handshake, up to the node's version packet.
+
+        Core's `EncryptedP2PState`: the key and the garbage, the key of
+        the node, then the garbage terminator, the decoys and the version
+        packet. As the responder, a connection opening with v1's
+        `version` header stays v1, which is Core's `respond_v2_handshake`
+        answering `-1`.
+        """
+        if not self._dialled and self._opens_with_v1_version():
+            return
+        prv_key = secrets.randbelow(secp256k1.n - 1) + 1
+        ell_ours = create_var(prv_key)
+        garbage = secrets.token_bytes(secrets.randbelow(_MAX_GARBAGE_LEN + 1))
+        self._socket.sendall(ell_ours + garbage)
+        ell_theirs = self._take(ELL_SIZE)
+        cipher = Cipher(prv_key, ell_ours, ell_theirs, self._dialled, self._magic)
+        packets = [cipher.send_garbage_terminator]
+        aad = garbage
+        for _ in range(secrets.randbelow(_MAX_DECOYS + 1)):
+            decoy = bytes(secrets.randbelow(_MAX_DECOY_LEN) + 1)
+            packets.append(cipher.encrypt(decoy, aad, ignore=True))
+            aad = b""
+        # the version packet: BIP324 defines no contents for it yet
+        packets.append(cipher.encrypt(b"", aad))
+        self._socket.sendall(b"".join(packets))
+        self._cipher = cipher
+        self._aad = self._take_garbage(cipher.recv_garbage_terminator)
+        # the node's decoys, then its version packet, whose contents
+        # BIP324 has a receiver ignore
+        while self._receive_packet(cipher)[1]:
+            pass
+
+    def _opens_with_v1_version(self) -> bool:
+        """Return whether the node's first octets are v1's `version` header.
+
+        Core's `respond_v2_handshake`: the magic and the command, read up
+        to the first octet that differs.
+        """
+        prefix = Message(self._magic, "version").serialize()[: len(self._magic) + 12]
+        while True:
+            head = self._buffer[: len(prefix)]
+            if not prefix.startswith(head):
+                return False
+            if head == prefix:
+                return True
+            self._recv_more()
+
+    def _take_garbage(self, terminator: bytes) -> bytes:
+        """Return the node's garbage, consuming its terminator after it.
+
+        :raises ValueError: no terminator within BIP324's bound on the
+            garbage, the case Core's `authenticate_handshake` disconnects on.
+        """
+        limit = _MAX_GARBAGE_LEN + len(terminator)
+        while (end := self._buffer.find(terminator, 0, limit)) < 0:
+            if len(self._buffer) >= limit:
+                err_msg = f"no garbage terminator within {_MAX_GARBAGE_LEN} octets"
+                raise ValueError(err_msg)
+            self._recv_more()
+        garbage = self._buffer[:end]
+        self._buffer = self._buffer[end + len(terminator) :]
+        return garbage
+
+    def _recv_more(self) -> None:
+        """Append what the socket holds next to the buffer.
+
+        :raises ConnectionError: the node closed the connection.
+        """
+        chunk = self._socket.recv(4096)
+        if not chunk:
+            err_msg = "connection closed while waiting for a message"
+            raise ConnectionError(err_msg)
+        self._buffer += chunk
+
+    def _take(self, size: int) -> bytes:
+        """Return the next `size` octets, reading the socket as needed.
+
+        A wait that times out takes nothing: what arrived stays in the
+        buffer.
+        """
+        while len(self._buffer) < size:
+            self._recv_more()
+        taken = self._buffer[:size]
+        self._buffer = self._buffer[size:]
+        return taken
+
+    def _receive_packet(self, cipher: Cipher) -> tuple[bytes, bool]:
+        """Return the next v2 packet's contents, and whether it is a decoy.
+
+        :raises BTClibValueError: the packet failed authentication; BIP324
+            has the connection closed on it.
+        """
+        if self._contents_len is None:
+            self._contents_len = cipher.decrypt_length(self._take(LENGTH_LEN))
+        ciphertext = self._take(HEADER_LEN + self._contents_len + TAG_LEN)
+        self._contents_len = None
+        aad, self._aad = self._aad, b""
+        return cipher.decrypt(ciphertext, aad)
+
+    @property
+    def supports_v2_p2p(self) -> bool:
+        """Whether this connection speaks BIP324's v2 transport.
+
+        Core's `P2PConnection.supports_v2_p2p`. A connection the node
+        opened with v1's `version` answers `False`, though it was
+        accepted with `supports_v2_p2p`.
+        """
+        return self._cipher is not None
 
     def close(self) -> None:
         """Close the underlying socket."""
@@ -149,7 +323,9 @@ class Peer:
             self._socket.settimeout(timeout)
         return False
 
-    def send(self, payload: Payload, *, check_validity: bool = True) -> None:
+    def send(
+        self, payload: Payload, *, check_validity: bool = True, is_decoy: bool = False
+    ) -> None:
         """Frame `payload` for this connection's own network, and send it.
 
         :param payload: the message to send.
@@ -158,12 +334,23 @@ class Peer:
             locator over `MAX_LOCATOR_SZ` is exactly the octets a node's
             own refusal is asked about, and `assert_valid` refuses to
             build one at all where this stayed `True`.
+        :param is_decoy: send the message as a v2 packet the node is to
+            ignore, Core's `send_without_ping(..., is_decoy=True)`.
+        :raises ValueError: `is_decoy` on a v1 connection, which has no
+            such packet.
         """
         message = payload.to_message(self._magic, check_validity=check_validity)
-        self._socket.sendall(message.serialize())
+        if self._cipher is None:
+            if is_decoy:
+                err_msg = "a decoy is a v2 packet, and this connection speaks v1"
+                raise ValueError(err_msg)
+            self._socket.sendall(message.serialize())
+            return
+        contents = contents_from_message(message.command, message.payload)
+        self._socket.sendall(self._cipher.encrypt(contents, ignore=is_decoy))
 
     def send_raw(self, data: bytes) -> None:
-        """Send already-serialized bytes, bypassing this peer's own magic.
+        """Send octets as they are, past this peer's framing and encryption.
 
         `send` above always frames for `self._magic`, this connection's
         own network; a caller building a message with a *different*
@@ -183,6 +370,9 @@ class Peer:
             That default wait where `None`.
         :raises ConnectionError: the peer closed the connection.
         :raises TimeoutError: no octet arrived within `timeout`.
+        :raises ValueError: on a v1 connection, octets that do not open
+            with this connection's magic, as a v2 handshake's key does
+            not; on a v2 connection, a packet that fails authentication.
         """
         if timeout is None:
             return self._receive()
@@ -194,21 +384,49 @@ class Peer:
 
     def _receive(self) -> Message:
         """Return the next whole message, at the socket's current timeout."""
+        cipher = self._cipher
+        message = self._receive_v1() if cipher is None else self._receive_v2(cipher)
+        self.message_count[message.command] += 1
+        self.last_message[message.command] = message
+        return message
+
+    def _receive_v1(self) -> Message:
+        """Return the next v1 message.
+
+        The magic is checked first, as Core's `P2PConnection._on_data`
+        does: a v2 key raises here, the caller closes the connection, and a
+        v2 node then dials it again over v1.
+        """
         while True:
+            head = self._buffer[: len(self._magic)]
+            if len(head) == len(self._magic) and head != self._magic:
+                err_msg = f"magic bytes mismatch: {head.hex()} instead of "
+                err_msg += self._magic.hex()
+                raise ValueError(err_msg)
             stream = io.BytesIO(self._buffer)
             try:
                 message = Message.parse(stream)
             except IncompleteMessageError:
-                chunk = self._socket.recv(4096)
-                if not chunk:
-                    err_msg = "connection closed while waiting for a message"
-                    raise ConnectionError(err_msg) from None
-                self._buffer += chunk
+                self._recv_more()
             else:
                 self._buffer = self._buffer[stream.tell() :]
-                self.message_count[message.command] += 1
-                self.last_message[message.command] = message
                 return message
+
+    def _receive_v2(self, cipher: Cipher) -> Message:
+        """Return the next v2 message, decoys dropped.
+
+        A message whose type `message_from_contents` refuses is dropped,
+        and the connection kept, as Core's node does.
+        """
+        while True:
+            contents, ignore = self._receive_packet(cipher)
+            if ignore:
+                continue
+            try:
+                command, payload = message_from_contents(contents)
+            except BTClibValueError:
+                continue
+            return Message(self._magic, command, payload)
 
     def wait_for(
         self,
@@ -413,13 +631,18 @@ class Listener:
         host, port = self._socket.getsockname()[:2]
         return str(host), int(port)
 
-    def accept(self) -> Peer:
+    def accept(self, *, supports_v2_p2p: bool = False) -> Peer:
         """Return the next connection a node made to `address`, as a `Peer`.
 
+        :param supports_v2_p2p: answer a node opening with BIP324's v2
+            handshake, and return once its version packet is read. A
+            node opening with v1's `version` gets a v1 `Peer`.
         :raises TimeoutError: no connection arrived within the wait.
         """
         connection, _ = self._socket.accept()
-        return Peer._accepted(connection, self._magic, self._timeout)
+        return Peer._accepted(
+            connection, self._magic, self._timeout, supports_v2_p2p=supports_v2_p2p
+        )
 
     def close(self) -> None:
         """Stop listening; a `Peer` already accepted stays open."""

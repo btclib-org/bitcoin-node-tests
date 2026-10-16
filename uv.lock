@@ -128,7 +128,7 @@ version = "0"
 source = { editable = "." }
 dependencies = [
     { name = "bitcoin-core-rpc" },
-    { name = "btclib" },
+    { name = "btclib", extra = ["bip324"] },
     { name = "btclib-ecc" },
     { name = "btclib-wallet" },
 ]
@@ -139,7 +139,6 @@ check = [
     { name = "uv-build" },
 ]
 dev = [
-    { name = "btclib", extra = ["bip324"] },
     { name = "coverage" },
     { name = "furo" },
     { name = "hypothesis" },
@@ -162,7 +161,6 @@ docs = [
     { name = "sphinx" },
 ]
 harness = [
-    { name = "btclib", extra = ["bip324"] },
     { name = "coverage" },
     { name = "hypothesis" },
     { name = "pytest" },
@@ -177,7 +175,6 @@ lint = [
     { name = "ruff" },
 ]
 test = [
-    { name = "btclib", extra = ["bip324"] },
     { name = "coverage" },
     { name = "hypothesis" },
     { name = "pytest" },
@@ -190,7 +187,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "bitcoin-core-rpc", specifier = ">=2026.9.24" },
-    { name = "btclib", specifier = ">=2026.9.30" },
+    { name = "btclib", extras = ["bip324"], specifier = ">=2026.10.7" },
     { name = "btclib-ecc", specifier = ">=2026.9.28" },
     { name = "btclib-wallet", specifier = ">=2026.9.30" },
 ]
@@ -201,7 +198,6 @@ check = [
     { name = "uv-build", specifier = ">=0.12.0,<0.13" },
 ]
 dev = [
-    { name = "btclib", extras = ["bip324"], specifier = ">=2026.10.7" },
     { name = "coverage", specifier = ">=7.16.0" },
     { name = "furo", specifier = ">=2025.12.19" },
     { name = "hypothesis", specifier = ">=6.168.0" },
@@ -224,7 +220,6 @@ docs = [
     { name = "sphinx", specifier = ">=9.1.0" },
 ]
 harness = [
-    { name = "btclib", extras = ["bip324"], specifier = ">=2026.10.7" },
     { name = "coverage", specifier = ">=7.16.0" },
     { name = "hypothesis", specifier = ">=6.168.0" },
     { name = "pytest", specifier = ">=9.1.1" },
@@ -239,7 +234,6 @@ lint = [
     { name = "ruff", specifier = ">=0.16.7" },
 ]
 test = [
-    { name = "btclib", extras = ["bip324"], specifier = ">=2026.10.7" },
     { name = "coverage", specifier = ">=7.16.0" },
     { name = "hypothesis", specifier = ">=6.168.0" },
     { name = "pytest", specifier = ">=9.1.1" },

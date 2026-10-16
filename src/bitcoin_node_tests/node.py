@@ -914,7 +914,10 @@ class NodeAdapter(ABC):
         self.rpc.call("setmocktime", [timestamp])
 
     def add_outbound_connection(
-        self, address: tuple[str, int], connection_type: str
+        self,
+        address: tuple[str, int],
+        connection_type: str,
+        v2transport: bool = False,
     ) -> None:
         """Have this node dial `address` as an outbound `connection_type`.
 
@@ -925,16 +928,18 @@ class NodeAdapter(ABC):
         this suite listens with. `Capability.TYPED_OUTBOUND`
         (`capability.py`) is what a caller checks before calling this.
 
-        `v2transport` is passed `False`: `Peer` speaks the v1 wire alone,
-        the reason `connect_nodes` above gives for its own default.
+        `v2transport` defaults to `False`, the wire a `Peer` speaks by
+        default, as `connect_nodes` above defaults to it.
 
         :param address: `(host, port)` to dial, a `Listener.address`.
         :param connection_type: `outbound-full-relay`, `block-relay-only`,
             `addr-fetch`, `feeler` or `manual`, the last where the build's
             own `help addconnection` names it.
+        :param v2transport: `addconnection`'s own `v2transport` argument,
+            whether the node dials over BIP324's v2 transport.
         """
         host, port = address
-        self.rpc.call("addconnection", [f"{host}:{port}", connection_type, False])
+        self.rpc.call("addconnection", [f"{host}:{port}", connection_type, v2transport])
 
 
 def _peer_ids(peers: object) -> set[object]:
@@ -1077,19 +1082,17 @@ def connect_nodes(
     ... "onetry"` against a `BtclibNodeAdapter` never completes a
     handshake, bitcoind's own `debug.log` reading "start sending v2
     handshake to peer=0" immediately followed by "socket closed,
-    disconnecting peer=0"), and `Peer` speaks no BIP324 --
-    `peer.py`'s own module docstring states this suite's own wire is v1
-    only, and a `btclib-node` build without `-v2transport` reads and
-    type-checks the argument without acting on it
-    (`rpc/callbacks.py`'s own docstring). bitcoind itself never falls
+    disconnecting peer=0"), and a `btclib-node` build without
+    `-v2transport` reads and type-checks the argument without acting on
+    it (`rpc/callbacks.py`'s own docstring). bitcoind itself never falls
     back to v1 once a v2 attempt is reset
     ([ISS btclib-node#1197](https://github.com/btclib-org/btclib-node/issues/1197)),
     which is why it is stated rather than left to a fallback. Core's own
     `connect_nodes` (`test_framework.py`) makes the identical choice
     through its own `peer_advertises_v2` parameter, defaulting to
-    whichever side is dialling; here the default is v1, the one wire
-    every adapter speaks, and a test whose subject is BIP324 between two
-    nodes declaring `Capability.V2TRANSPORT` passes `v2transport=True`.
+    whichever side is dialling; here the default is v1, and a test
+    whose subject is BIP324 between two nodes declaring
+    `Capability.V2TRANSPORT` passes `v2transport=True`.
 
     :param first: the node asked to dial.
     :param second: the node dialled.

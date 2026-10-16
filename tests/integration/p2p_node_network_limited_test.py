@@ -27,8 +27,7 @@ with `-v2transport=1`; this harness passes no `-v2transport`, so the
 bit is expected where the node declares `Capability.V2TRANSPORT`. That
 reads the capability as BIP324 on by default, which it is on bitcoind
 (`-v2transport` defaults to on) and not what the capability itself
-promises: it names BIP324 accepted from another node, not offered
-unasked.
+promises: it names BIP324 accepted, not offered unasked.
 
 `p2p_node_network_limited_bitcoind_test.py` and
 `p2p_node_network_limited_btclib_node_test.py` run it,

@@ -39,8 +39,10 @@ requires-python = ">=3.12"
 dependencies = [
     # the packages tf2 imports, and no other: it reaches a node over
     # a socket, never through an in-process import (issue
-    # btclib-org/btclib#2220, rule 1)
-    "btclib>=2026.9.30",
+    # btclib-org/btclib#2220, rule 1). `peer.py` imports
+    # `btclib.p2p.bip324`, which needs `cryptography`, which btclib's
+    # `bip324` extra installs
+    "btclib[bip324]>=2026.10.7",
     "btclib-ecc>=2026.9.28",
     "btclib-wallet>=2026.9.30",
     "bitcoin-core-rpc>=2026.9.24",
@@ -89,10 +91,6 @@ pull_requests = "https://github.com/btclib-org/bitcoin-node-tests/pulls"
 
 [dependency-groups]
 harness = [
-    # `p2p_message_capture_test.py` imports every `btclib.p2p` module to
-    # list the message types, and `btclib.p2p.bip324` needs
-    # `cryptography`, which btclib's `bip324` extra installs
-    "btclib[bip324]>=2026.10.7",
     "coverage>=7.16.0",
     "hypothesis>=6.168.0",
     "pytest>=9.1.1",

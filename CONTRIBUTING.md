@@ -546,8 +546,8 @@ for a flag like Core's own to set a default on. An adapter's own
 own flag, node by node; `tests/integration/v2transport_option_test.py`
 passes it to `NodeAdapter.restart` and measures both directions against
 `getpeerinfo`'s own `transport_protocol_type`.
-`Capability.V2TRANSPORT` covers node-to-node connections, not a `Peer`'s
-own: `Peer` (`peer.py`) speaks only the plaintext v1 wire format.
+`Capability.V2TRANSPORT` covers node-to-node connections and a `Peer`'s
+own: `Peer` (`peer.py`) speaks the v1 wire unless it is asked for v2.
 `BitcoindAdapter` always declares it and `BtclibNodeAdapter` declares it
 per build; `btclib_node.py`'s module docstring says which builds.
 

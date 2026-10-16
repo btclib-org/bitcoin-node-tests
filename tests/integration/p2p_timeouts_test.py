@@ -24,8 +24,8 @@ half asserts Core's own lines around the same steps
 (`Capability.DEBUG_LOG`): the connection each peer opens, the `ping`
 each refused before the handshake, and the reason each drop gives. Its
 peer ids are the node's first three, each test starting its own node.
-Core's `-v2transport` branch of the expected lines is dropped: `Peer`
-speaks the v1 wire alone.
+Core's `-v2transport` branch of the expected lines is dropped: the node
+runs with `TestNode`'s default, `-v2transport=0`, below.
 
 The node is restarted with two settings Core's own harness gives every
 node it starts and `BitcoindAdapter` does not. `-v2transport=0` is

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_package_rbf`, as bodies over either node.
+"""Core's `mempool_package_rbf`, as bodies over each node.
 
 Read from Core's `test/functional/mempool_package_rbf.py` (`fa5f29774872`,
 2025-12-16, the same file at the pinned `v31.1` and at Core's `master`): a
@@ -56,9 +56,9 @@ What differs from Core's file:
   (`test/functional/test_framework/mempool_util.py`), which this
   repository's `mempool_util.py` does not carry.
 
-`mempool_package_rbf_bitcoind_test.py` and
-`mempool_package_rbf_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `mempool_package_rbf_<node>_test.py` module beside this one runs
+each body, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -79,8 +79,6 @@ if TYPE_CHECKING:
 
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.mini_wallet import Utxo
     from bitcoin_node_tests.node import NodeAdapter
@@ -97,7 +95,7 @@ __all__ = [
     "a_zero_fee_truc_parent_and_its_child_replace_a_package",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # Core's own `DEFAULT_FEE` (`wallet.py`), 0.0001 BTC, in satoshis
 _DEFAULT_FEE = 10_000
@@ -261,7 +259,7 @@ def a_child_pays_to_replace_its_parents_conflicts(
     `submitpackage` takes it, naming what it replaced; the peer follows
     the replacement over p2p.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(2)
@@ -303,7 +301,7 @@ def a_child_pays_to_replace_a_single_conflict(
 
     Core's `test_package_rbf_singleton`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, packages = _node(cluster, skip_counts, coins=1)
@@ -332,7 +330,7 @@ def a_package_must_pay_more_and_for_its_own_relay(
     parent pays at least the package's own fee rate is refused, and one
     whose child pays one satoshi more is taken.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, packages = _node(cluster, skip_counts, coins=2)
@@ -411,7 +409,7 @@ def a_package_replaces_no_more_clusters_than_the_limit(
     by the first package, and the refusal is the package's own message,
     naming the child.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     # the cluster mempool's own count is the larger one, so the coins it
@@ -491,7 +489,7 @@ def a_package_with_mempool_ancestors_replaces_nothing(
     second parent enters on its own, so the child has an ancestor in the
     mempool and the replacement is refused.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, packages = _node(cluster, skip_counts, coins=2)
@@ -532,7 +530,7 @@ def a_package_with_two_parents_replaces_nothing(
     mempool, and a package whose two parents conflict with one each and
     whose child spends both.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, packages = _node(cluster, skip_counts, coins=2)
@@ -577,7 +575,7 @@ def a_package_must_beat_its_direct_conflicts_feerate(
     less than the parent it conflicts with, so the feerate diagram does
     not improve.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, packages = _node(cluster, skip_counts, coins=1)
@@ -604,7 +602,7 @@ def a_zero_fee_truc_parent_and_its_child_replace_a_package(
     rate on each transaction is replaced by one whose parent pays nothing
     and whose child pays ten times the first package's fee.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, packages = _node(cluster, skip_counts, coins=1)
@@ -645,7 +643,7 @@ def a_child_double_spending_its_mempool_ancestor_is_refused(
     transaction's own coin; the package is refused, its parent having an
     ancestor in the mempool, and only that ancestor stays.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, packages = _node(

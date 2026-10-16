@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_reorg`, as bodies over either node.
+"""Core's `mempool_reorg`, as bodies over each node.
 
 Read from Core's `test/functional/mempool_reorg.py` (`fa5f29774872`,
 2025-12-16, the same file at the pinned `v31.1`): spends of coinbases,
@@ -47,9 +47,8 @@ What differs from Core's file:
   `_sync` here does both while it waits for a ping's own `pong`, and
   runs before each of Core's reads of what the peer received.
 
-`mempool_reorg_bitcoind_test.py` and `mempool_reorg_btclib_node_test.py`
-run each body, `tests/integration/conftest.py`'s own module docstring
-having how.
+Each `mempool_reorg_<node>_test.py` module beside this one runs each
+body, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -80,8 +79,6 @@ if TYPE_CHECKING:
     from btclib.block.block import Block
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -90,7 +87,7 @@ __all__ = [
     "reorgs_evict_immature_and_non_final_spends",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -156,7 +153,7 @@ def reorgs_evict_immature_and_non_final_spends(
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(2)
@@ -308,7 +305,7 @@ def disconnected_transactions_are_available_for_relay(
 ) -> None:
     """Core's `test_reorg_relay`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(2)

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_expiry`, one body over either node.
+"""Core's `mempool_expiry`, one body over each node.
 
 Read from Core's `test/functional/mempool_expiry.py` (`fa5f29774872`,
 2025-12-16), the option, MiniWallet and clock families together
@@ -25,9 +25,8 @@ Core reads the parent's fee off `send_self_transfer`'s answer; this
 reads it off the coin spent and the output paid, `MiniWallet` returning
 the transaction rather than Core's dictionary.
 
-`mempool_expiry_bitcoind_test.py` and `mempool_expiry_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `mempool_expiry_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -44,8 +43,6 @@ from bitcoin_node_tests.mini_wallet import MiniWallet
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -154,12 +151,12 @@ def _test_transaction_expiry(
 
 
 def a_transaction_and_its_child_expire_together(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check both expiries Core's own `run_test` checks, default then custom.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

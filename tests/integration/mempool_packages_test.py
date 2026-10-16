@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_packages`, one body over either node.
+"""Core's `mempool_packages`, one body over each node.
 
 Read from Core's `test/functional/mempool_packages.py` (`6f113cb1847c`,
 2026-02-09, the same file at the pinned `v31.1`): the mempool keeps, for
@@ -74,8 +74,7 @@ What differs from Core's file:
   and outputs, and every fee the node answers in BTC is converted to
   satoshis before it is compared.
 
-`mempool_packages_bitcoind_test.py` and
-`mempool_packages_btclib_node_test.py` run the body,
+Each `mempool_packages_<node>_test.py` module beside this one runs the body,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -108,15 +107,13 @@ if TYPE_CHECKING:
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.mini_wallet import Utxo
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["mempool_tracks_ancestors_and_descendants"]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -564,7 +561,7 @@ def mempool_tracks_ancestors_and_descendants(
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(2)

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `interface_rpc`, one body over either node.
+"""Core's `interface_rpc`, one body over each node.
 
 Read from Core's `test/functional/interface_rpc.py` (`fa2bd96cc0d4`,
 2026-08-06), [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s:
@@ -41,9 +41,8 @@ over `_exchange` and matches the 503 and the body the server sent; what
 `Content-Type` Core's `AuthServiceProxy._get_response` checks, a check
 of Core's harness rather than of any step of the test.
 
-`interface_rpc_bitcoind_test.py` and `interface_rpc_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `interface_rpc_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -65,8 +64,8 @@ from bitcoin_node_tests.capability import Capability, require
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "a_batch_is_answered_member_by_member",
@@ -76,7 +75,7 @@ __all__ = [
     "getrpcinfo_names_the_call_running_and_the_log",
 ]
 
-type _Node = BitcoindAdapter | BtclibNodeAdapter
+type _Node = NodeAdapter
 type _Cluster = Callable[[int], Sequence[_Node]]
 
 _OK = 200
@@ -253,7 +252,7 @@ def getrpcinfo_names_the_call_running_and_the_log(
 ) -> None:
     """Core's `test_getrpcinfo`: the one call running, and the debug log.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: the node declares `Capability.RPC_INFO` without
         being the adapter that names a `debug_log_path`.
@@ -326,7 +325,7 @@ def a_batch_is_answered_member_by_member(
 ) -> None:
     """Core's `test_batch_requests`: each member in its own version.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally, unread: nothing here
         asks for more than a node's own RPC.
     """
@@ -373,7 +372,7 @@ def each_version_is_answered_with_its_own_status(
 ) -> None:
     """Core's `test_http_status_codes`, its JSON-RPC 1.1 and 2.0 requests.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally, unread: nothing here
         asks for more than a node's own RPC.
     """
@@ -430,7 +429,7 @@ def a_notification_runs_and_is_answered_with_no_content(
     What is no notification is checked first, on any node; a notification
     is `generatetoaddress`, so the rest asks for `Capability.GENERATE`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -502,7 +501,7 @@ def a_full_work_queue_refuses_the_request_beyond_it(
 ) -> None:
     """Core's `test_work_queue_exceeded`: 503 once the queue is full.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

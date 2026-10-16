@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_datacarrier`, one body per test over either node.
+"""Core's `mempool_datacarrier`, one body per test over each node.
 
 Read from Core's `test/functional/mempool_datacarrier.py` (`fa5f29774872`,
 2025-12-16) and narrowed to what the option and MiniWallet families reach
@@ -42,9 +42,9 @@ about a bare multisig output instead.
 This module also exports `mempool_info_reports` and `uncapped_by_default`,
 which `mempool_accept_test.py` reads the same builds with.
 
-`mempool_datacarrier_bitcoind_test.py` and
-`mempool_datacarrier_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `mempool_datacarrier_<node>_test.py` module beside this one runs
+each body, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -65,8 +65,6 @@ from tests.integration.script_verify_flag_test import bitcoind_version
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -147,7 +145,7 @@ def _assert_refused(node: NodeAdapter, tx: Tx) -> None:
 
 
 def default_settings_allow_a_large_op_return(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check what a null-data output relays with no `-datacarrier*` argument.
@@ -156,7 +154,7 @@ def default_settings_allow_a_large_op_return(
     default: there a payload at the cap relays and one byte more, like a
     sizeable one, is refused with `scriptpubkey`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -174,14 +172,14 @@ def default_settings_allow_a_large_op_return(
 
 
 def datacarrier_disabled_refuses_any_null_data_output(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-datacarrier=0` refuses relay of a null-data output of any size.
 
     A build without bitcoin/bitcoin#32406 words the refusal `scriptpubkey`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -194,7 +192,7 @@ def datacarrier_disabled_refuses_any_null_data_output(
 
 
 def datacarriersize_bounds_the_payload(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a payload at the configured size relays; one byte more is refused.
@@ -202,7 +200,7 @@ def datacarriersize_bounds_the_payload(
     `getmempoolinfo`'s `maxdatacarriersize` is read where the build has it;
     a build without bitcoin/bitcoin#32406 words the refusal `scriptpubkey`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -223,7 +221,7 @@ def datacarriersize_bounds_the_payload(
 
 
 def bare_multisig_is_permitted_by_default(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check that with no `-permitbaremultisig`, bare multisig is permitted.
@@ -232,7 +230,7 @@ def bare_multisig_is_permitted_by_default(
     otherwise `testmempoolaccept` allows a transaction paying a bare
     multisig output.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

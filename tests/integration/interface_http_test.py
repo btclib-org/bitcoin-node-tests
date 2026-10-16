@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `interface_http`, its excessive request size step, over either node.
+"""Core's `interface_http`, its excessive request size step, over each node.
 
 Read from Core's `test/functional/interface_http.py` (`228877d7836a`,
 2026-10-10)'s `check_excessive_request_size`: the node's HTTP server
@@ -28,9 +28,8 @@ On an older build the wire half asserts that 404, and the log half asserts
 no `HTTPResponse` line is written. `_HTTP_SERVER_VERSION`'s own comment has
 the known limit.
 
-`interface_http_bitcoind_test.py` and `interface_http_btclib_node_test.py`
-run every body, `tests/integration/conftest.py`'s own module docstring
-having how.
+Each `interface_http_<node>_test.py` module beside this one runs every
+body, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -49,8 +48,8 @@ from bitcoin_node_tests.timeout_factor import scaled
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "excessive_request_size_is_logged",
@@ -91,7 +90,7 @@ _NETWORK_ERRORS = (
 _HTTP_SERVER_VERSION = 320000
 
 
-def _own_http_server(adapter: BitcoindAdapter | BtclibNodeAdapter) -> bool:
+def _own_http_server(adapter: NodeAdapter) -> bool:
     """Whether `adapter`'s node does what Core's check asserts of `master`.
 
     Core's own claim for every node, bitcoind before `_HTTP_SERVER_VERSION`
@@ -109,7 +108,7 @@ class _Connection:
 
     def __init__(
         self,
-        adapter: BitcoindAdapter | BtclibNodeAdapter,
+        adapter: NodeAdapter,
         extra_headers: Mapping[str, str] | None = None,
     ) -> None:
         url = urlsplit(adapter.rpc.url)
@@ -211,11 +210,11 @@ def _send_tolerating_close(send: Callable[[], object]) -> None:
 
 
 def excessive_request_size_is_refused(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: under each limit answered, over it closed.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     own_server = _own_http_server(adapter)
     below_uri = _uri(_MAX_HEADERS_SIZE - _DEFAULT_HEADERS_SIZE)
@@ -244,11 +243,11 @@ def excessive_request_size_is_refused(
 
 
 def excessive_request_size_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check the log half: bitcoind's own status for each refusal.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: `adapter` declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.

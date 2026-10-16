@@ -59,9 +59,8 @@ chain is a few blocks mined into the node, not the third node's, and the
 manual peer is dialled with `addnode`, where Core's `addconnection` takes
 `manual` only on `master`.
 
-`feature_minchainwork_bitcoind_test.py` and
-`feature_minchainwork_btclib_node_test.py` run each,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_minchainwork_<node>_test.py` module beside this one runs
+each, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations

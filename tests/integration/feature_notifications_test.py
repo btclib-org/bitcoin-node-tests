@@ -47,9 +47,9 @@ What differs from Core's file:
   `-blocknotify` the directory with the hash appended after it, where
   Core's wraps the whole path in double quotes.
 
-`feature_notifications_bitcoind_test.py` and
-`feature_notifications_btclib_node_test.py` run them,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_notifications_<node>_test.py` module beside this one runs
+them, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations

@@ -50,9 +50,8 @@ docstring), where Core runs them at its configured height: neither asks
 for `-testactivationheight`, so neither is gated on it, and the first
 body is what pins the height the rule starts at.
 
-`feature_cltv_bitcoind_test.py` and `feature_cltv_btclib_node_test.py`
-run these, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `feature_cltv_<node>_test.py` module beside this one runs these,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations

@@ -51,9 +51,9 @@ places, so no `Capability.CLOCK` is asked for. After each accepted block
 Core's `invalidateblock` (`Capability.INVALIDATE_BLOCK`) takes it back
 off, so the next check builds on the same tip.
 
-`feature_csv_activation_bitcoind_test.py` and
-`feature_csv_activation_btclib_node_test.py` run these,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_csv_activation_<node>_test.py` module beside this one runs
+these, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations

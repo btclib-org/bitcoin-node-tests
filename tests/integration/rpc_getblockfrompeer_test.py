@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_getblockfrompeer`, one body over either node.
+"""Core's `rpc_getblockfrompeer`, one body over each node.
 
 Read from Core's `test/functional/rpc_getblockfrompeer.py`
 (`779f4446803d`, 2026-05-25): three nodes, the third under
@@ -37,8 +37,7 @@ asserts what both sets of literals share instead: each prune height is
 under the height asked for and above the one before, the fetched block
 survives a prune height below the tip it was fetched at, and is pruned
 again by one at or past it.
-`rpc_getblockfrompeer_bitcoind_test.py` and
-`rpc_getblockfrompeer_btclib_node_test.py` run it,
+Each `rpc_getblockfrompeer_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -58,8 +57,6 @@ from bitcoin_node_tests.peer import Peer
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -100,7 +97,7 @@ def _refused(
     assert message in str(excinfo.value)
 
 
-def _mine(node: BitcoindAdapter | BtclibNodeAdapter, count: int) -> None:
+def _mine(node: NodeAdapter, count: int) -> None:
     """Mine `count` blocks on `node`, at most `_MINE_CHUNK` per call."""
     while count > 0:
         node.mine(min(count, _MINE_CHUNK))
@@ -117,12 +114,12 @@ def _submit_chain(source: NodeAdapter, targets: Sequence[NodeAdapter]) -> None:
 
 
 def getblockfrompeer_fetches_what_the_node_lacks(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1, pruned_node = cluster(3)

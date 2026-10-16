@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_validateaddress`, one body over either node.
+"""Core's `rpc_validateaddress`, one body over each node.
 
 Read from Core's `test/functional/rpc_validateaddress.py` (`fa5f29774872`,
 2025-12-16). Its subject is `validateaddress` on the main chain, where a
@@ -30,8 +30,7 @@ address is asked.
 Each test builds its node over a data directory of its own, through
 `make_adapter` (`tests/integration/conftest.py`), since it starts the
 node on the main chain.
-`rpc_validateaddress_bitcoind_test.py` and
-`rpc_validateaddress_btclib_node_test.py` run it,
+Each `rpc_validateaddress_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -47,9 +46,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [
@@ -233,22 +231,26 @@ VALID_DATA: list[tuple[str, str]] = [
 @contextmanager
 def _main_node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
-) -> Iterator[BitcoindAdapter | BtclibNodeAdapter]:
+) -> Iterator[NodeAdapter]:
     """Yield a node started on the main chain, as Core's test starts one.
 
-    `Capability.VALIDATE_ADDRESS` is asked of the node before it starts.
+    `Capability.VALIDATE_ADDRESS` is asked of a node built on regtest,
+    before the one on the main chain is: a node with one chain refuses
+    the construction.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: the node's own data directory.
     :param skip_counts: the session's own tally.
     """
     rpc_port, p2p_port = free_ports(2)
+    probe = make_adapter(cls, executable, tmp_path / "probe", rpc_port, p2p_port)
+    require(Capability.VALIDATE_ADDRESS, probe.capabilities, skip_counts)
     adapter = make_adapter(
         cls,
         executable,
@@ -258,7 +260,6 @@ def _main_node(
         extra_args=("-prune=899",),
         chain="main",
     )
-    require(Capability.VALIDATE_ADDRESS, adapter.capabilities, skip_counts)
     adapter.start()
     try:
         assert adapter.rpc.call("getblockchaininfo")["chain"] == "main"
@@ -269,7 +270,7 @@ def _main_node(
 
 def invalid_addresses_answer_their_error(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -277,7 +278,7 @@ def invalid_addresses_answer_their_error(
     """Check each of `INVALID_DATA` is refused with its own error and locations.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: the node's own data directory.
     :param skip_counts: the session's own tally.
@@ -297,7 +298,7 @@ def invalid_addresses_answer_their_error(
 
 def valid_addresses_answer_their_script_pub_key(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -305,7 +306,7 @@ def valid_addresses_answer_their_script_pub_key(
     """Check each of `VALID_DATA` decodes to its `scriptPubKey`, and no error.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: the node's own data directory.
     :param skip_counts: the session's own tally.

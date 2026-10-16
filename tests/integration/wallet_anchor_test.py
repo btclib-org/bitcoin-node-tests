@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `wallet_anchor`, one body over either node.
+"""Core's `wallet_anchor`, one body over each node.
 
 Read from Core's `test/functional/wallet_anchor.py` (`609d265ebc51`,
 2025-09-03, the same file at the pinned `v31.1`): a zero-value
@@ -45,9 +45,8 @@ no entry carries, are what `AddInputs` (`src/rpc/rawtransaction_util.cpp`)
 reads of an input, and `bitcoin_core_rpc` refuses the `Decimal` amount
 an entry carries as a parameter.
 
-`wallet_anchor_bitcoind_test.py` and `wallet_anchor_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `wallet_anchor_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -75,9 +74,8 @@ if TYPE_CHECKING:
     from bitcoin_core_rpc import BitcoinCoreRpcClient
     from btclib.tx.tx import Tx
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["a_wallet_sees_an_anchor_it_cannot_spend"]
 
@@ -104,7 +102,7 @@ def _hex(tx: Tx) -> str:
     return tx.serialize(True, check_validity=False).hex()
 
 
-def _latest_block_time(node: BitcoindAdapter | BtclibNodeAdapter) -> int:
+def _latest_block_time(node: NodeAdapter) -> int:
     """Return the latest time any block of `node`'s own chain carries."""
     latest = 0
     for height in range(node.rpc.call("getblockcount") + 1):
@@ -116,7 +114,7 @@ def _latest_block_time(node: BitcoindAdapter | BtclibNodeAdapter) -> int:
 
 
 def _zero_value_anchor_listunspent(
-    node: BitcoindAdapter | BtclibNodeAdapter,
+    node: NodeAdapter,
     sender: MiniWallet,
     default_wallet: BitcoinCoreRpcClient,
 ) -> None:
@@ -191,7 +189,7 @@ def _zero_value_anchor_listunspent(
 
 
 def _cannot_sign_anchors(
-    node: BitcoindAdapter | BtclibNodeAdapter,
+    node: NodeAdapter,
     default_wallet: BitcoinCoreRpcClient,
 ) -> None:
     """Core's `test_cannot_sign_anchors`: the wallet cannot spend anchors."""
@@ -262,12 +260,12 @@ def _cannot_sign_anchors(
 
 
 def a_wallet_sees_an_anchor_it_cannot_spend(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

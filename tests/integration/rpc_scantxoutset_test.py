@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_scantxoutset`, one body over either node.
+"""Core's `rpc_scantxoutset`, one body over each node.
 
 Read from Core's `test/functional/rpc_scantxoutset.py` (`b388674acf06`,
 2026-08-06): the node searches its own UTXO set for the outputs a list of
@@ -30,8 +30,7 @@ descriptor Core's `MiniWallet.get_descriptor` returns for its own
 output, `raw(<scriptPubKey>)` with its checksum, which btclib's
 `descriptors.add_checksum` appends. The node is what searches for each.
 
-`rpc_scantxoutset_bitcoind_test.py` and
-`rpc_scantxoutset_btclib_node_test.py` run it,
+Each `rpc_scantxoutset_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -57,8 +56,6 @@ if TYPE_CHECKING:
 
     from btclib.key import PubKeyData
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -235,13 +232,13 @@ def _new_destination(output_type: str) -> tuple[PubKeyData, ScriptPubKey]:
 
 
 def the_utxo_set_is_searched_by_descriptor(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
     refuses_null_as_missing: Callable[[NodeAdapter], bool],
 ) -> None:
     """Core's `run_test`, in its order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :param refuses_null_as_missing: asked of the running node whether a
         null in place of `start`'s scan objects is refused as the missing

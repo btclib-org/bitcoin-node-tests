@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_estimatefee`, one body over either node.
+"""Core's `rpc_estimatefee`, one body over each node.
 
 Read from Core's `test/functional/rpc_estimatefee.py`
 (`4056908f0fea`, 2026-09-29), a file needing no mechanism the adapter
@@ -28,8 +28,7 @@ each read off the node's own `help estimatesmartfee` by `_help_names`:
   that option's default, as `_AUTO_DEFAULT` does: the commit adding the
   refusal also renames the default to `auto`.
 
-`rpc_estimatefee_bitcoind_test.py` and
-`rpc_estimatefee_btclib_node_test.py` run it,
+Each `rpc_estimatefee_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -45,8 +44,6 @@ if TYPE_CHECKING:
 
     from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -108,12 +105,12 @@ def _options_refused(rpc: BitcoinCoreRpcClient) -> None:
 
 
 def fee_estimates_check_their_arguments(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

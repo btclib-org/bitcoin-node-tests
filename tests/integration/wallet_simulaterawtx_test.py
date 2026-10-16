@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `wallet_simulaterawtx`, one body over either node.
+"""Core's `wallet_simulaterawtx`, one body over each node.
 
 Read from Core's `test/functional/wallet_simulaterawtx.py`
 (`fa5f29774872`, 2025-12-16, the same file at the pinned `v31.1`):
@@ -27,8 +27,7 @@ Core's `assert_approx` is `approx` below, the same default span. Core
 reaches each wallet through `get_wallet_rpc`, as this does through
 `rpc.for_wallet`.
 
-`wallet_simulaterawtx_bitcoind_test.py` and
-`wallet_simulaterawtx_btclib_node_test.py` run it,
+Each `wallet_simulaterawtx_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -47,9 +46,8 @@ if TYPE_CHECKING:
 
     from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["approx", "simulaterawtransaction_answers_each_wallets_balance_change"]
 
@@ -82,9 +80,7 @@ def approx(
     assert expected - span <= value <= expected + span
 
 
-def _generate(
-    node: BitcoindAdapter | BtclibNodeAdapter, count: int, address: str
-) -> None:
+def _generate(node: NodeAdapter, count: int, address: str) -> None:
     """Core's `generatetoaddress`, at most `_MINE_CHUNK` blocks per call.
 
     :param node: the node that mines.
@@ -102,12 +98,12 @@ def _change(wallet: BitcoinCoreRpcClient, txs: list[str]) -> object:
 
 
 def simulaterawtransaction_answers_each_wallets_balance_change(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

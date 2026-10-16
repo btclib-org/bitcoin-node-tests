@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `wallet_sendmany`, one body over either node.
+"""Core's `wallet_sendmany`, one body over each node.
 
 Read from Core's `test/functional/wallet_sendmany.py` (`fa5f29774872`,
 2025-12-16, the same file at the pinned `v31.1`): `sendmany` refuses a
@@ -22,9 +22,8 @@ the wallet of that name itself and mines the same blocks to an address
 of its own instead. Core reaches both wallets through `get_wallet_rpc`,
 as this does through `rpc.for_wallet`.
 
-`wallet_sendmany_bitcoind_test.py` and `wallet_sendmany_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `wallet_sendmany_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -37,9 +36,8 @@ from tests.integration.wallet_signmessagewithaddress_test import refused
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["sendmany_refuses_a_subtractfeefrom_naming_no_single_output"]
 
@@ -53,12 +51,12 @@ _SFFO = "Invalid parameter 'subtract fee from output'"
 
 
 def sendmany_refuses_a_subtractfeefrom_naming_no_single_output(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `run_test` and its `test_sffo_repeated_address`, in order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

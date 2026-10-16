@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_scanblocks`, one body over either node.
+"""Core's `rpc_scanblocks`, one body over each node.
 
 Read from Core's `test/functional/rpc_scanblocks.py` (`aeca0610865e`,
 2026-07-01), the option and MiniWallet families together
@@ -38,9 +38,9 @@ here rather than a second adapter inside the first.
 
 Each test takes a cluster and starts one node of its own, asks it for
 `Capability.BLOCK_FILTER_INDEX` before anything else, and the first
-restarts it with `-blockfilterindex=1` before any block is mined.
-`rpc_scanblocks_bitcoind_test.py` and `rpc_scanblocks_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having how.
+restarts it with `-blockfilterindex=1` before any block is mined. Each
+`rpc_scanblocks_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -65,8 +65,6 @@ from bitcoin_node_tests.timeout_factor import scaled
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -130,12 +128,12 @@ def _relevant_blocks(adapter: NodeAdapter, *params: object) -> list[str]:
 
 
 def scanblocks_finds_the_blocks_paying_what_it_is_asked_for(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check Core's own `run_test`, the node without the index excepted.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -242,12 +240,12 @@ def scanblocks_finds_the_blocks_paying_what_it_is_asked_for(
 
 
 def scanblocks_refuses_without_the_index(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check Core's second node, with no `-blockfilterindex`, refuses a scan.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

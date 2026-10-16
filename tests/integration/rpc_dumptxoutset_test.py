@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_dumptxoutset`, one body over either node.
+"""Core's `rpc_dumptxoutset`, one body over each node.
 
 Read from Core's `test/functional/rpc_dumptxoutset.py` (`58eeab790d98`,
 2026-05-13), the clock and disk families together
@@ -43,8 +43,7 @@ The node is built over a data directory of its own, through
 `make_adapter` (`tests/integration/conftest.py`), since the test reads
 the file the node writes inside it.
 
-`rpc_dumptxoutset_bitcoind_test.py` and
-`rpc_dumptxoutset_btclib_node_test.py` run it,
+Each `rpc_dumptxoutset_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -63,8 +62,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
@@ -179,7 +176,7 @@ def _dumps_across_a_fork(node: NodeAdapter, *, rolls_back: bool) -> None:
 
 def the_utxo_set_is_dumped(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -188,7 +185,7 @@ def the_utxo_set_is_dumped(
     """Check `dumptxoutset` writes the set, refuses bad paths, and rolls back.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

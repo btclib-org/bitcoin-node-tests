@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `--v2transport`, restated through the adapter, over either node.
+"""Core's `--v2transport`, restated through the adapter, over each node.
 
 Issue [bitcoin-node-tests#36](https://github.com/btclib-org/bitcoin-node-tests/issues/36):
 this suite has no central test-framework object for Core's own
@@ -13,8 +13,7 @@ Core's own `-v2transport` flag, node by node, here through
 `transport_protocol_type` is what a real connection answers with,
 measured live against the pinned `31.1` for both values of the flag.
 
-`v2transport_option_bitcoind_test.py` and
-`v2transport_option_btclib_node_test.py` run each body,
+Each `v2transport_option_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -28,8 +27,6 @@ from bitcoin_node_tests.node import connect_nodes
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -84,7 +81,7 @@ def _session_id(adapter: NodeAdapter) -> str:
 
 
 def _pair(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
     flag: str,
 ) -> tuple[NodeAdapter, NodeAdapter]:
@@ -102,7 +99,7 @@ def _pair(
 
 
 def v2transport_1_connects_nodes_over_bip324(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-v2transport=1` on both sides: `v2`, and one `session_id`.
@@ -110,7 +107,7 @@ def v2transport_1_connects_nodes_over_bip324(
     BIP324 derives the session id from the handshake, so both ends read
     the same non-empty one.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     first, second = _pair(cluster, skip_counts, "-v2transport=1")
@@ -122,12 +119,12 @@ def v2transport_1_connects_nodes_over_bip324(
 
 
 def v2transport_0_connects_nodes_over_v1(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-v2transport=0` on both sides: `getpeerinfo` answers `v1`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     first, second = _pair(cluster, skip_counts, "-v2transport=0")

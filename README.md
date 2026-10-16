@@ -20,15 +20,14 @@ the licence badge, both tier 1's, are absent.
 [![vendored-vectors workflow status](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/vendored-vectors.yml/badge.svg?branch=main)](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/vendored-vectors.yml?query=branch%3Amain)
 [![links workflow status](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/links.yml/badge.svg?branch=main)](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/links.yml?query=branch%3Amain)
 
-The ambition is a suite for every full node speaking that protocol:
-today [Bitcoin Core](https://github.com/bitcoin/bitcoin),
-[btclib-node](https://github.com/btclib-org/btclib-node) and
-[btcd](https://github.com/btcsuite/btcd), tomorrow whichever other
-implementation gains an adapter -- a `NodeAdapter` subclass declaring
-what it can do (`src/bitcoin_node_tests/node.py`), the way `bitcoind.py`,
-`btclib_node.py` and `btcd.py` already do. A test passes on `bitcoind`
-before its failure on any other node counts as a finding, filed on that
-node's own tracker.
+The ambition is a suite for every full node speaking that protocol.
+Each node it runs against has an adapter, a `NodeAdapter` subclass
+declaring what it can do (`src/bitcoin_node_tests/node.py`), in a module
+of its own beside that one: `bitcoind.py` for
+[Bitcoin Core](https://github.com/bitcoin/bitcoin), the oracle, and one
+module per other target. A test passes on
+`bitcoind` before its failure on any other node counts as a finding,
+filed on that node's own tracker.
 
 It imports [btclib](https://github.com/btclib-org/btclib) and
 [bitcoin-core-rpc](https://github.com/btclib-org/bitcoin-core-rpc). It
@@ -51,10 +50,9 @@ This repository publishes nothing:
 being the only tool that has to be installed.
 
 The unit suite reaches no network and starts no node.
-`tests/integration/` does, against a node a checkout of your own
-provides -- a `bitcoind` built from a Bitcoin Core checkout, an
-interpreter `btclib-node` is installed into, or a `btcd` -- and skips
-cleanly without one. [CONTRIBUTING.md](./CONTRIBUTING.md)'s *The
+`tests/integration/` does, against a node you provide -- a `bitcoind`
+built from a Bitcoin Core checkout, for instance -- and skips cleanly
+without one. [CONTRIBUTING.md](./CONTRIBUTING.md)'s *The
 environment and the gates* has the commands.
 
 A test's skip names a capability the node it ran against does not
@@ -72,8 +70,9 @@ repository's gates. The pinned release stays the only required oracle:
 `core-master` builds `bitcoind` from Bitcoin Core's own `master`, and
 `btclib-node-main` installs from that project's own `main`, both by
 [ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8)'s
-decision, and both report without gating. `btcd` runs the btcd tests against
-a pinned btcd release, and reports without gating too.
+decision, and both report without gating. `btcd` and `florestad` each run
+that node's tests against a pinned build of one of its releases, and
+report without gating too.
 
 ## Contributing
 

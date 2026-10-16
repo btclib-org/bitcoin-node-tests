@@ -1481,7 +1481,7 @@ prose in the later sections.
   subject is the exit of a node asked to `stop` over RPC, which
   `NodeAdapter.wait_until_stopped` reads
   ([ISS 318](https://github.com/btclib-org/bitcoin-node-tests/issues/318));
-  `NodeAdapter.stop` sends `SIGTERM` and cannot tell them apart.
+  `NodeAdapter.stop` sends a signal and cannot tell them apart.
 - `rpc_getchaintips.py`: Core's claim in full. Skips on `generate`
   ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404));
   it needs `submitheader` too

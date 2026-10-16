@@ -8,9 +8,10 @@ pytest exits 0 for a module that skipped itself, so a job whose fixture
 stopped finding the node stays green while asking it nothing -- for
 `node-integration.yml`'s two btclib-node jobs, an install that succeeds
 followed by an `import btclib_node` that raises under
-`btclib_node_python`'s probe; for its `btcd` job, a `btcd_path` that
-finds no btcd. `reusable-integration-bitcoind.yml`'s "Fail if the node
-tests did not run" step is the same question for the `bitcoind` job,
+`btclib_node_python`'s probe; for a job installing a target node's
+binary, a `<node>_path` that finds none.
+`reusable-integration-bitcoind.yml`'s "Fail if the node tests did not
+run" step is the same question for the `bitcoind` job,
 asked there by failing on every skip but one whose reason starts with
 the prefix that job declares, `tests/integration/conftest.py`'s
 `NO_TARGET`. That cannot hold here: a target node's run skips a test

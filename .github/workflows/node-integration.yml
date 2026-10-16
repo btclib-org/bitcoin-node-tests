@@ -114,11 +114,10 @@ jobs:
       # tests/integration/conftest.py's own two switches
       integration-env-var: TF2_INTEGRATION
       bitcoind-path-env-var: TF2_BITCOIND
-      # this job's own environment has no btclib-node interpreter to
-      # point TF2_BTCLIB_NODE_PYTHON at, and no btcd, so every test asking
-      # for either skips here rather than running -- a legitimate skip the
-      # reusable job's own "did the node tests run" check would otherwise
-      # flag. The prefix is tests/integration/conftest.py's `NO_TARGET`,
+      # this job's own environment installs no target node, so every test
+      # asking for one skips here rather than running -- a legitimate skip
+      # the reusable job's own "did the node tests run" check would
+      # otherwise flag. The prefix is tests/integration/conftest.py's `NO_TARGET`,
       # which the skip of a target node that is not installed starts
       # with, so it exempts that skip whatever module it happens in, and
       # every other skip still fails the job
@@ -333,6 +332,70 @@ jobs:
             pytest tests/integration/*_btcd_test.py \
             --junitxml=integration.xml
       # `btclib-node`'s own step above: a capability's skip is a result
+      - name: Fail if the node tests did not run
+        if: ${{ !cancelled() }}
+        run: |
+          uv run --locked --no-default-groups --group test \
+            python .github/scripts/check_node_ran.py integration.xml
+
+  florestad:
+    name: Regtest against florestad
+    # ISS 441's, informational as `btcd` above is. Floresta's v0.9.1
+    # release carries no binary, so this installs Homebrew's bottle of
+    # it, built from the release's source archive with `bitcoinkernel`
+    # moved to 0.2.1, the formula's one change. The sha256 is that
+    # bottle's in Homebrew/homebrew-core's `Formula/f/floresta.rb`, and
+    # names the blob ghcr.io serves.
+    if: ${{ !github.event.pull_request.draft && github.event.action != 'closed' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    env:
+      FLORESTA_VERSION: 0.9.1
+      FLORESTA_BOTTLE_SHA256: >-
+        dd56abbba28df8300678a7ef2db4570d9ea19dbbff35a44fe68ab4f767338fa2
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      # into the runner's temporary directory, outside the checkout. The
+      # bottle's interpreter is a placeholder `brew` fills in when it
+      # installs one, so a wrapper runs the binary under the system's
+      # loader. ghcr.io serves Homebrew's bottles to the anonymous token
+      # `QQ==`
+      - name: Install florestad
+        id: florestad
+        run: |
+          archive="$RUNNER_TEMP/floresta-$FLORESTA_VERSION.x86_64_linux.bottle.tar.gz"
+          url="https://ghcr.io/v2/homebrew/core/floresta/blobs/sha256:$FLORESTA_BOTTLE_SHA256"
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer QQ==" --output "$archive" "$url"
+          echo "$FLORESTA_BOTTLE_SHA256  $archive" | sha256sum --check
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          binary="$RUNNER_TEMP/floresta/$FLORESTA_VERSION/bin/florestad"
+          daemon="$RUNNER_TEMP/florestad"
+          printf '#!/bin/sh\nexec /lib64/ld-linux-x86-64.so.2 %s "$@"\n' \
+            "$binary" > "$daemon"
+          chmod +x "$daemon"
+          echo "path=$daemon" >> "$GITHUB_OUTPUT"
+          "$daemon" --version
+      # continue-on-error, as in `btcd` above: the step after it colours
+      # the job
+      - name: Run the integration tests against florestad
+        continue-on-error: true
+        env:
+          FLORESTAD_PATH: ${{ steps.florestad.outputs.path }}
+        run: |
+          export TF2_INTEGRATION=1
+          export TF2_FLORESTAD="$FLORESTAD_PATH"
+          uv run --locked --no-default-groups --group test \
+            pytest tests/integration/*_florestad_test.py \
+            --junitxml=integration.xml
       - name: Fail if the node tests did not run
         if: ${{ !cancelled() }}
         run: |

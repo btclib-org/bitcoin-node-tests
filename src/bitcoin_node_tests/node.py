@@ -76,9 +76,9 @@ _PROC_WAIT_TIMEOUT = 60.0
 _STDERR_DIR = "stderr"
 
 # the exit code `stop` accepts, for every adapter: Core's own
-# `TestNode.stop_node` expects 0, and each node exits 0 on `terminate`'s
-# SIGTERM -- measured on bitcoind 31.1, btclib-node 2026.9.24 and
-# btclib-node's `main` at f8f7143
+# `TestNode.stop_node` expects 0, and bitcoind 31.1, btclib-node
+# 2026.9.24, btclib-node's `main` at f8f7143 and florestad v0.9.1 exit 0
+# on the signal `_signal_stop` sends (measured)
 _CLEAN_EXIT = 0
 
 # every option naming the chain a node runs: Core's `-chain=` and the four
@@ -795,7 +795,7 @@ class NodeAdapter(ABC):
         An exit code other than `_CLEAN_EXIT` is raised too, whether the
         process had already exited before this call -- a crash during the
         test, which a test's own last RPC call would not have seen -- or
-        exited so on `terminate`: Core's own `TestNode.stop_node` checks
+        exited so on `_signal_stop`: Core's own `TestNode.stop_node` checks
         the code the same way
         ([ISS 84](https://github.com/btclib-org/bitcoin-node-tests/issues/84)).
         A process that had already exited with `_CLEAN_EXIT`, the way an
@@ -808,7 +808,7 @@ class NodeAdapter(ABC):
         forgotten, so nothing is left running and a second `stop` is a
         no-op.
 
-        :raises TimeoutError: the process ignored the termination for the
+        :raises TimeoutError: the process ignored `_signal_stop` for the
             whole wait and was killed; the message carries what it wrote
             to stderr.
         :raises RuntimeError: the process exited with a code other than
@@ -870,22 +870,30 @@ class NodeAdapter(ABC):
         self._sessions.close()
         return exit_code, _read_output(stderr_path)
 
-    @staticmethod
+    def _signal_stop(self, process: subprocess.Popen[bytes]) -> None:
+        """Ask `process` to shut down, with SIGTERM.
+
+        A subclass whose node exits cleanly on another signal sends that one.
+
+        :param process: the process `stop` ends.
+        """
+        process.terminate()
+
     def _terminate(
-        process: subprocess.Popen[bytes], stderr_path: Path
+        self, process: subprocess.Popen[bytes], stderr_path: Path
     ) -> tuple[int, bool]:
-        """Terminate `process` and wait for it, killing it if the wait expires.
+        """Signal `process` and wait for it, killing it if the wait expires.
 
         :param process: the process `stop` ends.
         :param stderr_path: where its stderr was redirected, read back into
             the error raised on a kill.
         :returns: the exit code, and whether the process had already exited
             before this call.
-        :raises TimeoutError: the process ignored the termination for the
+        :raises TimeoutError: the process ignored the signal for the
             whole wait and was killed.
         """
         already_exited = process.poll() is not None
-        process.terminate()
+        self._signal_stop(process)
         timeout = scaled(_STARTUP_TIMEOUT)
         try:
             return process.wait(timeout=timeout), already_exited

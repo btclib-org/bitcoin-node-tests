@@ -46,6 +46,13 @@ bitcoin\_node\_tests.feature\_block module
    :members:
    :show-inheritance:
 
+bitcoin\_node\_tests.florestad module
+-------------------------------------
+
+.. automodule:: bitcoin_node_tests.florestad
+   :members:
+   :show-inheritance:
+
 bitcoin\_node\_tests.mempool\_util module
 -----------------------------------------
 

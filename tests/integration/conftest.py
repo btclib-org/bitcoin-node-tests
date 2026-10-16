@@ -7,10 +7,10 @@
 Two switches per node, and `TF2_INTEGRATION` gates both: these tests
 start a real process, open a real socket and write to disk, none of
 which an ordinary `uv run pytest` should do to somebody who asked for
-the unit suite. The second switch is the node itself -- found on `PATH`
-or named for bitcoind and btcd, importable by the named interpreter for
-btclib-node -- because an opt-in that fails for a missing program would
-report a defect that is not one.
+the unit suite. The second switch is the node itself -- a program found
+on `PATH` or named in the node's own variable, or for btclib-node the
+interpreter it is importable by -- because an opt-in that fails for a
+missing program would report a defect that is not one.
 
 Read from btclib's own `tests/integration/conftest.py` for shape, not
 shared with it: this repository's own `NodeAdapter` subclasses are what
@@ -33,22 +33,21 @@ a function in `<file>_test.py`, named for Core's own file
 `skip_counts`. Its name carries no `test_` prefix, so pytest collects no
 test from that module. Each `<file>_<node>_test.py` calls it from a test
 of the same name with the prefix, handing it that node's own fixture:
-`<node>_adapter` for one node, `<node>_cluster` for several, where
-`<node>` is `bitcoind`, `btclib_node` or `btcd`. The body asks
+`<node>_adapter` for one node, `<node>_cluster` for several, each
+named for its node below. The body asks
 `require` of the instances it was handed, never of an adapter class:
 `BtclibNodeAdapter.__init__` widens an instance's `capabilities` by
 probing the build it runs. A body that writes into its node's data
 directory, or starts it on a chain other than regtest or with an option
 from its first start, takes `make_adapter`, the adapter class, the
-node's executable fixture (`bitcoind_path`, `btclib_node_python` or
-`btcd_path`) and `tmp_path` instead, and `skip_counts` where it asks for
+node's executable fixture (`<node>_path`, or `btclib_node_python`) and
+`tmp_path` instead, and `skip_counts` where it asks for
 a capability: it builds the node itself over a data directory in
 `tmp_path`, asks `require` of that instance, and stops the node before
 it returns (`feature_includeconf_test.py`). The test modules stay one
-per node, rather than one parametrized over the nodes, because the CI
-jobs select a node's tests by module: `node-integration.yml`'s
-`btclib-node` jobs run `*_btclib_node_test.py`, its `core-master` job
-`*_bitcoind_test.py`, and its `btcd` job `*_btcd_test.py`.
+per node, rather than one parametrized over the nodes, because every
+`node-integration.yml` job but `bitcoind` runs only its node's modules,
+`*_<node>_test.py`.
 """
 
 from __future__ import annotations
@@ -65,6 +64,7 @@ from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.btcd import BtcdAdapter
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import SkipCounts
+from bitcoin_node_tests.florestad import FlorestadAdapter
 from bitcoin_node_tests.node import NodeAdapter, free_ports
 from bitcoin_node_tests.timeout_factor import factor_from_option, scaled, set_factor
 from tests.conftest import (
@@ -89,8 +89,8 @@ _skip_counts = SkipCounts()
 
 # how the skip of a target node that is not installed starts:
 # `node-integration.yml`'s `bitcoind` job passes it as its
-# `skip-reason-prefix`, so that job runs without either target and fails
-# on any other skip
+# `skip-reason-prefix`, so that job runs without any target and fails on
+# any other skip
 NO_TARGET = "no target node: "
 
 # whether `--timeout` or `PYTEST_TIMEOUT` named a bound, read before
@@ -543,3 +543,27 @@ def btcd_cluster(
 ) -> Iterator[Callable[[int], list[BtcdAdapter]]]:
     """Yield `bitcoind_cluster`'s factory, over `BtcdAdapter`s instead."""
     yield from _cluster(make_adapter, BtcdAdapter, btcd_path, tmp_path_factory, "btcd")
+
+
+@pytest.fixture(scope="session")
+def florestad_path() -> str:
+    """Return the florestad to run, skipping the whole module without one."""
+    _require_integration()
+    path = os.environ.get("TF2_FLORESTAD") or shutil.which("florestad")
+    if path is None:
+        pytest.skip(
+            f"{NO_TARGET}no florestad: name one in TF2_FLORESTAD or put it on PATH"
+        )
+    return path
+
+
+@pytest.fixture
+def florestad_cluster(
+    florestad_path: str,
+    tmp_path_factory: pytest.TempPathFactory,
+    make_adapter: AdapterFactory,
+) -> Iterator[Callable[[int], list[FlorestadAdapter]]]:
+    """Yield `bitcoind_cluster`'s factory, over `FlorestadAdapter`s instead."""
+    yield from _cluster(
+        make_adapter, FlorestadAdapter, florestad_path, tmp_path_factory, "florestad"
+    )

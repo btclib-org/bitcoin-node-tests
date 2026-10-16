@@ -38,7 +38,7 @@ def test_port_and_bind_decide_where_the_node_listens(
     tmp_path: Path,
     skip_counts: SkipCounts,
 ) -> None:
-    """The target: where `-port` and `-bind` have btclib-node listen."""
+    """The target: where `-port` and `-bind` have btcd listen."""
     port_and_bind_decide_where_the_node_listens(
         make_adapter, BtcdAdapter, btcd_path, tmp_path, skip_counts
     )

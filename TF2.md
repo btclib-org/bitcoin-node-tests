@@ -1145,9 +1145,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_config_args.py` (`-proxy`) | [`2630d8e6c9d6`](https://github.com/bitcoin/bitcoin/commit/2630d8e6c9d6) | 2026-09-22 | pass | skip (proxy) |
 | `feature_config_args.py` (`-connect`) | same | same | pass | skip (proxy) |
 | `feature_config_args.py` (`-privatebroadcast`) | same | same | pass, the warning's last sentence asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
-| `p2p_nobloomfilter_messages.py` (filtered block, wire) | [`9871fb726cb5`](https://github.com/bitcoin/bitcoin/commit/9871fb726cb5) | 2026-07-31 | pass, the disconnect asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS btclib-node#1949](https://github.com/btclib-org/btclib-node/issues/1949)) |
+| `p2p_nobloomfilter_messages.py` (filtered block, wire) | [`9871fb726cb5`](https://github.com/bitcoin/bitcoin/commit/9871fb726cb5) | 2026-07-31 | pass, the disconnect asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS btclib-node#1949](https://github.com/btclib-org/btclib-node/issues/1949)) on the build; pass on a build past [ISS btclib-node#1949](https://github.com/btclib-org/btclib-node/issues/1949) |
 | `p2p_nobloomfilter_messages.py` (filtered block, log) | same | same | pass, its log line read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
-| `interface_http.py` (excessive request size, wire) | [`228877d7836a`](https://github.com/bitcoin/bitcoin/commit/228877d7836a) | 2026-10-10 | pass, the header-lines refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS btclib-node#1950](https://github.com/btclib-org/btclib-node/issues/1950)) |
+| `interface_http.py` (excessive request size, wire) | [`228877d7836a`](https://github.com/bitcoin/bitcoin/commit/228877d7836a) | 2026-10-10 | pass, the header-lines refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS btclib-node#1972](https://github.com/btclib-org/btclib-node/issues/1972)) |
 | `interface_http.py` (excessive request size, log) | same | same | pass, its log lines read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 
 Each line gives the reason for a file's `btclib-node` cell and, where there is
@@ -1517,12 +1517,13 @@ prose in the later sections.
   ([ISS btclib-node#1543](https://github.com/btclib-org/btclib-node/issues/1543)).
 - `p2p_nobloomfilter_messages.py`: the filtered-block step alone, a wire row
   and a log row ([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)).
-  The node keeps the peer that asks it for a filtered block
-  ([ISS btclib-node#1949](https://github.com/btclib-org/btclib-node/issues/1949)).
+  The release keeps the peer that asks it for a filtered block
+  ([ISS btclib-node#1949](https://github.com/btclib-org/btclib-node/issues/1949)),
+  and `main` disconnects it, as Core does without `NODE_BLOOM`.
 - `interface_http.py`: the excessive request size step alone, a wire row and a
   log row ([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)).
   The node answers a header section over the limit in many short lines
-  ([ISS btclib-node#1950](https://github.com/btclib-org/btclib-node/issues/1950)).
+  ([ISS btclib-node#1972](https://github.com/btclib-org/btclib-node/issues/1972)).
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

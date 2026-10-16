@@ -1086,5 +1086,5 @@ class BtclibNodeAdapter(NodeAdapter):
 
     @override
     def _log_path(self) -> Path:
-        """Return `log_path`, for `start`'s own errors."""
+        """Return `log_path`, for `start`'s own `TimeoutError`."""
         return self.log_path

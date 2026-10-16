@@ -18,11 +18,11 @@ the bodies that pass one.
 `Capability.MINE` is `NodeAdapter.mine`, a block built client-side over
 `submitblock`: btcd's `rpcserver.go` registers `generate` and neither
 `generatetoaddress` nor `generateblock`, so `Capability.GENERATE` is not
-declared. `Capability.CONNECT` is `addnode <address> onetry`, which btcd
-takes two arguments and refuses with Core's third, `v2transport`
-("wrong number of params (expected 2, received 3)"): `dial` below drops
-it. `Capability.INVALIDATE_BLOCK`,
-`Capability.CHAIN_TIPS` and `Capability.SIGN_MESSAGE_WITH_PRIVKEY` are
+declared. `Capability.CONNECT` is `addnode <address> onetry`: btcd's `addnode`
+takes two arguments and refuses Core's third, `v2transport` ("wrong
+number of params (expected 2, received 3)"), so `dial` below drops it.
+`Capability.INVALIDATE_BLOCK`, `Capability.CHAIN_TIPS` and
+`Capability.SIGN_MESSAGE_WITH_PRIVKEY` are
 `invalidateblock` with `reconsiderblock`, `getchaintips`, and
 `signmessagewithprivkey` with `verifymessage`, each in `rpcserver.go`'s
 `rpcHandlersBeforeInit`.

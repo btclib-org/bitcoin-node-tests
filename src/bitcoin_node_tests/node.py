@@ -478,13 +478,14 @@ def _wait_for_rpc(
         read back into the error raised on an early exit or a timeout.
     :param timeout: how long to wait before giving up.
     :param log_path: the file the node logs to, read back into the error
-        raised on a timeout; `None` where the adapter knows no such file.
+        raised on a timeout, and on an early exit where `log_on_exit`;
+        `None` where the adapter knows no such file.
     :param log_offset: `log_path`'s size before the process was spawned,
         where this start's own lines begin.
     :param log_on_exit: whether the error raised on an early exit also
-        carries the log, for a node whose failed start reaches its log and
-        a stdout nobody reads but not stderr. Left out otherwise, since a
-        caller compares the message with the stderr text the node gave.
+        carries the log, for a node whose stdout nobody reads. Left out
+        otherwise, since a caller compares the message with the stderr text
+        the node gave.
     :raises TimeoutError: the RPC never answered within `timeout`,
         chained to the last transient failure `rpc.call` raised.
     :raises RuntimeError: the process exited before its RPC answered, or
@@ -604,9 +605,9 @@ class NodeAdapter(ABC):
     capabilities: AbstractSet[Capability]
     chains: AbstractSet[str] = frozenset({_DEFAULT_CHAIN})
     # whether `start` sends the process's stdout to `os.devnull` rather
-    # than to ours: `True` for a node that prints its startup errors to
-    # stdout and its log file, not to stderr. `start` then reads the log
-    # into the error of an early exit, which stderr leaves empty.
+    # than to ours: `True` for a node that prints its whole log there as
+    # well as to its log file. `start` then also reads the log into the
+    # error of an early exit, since what the node printed to stdout is gone.
     _discards_stdout: bool = False
 
     def __init__(

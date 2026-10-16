@@ -571,10 +571,11 @@ def test_start_timeout_carries_the_errors_stderr_and_this_start_s_log(
 
 
 def test_start_early_exit_carries_this_start_s_log(tmp_path: Path) -> None:
-    """A node that exits logging only to its file still says why.
+    """A node whose stdout is discarded still says why it exited.
 
-    btcd logs a failed start to its log file and to stdout, which its
-    adapter discards, so stderr alone is empty.
+    btcd prints its log to stdout as well as to its log file, and its
+    adapter discards stdout, so what it logged after opening the log
+    reaches the error only through the file.
     """
     datadir = tmp_path / "node"
     datadir.mkdir()

@@ -808,7 +808,7 @@ class BitcoindAdapter(NodeAdapter):
 
     @override
     def _log_path(self) -> Path:
-        """Return `debug_log_path`, for `start`'s own errors."""
+        """Return `debug_log_path`, for `start`'s own `TimeoutError`."""
         return self.debug_log_path
 
     def _load_miner_wallet(self) -> None:

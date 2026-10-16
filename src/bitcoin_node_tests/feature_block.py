@@ -1107,7 +1107,8 @@ def _merkle_malleability(chain: _Chain, out: list[Tx]) -> None:
     chain._register("b56", b56, chain.height("b57"))
     chain.reject("b56", "bad-txns-duplicate")
 
-    # b56p2 is b57p2 with two transactions that are not neighbours repeated
+    # b56p2 is b57p2 with its last two transactions repeated, neither copy
+    # next to its original
     chain.move_tip("b55")
     chain.next_block("b57p2")
     tx = chain.create_and_sign(out[16], 1)
@@ -1530,7 +1531,8 @@ def steps(
     """
     chain = _Chain(start_time)
 
-    # a coinbase BIP34 refuses at height 1 and takes at height 120
+    # a coinbase valid at height 1 only because BIP34 is not yet enforced,
+    # and the same transaction as a coinbase at height 120
     b_dup_cb = chain.next_block("dup_cb")
     b_dup_cb = chain.update_coinbase(
         "dup_cb", _coinbase(1, script_sig=_DUPLICATE_COINBASE_SCRIPT_SIG)

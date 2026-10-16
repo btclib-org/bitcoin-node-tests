@@ -115,13 +115,14 @@ jobs:
       integration-env-var: TF2_INTEGRATION
       bitcoind-path-env-var: TF2_BITCOIND
       # this job's own environment has no btclib-node interpreter to
-      # point TF2_BTCLIB_NODE_PYTHON at, so every test asking for one
-      # skips here rather than running -- a legitimate skip the reusable
-      # job's own "did the node tests run" check would otherwise flag.
-      # The prefix is the message tests/integration/conftest.py's
-      # `btclib_node_python` skips with, so it exempts that skip whatever
-      # module it happens in, and every other skip still fails the job
-      skip-reason-prefix: "no btclib_node importable by "
+      # point TF2_BTCLIB_NODE_PYTHON at, and no btcd, so every test asking
+      # for either skips here rather than running -- a legitimate skip the
+      # reusable job's own "did the node tests run" check would otherwise
+      # flag. The prefix is tests/integration/conftest.py's `NO_TARGET`,
+      # which the skip of a target node that is not installed starts
+      # with, so it exempts that skip whatever module it happens in, and
+      # every other skip still fails the job
+      skip-reason-prefix: "no target node: "
 
   older-core:
     name: Regtest against Core ${{ matrix.version }}
@@ -279,6 +280,64 @@ jobs:
           uv run --locked --no-default-groups --group test \
             python .github/scripts/btclib_node_verdict.py \
             TF2.md integration.xml release | tee -a "$GITHUB_STEP_SUMMARY"
+
+  btcd:
+    name: Regtest against btcd
+    # ISS 440's. Informational: README.md's opening says when a target's
+    # failure is a finding, and it is never a defect of this repository's
+    # gates. A release does not move, so it also runs on pull requests,
+    # as `older-core` does.
+    if: ${{ !github.event.pull_request.draft && github.event.action != 'closed' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    env:
+      BTCD_VERSION: v0.26.2
+      # the line for this tarball in the release's own
+      # manifest-v0.26.2.txt
+      BTCD_SHA256: >-
+        c6d14eed18edf73a10577c75055768638b47e4fbd09c3a150aeb89b0ede066d9
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      # into the runner's temporary directory, outside the checkout
+      - name: Install btcd
+        id: btcd
+        run: |
+          archive="btcd-linux-amd64-$BTCD_VERSION.tar.gz"
+          url="https://github.com/btcsuite/btcd/releases/download/$BTCD_VERSION/$archive"
+          curl --fail --silent --show-error --location \
+            --output "$RUNNER_TEMP/$archive" "$url"
+          echo "$BTCD_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP"
+          daemon="$RUNNER_TEMP/btcd-linux-amd64-$BTCD_VERSION/btcd"
+          echo "path=$daemon" >> "$GITHUB_OUTPUT"
+          "$daemon" --version
+      # continue-on-error: the tests btcd fails fail on every run, so
+      # pytest's own status would colour this job the same whatever
+      # changed. The step after it colours the job instead
+      - name: Run the integration tests against btcd
+        continue-on-error: true
+        env:
+          BTCD_PATH: ${{ steps.btcd.outputs.path }}
+        run: |
+          export TF2_INTEGRATION=1
+          export TF2_BTCD="$BTCD_PATH"
+          uv run --locked --no-default-groups --group test \
+            pytest tests/integration/*_btcd_test.py \
+            --junitxml=integration.xml
+      # `btclib-node`'s own step above: a capability's skip is a result
+      - name: Fail if the node tests did not run
+        if: ${{ !cancelled() }}
+        run: |
+          uv run --locked --no-default-groups --group test \
+            python .github/scripts/check_node_ran.py integration.xml
 
   core-master:
     name: Regtest against Core built from master

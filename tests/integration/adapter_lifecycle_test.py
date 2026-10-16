@@ -2,18 +2,17 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""`NodeAdapter`'s own lifecycle, one body over either node.
+"""`NodeAdapter`'s own lifecycle, one body over each node.
 
-What `tests/node_test.py`, `tests/bitcoind_test.py` and
-`tests/btclib_node_test.py` fake, run against the process itself: `stop`
+What `tests/node_test.py` and `tests/bitcoind_test.py` fake, run
+against the process itself: `stop`
 reporting a node killed out from under the adapter
 ([ISS 84](https://github.com/btclib-org/bitcoin-node-tests/issues/84)),
 and `mine` extending the tip by the blocks it returns
 ([ISS 56](https://github.com/btclib-org/bitcoin-node-tests/issues/56)),
 a counted skip on `Capability.MINE` for a build that does not declare it.
 
-`adapter_lifecycle_bitcoind_test.py` and
-`adapter_lifecycle_btclib_node_test.py` run it,
+Each `adapter_lifecycle_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -31,9 +30,8 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [
@@ -44,14 +42,14 @@ __all__ = [
 
 def stop_reports_a_node_killed_out_from_under_it(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
 ) -> None:
     """Check a node gone before `stop` is raised, and nothing is left to stop.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: the node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     """
@@ -77,7 +75,7 @@ def stop_reports_a_node_killed_out_from_under_it(
 
 def mine_extends_the_tip_by_the_blocks_it_returns(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -85,7 +83,7 @@ def mine_extends_the_tip_by_the_blocks_it_returns(
     """Check each `mine` moves the tip onto the last hash, oldest first.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: the node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

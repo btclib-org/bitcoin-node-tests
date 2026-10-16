@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_spend_coinbase`, one body over either node.
+"""Core's `mempool_spend_coinbase`, one body over each node.
 
 Read from Core's `test/functional/mempool_spend_coinbase.py`
 (`6eca11175be6`, 2026-07-16) rather than ported: that file starts from a
@@ -17,9 +17,8 @@ one directly, maturity aside -- `mempool_spend_coinbase.py`'s own subject
 is what the *node* does with the immature one, not a check the wallet
 should make first.
 
-`mempool_spend_coinbase_bitcoind_test.py` and
-`mempool_spend_coinbase_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `mempool_spend_coinbase_<node>_test.py` module beside this one runs
+it, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -35,8 +34,6 @@ from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.mini_wallet import MiniWallet
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -56,11 +53,11 @@ def _txids(adapter: NodeAdapter, block_hash: bytes) -> list[str]:
 
 
 def a_mature_coinbase_spends_and_an_immature_one_is_refused(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Core's own subject: the node accepts one and refuses the other.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.MINE, adapter.capabilities, skip_counts)

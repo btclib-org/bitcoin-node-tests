@@ -234,8 +234,8 @@ class Stoppable(Protocol):
 def stop_all(adapters: Sequence[Stoppable]) -> None:
     """Stop every one of `adapters`, last started first.
 
-    `tests/integration/conftest.py`'s own `bitcoind_cluster` and
-    `btclib_node_cluster` fixtures call this from their teardown. Nested
+    `tests/integration/conftest.py`'s own `_cluster`, behind every
+    `<node>_cluster` fixture, calls this from its teardown. Nested
     `try`/`finally` rather than a `contextlib.ExitStack`: each stop runs
     even where a later-started one raised -- a node `stop` had to kill, or
     one that had crashed -- and every error raised is kept, each chained

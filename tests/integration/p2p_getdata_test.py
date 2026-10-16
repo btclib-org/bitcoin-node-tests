@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_getdata`, one body over either node.
+"""Core's `p2p_getdata`, one body over each node.
 
 Read from Core's `test/functional/p2p_getdata.py` (`aaf9412026`,
 2026-07-31) rather than ported: that file drives a `P2PInterface` over
@@ -18,14 +18,14 @@ One deviation, declared rather than silent: Core's own
 `test_framework.py` seeds every node with 199 pre-mined blocks and
 mines a 200th before a test runs, so the "later valid one" Core asks
 for is that mined tip. Not every node declares `Capability.MINE`
-(`bitcoind.py` and `btclib_node.py` say when each does), so this asks for
+(each adapter's module says when it does), so this asks for
 genesis instead, the one block every node this suite drives already has
 without mining. That is a smaller claim than Core's own, not the same one.
 
 It asks for no capability.
 
-`p2p_getdata_bitcoind_test.py` and `p2p_getdata_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_getdata_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -40,8 +40,7 @@ from btclib.p2p import BlockPayload, GetData, Inventory, Ping, Pong
 from bitcoin_node_tests.peer import Peer
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["invalid_getdata_does_not_stop_a_later_valid_one"]
 
@@ -51,7 +50,7 @@ _GENESIS_HASH = genesis_block("regtest").header.hash
 
 
 def invalid_getdata_does_not_stop_a_later_valid_one(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check Core's own subject: the invalid item first, valid one still works.
 

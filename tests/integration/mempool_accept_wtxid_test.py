@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_accept_wtxid`, one body over either node.
+"""Core's `mempool_accept_wtxid`, one body over each node.
 
 Read from Core's `test/functional/mempool_accept_wtxid.py`
 (`3f5211cba8e7`, 2026-01-21): two children of one parent share a txid
@@ -31,9 +31,8 @@ names, as `P2PInterface.on_inv` does: that request is what takes a
 transaction out of the node's own unbroadcast set, which
 `getmempoolinfo`'s `unbroadcastcount` then reads as empty.
 
-`mempool_accept_wtxid_bitcoind_test.py` and
-`mempool_accept_wtxid_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `mempool_accept_wtxid_<node>_test.py` module beside this one runs
+it, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -59,8 +58,6 @@ from bitcoin_node_tests.timeout_factor import scaled
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -205,12 +202,12 @@ def _refusal(tx: Tx, reason: str) -> dict[str, object]:
 
 
 def a_child_sharing_a_txid_is_told_apart_by_its_wtxid(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `run_test`, in its order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

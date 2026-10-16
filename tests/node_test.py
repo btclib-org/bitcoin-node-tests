@@ -307,7 +307,9 @@ def test_start_waits_for_the_rpc_and_creates_the_datadir(tmp_path: Path) -> None
     adapter = _FakeAdapter("fake-node", datadir, 0, 0, rpc=rpc)
     with patch("subprocess.Popen", return_value=_FakeProcess()) as popen:
         adapter.start()
-    popen.assert_called_once_with(["fake-node", f"-datadir={datadir}"], stderr=ANY)
+    popen.assert_called_once_with(
+        ["fake-node", f"-datadir={datadir}"], stdout=None, stderr=ANY
+    )
     assert datadir.is_dir()
     assert rpc.calls == [("getblockchaininfo", None)] * 3
 
@@ -321,7 +323,9 @@ def test_start_appends_extra_args_after_the_command(tmp_path: Path) -> None:
     with patch("subprocess.Popen", return_value=_FakeProcess()) as popen:
         adapter.start()
     popen.assert_called_once_with(
-        ["fake-node", f"-datadir={datadir}", "-blocksdir=/elsewhere"], stderr=ANY
+        ["fake-node", f"-datadir={datadir}", "-blocksdir=/elsewhere"],
+        stdout=None,
+        stderr=ANY,
     )
 
 
@@ -516,6 +520,12 @@ class _LoggingAdapter(_FakeAdapter):
         return self._datadir / "node.log"
 
 
+class _QuietLoggingAdapter(_LoggingAdapter):
+    """A `_LoggingAdapter` whose node prints its startup errors to stdout."""
+
+    _discards_stdout = True
+
+
 def test_start_timeout_carries_the_errors_stderr_and_this_start_s_log(
     tmp_path: Path,
 ) -> None:
@@ -533,7 +543,7 @@ def test_start_timeout_carries_the_errors_stderr_and_this_start_s_log(
     log = datadir / "node.log"
     log.write_text("an earlier start\n")
 
-    def _popen(argv: list[str], *, stderr: IO[bytes]) -> _FakeProcess:
+    def _popen(argv: list[str], *, stderr: IO[bytes], **_: object) -> _FakeProcess:
         del argv
         stderr.write(b"Warning: provoked\n")
         with log.open("a") as log_file:
@@ -558,6 +568,65 @@ def test_start_timeout_carries_the_errors_stderr_and_this_start_s_log(
         f"-- {log} since this start:\nBinding RPC on address 127.0.0.1 port 1 failed."
     )
     assert "an earlier start" not in message
+
+
+def test_start_early_exit_carries_this_start_s_log(tmp_path: Path) -> None:
+    """A node whose stdout is discarded still says why it exited.
+
+    btcd prints its log to stdout as well as to its log file, and its
+    adapter discards stdout, so what it logged after opening the log
+    reaches the error only through the file.
+    """
+    datadir = tmp_path / "node"
+    datadir.mkdir()
+    log = datadir / "node.log"
+    log.write_text("an earlier start\n")
+
+    def _popen(argv: list[str], **_: object) -> _FakeProcess:
+        del argv
+        with log.open("a") as log_file:
+            log_file.write("Unable to start server\n")
+        return _FakeProcess(exit_after=0)
+
+    adapter = _QuietLoggingAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
+    with (
+        patch("subprocess.Popen", side_effect=_popen),
+        pytest.raises(RuntimeError) as exc_info,
+    ):
+        adapter.start()
+    assert str(exc_info.value) == (
+        "node process exited with 1 before its RPC answered -- stderr: "
+        f"\n-- {log} since this start:\nUnable to start server"
+    )
+
+
+def test_start_early_exit_keeps_stderr_alone_where_stdout_is_not_discarded(
+    tmp_path: Path,
+) -> None:
+    """A node that gives its error on stderr is read by that text alone.
+
+    Core's tests compare the message with the stderr text bitcoind gave, and
+    bitcoind's log repeats it.
+    """
+    datadir = tmp_path / "node"
+    datadir.mkdir()
+    log = datadir / "node.log"
+
+    def _popen(argv: list[str], *, stderr: IO[bytes], **_: object) -> _FakeProcess:
+        del argv
+        stderr.write(b"Error: provoked")
+        log.write_text("Error: provoked\n")
+        return _FakeProcess(exit_after=0)
+
+    adapter = _LoggingAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
+    with (
+        patch("subprocess.Popen", side_effect=_popen),
+        pytest.raises(RuntimeError) as exc_info,
+    ):
+        adapter.start()
+    assert str(exc_info.value) == (
+        "node process exited with 1 before its RPC answered -- stderr: Error: provoked"
+    )
 
 
 def test_start_timeout_reads_a_log_the_node_never_wrote_as_empty(
@@ -763,7 +832,7 @@ def test_two_adapters_over_one_datadir_each_read_their_own_stderr(
     datadir = tmp_path / "node"
     written = iter([b"first\n", b"second\n"])
 
-    def _popen(argv: list[str], *, stderr: IO[bytes]) -> MagicMock:
+    def _popen(argv: list[str], *, stderr: IO[bytes], **_: object) -> MagicMock:
         del argv
         stderr.write(next(written))
         process = MagicMock()
@@ -1468,3 +1537,70 @@ def test_sync_all_raises_where_the_tips_never_agree(tmp_path: Path) -> None:
     second = _FakeAdapter("fake-node", tmp_path / "second", 0, 2222, rpc=_FakeRpc())
     with pytest.raises(TimeoutError, match="did not converge on one tip"):
         sync_all([first, second], timeout=0.0)
+
+
+class _FakeMiniWallet:
+    """`MiniWallet`'s own `generate`, answering fixed header hashes."""
+
+    hashes = (b"\x01" * 32, b"\x02" * 32)
+
+    def __init__(self, node: object) -> None:
+        self.node = node
+
+    def generate(self, count: int) -> list[bytes]:
+        return list(self.hashes[:count])
+
+
+class _FakeTipRpc(_FakeRpc):
+    """`getbestblockhash` answering each of `tips` in turn, then the last."""
+
+    def __init__(self, *tips: str) -> None:
+        super().__init__()
+        self.tips = list(tips)
+
+    @override
+    def call(self, method: str, params: list[object] | None = None) -> str:
+        self.calls.append((method, params))
+        return self.tips.pop(0) if len(self.tips) > 1 else self.tips[0]
+
+
+def test_mine_returns_the_hashes_once_the_last_is_the_tip(tmp_path: Path) -> None:
+    """`mine` polls `getbestblockhash` past a stale tip, then returns hex."""
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    rpc = _FakeTipRpc("01" * 32, "02" * 32)
+    adapter = _FakeAdapter("fake-node", tmp_path, 0, 0, rpc=rpc)
+    with patch.object(node_module, "MiniWallet", _FakeMiniWallet):
+        hashes = adapter.mine(2)
+    assert hashes == ["01" * 32, "02" * 32]
+    assert rpc.calls == [("getbestblockhash", None)] * 2
+
+
+def test_mine_zero_blocks_asks_the_node_nothing(tmp_path: Path) -> None:
+    """`mine(0)` answers `[]` and polls no tip."""
+    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+
+    rpc = _FakeTipRpc("00" * 32)
+    adapter = _FakeAdapter("fake-node", tmp_path, 0, 0, rpc=rpc)
+    with patch.object(node_module, "MiniWallet", _FakeMiniWallet):
+        assert adapter.mine(0) == []
+    assert rpc.calls == []
+
+
+def test_start_sends_stdout_to_devnull_where_the_adapter_discards_it(
+    tmp_path: Path,
+) -> None:
+    """`_discards_stdout` sends the process's stdout to `os.devnull`."""
+
+    class _QuietAdapter(_FakeAdapter):
+        _discards_stdout = True
+
+    datadir = tmp_path / "node"
+    adapter = _QuietAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
+    with patch("subprocess.Popen", return_value=_FakeProcess()) as popen:
+        adapter.start()
+    popen.assert_called_once_with(
+        ["fake-node", f"-datadir={datadir}"],
+        stdout=subprocess.DEVNULL,
+        stderr=ANY,
+    )

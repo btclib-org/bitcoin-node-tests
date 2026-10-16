@@ -1850,7 +1850,7 @@ arithmetic the way Core's own file does: MuHash with
 cursor's own order. Kept is that both agree with `gettxoutsetinfo` over a chain
 carrying a coinbase-only run and one spend; dropped is Core's own hard-coded
 `hash_serialized_3`/`muhash` literals, deterministic only on Core's own exact
-chain. The row is one body run against both nodes. A build whose bare
+chain. The row is one body run against each node. A build whose bare
 `gettxoutsetinfo` answers no `hash_serialized_3`, Core's own default
 `hash_type`, fails it, its MuHash agreeing; a build past
 [ISS btclib-node#1598](https://github.com/btclib-org/btclib-node/issues/1598)

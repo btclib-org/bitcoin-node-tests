@@ -156,8 +156,9 @@ _UNCHANGED = "file unchanged since the pin"
 # each cited Core test file loading a file of `test/functional/data/`,
 # against those files, relative to `test/functional/`: the census
 # command in the module docstring is what fills it, measured at Core's
-# `ed7dd7cf4e`
+# `b13ba1a7d3`
 _DATA_FILES: dict[str, tuple[str, ...]] = {
+    "feature_block.py": ("data/invalid_txs.py",),
     "rpc_createmultisig.py": ("data/rpc_bip67.json",),
     "rpc_getblockstats.py": ("data/rpc_getblockstats.json",),
 }

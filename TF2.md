@@ -1149,6 +1149,8 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_nobloomfilter_messages.py` (filtered block, log) | same | same | pass, its log line read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 | `interface_http.py` (excessive request size, wire) | [`228877d7836a`](https://github.com/bitcoin/bitcoin/commit/228877d7836a) | 2026-10-10 | pass, the header-lines refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS btclib-node#1972](https://github.com/btclib-org/btclib-node/issues/1972)) |
 | `interface_http.py` (excessive request size, log) | same | same | pass, its log lines read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
+| `feature_block.py` (wire) | [`f82043af507a`](https://github.com/bitcoin/bitcoin/commit/f82043af507a) | 2026-06-30 | pass | skip (test_activation_height) |
+| `feature_block.py` (log) | same | same | pass | skip |
 
 Each line gives the reason for a file's `btclib-node` cell and, where there is
 one, the issue it is filed as. What differs from Core's file is in the
@@ -1524,6 +1526,10 @@ prose in the later sections.
   log row ([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)).
   The node answers a header section over the limit in many short lines
   ([ISS btclib-node#1972](https://github.com/btclib-org/btclib-node/issues/1972)).
+- `feature_block.py`: a smaller claim: Core's sequence without its
+  invalid-transaction templates and its `LARGE_REORG_SIZE` re-org
+  ([ISS 439](https://github.com/btclib-org/bitcoin-node-tests/issues/439)),
+  as a body per row, wire and log. Skips on `test_activation_height`.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

@@ -244,6 +244,10 @@ tx_out_ser = "tx_out_ser"
 # `feature_anchors_test.py`: its middle characters spell `daa`, which typos
 # reads as a misspelt "data"
 "802eb7daa9" = "802eb7daa9"
+# a Core commit's own short sha, the one `tf2_master_verdict.py`'s
+# `_DATA_FILES` is measured at: its middle characters spell `ba`, which
+# typos reads as a misspelt "by"
+"b13ba1a7d3" = "b13ba1a7d3"
 
 [tool.typos.type.verbatim]
 extend-glob = ["CHANGELOG.md", ".pre-commit-config.yaml", "TF2.md"]

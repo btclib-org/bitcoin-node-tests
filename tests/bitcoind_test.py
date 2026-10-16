@@ -125,6 +125,10 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.INCREMENTAL_RELAY_FEE,
             Capability.PEER_PERMISSIONS,
             Capability.CLUSTER_REPLACEMENT,
+            Capability.BLOCKS_DIR,
+            Capability.INCLUDE_CONF,
+            Capability.UTXO_SET_INFO,
+            Capability.MEMPOOL_ENTRY,
         }
     )
 

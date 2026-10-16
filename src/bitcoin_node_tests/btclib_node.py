@@ -76,14 +76,13 @@ instance is constructed with names, and `__init__` below declares it on
 that instance by riding on the same probe rather than by a second one:
 a build whose `btclib_node.rpc.auth` imports (`_writes_auth_cookie`
 returns `True`) also recognises those three keys, both having landed in
-the same commit. The class-level `capabilities` stays
-`frozenset({Capability.CONNECT})`, the fact true of every build; an
-instance built with an executable carrying `rpc.auth` gains
-`Capability.RPC_AUTH_CONFIG` on top of it. A build predating that
-issue warns `ignoring unknown configuration value rpcauth` and starts
-anyway rather than enforcing it (measured live at the released
-`2026.9.24`), so an instance built against it does not gain the
-capability; one built against a build carrying #1070 does.
+the same commit. The class-level `capabilities` holds the facts true of
+every build, `_EVERY_BUILD`; an instance built with an executable
+carrying `rpc.auth` gains `Capability.RPC_AUTH_CONFIG` on top of it. A
+build predating that issue warns `ignoring unknown configuration value
+rpcauth` and starts anyway rather than enforcing it (measured live at
+the released `2026.9.24`), so an instance built against it does not gain
+the capability; one built against a build carrying #1070 does.
 
 `Capability.RPC_AUTH_NEGATION` is declared per instance too, by
 `_negates_rpcauth`'s own probe: a build whose `cli.py` reads `-noname` as
@@ -416,6 +415,24 @@ no `-incrementalrelayfee`, measured at the released `2026.9.24`
 (`422d2640`) and at `main` (`f2b326d6`) alike, and `getpeerinfo` lists an
 empty `permissions` on `main` and none on the release
 ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)).
+
+`Capability.BLOCKS_DIR` and `Capability.UTXO_SET_INFO` are class-wide:
+`cli.py` registers `-blocksdir` and `rpc/callbacks.py` names
+`gettxoutsetinfo`, measured at the released `2026.9.24` (`422d2640`)
+and at `2026.10.8` alike.
+
+`Capability.MEMPOOL_ENTRY` is declared per instance, by
+`_serves_mempool_entry`'s own probe: a build whose `rpc/callbacks.py`
+names `getmempoolentry`, as `2026.10.8` does. The released
+`2026.9.24` (`422d2640`) names no such callback, so an instance built
+against it does not gain the capability.
+
+`Capability.INCLUDE_CONF` is declared per instance too, by
+`_reads_includeconf`'s own probe: a build whose `cli.py` reads
+`-noincludeconf`, as `2026.10.8` does. The released `2026.9.24`
+(`422d2640`) refuses it, and ignores an `includeconf` nested in an
+included file without the warning Core prints, so an instance built
+against it does not gain the capability.
 """
 
 from __future__ import annotations
@@ -862,6 +879,55 @@ def _serves_getorphantxs(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# exits 0 only where the dispatch table holds `Capability.MEMPOOL_ENTRY`'s RPC
+_MEMPOOL_ENTRY_PROBE = """\
+from btclib_node.rpc.callbacks import callbacks
+raise SystemExit(0 if "getmempoolentry" in callbacks else 1)
+"""
+
+
+@lru_cache
+def _serves_mempool_entry(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node answers `getmempoolentry`.
+
+    Asks the build's own `rpc.callbacks.callbacks`, as `_serves_getorphantxs`
+    above does, whether it names `getmempoolentry`: `_MEMPOOL_ENTRY_PROBE`
+    above. Otherwise in the standing of `_writes_auth_cookie` above: no
+    node started, no port bound, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _MEMPOOL_ENTRY_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
+# exits 0 only where `-noincludeconf` is read: a build registering no
+# negated `-includeconf` refuses it and exits nonzero. `-noconf` keeps any
+# `bitcoin.conf` out of it
+_INCLUDE_CONF_PROBE = """\
+from btclib_node.cli import build_config
+build_config(["-regtest", "-noconf", "-noincludeconf"])
+"""
+
+
+@lru_cache
+def _reads_includeconf(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node honours `includeconf`.
+
+    Asks the build's own `cli.build_config`, as `_binds_address` below
+    does, to read `-noincludeconf`: `_INCLUDE_CONF_PROBE` above. The
+    builds that refuse it are the ones that also ignore an
+    `includeconf` nested in an included file without a warning.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    return _config_probe_passes(executable, _INCLUDE_CONF_PROBE)
+
+
 # exits 0 only where `-bind` is read into `Config.bind`; a build registering
 # no such flag refuses it and exits nonzero. `-noconf` keeps any
 # `bitcoin.conf` out of it
@@ -886,6 +952,17 @@ def _binds_address(executable: str) -> bool:
     return _config_probe_passes(executable, _BIND_PROBE)
 
 
+# the facts true of every build: `connect`, and the two the module
+# docstring names as class-wide
+_EVERY_BUILD = frozenset(
+    {
+        Capability.CONNECT,
+        Capability.BLOCKS_DIR,
+        Capability.UTXO_SET_INFO,
+    }
+)
+
+
 class BtclibNodeAdapter(NodeAdapter):
     """A `btclib-node`, run as `python -m btclib_node`.
 
@@ -900,7 +977,7 @@ class BtclibNodeAdapter(NodeAdapter):
     `MiniWallet` builds regtest's own blocks alone.
     """
 
-    capabilities: AbstractSet[Capability] = frozenset({Capability.CONNECT})
+    capabilities: AbstractSet[Capability] = _EVERY_BUILD
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)
 
     @override
@@ -937,12 +1014,13 @@ class BtclibNodeAdapter(NodeAdapter):
         `_serves_submitpackage` answers `Capability.PACKAGE_ACCEPTANCE`,
         `_serves_getorphantxs` answers `Capability.ORPHANAGE`,
         `_replaces_by_cluster` answers `Capability.CLUSTER_REPLACEMENT`,
-        `_binds_address` answers `Capability.LISTEN_ADDRESS`, and
+        `_binds_address` answers `Capability.LISTEN_ADDRESS`,
+        `_serves_mempool_entry` answers `Capability.MEMPOOL_ENTRY`,
+        `_reads_includeconf` answers `Capability.INCLUDE_CONF`, and
         `_speaks_v2` answers `Capability.V2TRANSPORT`. The
-        class-level `capabilities` -- `frozenset({Capability.CONNECT})` --
-        is left untouched where every probe answers `False`. A `chain`
-        other than regtest drops `Capability.MINE` whatever its probe
-        answers.
+        class-level `capabilities` -- `_EVERY_BUILD` -- is left untouched
+        where every probe answers `False`. A `chain` other than regtest
+        drops `Capability.MINE` whatever its probe answers.
         """
         super().__init__(
             executable,
@@ -969,6 +1047,8 @@ class BtclibNodeAdapter(NodeAdapter):
                 (_serves_getorphantxs, Capability.ORPHANAGE),
                 (_replaces_by_cluster, Capability.CLUSTER_REPLACEMENT),
                 (_binds_address, Capability.LISTEN_ADDRESS),
+                (_serves_mempool_entry, Capability.MEMPOOL_ENTRY),
+                (_reads_includeconf, Capability.INCLUDE_CONF),
                 (_speaks_v2, Capability.V2TRANSPORT),
             )
             if probe(executable)

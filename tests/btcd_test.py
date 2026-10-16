@@ -113,6 +113,53 @@ def test_restart_hands_accepted_args_to_the_base(
     restart.assert_called_once_with(extra_args)
 
 
+@pytest.mark.parametrize(
+    "flags", ["noban,in,out", "in,noban", "noban,out", "out,in,noban", "noban,noban"]
+)
+def test_init_drops_the_direction_of_a_noban_whitelist(
+    flags: str, tmp_path: Path
+) -> None:
+    """`in` and `out` set a direction in Core; btcd covers both, so they go."""
+    adapter = BtcdAdapter(
+        "btcd", tmp_path, 18443, 18444, extra_args=[f"-whitelist={flags}@127.0.0.1"]
+    )
+    assert adapter._extra_args == ("--whitelist=127.0.0.1",)
+
+
+def test_init_spells_a_noban_whitelist_for_btcd(tmp_path: Path) -> None:
+    """Core's `-whitelist=noban@<address>` is btcd's `--whitelist=<address>`."""
+    adapter = BtcdAdapter(
+        "btcd", tmp_path, 18443, 18444, extra_args=["-whitelist=noban@127.0.0.1", "-x"]
+    )
+    assert adapter._extra_args == ("--whitelist=127.0.0.1", "-x")
+
+
+@pytest.mark.parametrize(
+    "arg",
+    [
+        "-whitelist=relay@127.0.0.1",
+        "-whitelist=noban,relay@127.0.0.1",
+        "-whitelist=in,out@127.0.0.1",
+        "-whitelist=relay,in@127.0.0.1",
+        "-whitelist=127.0.0.1",
+    ],
+)
+def test_init_refuses_a_whitelist_permission_btcd_lacks(
+    tmp_path: Path, arg: str
+) -> None:
+    """Only `noban` has a counterpart in btcd's `--whitelist`."""
+    with pytest.raises(ValueError, match=r"^btcd's --whitelist grants no permission"):
+        BtcdAdapter("btcd", tmp_path, 18443, 18444, extra_args=[arg])
+
+
+def test_restart_spells_a_noban_whitelist_for_btcd(tmp_path: Path) -> None:
+    """The base restarts with the spelling btcd reads."""
+    adapter = BtcdAdapter("btcd", tmp_path, 18443, 18444)
+    with patch.object(NodeAdapter, "restart") as restart:
+        adapter.restart(["-whitelist=noban@127.0.0.1"])
+    restart.assert_called_once_with(["--whitelist=127.0.0.1"])
+
+
 def test_init_refuses_a_chain_other_than_regtest(tmp_path: Path) -> None:
     """Regtest is the one chain this adapter starts."""
     with pytest.raises(ValueError, match="cannot start a node on chain 'signet'"):

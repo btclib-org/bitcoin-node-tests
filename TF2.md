@@ -934,7 +934,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_expiry.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (mempool_expiry) |
 | `p2p_add_connections.py` | [`4c79f3a34d00`](https://github.com/bitcoin/bitcoin/commit/4c79f3a34d00) | 2026-09-14 | pass | skip (typed_outbound) |
 | `p2p_add_connections.py` (`manual`) | same | same | pass, `manual` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
-| `p2p_v2_encrypted.py` (inbound) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | fail ([ISS btclib-node#1973](https://github.com/btclib-org/btclib-node/issues/1973)) |
+| `p2p_v2_encrypted.py` (inbound) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | fail ([ISS btclib-node#1973](https://github.com/btclib-org/btclib-node/issues/1973)) on the build; pass on a build past [ISS btclib-node#1973](https://github.com/btclib-org/btclib-node/issues/1973) |
 | `p2p_v2_encrypted.py` (outbound) | same | same | pass | skip |
 | `feature_includeconf.py` (order) | [`fa71c15f8610`](https://github.com/bitcoin/bitcoin/commit/fa71c15f8610) | 2025-11-26 | pass | skip (ua_comment) |
 | `feature_includeconf.py` (double negative) | same | same | pass | pass |
@@ -1344,9 +1344,9 @@ prose in the later sections.
   registers no `-mempoolexpiry`.
 - `p2p_v2_encrypted.py`: Core's claim, split into an inbound row and an
   outbound row ([ISS 175](https://github.com/btclib-org/bitcoin-node-tests/issues/175)).
-  The inbound row fails on `getnetworkinfo`'s connection counts, every step
-  before them passing
-  ([ISS btclib-node#1973](https://github.com/btclib-org/btclib-node/issues/1973)).
+  The inbound row fails on the release on `getnetworkinfo`'s connection counts,
+  every step before them passing, and passes on `main`, past
+  [ISS btclib-node#1973](https://github.com/btclib-org/btclib-node/issues/1973).
   The outbound row skips on `typed_outbound`.
 - `feature_includeconf.py`: a row per refusal of Core's file. The order row
   skips on `ua_comment`; the others run

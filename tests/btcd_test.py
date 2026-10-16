@@ -146,7 +146,7 @@ def test_rpc_client_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> No
 
 
 def test_log_path_is_the_regtest_btcd_log(tmp_path: Path) -> None:
-    """`btcd.log` under the chain's own subdirectory, also read on a timeout."""
+    """`btcd.log` under the chain's subdirectory, read into `start`'s errors."""
     adapter = BtcdAdapter("btcd", tmp_path, 18443, 18444)
     assert adapter.log_path == tmp_path / "regtest" / "btcd.log"
     assert adapter._log_path() == adapter.log_path

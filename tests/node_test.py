@@ -520,6 +520,12 @@ class _LoggingAdapter(_FakeAdapter):
         return self._datadir / "node.log"
 
 
+class _QuietLoggingAdapter(_LoggingAdapter):
+    """A `_LoggingAdapter` whose node prints its startup errors to stdout."""
+
+    _discards_stdout = True
+
+
 def test_start_timeout_carries_the_errors_stderr_and_this_start_s_log(
     tmp_path: Path,
 ) -> None:
@@ -581,7 +587,7 @@ def test_start_early_exit_carries_this_start_s_log(tmp_path: Path) -> None:
             log_file.write("Unable to start server\n")
         return _FakeProcess(exit_after=0)
 
-    adapter = _LoggingAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
+    adapter = _QuietLoggingAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
     with (
         patch("subprocess.Popen", side_effect=_popen),
         pytest.raises(RuntimeError) as exc_info,
@@ -590,6 +596,35 @@ def test_start_early_exit_carries_this_start_s_log(tmp_path: Path) -> None:
     assert str(exc_info.value) == (
         "node process exited with 1 before its RPC answered -- stderr: "
         f"\n-- {log} since this start:\nUnable to start server"
+    )
+
+
+def test_start_early_exit_keeps_stderr_alone_where_stdout_is_not_discarded(
+    tmp_path: Path,
+) -> None:
+    """A node that gives its error on stderr is read by that text alone.
+
+    Core's tests compare the message with the stderr text bitcoind gave, and
+    bitcoind's log repeats it.
+    """
+    datadir = tmp_path / "node"
+    datadir.mkdir()
+    log = datadir / "node.log"
+
+    def _popen(argv: list[str], *, stderr: IO[bytes], **_: object) -> _FakeProcess:
+        del argv
+        stderr.write(b"Error: provoked")
+        log.write_text("Error: provoked\n")
+        return _FakeProcess(exit_after=0)
+
+    adapter = _LoggingAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
+    with (
+        patch("subprocess.Popen", side_effect=_popen),
+        pytest.raises(RuntimeError) as exc_info,
+    ):
+        adapter.start()
+    assert str(exc_info.value) == (
+        "node process exited with 1 before its RPC answered -- stderr: Error: provoked"
     )
 
 

@@ -19,7 +19,7 @@ the bodies that pass one.
 `submitblock`: btcd's `rpcserver.go` registers `generate` and neither
 `generatetoaddress` nor `generateblock`, so `Capability.GENERATE` is not
 declared. `Capability.CONNECT` is `addnode <address> onetry`, which btcd
-answers with two arguments and refuses with Core's third, `v2transport`
+takes two arguments and refuses with Core's third, `v2transport`
 ("wrong number of params (expected 2, received 3)"): `dial` below drops
 it. `Capability.INVALIDATE_BLOCK`,
 `Capability.CHAIN_TIPS` and `Capability.SIGN_MESSAGE_WITH_PRIVKEY` are

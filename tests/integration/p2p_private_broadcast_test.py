@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_private_broadcast`, one body over either node.
+"""Core's `p2p_private_broadcast`, one body over each node.
 
 Read from Core's `test/functional/p2p_private_broadcast.py`
 (`ac6b6c1f06e9`, 2026-08-18): a node given `-privatebroadcast` sends a
@@ -77,8 +77,7 @@ either change's merge and the version's move to `32.99` reads older and
 answers the newer way all the same, the constant's own comment having the
 commits.
 
-`p2p_private_broadcast_bitcoind_test.py` and
-`p2p_private_broadcast_btclib_node_test.py` run it,
+Each `p2p_private_broadcast_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -129,7 +128,6 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message, Payload
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from bitcoin_node_tests.socks5 import Socks5Request
@@ -498,19 +496,17 @@ class _Destinations:
 
 def _node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     datadir: Path,
     extra_args: list[str],
-) -> BitcoindAdapter | BtclibNodeAdapter:
+) -> NodeAdapter:
     """Build a node over `datadir`, started with `extra_args` by default."""
     rpc_port, p2p_port = free_ports(2)
     return make_adapter(cls, executable, datadir, rpc_port, p2p_port, extra_args)
 
 
-def _debug_log(
-    node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log Core's own lines are read from, or skip.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -748,7 +744,7 @@ def _share_chain(source: NodeAdapter, target: NodeAdapter) -> None:
 
 def transactions_are_broadcast_privately(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -756,7 +752,7 @@ def transactions_are_broadcast_privately(
     """Core's `run_test`, in its order, but for its last step.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the nodes' own data directories go.
     :param skip_counts: the session's own tally.

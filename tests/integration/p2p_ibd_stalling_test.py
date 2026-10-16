@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_ibd_stalling`, as bodies over either node.
+"""Core's `p2p_ibd_stalling`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_ibd_stalling.py` (`24628d3ae7dc`,
 2026-09-14): during initial block download, a peer withholding the block
@@ -68,8 +68,7 @@ reads the build's own `getnetworkinfo` `version` and, there, does not
 assert `Stall started` absent
 ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
 
-`p2p_ibd_stalling_bitcoind_test.py` and
-`p2p_ibd_stalling_btclib_node_test.py` run each body,
+Each `p2p_ibd_stalling_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -106,7 +105,6 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message, Payload, Version
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from bitcoin_node_tests.peer import Peer
@@ -118,7 +116,7 @@ __all__ = [
     "stalling_is_logged",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -157,9 +155,7 @@ _STALL_NOT_RELOGGED_VERSION = 310000
 _PAUSING = "Pausing block downloads from stalling manual peer"
 
 
-def _debug_log(
-    node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log a log half reads, or skip where the node keeps none.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -556,7 +552,7 @@ def _manual_is_refused(node: NodeAdapter) -> None:
 def stalling_drops_the_staller(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the wire half: each staller is dropped, the timeout doubling.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, _ = _node(cluster, skip_counts, log=False)
@@ -566,7 +562,7 @@ def stalling_drops_the_staller(cluster: _Cluster, skip_counts: SkipCounts) -> No
 def stalling_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half: the stall is logged, and the timeout decreased.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, log_path = _node(cluster, skip_counts, log=True)
@@ -578,7 +574,7 @@ def manual_peer_stalling_pauses_the_peer(
 ) -> None:
     """Check the wire half: a stalling manual peer is paused, not dropped.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, _ = _node(cluster, skip_counts, log=False)
@@ -591,7 +587,7 @@ def manual_peer_stalling_pauses_the_peer(
 def manual_peer_stalling_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half: the manual peer's pause is logged.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, log_path = _node(cluster, skip_counts, log=True)

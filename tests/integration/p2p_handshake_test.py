@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_handshake`, one body per check over either node.
+"""Core's `p2p_handshake`, one body per check over each node.
 
 Read from Core's `test/functional/p2p_handshake.py` (`3fd68a95e68b`,
 2026-04-07): the first check of its `run_test`, a second `verack` sent
@@ -29,9 +29,9 @@ each check split the same way and each body over a fresh node:
 
 Each dialled peer answers the node's `version` with its own and nothing
 else where it expects to be dropped, and shakes hands in full where it
-expects to be kept. `p2p_handshake_bitcoind_test.py` and
-`p2p_handshake_btclib_node_test.py` run every body,
-`tests/integration/conftest.py`'s own module docstring having how.
+expects to be kept. Each `p2p_handshake_<node>_test.py` module beside
+this one runs every body, `tests/integration/conftest.py`'s own module
+docstring having how.
 """
 
 from __future__ import annotations
@@ -56,8 +56,8 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "feeler_completion_is_logged",
@@ -84,15 +84,15 @@ _DESIRABLE_PRUNED = ServiceFlags.NODE_NETWORK_LIMITED | ServiceFlags.NODE_WITNES
 
 _ONE_HOUR = 60 * 60
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 
 def redundant_verack_keeps_the_connection(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: a second `verack` is ignored, not disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -100,12 +100,10 @@ def redundant_verack_keeps_the_connection(
         peer.sync_with_ping()
 
 
-def redundant_verack_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def redundant_verack_is_logged(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for the `verack` it ignored.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: `adapter` declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.
@@ -123,9 +121,7 @@ def redundant_verack_is_logged(
         peer.sync_with_ping()
 
 
-def _debug_log(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(adapter: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log a log half reads, or skip where the node keeps none.
 
     :raises TypeError: `adapter` declares `Capability.DEBUG_LOG` without
@@ -148,7 +144,7 @@ def _expecting(
 
 
 def _dial(
-    node: BitcoindAdapter | BtclibNodeAdapter,
+    node: NodeAdapter,
     connection_type: str,
     services: int,
     *,
@@ -177,7 +173,7 @@ def _dial(
 
 
 def _check_services(
-    node: BitcoindAdapter | BtclibNodeAdapter,
+    node: NodeAdapter,
     services_tried: Sequence[int],
     desirable: int,
     *,
@@ -205,7 +201,7 @@ def _check_services(
             _dial(node, connection_type, services, dropped=False)
 
 
-def _mine_at(node: BitcoindAdapter | BtclibNodeAdapter, timestamp: int) -> None:
+def _mine_at(node: NodeAdapter, timestamp: int) -> None:
     """Core's `generate_at_mocktime`: one block, the clock at `timestamp`.
 
     Core's `generate` ends in `sync_all`, whose `sync_mempools` calls
@@ -227,7 +223,7 @@ def outbound_services_decide_the_connection(
 ) -> None:
     """Check the wire half: a peer short of the full services is dropped.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -246,7 +242,7 @@ def outbound_services_refusal_is_logged(
 ) -> None:
     """Check the log half: bitcoind's own wording for each services refusal.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -266,7 +262,7 @@ def limited_peer_is_kept_only_near_the_tip(
 ) -> None:
     """Check the wire half: a limited peer is dropped a day past the tip alone.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -283,7 +279,7 @@ def limited_peer_is_kept_only_near_the_tip(
 def limited_peer_refusal_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half: the limited peer's refusal, the tip a day old.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -301,7 +297,7 @@ def feeler_is_dropped_after_its_version(
 ) -> None:
     """Check the wire half: a feeler is closed once its `version` is read.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -312,7 +308,7 @@ def feeler_is_dropped_after_its_version(
 def feeler_completion_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for the completed feeler.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -325,7 +321,7 @@ def feeler_completion_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> N
 def self_connection_is_dropped(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the wire half: the node drops a connection to its own address.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -337,7 +333,7 @@ def self_connection_is_dropped(cluster: _Cluster, skip_counts: SkipCounts) -> No
 def self_connection_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for the self-connection.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

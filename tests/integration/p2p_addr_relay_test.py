@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_addr_relay`'s oversized `addr`, one body over either node.
+"""Core's `p2p_addr_relay`'s oversized `addr`, one body over each node.
 
 Read from Core's `test/functional/p2p_addr_relay.py` (`b7211ba80cde`,
 2026-09-22): `oversized_addr_test`, the first check of its `run_test`.
@@ -23,11 +23,11 @@ repeated, one over the bound where Core's own count is ten over it.
 
 The rest of Core's file is not ported here: it moves the node's clock
 with `setmocktime`, dials out of the node (Core's
-`add_outbound_p2p_connection`), or both --
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14) and
-[ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44).
-`p2p_addr_relay_bitcoind_test.py` and `p2p_addr_relay_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having how.
+`add_outbound_p2p_connection`), or both -- [ISS
+14](https://github.com/btclib-org/bitcoin-node-tests/issues/14) and [ISS
+44](https://github.com/btclib-org/bitcoin-node-tests/issues/44). Each
+`p2p_addr_relay_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -44,8 +44,8 @@ from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.peer import Peer
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "oversized_addr_disconnects_the_peer",
@@ -63,11 +63,11 @@ def _oversized_addr() -> Addr:
 
 
 def oversized_addr_disconnects_the_peer(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: an `addr` over `MAX_ADDR_TO_SEND` drops the peer.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -75,12 +75,10 @@ def oversized_addr_disconnects_the_peer(
         peer.wait_for_disconnect()
 
 
-def oversized_addr_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def oversized_addr_is_logged(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for why it disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: `adapter` declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.

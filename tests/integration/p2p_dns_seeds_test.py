@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_dns_seeds`, one body over either node.
+"""Core's `p2p_dns_seeds`, one body over each node.
 
 Read from Core's `test/functional/p2p_dns_seeds.py` (`fa4cb96bdec2`,
 2026-02-17), a file of
@@ -54,9 +54,8 @@ removed, here and under Core's own framework alike (measured against
 the pinned release): the node already knows an address, so it queries
 the seeds after its shorter wait, which ends inside the step's own.
 
-`p2p_dns_seeds_bitcoind_test.py` and `p2p_dns_seeds_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `p2p_dns_seeds_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -77,7 +76,6 @@ from bitcoin_node_tests.peer import Listener, Peer
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
@@ -249,7 +247,7 @@ def _wait_time_tests(node: BitcoindAdapter) -> None:
 
 def dns_seeds_are_queried_only_when_peers_are_wanting(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -259,7 +257,7 @@ def dns_seeds_are_queried_only_when_peers_are_wanting(
     Core's own `run_test`, its five steps in its order.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

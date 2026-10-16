@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_compactblocks_blocksonly`, one body over either node.
+"""Core's `p2p_compactblocks_blocksonly`, one body over each node.
 
 Read from Core's `test/functional/p2p_compactblocks_blocksonly.py`
 (`bf9884f4e55d`, 2026-06-18): four nodes, the first under `-blocksonly`
@@ -25,9 +25,9 @@ Core's `HeaderAndShortIDs.initialize_from_block` builds one, the
 coinbase prefilled and every other transaction a short id of its wtxid.
 Whether a `-blocksonly` bitcoind ignores a `cmpctblock` depends on the
 build, `_blocksonly_ignores_cmpctblock` below having how it is read.
-`p2p_compactblocks_blocksonly_bitcoind_test.py` and
-`p2p_compactblocks_blocksonly_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_compactblocks_blocksonly_<node>_test.py` module beside this
+one runs it, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -61,7 +61,6 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message, Payload
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -79,7 +78,7 @@ _MAGIC = magic_from_chain("regtest")
 _BLOCKSONLY_IGNORES_CMPCTBLOCK_VERSION = 320000
 
 
-def _build_block_on_tip(miner: BitcoindAdapter | BtclibNodeAdapter) -> Block:
+def _build_block_on_tip(miner: NodeAdapter) -> Block:
     """Core's own `build_block_on_tip`: mine one block, and read it back."""
     (block_hash,) = miner.mine(1)
     block_hex = miner.rpc.call("getblock", [block_hash, 0])
@@ -133,7 +132,7 @@ def _cmpctblock_hash(message: Message) -> bytes:
 
 
 def _ignores_cmpctblock(
-    miner: BitcoindAdapter | BtclibNodeAdapter,
+    miner: NodeAdapter,
     node: NodeAdapter,
     peer: Peer,
     *,
@@ -183,12 +182,12 @@ def _blocksonly_ignores_cmpctblock(node: NodeAdapter) -> bool:
 
 
 def blocksonly_node_neither_asks_for_nor_takes_compact_blocks(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     blocksonly, high_bw_node, miner, low_bw_node = cluster(4)

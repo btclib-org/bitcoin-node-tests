@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_node_network_limited`, one body over either node.
+"""Core's `p2p_node_network_limited`, one body over each node.
 
 Read from Core's `test/functional/p2p_node_network_limited.py`
 (`fa7bac94d87a`, 2026-03-12): three nodes, the first under `-prune=550`.
@@ -29,8 +29,7 @@ reads the capability as BIP324 on by default, which it is on bitcoind
 (`-v2transport` defaults to on) and not what the capability itself
 promises: it names BIP324 accepted, not offered unasked.
 
-`p2p_node_network_limited_bitcoind_test.py` and
-`p2p_node_network_limited_btclib_node_test.py` run it,
+Each `p2p_node_network_limited_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -59,8 +58,6 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -79,7 +76,7 @@ _MINE_CHUNK = 50
 _NOT_DOWNLOADED = "Block not available (not fully downloaded)"
 
 
-def _mine(node: BitcoindAdapter | BtclibNodeAdapter, count: int) -> list[str]:
+def _mine(node: NodeAdapter, count: int) -> list[str]:
     """Mine `count` blocks on `node`, at most `_MINE_CHUNK` per call."""
     hashes: list[str] = []
     while len(hashes) < count:
@@ -123,9 +120,9 @@ def _chain_tip_status(node: NodeAdapter, block_hash: str) -> str:
 
 
 def _avoid_requesting_historical_blocks(
-    pruned_node: BitcoindAdapter | BtclibNodeAdapter,
-    miner: BitcoindAdapter | BtclibNodeAdapter,
-    full_node: BitcoindAdapter | BtclibNodeAdapter,
+    pruned_node: NodeAdapter,
+    miner: NodeAdapter,
+    full_node: NodeAdapter,
 ) -> None:
     """Core's own `test_avoid_requesting_historical_blocks`."""
     # connect and mine a block, so that no node is in initial block download
@@ -173,12 +170,12 @@ def _avoid_requesting_historical_blocks(
 
 
 def node_network_limited(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     pruned_node, miner, full_node = cluster(3)

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_1p1c_network`, one body over either node.
+"""Core's `p2p_1p1c_network`, one body over each node.
 
 Read from Core's `test/functional/p2p_1p1c_network.py` (`95ef0fc5e781`,
 2025-12-29, the same file at the pinned `v31.1`): packages submitted to
@@ -75,8 +75,7 @@ What differs from Core's file:
 - every fee Core writes in BTC is written here in satoshis, and every
   fee rate in satoshis per 1000 virtual bytes.
 
-`p2p_1p1c_network_bitcoind_test.py` and
-`p2p_1p1c_network_btclib_node_test.py` run the body,
+Each `p2p_1p1c_network_<node>_test.py` module beside this one runs the body,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -113,14 +112,12 @@ from tests.integration.script_verify_flag_test import bitcoind_version
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["every_node_takes_the_packages_one_node_is_given"]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -341,7 +338,7 @@ def every_node_takes_the_packages_one_node_is_given(
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(_NUM_NODES)

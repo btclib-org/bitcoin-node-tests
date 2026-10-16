@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_sendheaders`, one body over either node.
+"""Core's `p2p_sendheaders`, one body over each node.
 
 Read from Core's `test/functional/p2p_sendheaders.py` (`6eca11175be6`,
 2026-07-16), a file needing no mechanism the adapter lacks
@@ -58,8 +58,8 @@ Core's file there differs from the pinned revision only in handing each
 `create_block` a coinbase of its own `create_coinbase` rather than a
 height, and in writing its `test_function` predicates as lambdas.
 
-`p2p_sendheaders_bitcoind_test.py` and `p2p_sendheaders_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_sendheaders_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -99,14 +99,12 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message, Payload, Version
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["blocks_are_announced_by_headers_after_sendheaders"]
 
-type _Node = BitcoindAdapter | BtclibNodeAdapter
+type _Node = NodeAdapter
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -724,7 +722,7 @@ def blocks_are_announced_by_headers_after_sendheaders(
 ) -> None:
     """Core's own `setup_network` and `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(2)

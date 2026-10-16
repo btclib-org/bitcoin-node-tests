@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_nobloomfilter_messages`'s filtered-block step, over either node.
+"""Core's `p2p_nobloomfilter_messages`'s filtered-block step, over each node.
 
 Read from Core's `test/functional/p2p_nobloomfilter_messages.py`
 (`9871fb726cb5`, 2026-07-31): a peer asking a node that does not offer
@@ -24,9 +24,9 @@ an older build the wire half asserts the peer is kept, and the log half
 asserts the line is not written. `_DISCONNECT_VERSION`'s own comment has the
 known limit.
 
-`p2p_nobloomfilter_messages_bitcoind_test.py` and
-`p2p_nobloomfilter_messages_btclib_node_test.py` run every body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_nobloomfilter_messages_<node>_test.py` module beside this one
+runs every body, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -42,8 +42,8 @@ from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.peer import Peer
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "filtered_block_request_disconnects_the_peer",
@@ -64,7 +64,7 @@ _LOG_LINE = "filtered block request received when NODE_BLOOM service disabled"
 _DISCONNECT_VERSION = 320000
 
 
-def _disconnects(adapter: BitcoindAdapter | BtclibNodeAdapter) -> bool:
+def _disconnects(adapter: NodeAdapter) -> bool:
     """Whether `adapter`'s node does what Core's check asserts of `master`.
 
     Core's own claim for every node, bitcoind before `_DISCONNECT_VERSION`
@@ -78,7 +78,7 @@ def _disconnects(adapter: BitcoindAdapter | BtclibNodeAdapter) -> bool:
 
 
 def _filtered_block_request(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> GetData:
     """Return Core's `getdata` for the tip as a filtered block."""
     best = adapter.rpc.call("getbestblockhash")
@@ -87,11 +87,11 @@ def _filtered_block_request(
 
 
 def filtered_block_request_disconnects_the_peer(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: a filtered-block request drops the peer.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     disconnects = _disconnects(adapter)
     with Peer(adapter.p2p_address, _MAGIC) as peer:
@@ -104,11 +104,11 @@ def filtered_block_request_disconnects_the_peer(
 
 
 def filtered_block_request_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check the log half: bitcoind's own wording for why it disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: `adapter` declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.

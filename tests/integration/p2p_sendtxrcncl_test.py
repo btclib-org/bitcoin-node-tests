@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_sendtxrcncl`, as bodies over either node.
+"""Core's `p2p_sendtxrcncl`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_sendtxrcncl.py` (`2fabbc0bb38d`,
 2026-09-09): BIP330's `sendtxrcncl`, which a node started with
@@ -43,9 +43,8 @@ with no capability at all, and their log half asks for
 never sends `verack` is dropped for "version handshake timeout" once
 the default bound passes, which a scaled wait for a drop outlasts.
 
-`p2p_sendtxrcncl_bitcoind_test.py` and `p2p_sendtxrcncl_btclib_node_test.py`
-run each body, `tests/integration/conftest.py`'s own module docstring
-having how.
+Each `p2p_sendtxrcncl_<node>_test.py` module beside this one runs each
+body, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -70,7 +69,6 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -88,7 +86,7 @@ __all__ = [
     "sendtxrcncl_violations_drop_the_peer",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # Core's `P2P_SERVICES` (`test_framework/p2p.py`)
 _SERVICES = ServiceFlags.NODE_NETWORK | ServiceFlags.NODE_WITNESS
@@ -191,9 +189,7 @@ def _received(peer: Peer) -> SendTxRcncl | None:
     return None if message is None else SendTxRcncl.parse(message.payload)
 
 
-def _debug_log(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(adapter: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log a log half reads, or skip where the node keeps none.
 
     :raises TypeError: `adapter` declares `Capability.DEBUG_LOG` without
@@ -233,7 +229,7 @@ def sendtxrcncl_is_sent_to_inbound_peers_relaying_transactions(
 ) -> None:
     """Check `sendtxrcncl` reaches an inbound peer that relays, before `verack`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -266,7 +262,7 @@ def sendtxrcncl_is_not_sent_with_bloom_filters_and_no_relay(
 ) -> None:
     """Check a peer asking for no relay gets none, `NODE_BLOOM` offered.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -290,7 +286,7 @@ def sendtxrcncl_is_sent_to_full_relay_outbound_peers(
     Then the wire half of a block-relay-only peer sending one: the node
     told it no transaction relay, and drops it.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -325,7 +321,7 @@ def sendtxrcncl_on_block_relay_only_is_logged(
 ) -> None:
     """Check the log half: a block-relay-only peer's `sendtxrcncl` refused.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -362,7 +358,7 @@ def sendtxrcncl_is_not_sent_in_blocks_only_mode(
 ) -> None:
     """Check `-blocksonly` withholds `sendtxrcncl` from an inbound peer.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -404,7 +400,7 @@ def sendtxrcncl_is_ignored_without_the_option(cluster: _Cluster) -> None:
 
     Asks for no capability: the option is off, as Core's default has it.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     """
     (node,) = cluster(1)
     _check_ignored_without_the_option(node, None)
@@ -415,7 +411,7 @@ def sendtxrcncl_is_ignored_without_the_option_in_the_log(
 ) -> None:
     """Check the log half: bitcoind's own wording for the ignored message.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -468,7 +464,7 @@ def sendtxrcncl_violations_drop_the_peer(
 ) -> None:
     """Check the wire half: each of Core's violations drops the peer.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -483,7 +479,7 @@ def sendtxrcncl_violations_are_logged(
 ) -> None:
     """Check the log half: bitcoind's own wording for each violation.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -551,7 +547,7 @@ def sendtxrcncl_kept_peers_stay_connected(
 ) -> None:
     """Check the wire half: each peer Core's log steps keep answers a `ping`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -566,7 +562,7 @@ def sendtxrcncl_kept_peers_are_logged(
 ) -> None:
     """Check the log half: registered, ignored and forgotten, by peer id.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

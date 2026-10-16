@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_permissions`, as bodies over either node.
+"""Core's `p2p_permissions`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_permissions.py` (`fa5f29774872`,
 2025-12-16), an option and the wire
@@ -40,9 +40,8 @@ What differs from Core's file:
   adapter's own `-bind` where Core passes one, and bitcoind's message is
   the same for either (`AppInitParameterInteraction`, `src/init.cpp`).
 
-`p2p_permissions_bitcoind_test.py` and `p2p_permissions_btclib_node_test.py`
-run each body, `tests/integration/conftest.py`'s own module docstring
-having how.
+Each `p2p_permissions_<node>_test.py` module beside this one runs each
+body, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -74,7 +73,6 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -86,7 +84,7 @@ __all__ = [
     "in_and_out_decide_which_connections_a_whitelist_grants",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -162,9 +160,7 @@ def _peers(node: NodeAdapter) -> list[dict[str, object]]:
     return peers
 
 
-def _debug_log(
-    node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log a log check reads, or skip where the node keeps none.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -215,7 +211,7 @@ def each_whitelist_grants_the_permissions_it_names(
 ) -> None:
     """Core's own `checkpermission` calls on `-whitelist` alone.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -229,7 +225,7 @@ def a_whitebind_and_a_whitelist_grant_the_union(
 ) -> None:
     """Core's own merge check: a `whitebind` and a `whitelist` together.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -252,7 +248,7 @@ def in_and_out_decide_which_connections_a_whitelist_grants(
 ) -> None:
     """Core's own `in` and `out` loop: the node dials, the permissions follow.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)
@@ -287,7 +283,7 @@ def a_malformed_permission_list_stops_the_node_starting(
 ) -> None:
     """Core's own `assert_start_raises_init_error` calls on a bad list.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -320,7 +316,7 @@ def a_forcerelay_peer_has_a_transaction_relayed_that_the_mempool_holds(
 ) -> None:
     """Core's own `check_tx_relay`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)

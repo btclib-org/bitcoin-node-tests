@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_feefilter`, as bodies over either node.
+"""Core's `p2p_feefilter`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_feefilter.py` (`fa5f29774872`,
 2025-12-16): BIP133's `feefilter`, which a node sends a peer to say the
@@ -58,9 +58,10 @@ peer (`noban_tx_relay`) only makes a node announce at once rather than
 on its own schedule. Each announcement is awaited for Core's own 60
 seconds instead.
 
-`p2p_feefilter_bitcoind_test.py` and `p2p_feefilter_btclib_node_test.py`
-run each body, `tests/integration/conftest.py`'s own module docstring
-having how.
+Each `p2p_feefilter_<node>_test.py` module beside this one runs each
+body, `tests/integration/conftest.py`'s own module docstring having how.
+The btcd one leaves out the `forcerelay` body, its own docstring saying
+why.
 """
 
 from __future__ import annotations
@@ -86,8 +87,6 @@ if TYPE_CHECKING:
     from btclib.p2p import Message
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -99,7 +98,7 @@ __all__ = [
     "feefilter_is_sent_to_an_inbound_peer",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # Core's own fee rates, in satoshis per 1000 virtual bytes
 _RECEIVED_RATE = 200
@@ -175,7 +174,7 @@ def feefilter_is_sent_to_an_inbound_peer(cluster: _Cluster) -> None:
 
     Asks for no capability.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     """
     (node,) = cluster(1)
     with _connect(node) as peer:
@@ -186,7 +185,7 @@ def feefilter_is_sent_to_an_inbound_peer(cluster: _Cluster) -> None:
 def feefilter_is_not_sent_to_a_forcerelay_peer(cluster: _Cluster) -> None:
     """Check a peer holding the `forcerelay` permission gets no `feefilter`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     """
     (node,) = cluster(1)
     node.restart(["-whitelist=forcerelay@127.0.0.1"])
@@ -199,7 +198,7 @@ def feefilter_filters_announcements(cluster: _Cluster, skip_counts: SkipCounts) 
 
     Core's own `test_feefilter`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, funder = cluster(2)
@@ -241,7 +240,7 @@ def feefilter_is_not_sent_to_a_block_relay_only_peer(
 ) -> None:
     """Check a block-relay-only outbound peer gets no `feefilter`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -260,7 +259,7 @@ def feefilter_is_not_sent_in_blocks_only_mode(
 ) -> None:
     """Check a node under `-blocksonly` sends an inbound peer no `feefilter`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

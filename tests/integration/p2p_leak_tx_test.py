@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_leak_tx`, one body per subject over either node.
+"""Core's `p2p_leak_tx`, one body per subject over each node.
 
 Read from Core's `test/functional/p2p_leak_tx.py` (`fa5f29774872`,
 2025-12-16) and narrowed to what the clock and MiniWallet families reach
@@ -41,9 +41,8 @@ node would make each test's own exact reading depend on which other test
 already ran against it, and `pytest-randomly` (`pyproject.toml`) does not
 hold that order still.
 
-`p2p_leak_tx_bitcoind_test.py` and `p2p_leak_tx_btclib_node_test.py` run
-every body, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `p2p_leak_tx_<node>_test.py` module beside this one runs every
+body, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -64,9 +63,8 @@ from bitcoin_node_tests.timeout_factor import scaled
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "notfound_on_replaced_tx",
@@ -76,7 +74,7 @@ __all__ = [
 
 _MAGIC = magic_from_chain("regtest")
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # Core's own advance, in every test below: long
 # enough to cross `INVENTORY_BROADCAST_INTERVAL`, short enough that a
@@ -87,9 +85,7 @@ _ANNOUNCE_ADVANCE = 120
 _RECEIVE_TIMEOUT = 30.0
 
 
-def _node(
-    cluster: _Cluster, skip_counts: SkipCounts
-) -> BitcoindAdapter | BtclibNodeAdapter:
+def _node(cluster: _Cluster, skip_counts: SkipCounts) -> NodeAdapter:
     """Start one node, asking it for `Capability.CLOCK` and then `MINE`."""
     (node,) = cluster(1)
     require(Capability.CLOCK, node.capabilities, skip_counts)
@@ -97,7 +93,7 @@ def _node(
     return node
 
 
-def _reports_inv_fields(node: BitcoindAdapter | BtclibNodeAdapter) -> bool:
+def _reports_inv_fields(node: NodeAdapter) -> bool:
     """Return whether `node`'s own `help getpeerinfo` names the `inv` fields."""
     help_text = node.rpc.call("help", ["getpeerinfo"])
     assert isinstance(help_text, str)
@@ -119,7 +115,7 @@ def _wait_for_inv(peer: Peer, tx_hash: bytes) -> Inv:
 def tx_in_block(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check that a tx just mined into the tip's own block is still uploaded.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     adapter = _node(cluster, skip_counts)
@@ -165,7 +161,7 @@ def tx_in_block(cluster: _Cluster, skip_counts: SkipCounts) -> None:
 def notfound_on_replaced_tx(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check that a getdata for a tx its replacement displaced answers notfound.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     adapter = _node(cluster, skip_counts)
@@ -222,7 +218,7 @@ def notfound_on_replaced_tx(cluster: _Cluster, skip_counts: SkipCounts) -> None:
 def notfound_on_unannounced_tx(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check that a getdata for a tx not yet announced answers notfound.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     adapter = _node(cluster, skip_counts)

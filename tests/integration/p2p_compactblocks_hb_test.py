@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_compactblocks_hb`, one body over either node.
+"""Core's `p2p_compactblocks_hb`, one body over each node.
 
 Read from Core's `test/functional/p2p_compactblocks_hb.py` (`fa5f29774872`,
 2025-12-16): six nodes, node 0 the block producer, node 1 the node under
@@ -23,9 +23,9 @@ gives, without a command-line flag this adapter does not carry.
 `Capability.MINE` (node 0 mines), `Capability.CONNECT` (the six-node
 topology) and `Capability.DISCONNECT` (each relay dropping its link to
 node 0 again) are the whole of what it asks of a node, so this is Core's
-own claim in full. `p2p_compactblocks_hb_bitcoind_test.py` and
-`p2p_compactblocks_hb_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+own claim in full. Each `p2p_compactblocks_hb_<node>_test.py` module
+beside this one runs it, `tests/integration/conftest.py`'s own module
+docstring having how.
 """
 
 from __future__ import annotations
@@ -43,8 +43,6 @@ from bitcoin_node_tests.node import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -106,12 +104,12 @@ def _hb_from(node: NodeAdapter) -> bool:
 
 
 def reserved_high_bandwidth_slot_for_the_outbound_peer(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own subject: the outbound peer keeps its HB slot on reconnect.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1, node2, node3, node4, node5 = cluster(6)

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_eviction`, one body over either node.
+"""Core's `p2p_eviction`, one body over each node.
 
 Read from Core's `test/functional/p2p_eviction.py` (`1b76e0473647`,
 2026-07-24), the option and MiniWallet families together
@@ -50,9 +50,9 @@ bound, because bitcoind's `AttemptToEvictConnection` (`src/net.cpp`)
 only marks the peer, and its socket is closed on a later pass of the
 node's own network loop.
 
-`p2p_eviction_bitcoind_test.py` and `p2p_eviction_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how, each handing it the argv that prints its own node's `-help`.
+Each `p2p_eviction_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how, each
+handing it the argv that prints its own node's `-help`.
 """
 
 from __future__ import annotations
@@ -77,8 +77,6 @@ from bitcoin_node_tests.timeout_factor import scaled
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -200,13 +198,13 @@ def _evicted(peers: list[Peer], timeout: float = 30) -> list[int]:
 
 
 def the_evicted_inbound_peer_is_never_a_protected_one(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     help_command: Sequence[str],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own `run_test`, one peer after another in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param help_command: the argv printing that node's own `-help`,
         which `_splits_inbound_slots` reads.
     :param skip_counts: the session's own tally.

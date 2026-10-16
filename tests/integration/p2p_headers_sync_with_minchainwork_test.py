@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_headers_sync_with_minchainwork`, one body over either node.
+"""Core's `p2p_headers_sync_with_minchainwork`, one body over each node.
 
 Read from Core's `test/functional/p2p_headers_sync_with_minchainwork.py`
 (`ff3e2e4ebdce`, 2026-08-19), an option, the log and the clock beside
@@ -53,9 +53,9 @@ What differs from Core's file:
   bitcoin/bitcoin@f3fec67c3eeb27d5be1bc9d57ca737b74fcd762d: such a build
   aborts, and this test fails against it.
 
-`p2p_headers_sync_with_minchainwork_bitcoind_test.py` and
-`p2p_headers_sync_with_minchainwork_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_headers_sync_with_minchainwork_<node>_test.py` module beside
+this one runs it, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -90,7 +90,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -99,7 +98,7 @@ __all__ = [
     "low_work_headers_are_ignored_until_the_chain_has_the_work",
 ]
 
-type _Node = BitcoindAdapter | BtclibNodeAdapter
+type _Node = NodeAdapter
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -410,7 +409,7 @@ def low_work_headers_are_ignored_until_the_chain_has_the_work(
 ) -> None:
     """Core's own `setup_network` and `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(4)

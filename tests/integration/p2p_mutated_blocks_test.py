@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_mutated_blocks`, as bodies over either node.
+"""Core's `p2p_mutated_blocks`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_mutated_blocks.py` (`9c5dd2926aa9`,
 2026-06-18): a peer sending a mutated block, one whose transactions no
@@ -52,8 +52,7 @@ or without it. Each disconnect is awaited over `Peer`'s own default wait
 rather than Core's five seconds, and the node's `getdata` and
 `getblocktxn` over Core's own.
 
-`p2p_mutated_blocks_bitcoind_test.py` and
-`p2p_mutated_blocks_btclib_node_test.py` run each body,
+Each `p2p_mutated_blocks_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -92,7 +91,6 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -103,7 +101,7 @@ __all__ = [
     "mutated_block_keeps_the_honest_request",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -127,9 +125,7 @@ _MUTATED = (
 _MISSING_PARENT = "AcceptBlock FAILED (prev-blk-not-found)"
 
 
-def _debug_log(
-    node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log a log half reads, or skip where the node keeps none.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -271,7 +267,7 @@ def mutated_block_keeps_the_honest_request(
 ) -> None:
     """Check the wire half: the mutated block's sender alone is dropped.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -288,7 +284,7 @@ def mutated_block_keeps_the_honest_request(
 def mutated_block_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for the mutated block.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -319,7 +315,7 @@ def block_missing_its_parent_drops_the_peer(
 ) -> None:
     """Check the wire half: a block whose parent is unknown drops its sender.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -332,7 +328,7 @@ def block_missing_its_parent_is_logged(
 ) -> None:
     """Check the log half: the missing parent, not a mutation, is logged.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

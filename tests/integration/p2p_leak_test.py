@@ -5,7 +5,7 @@
 """Core's `p2p_leak`: an obsolete version and a feature-negotiation boundary.
 
 The obsolete version has a wire body and a log body, the boundary a wire
-body, each over either node.
+body, all over each node.
 
 Read from Core's `test/functional/p2p_leak.py` (`36775471f81a`,
 2026-09-09)'s own closing check, "old peers are disconnected", and its
@@ -43,7 +43,7 @@ own `nVersion < MIN_PEER_PROTO_VERSION` (`node/protocol_version.h`,
 count in its longer test rather than a fact of the obsolete-version
 check itself.
 
-`p2p_leak_bitcoind_test.py` and `p2p_leak_btclib_node_test.py` run each,
+Each `p2p_leak_<node>_test.py` module beside this one runs each,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -60,8 +60,8 @@ from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.peer import Peer
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "feature_negotiation_starts_at_the_wtxid_version",
@@ -90,23 +90,21 @@ def _send_obsolete_version(peer: Peer) -> None:
 
 
 def obsolete_version_disconnects_the_peer(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: a version below the minimum gets the peer dropped.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         _send_obsolete_version(peer)
         peer.wait_for_disconnect()
 
 
-def obsolete_version_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def obsolete_version_is_logged(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for why it disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: `adapter` declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.
@@ -123,9 +121,7 @@ def obsolete_version_is_logged(
         peer.wait_for_disconnect()
 
 
-def _commands_before_verack(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, version: int
-) -> list[str]:
+def _commands_before_verack(adapter: NodeAdapter, version: int) -> list[str]:
     """Send a `version` of `version` and no `verack`, and read up to the node's.
 
     :returns: every command the node sent, `verack` last.
@@ -145,11 +141,11 @@ def _commands_before_verack(
 
 
 def feature_negotiation_starts_at_the_wtxid_version(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check `wtxidrelay` and `sendaddrv2` go to a peer at 70016, not at 70015.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     below = _commands_before_verack(adapter, _PRE_WTXID_RELAY_VERSION)
     assert "wtxidrelay" not in below

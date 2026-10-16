@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_message_capture`, one body over either node.
+"""Core's `p2p_message_capture`, one body over each node.
 
 Read from Core's `test/functional/p2p_message_capture.py`
 (`fa5f29774872`, 2025-12-16), the option and disk families together
@@ -30,8 +30,7 @@ The node is built through `make_adapter`
 (`tests/integration/conftest.py`), since the option is its first
 start's.
 
-`p2p_message_capture_bitcoind_test.py` and
-`p2p_message_capture_btclib_node_test.py` run it,
+Each `p2p_message_capture_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -53,9 +52,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["messages_are_captured_to_disk"]
@@ -118,7 +116,7 @@ def _read_types(capture: Path, known: frozenset[str]) -> set[str]:
 
 def messages_are_captured_to_disk(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -126,7 +124,7 @@ def messages_are_captured_to_disk(
     """Check a node under `-capturemessages` writes a peer's messages to disk.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

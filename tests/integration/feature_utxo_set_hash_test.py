@@ -9,12 +9,12 @@ Read from Core's `test/functional/feature_utxo_set_hash.py`
 reaches
 ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
 `MiniWallet.generate`/`send_self_transfer` (`Capability.MINE`) build a
-short chain, and `btclib.coinstats.CoinStats` -- covered in
-`TF2.md`'s own entry for `test_framework/crypto/muhash.py` -- is what
-computes the UTXO set's own MuHash commitment independently of the node
-under test, walking every block the node itself hands back over
-`getblock` rather than trusting Core's own Python reimplementation the
-way Core's own file does.
+short chain, `gettxoutsetinfo` is `Capability.UTXO_SET_INFO`, and
+`btclib.coinstats.CoinStats` -- covered in `TF2.md`'s own entry for
+`test_framework/crypto/muhash.py` -- is what computes the UTXO set's own
+MuHash commitment independently of the node under test, walking every
+block the node itself hands back over `getblock` rather than trusting
+Core's own Python reimplementation the way Core's own file does.
 
 Not the clock family, unlike Core's own file: Core's own `setmocktime`
 call there freezes the clock its own node-driven mining
@@ -120,6 +120,7 @@ def independent_muhash_matches_gettxoutsetinfo(
     :param skip_counts: the session's own tally.
     """
     require(Capability.MINE, adapter.capabilities, skip_counts)
+    require(Capability.UTXO_SET_INFO, adapter.capabilities, skip_counts)
     wallet = MiniWallet(adapter)
     wallet.generate(COINBASE_MATURITY + 1)
     tx = wallet.create_self_transfer()

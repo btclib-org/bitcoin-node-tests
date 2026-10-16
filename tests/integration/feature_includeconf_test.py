@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_includeconf`, one body over either node.
+"""Core's `feature_includeconf`, one body over each node.
 
 Read from Core's `test/functional/feature_includeconf.py` (`fa71c15f8610`,
 2025-11-26), the option and disk families together
@@ -13,8 +13,9 @@ one naming a missing file refuses the start, and `-includeconf` on the
 command line refuses it too, each refusal and the warning in Core's own
 words.
 
-Each test builds its node over a data directory of its own, through
-`make_adapter` (`tests/integration/conftest.py`), since the files are
+Each test asks `Capability.INCLUDE_CONF` and builds its node over a data
+directory of its own, through `make_adapter`
+(`tests/integration/conftest.py`), since the files are
 written there before the node starts. `bitcoin.conf` here holds only the
 lines each test writes, in its default section: neither adapter writes a
 `bitcoin.conf`, where Core's harness writes one and the test appends to
@@ -48,8 +49,7 @@ directory's own `stderr/`.
 Core's own file comments out its check of an invalid key inside an
 included file, and that check is not ported.
 
-`feature_includeconf_bitcoind_test.py` and
-`feature_includeconf_btclib_node_test.py` run it,
+Each `feature_includeconf_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -66,8 +66,6 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
@@ -111,19 +109,23 @@ _STDERR_DIR = "stderr"
 
 def _node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     datadir: Path,
-) -> BitcoindAdapter | BtclibNodeAdapter:
+    skip_counts: SkipCounts,
+) -> NodeAdapter:
     """Return a node over `datadir`, not yet started, on ports of its own.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param datadir: the data directory the test writes its files into.
+    :param skip_counts: the session's own tally.
     """
     rpc_port, p2p_port = free_ports(2)
-    return make_adapter(cls, executable, datadir, rpc_port, p2p_port)
+    node = make_adapter(cls, executable, datadir, rpc_port, p2p_port)
+    require(Capability.INCLUDE_CONF, node.capabilities, skip_counts)
+    return node
 
 
 def _write_bare_files(datadir: Path) -> None:
@@ -169,7 +171,7 @@ def _subversion(node: NodeAdapter) -> str:
 
 def includeconf_files_are_read_in_order(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -177,13 +179,13 @@ def includeconf_files_are_read_in_order(
     """Check each included file is read after its includer, a nested one never.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
     """
     datadir = tmp_path / "datadir"
-    node = _node(make_adapter, cls, executable, datadir)
+    node = _node(make_adapter, cls, executable, datadir, skip_counts)
     require(Capability.UA_COMMENT, node.capabilities, skip_counts)
     datadir.mkdir()
     (datadir / "relative.conf").write_text("uacomment=relative\n")
@@ -209,41 +211,45 @@ def includeconf_files_are_read_in_order(
 
 def noincludeconf_0_on_the_command_line_is_refused(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """Check `-noincludeconf=0`, a double negative, is refused as `true`.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
+    :param skip_counts: the session's own tally.
     """
     datadir = tmp_path / "datadir"
     _write_bare_files(datadir)
     (datadir / "relative.conf").write_text("")
-    node = _node(make_adapter, cls, executable, datadir)
+    node = _node(make_adapter, cls, executable, datadir, skip_counts)
     assert _refused_stderr(node, ["-noincludeconf=0"]) == _COMMAND_LINE_TRUE
 
 
 def includeconf_on_the_command_line_is_refused(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """Check `-includeconf=<file>` is refused, naming the first file given.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
+    :param skip_counts: the session's own tally.
     """
     datadir = tmp_path / "datadir"
     _write_bare_files(datadir)
     (datadir / "relative.conf").write_text("")
-    node = _node(make_adapter, cls, executable, datadir)
+    node = _node(make_adapter, cls, executable, datadir, skip_counts)
     refused = _refused_stderr(
         node, ["-includeconf=relative2.conf", "-includeconf=no_warn.conf"]
     )
@@ -252,21 +258,23 @@ def includeconf_on_the_command_line_is_refused(
 
 def a_nested_includeconf_is_ignored_with_a_warning(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """Check an `includeconf` inside an included file starts, warning on stderr.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
+    :param skip_counts: the session's own tally.
     """
     datadir = tmp_path / "datadir"
     _write_bare_files(datadir)
     (datadir / "relative.conf").write_text("includeconf=relative2.conf\n")
-    node = _node(make_adapter, cls, executable, datadir)
+    node = _node(make_adapter, cls, executable, datadir, skip_counts)
     try:
         node.start()
     finally:
@@ -278,18 +286,20 @@ def a_nested_includeconf_is_ignored_with_a_warning(
 
 def a_missing_included_file_is_refused(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """Check an `includeconf` naming no file refuses the start.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
+    :param skip_counts: the session's own tally.
     """
     datadir = tmp_path / "datadir"
     _write_bare_files(datadir)
-    node = _node(make_adapter, cls, executable, datadir)
+    node = _node(make_adapter, cls, executable, datadir, skip_counts)
     assert _refused_stderr(node, []) == _MISSING

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_loadblock`, one body over either node.
+"""Core's `feature_loadblock`, one body over each node.
 
 Read from Core's `test/functional/feature_loadblock.py`
 (`fa4fc8c1d7b5`, 2026-05-22), the option and disk families together
@@ -31,8 +31,7 @@ Core's `restart_node` waits for the import through
 `loaded`; `NodeAdapter.restart` returns once RPC answers, so this polls
 the same field after it.
 
-`feature_loadblock_bitcoind_test.py` and
-`feature_loadblock_btclib_node_test.py` run it,
+Each `feature_loadblock_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -50,9 +49,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["a_bootstrap_file_loads_the_chain"]
 
@@ -64,7 +62,7 @@ _ADDRESS = "mjTkW3DjgyZck4KbiRusZsqTgaYTxdSz6z"
 _MAX_HEIGHT = COINBASE_MATURITY
 
 
-def _bootstrap(node: BitcoindAdapter | BtclibNodeAdapter) -> bytes:
+def _bootstrap(node: NodeAdapter) -> bytes:
     """Return `node`'s chain to `_MAX_HEIGHT`, as `linearize-data.py` writes it.
 
     :param node: the node whose blocks the file holds.
@@ -80,7 +78,7 @@ def _bootstrap(node: BitcoindAdapter | BtclibNodeAdapter) -> bytes:
     return b"".join(records)
 
 
-def _mempool_loaded(node: BitcoindAdapter | BtclibNodeAdapter) -> bool:
+def _mempool_loaded(node: NodeAdapter) -> bool:
     """Return `getmempoolinfo`'s own `loaded`."""
     info = node.rpc.call("getmempoolinfo")
     assert isinstance(info, dict)
@@ -88,13 +86,13 @@ def _mempool_loaded(node: BitcoindAdapter | BtclibNodeAdapter) -> bool:
 
 
 def a_bootstrap_file_loads_the_chain(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     tmp_path: Path,
     skip_counts: SkipCounts,
 ) -> None:
     """Check a node given `-loadblock` reaches the tip the file holds.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param tmp_path: where the bootstrap file goes.
     :param skip_counts: the session's own tally.
     """

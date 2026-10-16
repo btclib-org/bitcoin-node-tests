@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_blocksxor`, one body over either node.
+"""Core's `feature_blocksxor`, one body over each node.
 
 Read from Core's `test/functional/feature_blocksxor.py`
 (`fa5f29774872`, 2025-12-16), the option, MiniWallet and disk families
@@ -40,8 +40,7 @@ The first node also starts with a `-datacarriersize`
 which `v29.4` refuses by default with `scriptpubkey` (bitcoin/bitcoin#32406,
 first in `v30.0rc1`).
 
-`feature_blocksxor_bitcoind_test.py` and
-`feature_blocksxor_btclib_node_test.py` run it,
+Each `feature_blocksxor_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -61,9 +60,8 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["block_files_are_obfuscated_with_the_xor_key"]
@@ -98,11 +96,11 @@ def _xor(data: bytes, key: bytes) -> bytes:
 
 def _node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     datadir: Path,
     extra_args: list[str],
-) -> BitcoindAdapter | BtclibNodeAdapter:
+) -> NodeAdapter:
     """Build a node over `datadir`, started with `extra_args` by default."""
     rpc_port, p2p_port = free_ports(2)
     return make_adapter(cls, executable, datadir, rpc_port, p2p_port, extra_args)
@@ -110,7 +108,7 @@ def _node(
 
 def block_files_are_obfuscated_with_the_xor_key(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -118,11 +116,20 @@ def block_files_are_obfuscated_with_the_xor_key(
     """Check `-blocksxor`'s key obfuscates the block and undo files.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the nodes' own data directories go.
     :param skip_counts: the session's own tally.
     """
+    probe = _node(make_adapter, cls, executable, tmp_path / "probe", [])
+    for capability in (
+        Capability.BLOCKS_XOR,
+        Capability.FASTPRUNE,
+        Capability.DATACARRIER,
+        Capability.MINE,
+        Capability.BLK_FILES,
+    ):
+        require(capability, probe.capabilities, skip_counts)
     datadir = tmp_path / "datadir"
     node = _node(
         make_adapter,
@@ -136,14 +143,6 @@ def block_files_are_obfuscated_with_the_xor_key(
         ],
     )
     fresh = _node(make_adapter, cls, executable, tmp_path / "fresh", ["-blocksxor=0"])
-    for capability in (
-        Capability.BLOCKS_XOR,
-        Capability.FASTPRUNE,
-        Capability.DATACARRIER,
-        Capability.MINE,
-        Capability.BLK_FILES,
-    ):
-        require(capability, node.capabilities, skip_counts)
     blocks = datadir / "regtest" / "blocks"
     key_path = blocks / "xor.dat"
     try:

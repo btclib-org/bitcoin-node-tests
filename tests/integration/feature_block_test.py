@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_block`, as bodies over either node.
+"""Core's `feature_block`, as bodies over each node.
 
 Read from Core's `test/functional/feature_block.py`: a node is fed a
 sequence of valid and invalid blocks, forks and re-orgs, over one peer,
@@ -40,9 +40,8 @@ What differs from Core's file, beyond what the sequence leaves out:
   of Core's block validation that bitcoind's pinned release refuses as an
   invalid parameter.
 
-`feature_block_bitcoind_test.py` and `feature_block_btclib_node_test.py`
-run each body, `tests/integration/conftest.py`'s own module docstring
-having how.
+Each `feature_block_<node>_test.py` module beside this one runs each
+body, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -76,14 +75,13 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.feature_block import Step
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["blocks_are_judged", "blocks_are_judged_and_logged"]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -95,9 +93,7 @@ _BIP34 = f"-testactivationheight=bip34@{BIP34_HEIGHT}"
 _PEER_TIMEOUT = "-peertimeout=999999999"
 
 
-def _debug_log(
-    node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log the log half reads, or skip where the node keeps none.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -239,9 +235,7 @@ def _run(node: NodeAdapter, log_path: Path | None) -> None:
         store.close()
 
 
-def _start(
-    cluster: _Cluster, skip_counts: SkipCounts
-) -> BitcoindAdapter | BtclibNodeAdapter:
+def _start(cluster: _Cluster, skip_counts: SkipCounts) -> NodeAdapter:
     """Return the node, once it declares every capability the run needs."""
     (node,) = cluster(1)
     require(Capability.TEST_ACTIVATION_HEIGHT, node.capabilities, skip_counts)
@@ -254,7 +248,7 @@ def _start(
 def blocks_are_judged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the wire half: each block taken, refused or left off the tip.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start(cluster, skip_counts)
@@ -265,7 +259,7 @@ def blocks_are_judged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
 def blocks_are_judged_and_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half: each refusal logged with Core's own reject reason.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start(cluster, skip_counts)

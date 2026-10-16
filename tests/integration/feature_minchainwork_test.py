@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_minchainwork`, as bodies over either node.
+"""Core's `feature_minchainwork`, as bodies over each node.
 
 Read from Core's `test/functional/feature_minchainwork.py`
 (`c502b65c007b`, 2026-10-03), an option and the clock beside
@@ -85,7 +85,6 @@ from bitcoin_node_tests.peer import Listener, Peer
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -242,12 +241,12 @@ def _refused_stderr(node: NodeAdapter, extra_args: list[str]) -> str:
 
 
 def block_relay_waits_for_the_minimum_chain_work(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own `setup_network` and `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(3)
@@ -335,12 +334,12 @@ def _dialled_peer(node: NodeAdapter, connection_type: str) -> Peer:
 
 
 def outbound_peers_with_too_little_work_are_dropped_in_ibd(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own `test_outbound_insufficient_work_disconnect`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: the node declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.

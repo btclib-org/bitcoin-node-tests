@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_maxtipage`, one body over either node.
+"""Core's `feature_maxtipage`, one body over each node.
 
 Read from Core's `test/functional/feature_maxtipage.py`
 (`fa5f29774872`, 2025-12-16), an option and the clock beside
@@ -27,8 +27,7 @@ the wall clock, and the block takes `build_next_block`'s own default
 time, the wall clock or one second past the median-time-past, whichever
 is later.
 
-`feature_maxtipage_bitcoind_test.py` and
-`feature_maxtipage_btclib_node_test.py` run it,
+Each `feature_maxtipage_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -44,8 +43,6 @@ from bitcoin_node_tests.node import connect_nodes, sync_all
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -130,12 +127,12 @@ def _test_maxtipage(
 
 
 def ibd_ends_at_the_max_tip_age(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own `run_test`: IBD ends at the first tip within `-maxtipage`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     miner, ibd = cluster(2)

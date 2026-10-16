@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_anchors`, as bodies over either node.
+"""Core's `feature_anchors`, as bodies over each node.
 
 Read from Core's `test/functional/feature_anchors.py` (`ddf033054ff6`,
 2026-09-11): a node stopped cleanly writes the addresses of its
@@ -47,9 +47,8 @@ block exits, or for two seconds for the last line.
 `anchors.dat` is read at `datadir / "regtest"`, Core's `chain_path`, as
 `feature_blocksxor_test.py` reads the block files beside it.
 
-`feature_anchors_bitcoind_test.py` and `feature_anchors_btclib_node_test.py`
-run each body, `tests/integration/conftest.py`'s own module docstring
-having how.
+Each `feature_anchors_<node>_test.py` module beside this one runs each
+body, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -74,8 +73,8 @@ from tests.integration.script_verify_flag_test import bitcoind_version
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [
@@ -130,19 +129,17 @@ _ANCHORS_TRIED = "block-relay-only anchors will be tried for connections"
 
 def _node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     datadir: Path,
     extra_args: list[str],
-) -> BitcoindAdapter | BtclibNodeAdapter:
+) -> NodeAdapter:
     """Build a node over `datadir`, started with `extra_args` by default."""
     rpc_port, p2p_port = free_ports(2)
     return make_adapter(cls, executable, datadir, rpc_port, p2p_port, extra_args)
 
 
-def _debug_log(
-    node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log Core's own lines are read from, or skip.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -167,7 +164,7 @@ def _connected(peer: Peer) -> Peer:
 
 
 def _anchors_survive_a_network_toggle(
-    node: BitcoindAdapter | BtclibNodeAdapter,
+    node: NodeAdapter,
 ) -> bool:
     """Return whether this build keeps anchors across a switched-off network.
 
@@ -178,9 +175,7 @@ def _anchors_survive_a_network_toggle(
     return version is None or version >= _ANCHORS_SURVIVE_VERSION
 
 
-def _wait_for_an_open_connections_pass(
-    node: BitcoindAdapter | BtclibNodeAdapter, log_path: Path
-) -> None:
+def _wait_for_an_open_connections_pass(node: NodeAdapter, log_path: Path) -> None:
     """Core's own `wait_for_open_connections_pass`, over `-seednode` twice.
 
     The retry timer is checked right before the anchors are selected and
@@ -199,7 +194,7 @@ def _hex_port(address: str) -> str:
 
 def block_relay_only_peers_are_the_anchors(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -207,7 +202,7 @@ def block_relay_only_peers_are_the_anchors(
     """Check `anchors.dat` holds the block-relay-only peers alone.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -272,7 +267,7 @@ def block_relay_only_peers_are_the_anchors(
 
 def onion_anchor_is_dumped_and_dialled(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -280,7 +275,7 @@ def onion_anchor_is_dumped_and_dialled(
     """Check a Tor v3 anchor is written in BIP155's encoding and dialled.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

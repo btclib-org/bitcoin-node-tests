@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_rbf`, one body over either node.
+"""Core's `feature_rbf`, one body over each node.
 
 Read from Core's `test/functional/feature_rbf.py` (`1a85ca1dff1f`,
 2026-04-24): a transaction spending what another in the mempool spends
@@ -68,9 +68,8 @@ What differs from Core's file:
   unconfirmed coin of `_UNCONFIRMED_COIN` satoshis, and
   the split transaction mined before its outputs are spent.
 
-`feature_rbf_bitcoind_test.py` and `feature_rbf_btclib_node_test.py` run
-the body, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `feature_rbf_<node>_test.py` module beside this one runs the body,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -92,15 +91,13 @@ from bitcoin_node_tests.mini_wallet import MiniWallet
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.mini_wallet import Utxo
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["replace_by_fee_follows_its_rules"]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # satoshis per bitcoin, Core's own `COIN` (`test_framework/messages.py`)
 _COIN = 100_000_000
@@ -728,7 +725,7 @@ def replace_by_fee_follows_its_rules(
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_settings`, one body over either node.
+"""Core's `feature_settings`, one body over each node.
 
 Read from Core's `test/functional/feature_settings.py` (`0654511e1b93`,
 2026-06-17), an option and the disk
@@ -42,8 +42,7 @@ A refusal is matched against the stderr of a start that exited with a
 code other than `0` before its RPC answered, as
 `feature_includeconf_test.py` matches one.
 
-`feature_settings_bitcoind_test.py` and
-`feature_settings_btclib_node_test.py` run it,
+Each `feature_settings_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -63,7 +62,6 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
@@ -140,14 +138,14 @@ _EARLY_EXIT = re.compile(
 
 def _node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     datadir: Path,
-) -> BitcoindAdapter | BtclibNodeAdapter:
+) -> NodeAdapter:
     """Return a node over `datadir`, not yet started, on ports of its own.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param datadir: the data directory the test writes its files into.
     """
@@ -155,9 +153,7 @@ def _node(
     return make_adapter(cls, executable, datadir, rpc_port, p2p_port)
 
 
-def _debug_log(
-    node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log the test reads, or skip where the node keeps none.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -201,7 +197,7 @@ def _version(node: NodeAdapter) -> int:
 
 def the_settings_file_is_written_read_and_checked(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -209,7 +205,7 @@ def the_settings_file_is_written_read_and_checked(
     """Core's own `run_test`, in Core's own order, less its wallet half.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -276,7 +272,7 @@ def the_settings_file_is_written_read_and_checked(
 
 def the_wallet_setting_takes_only_strings(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -284,7 +280,7 @@ def the_wallet_setting_takes_only_strings(
     """Core's own `test_wallet_settings`: a `wallet` value not a string refused.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

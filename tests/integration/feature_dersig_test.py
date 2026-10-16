@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_dersig`, one body per test over either node.
+"""Core's `feature_dersig`, one body per test over each node.
 
 Read from Core's `test/functional/feature_dersig.py` (`fab352053d6e`,
 2026-04-16), on the option and MiniWallet families together
@@ -41,9 +41,8 @@ touching only the deployment it names) already requiring version 4 from
 height 1 -- so Core's own file does not attempt the before/after
 comparison for this check either, only the after-activation refusal.
 
-`feature_dersig_bitcoind_test.py` and `feature_dersig_btclib_node_test.py`
-run each body, `tests/integration/conftest.py`'s own module docstring
-having how.
+Each `feature_dersig_<node>_test.py` module beside this one runs each
+body, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -72,7 +71,6 @@ if TYPE_CHECKING:
     from btclib.block.block import Block
     from btclib.script.script_pub_key import ScriptPubKey
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -94,10 +92,10 @@ _SIGNED_DERSIG_HEIGHT = COINBASE_MATURITY + 2
 
 
 def _start_with_dersig_height(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
     height: int = _DERSIG_HEIGHT,
-) -> BitcoindAdapter | BtclibNodeAdapter:
+) -> NodeAdapter:
     """Return one node, restarted with BIP66 held back until `height`."""
     (node,) = cluster(1)
     require(Capability.TEST_ACTIVATION_HEIGHT, node.capabilities, skip_counts)
@@ -159,12 +157,12 @@ def _bip66(node: NodeAdapter) -> dict[str, object]:
 
 
 def dersig_activates_one_block_before_the_configured_height(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `getdeploymentinfo`'s `bip66` entry tracks the configured height.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start_with_dersig_height(cluster, skip_counts)
@@ -183,12 +181,12 @@ def dersig_activates_one_block_before_the_configured_height(
 
 
 def a_block_below_the_minimum_version_is_refused(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check that once BIP66 is active, a version-2 block never becomes the tip.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start_with_dersig_height(cluster, skip_counts)
@@ -202,12 +200,12 @@ def a_block_below_the_minimum_version_is_refused(
 
 
 def a_block_below_the_minimum_version_is_logged(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check the same refusal, in bitcoind's own debug log wording.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: the node declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.
@@ -226,12 +224,12 @@ def a_block_below_the_minimum_version_is_logged(
 
 
 def a_non_der_signature_is_refused_once_active(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a non-DER signature is mined before BIP66, and refused from it on.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start_with_dersig_height(cluster, skip_counts, _SIGNED_DERSIG_HEIGHT)

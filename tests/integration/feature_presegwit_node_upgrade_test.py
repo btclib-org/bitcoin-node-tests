@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_presegwit_node_upgrade`, one body over either node.
+"""Core's `feature_presegwit_node_upgrade`, one body over each node.
 
 Read from Core's `test/functional/feature_presegwit_node_upgrade.py`
 (`fad7bd9ba3eef03fcdd7cb17011ea0c6e483c767`, 2026-01-14) and ported,
@@ -53,9 +53,9 @@ option or RPC for it: that build is asserted to print it, read off its own
 `getnetworkinfo` `version`
 ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
 
-`feature_presegwit_node_upgrade_bitcoind_test.py` and
-`feature_presegwit_node_upgrade_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_presegwit_node_upgrade_<node>_test.py` module beside this
+one runs it, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -78,8 +78,6 @@ if TYPE_CHECKING:
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -169,12 +167,12 @@ def _segwit_active(node: NodeAdapter) -> bool:
 
 
 def a_pre_segwit_chain_needs_a_reindex_to_upgrade(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a lower segwit height refuses to start until `-reindex` is added.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

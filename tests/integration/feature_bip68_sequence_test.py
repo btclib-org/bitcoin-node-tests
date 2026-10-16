@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_bip68_sequence`, one body over either node.
+"""Core's `feature_bip68_sequence`, one body over each node.
 
 Read from Core's `test/functional/feature_bip68_sequence.py`
 (`ab41492c6ba7`, 2026-01-09, the same file at the pinned `v31.1`): the
@@ -58,9 +58,9 @@ What differs from Core's file:
   `sign_tx` gives both the wallet's: the refusal it is checked for is
   `non-BIP68-final` either way.
 
-`feature_bip68_sequence_bitcoind_test.py` and
-`feature_bip68_sequence_btclib_node_test.py` run the body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_bip68_sequence_<node>_test.py` module beside this one runs
+the body, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -93,15 +93,13 @@ if TYPE_CHECKING:
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.mini_wallet import Utxo
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["mempool_enforces_bip68_before_consensus_does"]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # Core's own `min_activation_height`, which `set_test_params` configures
 _CSV_HEIGHT = 432
@@ -447,7 +445,7 @@ def mempool_enforces_bip68_before_consensus_does(
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(2)

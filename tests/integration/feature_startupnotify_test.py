@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_startupnotify`, one body over either node.
+"""Core's `feature_startupnotify`, one body over each node.
 
 Read from Core's `test/functional/feature_startupnotify.py`
 (`fa71c15f8610`, 2025-11-26), the option and disk families together
@@ -24,8 +24,7 @@ The node is built over a data directory of its own, through
 `make_adapter` (`tests/integration/conftest.py`), since the test reads a
 file the command writes inside it.
 
-`feature_startupnotify_bitcoind_test.py` and
-`feature_startupnotify_btclib_node_test.py` run it,
+Each `feature_startupnotify_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -40,9 +39,8 @@ from bitcoin_node_tests.node import free_ports, wait_until
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["the_startup_command_runs_once"]
@@ -62,7 +60,7 @@ def _count(notified: Path) -> int:
 
 def the_startup_command_runs_once(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -70,7 +68,7 @@ def the_startup_command_runs_once(
     """Check `-startupnotify`'s command runs once, on a start given it alone.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

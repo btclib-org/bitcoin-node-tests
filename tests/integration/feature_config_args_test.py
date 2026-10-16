@@ -42,9 +42,9 @@ What differs from Core's file:
   step is given. Here that is the file `NodeAdapter.start` redirects the
   start's stderr to, as `feature_includeconf_test.py` reads it.
 
-`feature_config_args_bitcoind_test.py` and
-`feature_config_args_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_config_args_<node>_test.py` module beside this one runs
+each body, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -65,7 +65,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
@@ -125,12 +124,12 @@ _STDERR_DIR = "stderr"
 
 def _node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
     capabilities: Sequence[Capability],
-) -> BitcoindAdapter | BtclibNodeAdapter:
+) -> NodeAdapter:
     """Return a node not yet started, having asked it for `capabilities`.
 
     :param capabilities: what the step needs, each asked of the node.
@@ -176,7 +175,7 @@ def _scopes_its_claims(executable: str) -> bool:
     return b"best-effort concealment" in b" ".join(probe.stdout.split())
 
 
-def _debug_log(node: BitcoindAdapter | BtclibNodeAdapter) -> Path:
+def _debug_log(node: NodeAdapter) -> Path:
     """Return the log Core's own lines are read from.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -190,7 +189,7 @@ def _debug_log(node: BitcoindAdapter | BtclibNodeAdapter) -> Path:
 
 def a_proxy_without_a_value_is_refused(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -198,7 +197,7 @@ def a_proxy_without_a_value_is_refused(
     """Check `-proxy` with no value refuses the start, naming the fix.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -211,7 +210,7 @@ def a_proxy_without_a_value_is_refused(
 
 def a_connect_node_ignores_the_seednode_and_the_dnsseed_beside_a_proxy(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -219,7 +218,7 @@ def a_connect_node_ignores_the_seednode_and_the_dnsseed_beside_a_proxy(
     """Check what `-connect`, and `-noconnect`, ignore, and what they log.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -271,7 +270,7 @@ def a_connect_node_ignores_the_seednode_and_the_dnsseed_beside_a_proxy(
 
 def private_broadcast_is_refused_without_a_proxy_and_warns_without_randomizing(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -279,7 +278,7 @@ def private_broadcast_is_refused_without_a_proxy_and_warns_without_randomizing(
     """Check `-privatebroadcast`'s two refusals and its warning.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

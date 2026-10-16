@@ -51,10 +51,11 @@ def test_noincludeconf_0_on_the_command_line_is_refused(
     make_adapter: AdapterFactory,
     bitcoind_path: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The oracle: `-noincludeconf=0` refused, over bitcoind."""
     noincludeconf_0_on_the_command_line_is_refused(
-        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path
+        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path, skip_counts
     )
 
 
@@ -62,10 +63,11 @@ def test_includeconf_on_the_command_line_is_refused(
     make_adapter: AdapterFactory,
     bitcoind_path: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The oracle: `-includeconf=<file>` refused, over bitcoind."""
     includeconf_on_the_command_line_is_refused(
-        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path
+        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path, skip_counts
     )
 
 
@@ -73,10 +75,11 @@ def test_a_nested_includeconf_is_ignored_with_a_warning(
     make_adapter: AdapterFactory,
     bitcoind_path: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The oracle: the nested `includeconf` warned about, over bitcoind."""
     a_nested_includeconf_is_ignored_with_a_warning(
-        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path
+        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path, skip_counts
     )
 
 
@@ -84,8 +87,9 @@ def test_a_missing_included_file_is_refused(
     make_adapter: AdapterFactory,
     bitcoind_path: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The oracle: the missing included file refused, over bitcoind."""
     a_missing_included_file_is_refused(
-        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path
+        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path, skip_counts
     )

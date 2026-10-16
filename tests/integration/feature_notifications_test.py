@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_notifications`, a body per option over either node.
+"""Core's `feature_notifications`, a body per option over each node.
 
 Read from Core's `test/functional/feature_notifications.py`
 (`469b0e59a29a`, 2026-09-01), the option and the disk families together
@@ -71,8 +71,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
@@ -113,13 +111,21 @@ _OP_TRUE = b"\x51"
 
 def _node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     option: str,
-) -> BitcoindAdapter | BtclibNodeAdapter:
-    """Build a node over a data directory in `tmp_path`, given `option`."""
+    capability: Capability,
+    skip_counts: SkipCounts,
+) -> NodeAdapter:
+    """Build a node over a data directory in `tmp_path`, given `option`.
+
+    `capability` is asked of a node built without `option`: a node that
+    reads `-blocknotify` as another option refuses the construction.
+    """
     rpc_port, p2p_port = free_ports(2)
+    probe = make_adapter(cls, executable, tmp_path / "probe", rpc_port, p2p_port)
+    require(capability, probe.capabilities, skip_counts)
     return make_adapter(
         cls, executable, tmp_path / "datadir", rpc_port, p2p_port, [option]
     )
@@ -127,7 +133,7 @@ def _node(
 
 def every_new_tip_is_notified(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -135,7 +141,7 @@ def every_new_tip_is_notified(
     """Check `-blocknotify`'s command runs once per block the node mines.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory and the
         command's directory go.
@@ -144,8 +150,15 @@ def every_new_tip_is_notified(
     blocknotify_dir = tmp_path / "blocknotify"
     blocknotify_dir.mkdir()
     command = f"echo > {shlex.quote(str(blocknotify_dir))}/%s"
-    node = _node(make_adapter, cls, executable, tmp_path, f"-blocknotify={command}")
-    require(Capability.BLOCK_NOTIFY, node.capabilities, skip_counts)
+    node = _node(
+        make_adapter,
+        cls,
+        executable,
+        tmp_path,
+        f"-blocknotify={command}",
+        Capability.BLOCK_NOTIFY,
+        skip_counts,
+    )
     require(Capability.MINE, node.capabilities, skip_counts)
     try:
         node.start()
@@ -190,7 +203,7 @@ def _invalid_chain(node: NodeAdapter) -> list[Block]:
 
 def a_large_work_invalid_chain_is_alerted(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -199,7 +212,7 @@ def a_large_work_invalid_chain_is_alerted(
     """Check `-alertnotify`'s command reports an invalid chain with more work.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory and the alert
         file go.
@@ -210,8 +223,15 @@ def a_large_work_invalid_chain_is_alerted(
     """
     alertnotify_file = tmp_path / "alertnotify.txt"
     command = f"echo %s >> {shlex.quote(str(alertnotify_file))}"
-    node = _node(make_adapter, cls, executable, tmp_path, f"-alertnotify={command}")
-    require(Capability.ALERT_NOTIFY, node.capabilities, skip_counts)
+    node = _node(
+        make_adapter,
+        cls,
+        executable,
+        tmp_path,
+        f"-alertnotify={command}",
+        Capability.ALERT_NOTIFY,
+        skip_counts,
+    )
     require(Capability.MINE, node.capabilities, skip_counts)
     try:
         node.start()
@@ -240,7 +260,7 @@ def a_large_work_invalid_chain_is_alerted(
 
 def the_shutdown_is_notified(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -248,7 +268,7 @@ def the_shutdown_is_notified(
     """Check `-shutdownnotify`'s command runs once the node is stopped.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory and the
         command's file go.
@@ -256,8 +276,15 @@ def the_shutdown_is_notified(
     """
     shutdownnotify_file = tmp_path / "shutdownnotify.txt"
     command = f"echo > {shlex.quote(str(shutdownnotify_file))}"
-    node = _node(make_adapter, cls, executable, tmp_path, f"-shutdownnotify={command}")
-    require(Capability.SHUTDOWN_NOTIFY, node.capabilities, skip_counts)
+    node = _node(
+        make_adapter,
+        cls,
+        executable,
+        tmp_path,
+        f"-shutdownnotify={command}",
+        Capability.SHUTDOWN_NOTIFY,
+        skip_counts,
+    )
     try:
         node.start()
         node.stop()

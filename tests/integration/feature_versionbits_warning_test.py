@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_versionbits_warning`, one body over either node.
+"""Core's `feature_versionbits_warning`, one body over each node.
 
 Read from Core's `test/functional/feature_versionbits_warning.py`
 (`5bd990a3ddb1`, 2026-06-03), the option and the disk families together
@@ -36,9 +36,9 @@ What differs from Core's file:
   lists a versionbits warning ahead of its own, `src/node/warnings.h`
   keying them kernel first, and a node that is not bitcoind need not.
 
-`feature_versionbits_warning_bitcoind_test.py` and
-`feature_versionbits_warning_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_versionbits_warning_<node>_test.py` module beside this one
+runs it, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -64,8 +64,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
@@ -168,7 +166,7 @@ def _connect(node: NodeAdapter) -> Peer:
 
 def unknown_rules_raise_a_warning(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -177,7 +175,7 @@ def unknown_rules_raise_a_warning(
     """Check unknown rules activated are warned about, and reserved bits not.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory and the alert
         file go.

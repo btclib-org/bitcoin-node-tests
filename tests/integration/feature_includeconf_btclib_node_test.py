@@ -54,10 +54,11 @@ def test_noincludeconf_0_on_the_command_line_is_refused(
     make_adapter: AdapterFactory,
     btclib_node_python: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The target: `-noincludeconf=0` refused, over btclib-node."""
     noincludeconf_0_on_the_command_line_is_refused(
-        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path
+        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path, skip_counts
     )
 
 
@@ -65,10 +66,11 @@ def test_includeconf_on_the_command_line_is_refused(
     make_adapter: AdapterFactory,
     btclib_node_python: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The target: `-includeconf=<file>` refused, over btclib-node."""
     includeconf_on_the_command_line_is_refused(
-        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path
+        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path, skip_counts
     )
 
 
@@ -76,10 +78,11 @@ def test_a_nested_includeconf_is_ignored_with_a_warning(
     make_adapter: AdapterFactory,
     btclib_node_python: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The target: the nested `includeconf` warned about, over btclib-node."""
     a_nested_includeconf_is_ignored_with_a_warning(
-        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path
+        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path, skip_counts
     )
 
 
@@ -87,8 +90,9 @@ def test_a_missing_included_file_is_refused(
     make_adapter: AdapterFactory,
     btclib_node_python: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The target: the missing included file refused, over btclib-node."""
     a_missing_included_file_is_refused(
-        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path
+        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path, skip_counts
     )

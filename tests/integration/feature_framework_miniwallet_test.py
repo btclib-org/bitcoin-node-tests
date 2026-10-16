@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_framework_miniwallet`, one body per test over either node.
+"""Core's `feature_framework_miniwallet`, one body per test over each node.
 
 Read from Core's `test/functional/feature_framework_miniwallet.py`
 (`fa5f29774872`, 2025-12-16) rather than ported: that file drives
@@ -38,9 +38,9 @@ Each of those two restarts the session's node with a `-datacarriersize`
 it once done: `v29.4` refuses that padding by default with `scriptpubkey`
 (bitcoin/bitcoin#32406, first in `v30.0rc1`).
 
-`feature_framework_miniwallet_bitcoind_test.py` and
-`feature_framework_miniwallet_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_framework_miniwallet_<node>_test.py` module beside this
+one runs each body, `tests/integration/conftest.py`'s own module
+docstring having how.
 """
 
 from __future__ import annotations
@@ -63,9 +63,8 @@ from bitcoin_node_tests.mini_wallet import (
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "mini_wallet_confirmed_only_tells_mined_coins_from_mempool_ones",
@@ -80,7 +79,7 @@ _TRUC_MAX_VSIZE = 10_000
 
 
 @contextmanager
-def _padding_allowed(adapter: BitcoindAdapter | BtclibNodeAdapter) -> Iterator[None]:
+def _padding_allowed(adapter: NodeAdapter) -> Iterator[None]:
     """Run with a `-datacarriersize` over `target_vsize`'s padding.
 
     The session's node is shared, so it restarts without the option after.
@@ -99,11 +98,11 @@ def _base_fee(entry: object) -> int:
 
 
 def mini_wallet_spends_a_coin_it_mined_without_a_node_wallet(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Core's own subject, narrowed: mine, cache with no scan, spend.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.MINE, adapter.capabilities, skip_counts)
@@ -121,11 +120,11 @@ def mini_wallet_spends_a_coin_it_mined_without_a_node_wallet(
 
 
 def mini_wallet_spends_two_coins_in_a_row(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Spend twice from the cache, with no re-scan in between.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.MINE, adapter.capabilities, skip_counts)
@@ -143,11 +142,11 @@ def mini_wallet_spends_two_coins_in_a_row(
 
 
 def mini_wallet_confirmed_only_tells_mined_coins_from_mempool_ones(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Filter a mix of confirmed and mempool-only coins as the node sees it.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.GENERATE, adapter.capabilities, skip_counts)
@@ -188,11 +187,11 @@ def mini_wallet_confirmed_only_tells_mined_coins_from_mempool_ones(
 
 
 def mini_wallet_fee_rate_is_the_fee_the_node_reports(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """`fee_rate` over the vsize, or `target_vsize`, is `fees.base`.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.MINE, adapter.capabilities, skip_counts)
@@ -220,11 +219,11 @@ def mini_wallet_fee_rate_is_the_fee_the_node_reports(
 
 
 def mini_wallet_version_3_is_held_to_truc_policy(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Send a `version=3` tx, accepted, and one past TRUC's own size cap.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.MINE, adapter.capabilities, skip_counts)

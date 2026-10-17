@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_setban`, one body per test over either node.
+"""Core's `rpc_setban`, one body per test over each node.
 
 Read from Core's `test/functional/rpc_setban.py` (`fa21edddb272`,
 2026-03-27): two nodes, `node0` connecting to `node1`; a `setban` on
@@ -34,9 +34,9 @@ to `node1`; `wait_until_disconnected` reads the same fact off `node0`'s
 `getpeerinfo`, which needs no log on `node0`.
 
 `BitcoindAdapter` declares `Capability.BAN` for every build, and
-`BtclibNodeAdapter` only for a build whose dispatch table names `setban`,
-`listbanned` and `clearbanned` (`btclib_node.py`'s own docstring).
-`rpc_setban_bitcoind_test.py` and `rpc_setban_btclib_node_test.py` run
+`BtclibNodeAdapter` only for a build whose dispatch table names
+`setban`, `listbanned` and `clearbanned` (`btclib_node.py`'s own
+docstring). Each `rpc_setban_<node>_test.py` module beside this one runs
 each body, `tests/integration/conftest.py`'s own module docstring having
 how.
 """
@@ -53,8 +53,8 @@ from bitcoin_node_tests.node import connect_nodes, wait_until_disconnected
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "a_ban_drops_the_connection_it_matches",
@@ -66,12 +66,12 @@ __all__ = [
 
 
 def a_ban_drops_the_connection_it_matches(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own subject: `setban` disconnects the peer it matches, live.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)
@@ -95,12 +95,12 @@ def a_ban_drops_the_connection_it_matches(
 
 
 def a_ban_survives_a_restart_until_it_is_removed(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own subject: a plain restart keeps the ban, until unbanned.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)
@@ -134,12 +134,12 @@ def a_ban_survives_a_restart_until_it_is_removed(
 
 
 def a_noban_permission_reconnects_a_banned_peer(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own subject: `-whitelist` given at a restart overrides the ban.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)
@@ -158,12 +158,12 @@ def a_noban_permission_reconnects_a_banned_peer(
 
 
 def a_non_ip_address_can_be_banned_and_unbanned(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own subject: an onion address bans and unbans the same way.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -180,12 +180,12 @@ def a_non_ip_address_can_be_banned_and_unbanned(
 
 
 def bantime_given_at_a_restart_sets_a_new_ban_s_duration(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own subject: a ban added after `-bantime=1234` lasts that long.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

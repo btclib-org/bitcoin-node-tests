@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_invalid_messages`, three checks it drops, over either node.
+"""Core's `p2p_invalid_messages`, three checks it drops, over each node.
 
 Read from Core's `test/functional/p2p_invalid_messages.py`
 (`3fd68a95e68b`, 2026-04-07)'s own `test_duplicate_version_msg`,
@@ -34,9 +34,9 @@ message's bytes were still counted; this narrows to the log assertion
 alone, that byte count being a smaller and separate claim about traffic
 accounting rather than about the drop itself.
 
-`p2p_invalid_messages_dropped_bitcoind_test.py` and
-`p2p_invalid_messages_dropped_btclib_node_test.py` run every body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_invalid_messages_dropped_<node>_test.py` module beside this
+one runs every body, `tests/integration/conftest.py`'s own module
+docstring having how.
 """
 
 from __future__ import annotations
@@ -55,8 +55,8 @@ from bitcoin_node_tests.peer import Peer
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "debug_log",
@@ -107,9 +107,7 @@ def sync(peer: Peer) -> None:
     peer.wait_for("pong", predicate=lambda m: Pong.parse(m.payload).nonce == nonce)
 
 
-def debug_log(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def debug_log(adapter: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log a log half reads, or skip where the node keeps none.
 
     :raises TypeError: `adapter` declares `Capability.DEBUG_LOG` without
@@ -123,11 +121,11 @@ def debug_log(
 
 
 def duplicate_version_keeps_the_connection(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: a second `version` is dropped, not disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -135,12 +133,10 @@ def duplicate_version_keeps_the_connection(
         sync(peer)
 
 
-def duplicate_version_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def duplicate_version_is_logged(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for what it silently dropped.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     log_path = debug_log(adapter, skip_counts)
@@ -154,11 +150,11 @@ def duplicate_version_is_logged(
 
 
 def wrong_checksum_keeps_the_connection(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: a bad checksum is dropped, not disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -166,12 +162,10 @@ def wrong_checksum_keeps_the_connection(
         sync(peer)
 
 
-def wrong_checksum_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def wrong_checksum_is_logged(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for what it silently dropped.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     log_path = debug_log(adapter, skip_counts)
@@ -185,11 +179,11 @@ def wrong_checksum_is_logged(
 
 
 def invalid_msgtype_keeps_the_connection(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: an invalid message type is dropped, not fatal.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -197,12 +191,10 @@ def invalid_msgtype_keeps_the_connection(
         sync(peer)
 
 
-def invalid_msgtype_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def invalid_msgtype_is_logged(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for what it silently dropped.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     log_path = debug_log(adapter, skip_counts)

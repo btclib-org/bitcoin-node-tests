@@ -57,8 +57,8 @@ the build a call that changes nothing and asserts what that build answers:
 a port of `node.free_ports` here, and Core's `P2P_SERVICES`
 (`test_framework/p2p.py`) is `NODE_NETWORK | NODE_WITNESS`.
 
-`rpc_net_bitcoind_test.py` and `rpc_net_btclib_node_test.py` run each
-body, `tests/integration/conftest.py`'s own module docstring having how.
+Each `rpc_net_<node>_test.py` module beside this one runs each body,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -79,8 +79,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
@@ -144,7 +142,7 @@ _JUNE_2018 = 1527811200
 @contextlib.contextmanager
 def _node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -216,7 +214,7 @@ def _seed_addrman(node: NodeAdapter) -> None:
 
 def a_node_is_added_listed_and_removed(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -224,7 +222,7 @@ def a_node_is_added_listed_and_removed(
     """Core's `test_addnode_getaddednodeinfo`.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -322,7 +320,7 @@ def _blank_addresses(node: NodeAdapter) -> None:
 
 def a_peer_s_service_flags_are_named(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -330,7 +328,7 @@ def a_peer_s_service_flags_are_named(
     """Core's `test_service_flags`: unknown service bits are named by position.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -354,7 +352,7 @@ def a_peer_s_service_flags_are_named(
 
 def getnodeaddresses_answers_from_the_address_table(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -362,7 +360,7 @@ def getnodeaddresses_answers_from_the_address_table(
     """Core's `test_getnodeaddresses`.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -435,7 +433,7 @@ def getnodeaddresses_answers_from_the_address_table(
 
 def addpeeraddress_fills_the_address_tables(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -443,7 +441,7 @@ def addpeeraddress_fills_the_address_tables(
     """Core's `test_addpeeraddress`.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -579,7 +577,7 @@ def _blank_peer_addresses(node: NodeAdapter) -> None:
 
 def getaddrmaninfo_counts_the_addresses_of_each_network(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -587,7 +585,7 @@ def getaddrmaninfo_counts_the_addresses_of_each_network(
     """Core's `test_getaddrmaninfo`.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -636,7 +634,7 @@ def _entry(
 
 def getrawaddrman_lists_the_address_tables(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -644,7 +642,7 @@ def getrawaddrman_lists_the_address_tables(
     """Core's `test_getrawaddrman`.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

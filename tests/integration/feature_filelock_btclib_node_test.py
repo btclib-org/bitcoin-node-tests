@@ -29,6 +29,7 @@ from tests.integration.feature_filelock_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from bitcoin_node_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration
@@ -49,8 +50,9 @@ def test_second_instance_on_same_blocksdir_refuses_to_start(
     make_adapter: AdapterFactory,
     btclib_node_python: str,
     tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The target: a second node over the first's blocksdir is refused."""
     second_instance_on_same_blocksdir_refuses_to_start(
-        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path
+        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path, skip_counts
     )

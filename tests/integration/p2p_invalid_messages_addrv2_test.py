@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_invalid_messages`, its four `addrv2` checks, over either node.
+"""Core's `p2p_invalid_messages`, its four `addrv2` checks, over each node.
 
 Read from Core's `test/functional/p2p_invalid_messages.py`
 (`3fd68a95e68b`, 2026-04-07)'s own `test_addrv2_empty`,
@@ -62,9 +62,12 @@ from that code rather than observed, a dial logging nothing until it
 connects. `-listen=1` beside it keeps the listener `Peer` reaches, which
 `-connect` otherwise turns off, as it does in Core.
 
-`p2p_invalid_messages_addrv2_bitcoind_test.py` and
-`p2p_invalid_messages_addrv2_btclib_node_test.py` run every body,
-`tests/integration/conftest.py`'s own module docstring having how.
+btcd is started with none of these options: it reads neither as Core
+does, and its regtest parameters list no DNS seed (`chaincfg/params.go`).
+
+Each `p2p_invalid_messages_addrv2_<node>_test.py` module beside this one
+runs every body, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -77,6 +80,7 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import Message
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from bitcoin_node_tests.btcd import BtcdAdapter
 from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.node import free_ports
 from bitcoin_node_tests.peer import Peer
@@ -86,8 +90,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [
@@ -111,11 +115,11 @@ def _addrv2_message(payload: bytes) -> bytes:
 
 
 def addrv2_empty_keeps_the_connection(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: an empty `addrv2` is dropped, not disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -123,12 +127,10 @@ def addrv2_empty_keeps_the_connection(
         sync(peer)
 
 
-def addrv2_empty_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def addrv2_empty_is_logged(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for what it silently dropped.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     log_path = debug_log(adapter, skip_counts)
@@ -145,11 +147,11 @@ def addrv2_empty_is_logged(
 
 
 def addrv2_no_addresses_keeps_the_connection(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: a zero-entry `addrv2` needs no rewriting either.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -158,11 +160,11 @@ def addrv2_no_addresses_keeps_the_connection(
 
 
 def addrv2_no_addresses_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check the log half: bitcoind's own count of what it read and kept.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     log_path = debug_log(adapter, skip_counts)
@@ -196,11 +198,11 @@ _TOO_LONG_ADDRESS = bytes.fromhex(
 
 
 def addrv2_too_long_address_keeps_the_connection(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: an over-bound address is dropped, not disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -209,11 +211,11 @@ def addrv2_too_long_address_keeps_the_connection(
 
 
 def addrv2_too_long_address_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check the log half: bitcoind's own wording for what it silently dropped.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     log_path = debug_log(adapter, skip_counts)
@@ -235,10 +237,10 @@ def addrv2_too_long_address_is_logged(
 
 def _addr_node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     datadir: Path,
-) -> BitcoindAdapter | BtclibNodeAdapter:
+) -> NodeAdapter:
     """Return a node never dialling, not yet started, on ports of its own.
 
     The module docstring is why each of the flags is here: bitcoind's
@@ -246,16 +248,18 @@ def _addr_node(
     listener.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param datadir: the node's own data directory.
     """
     rpc_port, p2p_port = free_ports(2)
-    extra_args = (
-        ("-whitelist=addr@127.0.0.1", "-connect=0")
-        if issubclass(cls, BitcoindAdapter)
-        else ("-connect=0", "-listen=1")
-    )
+    extra_args: tuple[str, ...]
+    if issubclass(cls, BitcoindAdapter):
+        extra_args = ("-whitelist=addr@127.0.0.1", "-connect=0")
+    elif issubclass(cls, BtcdAdapter):
+        extra_args = ()
+    else:
+        extra_args = ("-connect=0", "-listen=1")
     return make_adapter(
         cls, executable, datadir, rpc_port, p2p_port, extra_args=extra_args
     )
@@ -263,8 +267,8 @@ def _addr_node(
 
 @contextmanager
 def _started(
-    node: BitcoindAdapter | BtclibNodeAdapter,
-) -> Iterator[BitcoindAdapter | BtclibNodeAdapter]:
+    node: NodeAdapter,
+) -> Iterator[NodeAdapter]:
     """Yield `node`, started, and stop it after."""
     node.start()
     try:
@@ -300,14 +304,14 @@ def _unrecognized_network() -> bytes:
 
 def addrv2_unrecognized_network_keeps_the_connection(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
 ) -> None:
     """Check the wire half: an entry of an unknown network is ignored.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     """
@@ -322,7 +326,7 @@ def addrv2_unrecognized_network_keeps_the_connection(
 
 def addrv2_unrecognized_network_is_logged(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -330,7 +334,7 @@ def addrv2_unrecognized_network_is_logged(
     """Check the log half: the entry after the unrecognized one is still added.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

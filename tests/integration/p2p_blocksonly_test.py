@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_blocksonly`, as bodies over either node.
+"""Core's `p2p_blocksonly`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_blocksonly.py` (`278710a88d8f`,
 2026-06-17): a peer a node takes no transactions from is dropped for
@@ -51,9 +51,8 @@ What differs from Core's file besides:
 - every block-relay-only peer listens on a port the OS chooses
   (`peer.Listener`), where Core's reuses one `p2p_idx`.
 
-`p2p_blocksonly_bitcoind_test.py` and `p2p_blocksonly_btclib_node_test.py`
-run each body, `tests/integration/conftest.py`'s own module docstring
-having how.
+Each `p2p_blocksonly_<node>_test.py` module beside this one runs each
+body, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -85,7 +84,6 @@ if TYPE_CHECKING:
 
     from btclib.tx.tx import Tx
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -96,7 +94,7 @@ __all__ = [
     "a_blocksonly_node_refuses_transactions",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # Core's own default wait, `P2PInterface`'s and `wait_until`'s
 _WAIT = 60.0
@@ -133,9 +131,7 @@ def _disconnect_p2ps(node: NodeAdapter, stack: ExitStack) -> None:
     wait_until(lambda: not _peer_info(node), timeout=_WAIT)
 
 
-def _debug_log(
-    node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log a log half reads, or skip where the node keeps none.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -303,7 +299,7 @@ def a_blocksonly_node_refuses_transactions(
 ) -> None:
     """Check the wire half: a `-blocksonly` node's peers send no transaction.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, _ = _node(cluster, skip_counts, Capability.BLOCKS_ONLY, log=False)
@@ -315,7 +311,7 @@ def a_blocksonly_node_refusal_is_logged(
 ) -> None:
     """Check the log half: each refusal and the relay are logged.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, log_path = _node(
@@ -329,7 +325,7 @@ def a_block_relay_only_peer_is_refused_transactions(
 ) -> None:
     """Check the wire half: a block-relay-only peer exchanges no transaction.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, _ = _node(
@@ -347,7 +343,7 @@ def a_block_relay_only_peer_refusal_is_logged(
 ) -> None:
     """Check the log half: each refusal of a block-relay-only peer is logged.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, log_path = _node(

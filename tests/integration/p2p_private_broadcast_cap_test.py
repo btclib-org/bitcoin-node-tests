@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_private_broadcast_cap`, one body over either node.
+"""Core's `p2p_private_broadcast_cap`, one body over each node.
 
 Read from Core's `test/functional/p2p_private_broadcast_cap.py`
 (`82a02a2a2208`, 2026-07-07): a node given `-privatebroadcast` queues at
@@ -39,8 +39,7 @@ A known limit: the refusal's code is `-37` from bitcoin/bitcoin#35678
 bitcoin/bitcoin#35406 (`4498fa5d5b`, 2026-07-07). The body asserts `-37`
 alone, so it fails against a build between the two.
 
-`p2p_private_broadcast_cap_bitcoind_test.py` and
-`p2p_private_broadcast_cap_btclib_node_test.py` run it,
+Each `p2p_private_broadcast_cap_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -60,8 +59,6 @@ if TYPE_CHECKING:
 
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
@@ -112,7 +109,7 @@ def _queued(node: NodeAdapter) -> list[dict[str, str]]:
 
 def private_broadcast_queue_is_capped(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -120,7 +117,7 @@ def private_broadcast_queue_is_capped(
     """Core's `run_test`, in its order.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

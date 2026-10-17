@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_cltv`, one body over either node.
+"""Core's `feature_cltv`, one body over each node.
 
 Read from Core's `test/functional/feature_cltv.py` (`fab352053d6e`,
 2026-04-16), on the option and MiniWallet families together
@@ -50,9 +50,8 @@ docstring), where Core runs them at its configured height: neither asks
 for `-testactivationheight`, so neither is gated on it, and the first
 body is what pins the height the rule starts at.
 
-`feature_cltv_bitcoind_test.py` and `feature_cltv_btclib_node_test.py`
-run these, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `feature_cltv_<node>_test.py` module beside this one runs these,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -80,7 +79,6 @@ if TYPE_CHECKING:
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -231,10 +229,10 @@ def _bip65(node: NodeAdapter) -> dict[str, object]:
 
 
 def _start_with_cltv_height(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
     height: int,
-) -> BitcoindAdapter | BtclibNodeAdapter:
+) -> NodeAdapter:
     """Return one node, restarted with BIP65 held back until `height`."""
     (node,) = cluster(1)
     require(Capability.TEST_ACTIVATION_HEIGHT, node.capabilities, skip_counts)
@@ -244,12 +242,12 @@ def _start_with_cltv_height(
 
 
 def cltv_activates_one_block_before_the_configured_height(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `getdeploymentinfo`'s `bip65` entry tracks the configured height.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start_with_cltv_height(cluster, skip_counts, _CLTV_HEIGHT)
@@ -264,12 +262,12 @@ def cltv_activates_one_block_before_the_configured_height(
 
 
 def a_version_3_block_is_refused_once_active(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check that once BIP65 is active, a version-3 block never becomes the tip.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start_with_cltv_height(cluster, skip_counts, _CLTV_HEIGHT)
@@ -281,12 +279,12 @@ def a_version_3_block_is_refused_once_active(
 
 
 def a_version_3_block_is_logged_once_active(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check the same refusal, in bitcoind's own debug log wording.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: the node declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.
@@ -304,12 +302,12 @@ def a_version_3_block_is_logged_once_active(
 
 
 def cltv_failures_are_mined_until_the_configured_height(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check CLTV failures are mined before the configured height, not at it.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start_with_cltv_height(cluster, skip_counts, _CORE_CLTV_HEIGHT)
@@ -334,12 +332,12 @@ def cltv_failures_are_mined_until_the_configured_height(
 
 
 def cltv_failures_are_refused_by_the_mempool(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `testmempoolaccept` refuses each CLTV failure for its own reason.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -371,12 +369,12 @@ def cltv_failures_are_refused_by_the_mempool(
 
 
 def cltv_failures_are_refused_in_a_block(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a block carrying a CLTV failure is refused, a valid spend not.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

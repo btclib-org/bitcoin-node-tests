@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_ping`, one body over either node.
+"""Core's `p2p_ping`, one body over each node.
 
 Read from Core's `test/functional/p2p_ping.py` (`fa5f29774872`,
 2025-12-16), the option, clock and log families together
@@ -34,7 +34,7 @@ below is Core's `sync_with_ping` barrier that leaves the node's own
 `msg_generic(b"pong", b"")`, a `pong` with no nonce at all, is a
 `btclib.p2p.Message` framed by hand.
 
-`p2p_ping_bitcoind_test.py` and `p2p_ping_btclib_node_test.py` run it,
+Each `p2p_ping_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -57,7 +57,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from contextlib import AbstractContextManager
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -131,14 +130,14 @@ def _check_peer_info(
 
 
 def _ping_pong(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
     *,
     logged: bool,
 ) -> None:
     """Run Core's own `run_test`, asserting its log lines where `logged`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :param logged: whether to require `Capability.DEBUG_LOG` and assert
         Core's own lines around each step.
@@ -240,24 +239,24 @@ def _ping_pong(
 
 
 def ping_replies_are_reported_on_rpc(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check the wire half: `getpeerinfo` after each reply, and the drop.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     _ping_pong(cluster, skip_counts, logged=False)
 
 
 def ping_replies_are_logged(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check the log half: Core's own lines, around the same steps.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     _ping_pong(cluster, skip_counts, logged=True)

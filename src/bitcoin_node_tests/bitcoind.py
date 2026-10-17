@@ -476,6 +476,14 @@ class BitcoindAdapter(NodeAdapter):
     (`src/node/mempool_args.cpp`).
     `Capability.PEER_PERMISSIONS` is unconditional too: `-whitelist` and
     `-whitebind` are this binary's own flags (`src/init.cpp`).
+    `Capability.BLOCKS_DIR` is unconditional too: `-blocksdir` is this
+    binary's own flag (`src/init.cpp`).
+    `Capability.INCLUDE_CONF` is unconditional too: `includeconf` is a key
+    of this binary's own configuration file and `-includeconf` a flag it
+    refuses on the command line (`src/common/args.cpp`).
+    `Capability.UTXO_SET_INFO` and `Capability.MEMPOOL_ENTRY` are
+    unconditional too: `gettxoutsetinfo` and `getmempoolentry` are this
+    binary's own RPCs (`src/rpc/blockchain.cpp`, `src/rpc/mempool.cpp`).
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -567,6 +575,10 @@ class BitcoindAdapter(NodeAdapter):
             Capability.INCREMENTAL_RELAY_FEE,
             Capability.PEER_PERMISSIONS,
             Capability.CLUSTER_REPLACEMENT,
+            Capability.BLOCKS_DIR,
+            Capability.INCLUDE_CONF,
+            Capability.UTXO_SET_INFO,
+            Capability.MEMPOOL_ENTRY,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)

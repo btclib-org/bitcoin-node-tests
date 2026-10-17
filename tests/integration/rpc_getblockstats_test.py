@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_getblockstats`, one body over either node.
+"""Core's `rpc_getblockstats`, one body over each node.
 
 Read from Core's `test/functional/rpc_getblockstats.py` (`b7cbd804284b`,
 2026-05-25) and narrowed to what the MiniWallet and disk families reach
@@ -57,9 +57,9 @@ adapter has no `submitheader` wrapper).
 Every test but the disk read asks the session's shared adapter. The disk
 read builds its node over a data directory of its own, through
 `make_adapter` (`tests/integration/conftest.py`), since it renames a
-file there. `rpc_getblockstats_bitcoind_test.py` and
-`rpc_getblockstats_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+file there. Each `rpc_getblockstats_<node>_test.py` module beside this
+one runs it, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -80,8 +80,6 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
@@ -117,12 +115,10 @@ def _per_utxo_overhead(adapter: NodeAdapter) -> int:
     return _PER_UTXO_OVERHEAD + 1
 
 
-def genesis_block_statistics(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def genesis_block_statistics(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check genesis's own stats, a network constant needing no chain of ours.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
@@ -139,11 +135,11 @@ def genesis_block_statistics(
 
 
 def op_return_is_counted_but_not_actual(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check an OP_RETURN output inflates utxo_increase but not its actual twin.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
@@ -185,11 +181,11 @@ def op_return_is_counted_but_not_actual(
 
 
 def selected_stats_narrow_the_answer(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check stats=[...] returns exactly the names asked for, nothing else.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
@@ -197,12 +193,10 @@ def selected_stats_narrow_the_answer(
     assert set(result.keys()) == {"minfee", "maxfee"}
 
 
-def height_out_of_range(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def height_out_of_range(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check a height past the tip, and a negative one, are both refused.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
@@ -215,12 +209,10 @@ def height_out_of_range(
         adapter.rpc.call("getblockstats", [-1])
 
 
-def invalid_statistic_name(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def invalid_statistic_name(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check an unknown statistic name is refused by name, wherever it sits.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
@@ -238,12 +230,10 @@ def invalid_statistic_name(
         adapter.rpc.call("getblockstats", [0, ["minfee", f"aaa{invalid}"]])
 
 
-def unknown_block_hash(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def unknown_block_hash(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check mainnet's genesis block is not a block this regtest chain holds.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
@@ -252,12 +242,10 @@ def unknown_block_hash(
         adapter.rpc.call("getblockstats", [mainnet_genesis])
 
 
-def required_args(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def required_args(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the wrong argument count is refused with the usage string.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.BLOCK_STATS, adapter.capabilities, skip_counts)
@@ -269,7 +257,7 @@ def required_args(
 
 def block_not_found_on_disk(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -277,7 +265,7 @@ def block_not_found_on_disk(
     """Check a `blk00000.dat` moved from under the node is a disk-level miss.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: the node's own data directory.
     :param skip_counts: the session's own tally.

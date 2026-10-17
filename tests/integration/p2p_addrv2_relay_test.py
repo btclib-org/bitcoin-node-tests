@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_addrv2_relay`'s late `sendaddrv2`, one body over either node.
+"""Core's `p2p_addrv2_relay`'s late `sendaddrv2`, one body over each node.
 
 Read from Core's `test/functional/p2p_addrv2_relay.py` (`fa5f29774872`,
 2025-12-16): the first check of its `run_test`, a `sendaddrv2` sent once
@@ -17,11 +17,11 @@ Core's own node is started with `-whitelist=addr@127.0.0.1`, a permission
 that `SENDADDRV2` branch never reads, so it is dropped.
 
 The rest of Core's file is not ported here: its relay check moves the
-node's clock with `setmocktime`, and its oversized-`addrv2` check runs on
-the node after that, the clock still set --
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14).
-`p2p_addrv2_relay_bitcoind_test.py` and `p2p_addrv2_relay_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having how.
+node's clock with `setmocktime`, and its oversized-`addrv2` check runs
+on the node after that, the clock still set -- [ISS
+14](https://github.com/btclib-org/bitcoin-node-tests/issues/14). Each
+`p2p_addrv2_relay_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -37,8 +37,8 @@ from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.peer import Peer
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "sendaddrv2_after_verack_disconnects_the_peer",
@@ -49,11 +49,11 @@ _MAGIC = magic_from_chain("regtest")
 
 
 def sendaddrv2_after_verack_disconnects_the_peer(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: a `sendaddrv2` after `verack` drops the peer.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -62,11 +62,11 @@ def sendaddrv2_after_verack_disconnects_the_peer(
 
 
 def sendaddrv2_after_verack_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check the log half: bitcoind's own wording for why it disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: `adapter` declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_remove_pruned_files_on_startup`, one body over either node.
+"""Core's `feature_remove_pruned_files_on_startup`, one body over each node.
 
 Read from Core's `test/functional/feature_remove_pruned_files_on_startup.py`
 (`fa9aced8006b`, 2025-01-22), the option and disk families together
@@ -36,9 +36,9 @@ and opens files inside it. The start under `-reindex` waits for
 `getmempoolinfo`'s `loaded` before reading the height, as
 `feature_reindex_test.py` does, whose docstring has why.
 
-`feature_remove_pruned_files_on_startup_bitcoind_test.py` and
-`feature_remove_pruned_files_on_startup_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_remove_pruned_files_on_startup_<node>_test.py` module
+beside this one runs it, `tests/integration/conftest.py`'s own module
+docstring having how.
 """
 
 from __future__ import annotations
@@ -51,9 +51,8 @@ from bitcoin_node_tests.node import free_ports, wait_until
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["pruned_files_are_removed"]
@@ -93,7 +92,7 @@ def _block_and_undo_files(blocks: Path) -> list[str]:
     )
 
 
-def _mempool_loaded(node: BitcoindAdapter | BtclibNodeAdapter) -> bool:
+def _mempool_loaded(node: NodeAdapter) -> bool:
     """Return `getmempoolinfo`'s own `loaded`."""
     info = node.rpc.call("getmempoolinfo")
     assert isinstance(info, dict)
@@ -102,7 +101,7 @@ def _mempool_loaded(node: BitcoindAdapter | BtclibNodeAdapter) -> bool:
 
 def pruned_files_are_removed(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -110,7 +109,7 @@ def pruned_files_are_removed(
     """Check pruned block files go, open or not, and `-reindex` wipes the rest.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

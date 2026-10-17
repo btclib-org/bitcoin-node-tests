@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_getdescriptoractivity`, one body over either node.
+"""Core's `rpc_getdescriptoractivity`, one body over each node.
 
 Read from Core's `test/functional/rpc_getdescriptoractivity.py`
 (`3fd68a95e68b`, 2026-04-07) and narrowed to what the MiniWallet family
@@ -57,8 +57,7 @@ script would be activity of its own. The receive-then-spend query is
 also asked with its two blocks reversed, as Core's own comment says it
 is, where Core's own call repeats them in their original order.
 
-`rpc_getdescriptoractivity_bitcoind_test.py` and
-`rpc_getdescriptoractivity_btclib_node_test.py` run it,
+Each `rpc_getdescriptoractivity_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -91,8 +90,6 @@ if TYPE_CHECKING:
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -149,11 +146,11 @@ def _satoshi(amount: object) -> int:
 
 
 def no_activity_for_an_unused_address(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check an address nothing ever paid carries no activity.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.DESCRIPTOR_ACTIVITY, adapter.capabilities, skip_counts)
@@ -163,12 +160,12 @@ def no_activity_for_an_unused_address(
 
 
 def activity_in_block(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a payment confirmed in a named block reports one receive entry.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -202,12 +199,12 @@ def activity_in_block(
 
 
 def no_mempool_inclusion(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check an unconfirmed payment is excluded when include_mempool is False.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -224,12 +221,10 @@ def no_mempool_inclusion(
     assert result["activity"] == []
 
 
-def invalid_blockhash(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def invalid_blockhash(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check an unknown blockhash is refused, not answered empty.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.DESCRIPTOR_ACTIVITY, adapter.capabilities, skip_counts)
@@ -240,12 +235,10 @@ def invalid_blockhash(
         )
 
 
-def invalid_descriptor(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def invalid_descriptor(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check an invalid descriptor function is refused.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.DESCRIPTOR_ACTIVITY, adapter.capabilities, skip_counts)
@@ -253,12 +246,10 @@ def invalid_descriptor(
         adapter.rpc.call("getdescriptoractivity", [[], ["addrx(x)"], True])
 
 
-def required_args(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def required_args(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check calling with too few arguments is refused with the usage string.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.DESCRIPTOR_ACTIVITY, adapter.capabilities, skip_counts)
@@ -269,12 +260,12 @@ def required_args(
 
 
 def multiple_addresses(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check several addresses, duplicated or reordered, answer alike.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -305,12 +296,12 @@ def multiple_addresses(
 
 
 def confirmed_and_unconfirmed(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a confirmed payment carries its block; an unconfirmed one does not.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -339,12 +330,12 @@ def confirmed_and_unconfirmed(
 
 
 def receive_then_spend(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a coin received in one block and spent in the next.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -383,12 +374,12 @@ def receive_then_spend(
 
 
 def no_address(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a script with no address still reports its spend and its receive.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

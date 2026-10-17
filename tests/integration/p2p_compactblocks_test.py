@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_compactblocks`, as bodies over either node.
+"""Core's `p2p_compactblocks`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_compactblocks.py` (`28641fd195db`,
 2026-07-31): how a node negotiates, builds, serves and takes BIP152's
@@ -147,8 +147,7 @@ and no `Misbehaving`. A `master` build between a change's merge and the
 version's move to `32.99` reads older and does what the change has it do
 all the same, the constants' own comments having the commits.
 
-`p2p_compactblocks_bitcoind_test.py` and
-`p2p_compactblocks_btclib_node_test.py` run each body,
+Each `p2p_compactblocks_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -198,7 +197,6 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Payload, Version
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.mini_wallet import Utxo
     from bitcoin_node_tests.node import NodeAdapter
@@ -229,7 +227,7 @@ __all__ = [
     "unsolicited_cmpctblocks_are_ignored",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -571,7 +569,7 @@ def sendcmpct_negotiates_compact_announcements(
 ) -> None:
     """Core's own `test_sendcmpct`, over an inbound peer.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 0)
@@ -584,7 +582,7 @@ def sendcmpct_negotiates_over_an_outbound_peer(
 ) -> None:
     """Core's own `test_sendcmpct`, over an outbound full-relay peer.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 0, Capability.TYPED_OUTBOUND)
@@ -620,7 +618,7 @@ def a_compact_block_is_built_as_bip152_says(
 ) -> None:
     """Core's own `test_compactblock_construction`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, _CONSTRUCTION_TRANSACTIONS)
@@ -658,7 +656,7 @@ def an_announced_block_is_asked_for_compact(
 ) -> None:
     """Core's own `test_compactblock_requests`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 0)
@@ -699,7 +697,7 @@ def only_missing_transactions_are_asked_for(
 ) -> None:
     """Core's own `test_getblocktxn_requests`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 1)
@@ -764,7 +762,7 @@ def getblocktxn_is_answered_near_the_tip(
 ) -> None:
     """Core's own `test_getblocktxn_handler`, the disconnect's log line aside.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, _MAX_GETBLOCKTXN_DEPTH + 1)
@@ -817,7 +815,7 @@ def a_block_off_the_tip_is_not_sent_compact(
 ) -> None:
     """Core's own `test_compactblocks_not_at_tip`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 0)
@@ -875,7 +873,7 @@ def a_wrong_blocktxn_falls_back_to_the_block(
 ) -> None:
     """Core's own `test_incorrect_blocktxn_response`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 1)
@@ -919,7 +917,7 @@ def a_submitted_block_is_announced_compact(
 ) -> None:
     """Core's own `test_end_to_end_block_relay`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 1)
@@ -1013,7 +1011,7 @@ def _invalid_sendcmpct_announce(node: NodeAdapter, log_path: Path | None) -> Non
 def an_invalid_sendcmpct_announce_drops_the_peer(cluster: _Cluster) -> None:
     """Check the wire half of Core's own `test_invalid_sendcmpct_announce`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     """
     (node,) = cluster(1)
     _invalid_sendcmpct_announce(node, None)
@@ -1024,7 +1022,7 @@ def an_invalid_sendcmpct_announce_is_logged(
 ) -> None:
     """Check the log half of Core's own `test_invalid_sendcmpct_announce`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -1036,7 +1034,7 @@ def an_invalid_cmpctblock_drops_the_peer(
 ) -> None:
     """Core's own `test_invalid_cmpctblock_message`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 0)
@@ -1120,7 +1118,7 @@ def a_second_blocktxn_drops_the_peer(
 ) -> None:
     """Check the wire half of Core's own `test_multiple_blocktxn_response`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 1)
@@ -1130,7 +1128,7 @@ def a_second_blocktxn_drops_the_peer(
 def a_second_blocktxn_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half of Core's own `test_multiple_blocktxn_response`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 1)
@@ -1147,7 +1145,7 @@ def invalid_transactions_in_a_cmpctblock_keep_the_peer(
 ) -> None:
     """Core's own `test_invalid_tx_in_compactblock`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 1)
@@ -1231,7 +1229,7 @@ def _empty_getblocktxn(node: NodeAdapter, log_path: Path | None) -> None:
 def an_empty_getblocktxn_drops_the_peer(cluster: _Cluster) -> None:
     """Check the wire half of Core's own `test_empty_getblocktxn_disconnects`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     """
     (node,) = cluster(1)
     _empty_getblocktxn(node, None)
@@ -1240,7 +1238,7 @@ def an_empty_getblocktxn_drops_the_peer(cluster: _Cluster) -> None:
 def an_empty_getblocktxn_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half of Core's own `test_empty_getblocktxn_disconnects`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -1289,7 +1287,7 @@ def a_low_work_cmpctblock_is_ignored(
 ) -> None:
     """Check the wire half of Core's own `test_low_work_compactblocks`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 0)
@@ -1299,7 +1297,7 @@ def a_low_work_cmpctblock_is_ignored(
 def a_low_work_cmpctblock_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half of Core's own `test_low_work_compactblocks`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 0)
@@ -1344,7 +1342,7 @@ def a_stalling_peer_leaves_the_block_to_another(
 ) -> None:
     """Core's own `test_compactblock_reconstruction_stalling_peer`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 1)
@@ -1406,7 +1404,7 @@ def getpeerinfo_reports_high_bandwidth_states(
 ) -> None:
     """Core's own `test_highbandwidth_mode_states_via_getpeerinfo`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 0)
@@ -1435,7 +1433,7 @@ def the_last_reconstruction_is_kept_for_an_outbound_peer(
 ) -> None:
     """Core's own `test_compactblock_reconstruction_parallel_reconstruction`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 1, Capability.TYPED_OUTBOUND)
@@ -1500,7 +1498,7 @@ def unsolicited_cmpctblocks_are_ignored(
 ) -> None:
     """Core's own `test_compact_blocks_ignored`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _node(cluster, skip_counts, 5)

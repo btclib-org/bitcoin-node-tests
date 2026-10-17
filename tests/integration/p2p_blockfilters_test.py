@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_blockfilters`, one body over either node.
+"""Core's `p2p_blockfilters`, one body over each node.
 
 Read from Core's `test/functional/p2p_blockfilters.py` (`3fd68a95e68b`,
 2026-04-07), an option and the log beside node-linking
@@ -47,8 +47,7 @@ A refusal is Core's own `expected_msg`, matched against the whole stderr
 of a start that exited with a code other than `0` before its RPC
 answered, as `feature_includeconf_test.py` matches one.
 
-`p2p_blockfilters_bitcoind_test.py` and
-`p2p_blockfilters_btclib_node_test.py` run it,
+Each `p2p_blockfilters_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -90,13 +89,12 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Payload
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["TEST_TIMEOUT", "block_filters_are_served_to_peers"]
 
-type _Node = BitcoindAdapter | BtclibNodeAdapter
+type _Node = NodeAdapter
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -267,7 +265,7 @@ def block_filters_are_served_to_peers(
 ) -> None:
     """Core's own `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)

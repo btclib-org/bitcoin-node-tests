@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_net_deadlock`, one body over either node.
+"""Core's `p2p_net_deadlock`, one body over each node.
 
 Read from Core's `test/functional/p2p_net_deadlock.py` (`a0473442d1c2`,
 2024-07-16): two connected nodes each send the other a four-megabyte
@@ -15,8 +15,8 @@ check: Core's own `run_test` mines and calls `sync_blocks`, neither node
 being expected to answer differently had the sends deadlocked -- a hung
 network thread is what this would catch, not a wrong reply.
 
-`p2p_net_deadlock_bitcoind_test.py` and `p2p_net_deadlock_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_net_deadlock_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -32,9 +32,8 @@ from bitcoin_node_tests.timeout_factor import scaled
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["simultaneous_large_messages_do_not_deadlock"]
 
@@ -45,12 +44,12 @@ _MESSAGE_SIZE = 4_000_000
 
 
 def simultaneous_large_messages_do_not_deadlock(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own subject: both sides survive sending at the same time.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)

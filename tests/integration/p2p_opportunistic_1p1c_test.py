@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_opportunistic_1p1c`, as bodies over either node.
+"""Core's `p2p_opportunistic_1p1c`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_opportunistic_1p1c.py`
 (`0bd3d3dfa562`, 2026-07-24): a parent refused for its fee is taken
@@ -134,9 +134,9 @@ so `getorphantxs` lists each orphan the check sends under one announcer,
 on the pinned release and on a `master` build alike, every one of them
 kept, and the check stays below that bound.
 
-`p2p_opportunistic_1p1c_bitcoind_test.py` and
-`p2p_opportunistic_1p1c_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_opportunistic_1p1c_<node>_test.py` module beside this one runs
+each body, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -178,7 +178,6 @@ from tests.integration.script_verify_flag_test import bitcoind_version
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -197,7 +196,7 @@ __all__ = [
     "parent_and_child_are_evaluated_together_only_from_one_peer",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # Core's own constants (`test_framework/p2p.py`)
 _NONPREF_PEER_TX_DELAY = 2
@@ -539,7 +538,7 @@ def a_rejected_parent_is_taken_in_with_its_child(
 ) -> None:
     """Core's own `test_basic_parent_then_child(self.wallet)`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     _parent_then_child(cluster, skip_counts, witness=True)
@@ -550,7 +549,7 @@ def a_rejected_parent_with_no_witness_is_taken_in_with_its_child(
 ) -> None:
     """Core's own `test_basic_parent_then_child(self.wallet_nonsegwit)`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     _parent_then_child(cluster, skip_counts, witness=False)
@@ -561,7 +560,7 @@ def an_orphan_is_taken_in_with_its_low_fee_parent(
 ) -> None:
     """Core's own `test_basic_child_then_parent`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, _ = _node(cluster, skip_counts, Capability.CLOCK, coins=1)
@@ -672,7 +671,7 @@ def a_rejected_parent_is_taken_in_only_with_a_child_paying_enough(
 ) -> None:
     """Core's own `test_low_and_high_child(self.wallet)`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     _low_and_high_child(cluster, skip_counts, witness=True)
@@ -683,7 +682,7 @@ def a_rejected_parent_with_no_witness_is_taken_in_only_with_a_child_paying_enoug
 ) -> None:
     """Core's own `test_low_and_high_child(self.wallet_nonsegwit)`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     _low_and_high_child(cluster, skip_counts, witness=False)
@@ -694,7 +693,7 @@ def parent_and_child_are_evaluated_together_only_from_one_peer(
 ) -> None:
     """Core's own `test_orphan_consensus_failure`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, _ = _node(cluster, skip_counts, Capability.CLOCK, coins=1)
@@ -737,7 +736,7 @@ def an_invalid_parent_from_another_peer_leaves_the_orphan(
 ) -> None:
     """Core's own `test_parent_consensus_failure`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, _ = _node(cluster, skip_counts, Capability.CLOCK, coins=1)
@@ -783,7 +782,7 @@ def no_rejected_parent_of_a_two_parent_orphan_is_requested(
 ) -> None:
     """Core's own `test_multiple_parents`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, _, p2pk = _node(
@@ -824,7 +823,7 @@ def an_orphan_is_taken_in_with_one_parent_beside_another_in_the_mempool(
 ) -> None:
     """Core's own `test_other_parent_in_mempool`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, _ = _node(
@@ -884,7 +883,7 @@ def a_package_is_taken_in_on_top_of_another(
 ) -> None:
     """Core's own `test_1p1c_on_1p1c`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, _ = _node(cluster, skip_counts, coins=1)
@@ -928,7 +927,7 @@ def an_orphan_outlives_large_orphans_from_other_peers(
 ) -> None:
     """Core's own `test_orphanage_dos_large`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, _ = _node(cluster, skip_counts, Capability.CLOCK, coins=1)
@@ -1000,7 +999,7 @@ def an_orphan_outlives_many_orphans_from_other_peers(
 ) -> None:
     """Core's own `test_orphanage_dos_many`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, _ = _node(

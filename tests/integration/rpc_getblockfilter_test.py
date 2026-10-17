@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_getblockfilter`, one body over either node.
+"""Core's `rpc_getblockfilter`, one body over each node.
 
 Read from Core's `test/functional/rpc_getblockfilter.py` (`fa5f29774872`,
 2025-12-16): two nodes, the first under `-blockfilterindex`
@@ -16,8 +16,7 @@ with `-blockfilterindex=0`, refuses every filter type as not enabled.
 Core's own claim in full. Core's harness connects its nodes at setup
 and its test disconnects them first; this harness's nodes start
 unconnected, so there is nothing to disconnect.
-`rpc_getblockfilter_bitcoind_test.py` and
-`rpc_getblockfilter_btclib_node_test.py` run it,
+Each `rpc_getblockfilter_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -34,8 +33,6 @@ from bitcoin_node_tests.node import connect_nodes, wait_until_tips_agree
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -50,12 +47,12 @@ def _hashes(node: NodeAdapter, heights: range) -> list[str]:
 
 
 def getblockfilter_answers_for_active_and_stale_blocks(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)

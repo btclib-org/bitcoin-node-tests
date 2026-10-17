@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_createmultisig` spend half, one body over either node.
+"""Core's `rpc_createmultisig` spend half, one body over each node.
 
 Read from Core's `test/functional/rpc_createmultisig.py` (`771200ca4362`,
 2026-06-30): `do_multisig` funds a multisig output, has the node sign a
@@ -34,8 +34,7 @@ them, so the caller says which the running node is expected to.
 `test_multisig_script_limit`'s own 16-of-20 spends, `p2sh-segwit` and
 `bech32`, are here too.
 
-`rpc_createmultisig_bitcoind_test.py` and
-`rpc_createmultisig_btclib_node_test.py` run it,
+Each `rpc_createmultisig_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -60,8 +59,6 @@ from bitcoin_node_tests.mini_wallet import MiniWallet
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -378,7 +375,7 @@ def _do_multisig(
 
 
 def _funded(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> tuple[NodeAdapter, MiniWallet]:
     """Start one node, check what the body asks of it, and mature coins."""
@@ -391,12 +388,12 @@ def _funded(
 
 
 def every_multisig_spends_once_the_node_combines_its_signatures(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """`do_multisig` over every `(nsigs, nkeys, output_type)` Core's list names.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _funded(cluster, skip_counts)
@@ -407,12 +404,12 @@ def every_multisig_spends_once_the_node_combines_its_signatures(
 
 
 def sixteen_of_twenty_spends_once_the_node_combines_its_signatures(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """`test_multisig_script_limit`'s own `do_multisig` calls: 16-of-20.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _funded(cluster, skip_counts)
@@ -422,13 +419,13 @@ def sixteen_of_twenty_spends_once_the_node_combines_its_signatures(
 
 
 def combinerawtransaction_preconditions(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
     checks_mergeability: Callable[[NodeAdapter], bool],
 ) -> None:
     """Core's `test_combinerawtransaction_preconditions`: 2-of-3, `bech32`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :param checks_mergeability: asked of the running node whether it is
         expected to refuse what Core's pinned file has it refuse.

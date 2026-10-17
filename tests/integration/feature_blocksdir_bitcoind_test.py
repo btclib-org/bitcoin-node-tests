@@ -33,11 +33,14 @@ pytestmark = pytest.mark.integration
 
 
 def test_nonexistent_blocksdir_refuses_to_start(
-    make_adapter: AdapterFactory, bitcoind_path: str, tmp_path: Path
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The oracle: the refusal the body module names, over bitcoind."""
     a_nonexistent_blocksdir_refuses_to_start(
-        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path
+        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path, skip_counts
     )
 
 

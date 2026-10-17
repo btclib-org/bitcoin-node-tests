@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_nulldummy`, one body over either node.
+"""Core's `feature_nulldummy`, one body over each node.
 
 Read from Core's `test/functional/feature_nulldummy.py` (`fa5f29774872`,
 2025-12-16), every step of it kept in its own order
@@ -49,8 +49,7 @@ is dropped: it sets the address type of a node wallet, and this body
 uses none. The node starts without the option and is restarted with
 it before any block is mined.
 
-`feature_nulldummy_bitcoind_test.py` and
-`feature_nulldummy_btclib_node_test.py` run it,
+Each `feature_nulldummy_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -79,8 +78,6 @@ if TYPE_CHECKING:
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -219,12 +216,12 @@ def _witness_spend(
 
 
 def nulldummy_is_policy_before_activation_and_consensus_after(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check Core's own steps, in its own order, on one chain.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

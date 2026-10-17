@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_reindex_init`, one body over either node.
+"""Core's `feature_reindex_init`, one body over each node.
 
 Read from Core's `test/functional/feature_reindex_init.py`
 (`0d1301b47a35`, 2026-03-24), the option and disk families together
@@ -34,8 +34,7 @@ option or RPC for it: that build is asserted to print it, read off its own
 `getnetworkinfo` `version`
 ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
 
-`feature_reindex_init_bitcoind_test.py` and
-`feature_reindex_init_btclib_node_test.py` run it,
+Each `feature_reindex_init_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -55,9 +54,8 @@ from tests.integration.script_verify_flag_test import bitcoind_version
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["a_lost_block_index_is_rebuilt_once_allowed"]
@@ -93,7 +91,7 @@ _EARLY_EXIT = re.compile(
 )
 
 
-def _mempool_loaded(node: BitcoindAdapter | BtclibNodeAdapter) -> bool:
+def _mempool_loaded(node: NodeAdapter) -> bool:
     """Return `getmempoolinfo`'s own `loaded`."""
     info = node.rpc.call("getmempoolinfo")
     assert isinstance(info, dict)
@@ -102,7 +100,7 @@ def _mempool_loaded(node: BitcoindAdapter | BtclibNodeAdapter) -> bool:
 
 def a_lost_block_index_is_rebuilt_once_allowed(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -110,7 +108,7 @@ def a_lost_block_index_is_rebuilt_once_allowed(
     """Check a start refuses a lost block index, and one allowed reindexes.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

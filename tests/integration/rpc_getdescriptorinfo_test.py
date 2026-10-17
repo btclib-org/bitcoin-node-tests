@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_getdescriptorinfo`, one body over either node.
+"""Core's `rpc_getdescriptorinfo`, one body over each node.
 
 Read from Core's `test/functional/rpc_getdescriptorinfo.py`
 (`fa5f29774872`, 2025-12-16). Its subject is `getdescriptorinfo`: every
@@ -45,8 +45,7 @@ apart, the node having no option or RPC for it: that build is read off its
 own `getnetworkinfo` `version`
 ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
 
-`rpc_getdescriptorinfo_bitcoind_test.py` and
-`rpc_getdescriptorinfo_btclib_node_test.py` run it,
+Each `rpc_getdescriptorinfo_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -65,8 +64,6 @@ from bitcoin_node_tests.capability import Capability, require
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -267,11 +264,11 @@ def _refusal(node: NodeAdapter, *params: object) -> tuple[int, str]:
 
 
 def malformed_requests_are_refused(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check a missing, mistyped, empty or padded argument is refused.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.DESCRIPTOR_INFO, adapter.capabilities, skip_counts)
@@ -308,11 +305,11 @@ def malformed_requests_are_refused(
 
 
 def descriptors_answer_their_info(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check each of `DESCRIPTORS` answers its checksummed form and its flags.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.DESCRIPTOR_INFO, adapter.capabilities, skip_counts)

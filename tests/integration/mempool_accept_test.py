@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_accept`, as a body over either node.
+"""Core's `mempool_accept`, as a body over each node.
 
 Read from Core's `test/functional/mempool_accept.py` (`eaef8d31118d`,
 2026-07-07): `testmempoolaccept` answers each raw transaction Core's
@@ -57,9 +57,8 @@ What differs from Core's file:
   witness, its witness list holding fewer entries than the inputs, is
   given an empty witness here explicitly.
 
-`mempool_accept_bitcoind_test.py` and `mempool_accept_btclib_node_test.py`
-run the body, `tests/integration/conftest.py`'s own module docstring
-having how.
+Each `mempool_accept_<node>_test.py` module beside this one runs the
+body, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -94,13 +93,12 @@ from tests.integration.mempool_datacarrier_test import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["mempool_acceptance_of_raw_transactions"]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # what Core's own `set_test_params` starts the node with, `-txindex`
 # aside (this module's own docstring has why)
@@ -590,7 +588,7 @@ def mempool_acceptance_of_raw_transactions(
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

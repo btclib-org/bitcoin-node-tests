@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_orphans`, one body per subtest over either node.
+"""Core's `rpc_orphans`, one body per subtest over each node.
 
 Read from Core's `test/functional/rpc_orphans.py` (`fa5f29774872`,
 2025-12-16): a peer sends a child ahead of its own parent, the node keeps
@@ -22,9 +22,8 @@ ping as `TestNode.add_p2p_connection` does, and `send_and_ping` is a
 `send` followed by `Peer.sync_with_ping`. `in_orphanage` is Core's own
 `tx_in_orphanage` (`test_framework/mempool_util.py`).
 
-`rpc_orphans_bitcoind_test.py` and `rpc_orphans_btclib_node_test.py` run
-each body, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `rpc_orphans_<node>_test.py` module beside this one runs each body,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -47,8 +46,6 @@ if TYPE_CHECKING:
     from btclib.p2p import Payload
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -59,7 +56,7 @@ __all__ = [
     "orphans_leave_the_orphanage_with_their_parents",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -73,7 +70,7 @@ _COINS = 2
 
 def _node(
     cluster: _Cluster, skip_counts: SkipCounts, *, mine: bool = True
-) -> BitcoindAdapter | BtclibNodeAdapter:
+) -> NodeAdapter:
     """Start one node, asking it for `Capability.ORPHANAGE` and then `MINE`.
 
     :param mine: where false, `MINE` is not asked for, the subtest
@@ -160,7 +157,7 @@ def orphans_leave_the_orphanage_with_their_parents(
 ) -> None:
     """Core's `test_orphan_activity`: two orphans kept, and each let go.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _node(cluster, skip_counts)
@@ -214,7 +211,7 @@ def getorphantxs_reports_each_orphan_and_its_announcers(
 ) -> None:
     """Core's `test_orphan_details`: who sent each orphan, and what it is.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _node(cluster, skip_counts)
@@ -260,7 +257,7 @@ def getorphantxs_is_hidden_and_refuses_a_boolean_verbosity(
 ) -> None:
     """Core's `test_misc`: a boolean verbosity refused, and `help` silent on it.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _node(cluster, skip_counts, mine=False)

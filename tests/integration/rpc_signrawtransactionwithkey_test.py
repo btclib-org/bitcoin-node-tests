@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_signrawtransactionwithkey`, one body over either node.
+"""Core's `rpc_signrawtransactionwithkey`, one body over each node.
 
 Read from Core's `test/functional/rpc_signrawtransactionwithkey.py`
 (`fa5f29774872`, 2025-12-16): the node signs a raw transaction's inputs
@@ -37,9 +37,9 @@ them, and Core's `get_deterministic_priv_key` is one more such key: the
 subtests handing it over are about what the node refuses, not about the
 key.
 
-`rpc_signrawtransactionwithkey_bitcoind_test.py` and
-`rpc_signrawtransactionwithkey_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `rpc_signrawtransactionwithkey_<node>_test.py` module beside this
+one runs it, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -66,8 +66,6 @@ from tests.integration.rpc_createmultisig_test import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -174,7 +172,7 @@ def _refused(
 
 
 def _started(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> NodeAdapter:
     """Start one node, and check it signs."""
@@ -184,7 +182,7 @@ def _started(
 
 
 def _funded(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> tuple[NodeAdapter, MiniWallet]:
     """Start one node, check it signs and mines, and mature coins."""
@@ -204,12 +202,12 @@ def _core_unsigned() -> str:
 
 
 def a_prevtxs_described_input_is_signed(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `successful_signing_test`: inputs the node knows by `prevtxs`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _started(cluster, skip_counts)
@@ -220,12 +218,12 @@ def a_prevtxs_described_input_is_signed(
 
 
 def a_witness_script_input_is_signed(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `witness_script_test`: 1-of-1 multisig, then P2PKH and P2PK.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _funded(cluster, skip_counts)
@@ -280,12 +278,12 @@ def a_witness_script_input_is_signed(
 
 
 def a_pay_to_anchor_input_is_signed_with_no_key(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `keyless_signing_test`: nothing to sign, and nothing changed.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet = _funded(cluster, skip_counts)
@@ -301,12 +299,12 @@ def a_pay_to_anchor_input_is_signed_with_no_key(
 
 
 def an_invalid_sighash_type_is_refused(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `invalid_sighashtype_test`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _started(cluster, skip_counts)
@@ -323,12 +321,12 @@ def an_invalid_sighash_type_is_refused(
 
 
 def an_invalid_private_key_or_transaction_is_refused(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `invalid_private_key_and_tx`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _started(cluster, skip_counts)

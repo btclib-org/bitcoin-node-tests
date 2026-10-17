@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_invalid_messages`, its `Misbehaving` checks, over either node.
+"""Core's `p2p_invalid_messages`, its `Misbehaving` checks, over each node.
 
 Read from Core's `test/functional/p2p_invalid_messages.py`
 (`3fd68a95e68b`, 2026-04-07)'s own `test_oversized_inv_msg`,
@@ -61,9 +61,9 @@ first send as the connection surviving a `sync_with_ping`, and the second
 as a disconnect. The log half reads the first send as no `Misbehaving`
 line, Core's own `unexpected_msgs`, and the second as Core's wording.
 
-`p2p_invalid_messages_misbehaving_bitcoind_test.py` and
-`p2p_invalid_messages_misbehaving_btclib_node_test.py` run every body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_invalid_messages_misbehaving_<node>_test.py` module beside
+this one runs every body, `tests/integration/conftest.py`'s own module
+docstring having how.
 """
 
 from __future__ import annotations
@@ -85,8 +85,8 @@ from bitcoin_node_tests.peer import Peer
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "invalid_pow_header_disconnects_the_peer",
@@ -151,9 +151,7 @@ def _invalid_pow_header() -> BlockHeader:
         nonce += 1
 
 
-def _debug_log(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(adapter: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log a log half reads, or skip where the node keeps none.
 
     :raises TypeError: `adapter` declares `Capability.DEBUG_LOG` without
@@ -167,11 +165,11 @@ def _debug_log(
 
 
 def oversized_inv_disconnects_the_peer(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: an `inv` over `MAX_INV_SZ` gets the peer dropped.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -179,12 +177,10 @@ def oversized_inv_disconnects_the_peer(
         peer.wait_for_disconnect()
 
 
-def oversized_inv_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def oversized_inv_is_logged(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for why it disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     log_path = _debug_log(adapter, skip_counts)
@@ -200,11 +196,11 @@ def oversized_inv_is_logged(
 
 
 def oversized_getdata_disconnects_the_peer(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: a `getdata` over `MAX_INV_SZ` drops the peer.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -212,12 +208,10 @@ def oversized_getdata_disconnects_the_peer(
         peer.wait_for_disconnect()
 
 
-def oversized_getdata_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def oversized_getdata_is_logged(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for why it disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     log_path = _debug_log(adapter, skip_counts)
@@ -233,11 +227,11 @@ def oversized_getdata_is_logged(
 
 
 def oversized_headers_disconnects_the_peer(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: `headers` over `MAX_HEADERS_RESULTS` disconnects.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     with Peer(adapter.p2p_address, _MAGIC) as peer:
         peer.handshake()
@@ -245,12 +239,10 @@ def oversized_headers_disconnects_the_peer(
         peer.wait_for_disconnect()
 
 
-def oversized_headers_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def oversized_headers_is_logged(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for why it disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     log_path = _debug_log(adapter, skip_counts)
@@ -267,11 +259,11 @@ def oversized_headers_is_logged(
 
 
 def invalid_pow_header_disconnects_the_peer(
-    adapter: BitcoindAdapter | BtclibNodeAdapter,
+    adapter: NodeAdapter,
 ) -> None:
     """Check the wire half: a header failing its own target disconnects.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     """
     header = _invalid_pow_header()
     with Peer(adapter.p2p_address, _MAGIC) as peer:
@@ -280,12 +272,10 @@ def invalid_pow_header_disconnects_the_peer(
         peer.wait_for_disconnect()
 
 
-def invalid_pow_header_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> None:
+def invalid_pow_header_is_logged(adapter: NodeAdapter, skip_counts: SkipCounts) -> None:
     """Check the log half: bitcoind's own wording for why it disconnected.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     log_path = _debug_log(adapter, skip_counts)
@@ -301,9 +291,7 @@ def invalid_pow_header_is_logged(
         peer.wait_for_disconnect()
 
 
-def _mined_headers(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> list[BlockHeader]:
+def _mined_headers(adapter: NodeAdapter, skip_counts: SkipCounts) -> list[BlockHeader]:
     """Mine Core's blocks, and return their headers, oldest first."""
     require(Capability.MINE, adapter.capabilities, skip_counts)
     headers = []
@@ -320,11 +308,11 @@ def _without_the_middle(headers: list[BlockHeader]) -> Headers:
 
 
 def noncontinuous_headers_disconnects_the_peer(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check the wire half: only a `headers` message with a gap drops the peer.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     headers = _mined_headers(adapter, skip_counts)
@@ -337,11 +325,11 @@ def noncontinuous_headers_disconnects_the_peer(
 
 
 def noncontinuous_headers_is_logged(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Check the log half: bitcoind's own wording, only for the gap.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     log_path = _debug_log(adapter, skip_counts)

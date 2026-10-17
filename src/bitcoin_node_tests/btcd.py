@@ -12,8 +12,11 @@ and `tests/integration/conftest.py` is what hands it over.
 btcd spells an option `--name`, not Core's `-name`, and reads a
 single-dash word as a run of short options: `-uacomment=x` sets `-u`,
 its `--rpcuser`, to `acomment=x`. So a test's own Core-spelled
-`extra_args` must reach btcd only behind a capability; ISS 481 reviews
-the bodies that pass one.
+`extra_args` must reach btcd only behind a capability, or translated
+here: `-whitelist=noban@<address>` becomes `--whitelist=<address>`,
+which `config.go` describes as an address "that will not be banned",
+and a `-whitelist` naming another permission is refused, btcd having
+none.
 
 `Capability.MINE` is `NodeAdapter.mine`, a block built client-side over
 `submitblock`: btcd's `rpcserver.go` registers `generate` and neither
@@ -112,6 +115,31 @@ def _check_short_aliases(command: Sequence[str], extra_args: Sequence[str]) -> N
                 break
 
 
+def _spelled_for_btcd(extra_args: Sequence[str]) -> list[str]:
+    """Return `extra_args` with `-whitelist=noban@<address>` spelled for btcd.
+
+    In Core's `-whitelist`, `in` and `out` set the direction the entry
+    covers, not a permission. btcd's `--whitelist` covers both, so they
+    are dropped before the permissions are compared with `noban`.
+
+    :param extra_args: what a caller asks to append to the argv.
+    :raises ValueError: a `-whitelist` entry names a permission other
+        than `noban`, or names none.
+    """
+    spelled: list[str] = []
+    for arg in extra_args:
+        if not arg.startswith("-whitelist="):
+            spelled.append(arg)
+            continue
+        flags, _, address = arg.removeprefix("-whitelist=").rpartition("@")
+        permissions = set(flags.split(",")) - {"in", "out"}
+        if permissions != {"noban"}:
+            err_msg = f"btcd's --whitelist grants no permission but noban: {arg}"
+            raise ValueError(err_msg)
+        spelled.append(f"--whitelist={address}")
+    return spelled
+
+
 def _one_member(reply: object) -> object:
     """Return `reply` with its null `result` or `error` dropped, where 2.0.
 
@@ -192,6 +220,7 @@ class BtcdAdapter(NodeAdapter):
         before it stores `rpc_auth`.
         """
         self._credential = rpc_auth or (_RPC_USER, secrets.token_hex(16))
+        extra_args = _spelled_for_btcd(extra_args)
         super().__init__(
             executable,
             datadir,
@@ -234,9 +263,11 @@ class BtcdAdapter(NodeAdapter):
         :param extra_args: what to append after `_command`'s own argv for
             this start, in place of the constructor's.
         :raises ValueError: an entry of `extra_args` sets an option
-            `_command` already sets, before the running node is stopped.
+            `_command` already sets, or names a `-whitelist` permission
+            btcd lacks, before the running node is stopped.
         """
         if extra_args is not None:
+            extra_args = _spelled_for_btcd(extra_args)
             _check_short_aliases(self._command(), extra_args)
         super().restart(extra_args)
 

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_users`, one body over either node.
+"""Core's `rpc_users`, one body over each node.
 
 Read from Core's `test/functional/rpc_users.py` (`faf993ee4421`,
 2026-05-26), disk-family mechanism alone (issue btclib-org/btclib#2220,
@@ -78,7 +78,7 @@ init error on bitcoind and on btclib-node from
 verbatim, raised whenever `rpc_manager.start_listener()` fails for any
 reason, cookie generation included.
 
-`rpc_users_bitcoind_test.py` and `rpc_users_btclib_node_test.py` run it,
+Each `rpc_users_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -100,9 +100,8 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [
@@ -206,7 +205,7 @@ def _call(port: int, user: str, password: str, method: str) -> int:
 
 def rpcauth_via_config_authenticates_and_refuses(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -214,7 +213,7 @@ def rpcauth_via_config_authenticates_and_refuses(
     """Check a `bitcoin.conf` `rpcauth` credential passes; others answer 401.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -239,7 +238,7 @@ def rpcauth_via_config_authenticates_and_refuses(
 
 def rpcauth_on_command_line_authenticates(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -247,7 +246,7 @@ def rpcauth_on_command_line_authenticates(
     """Check the same credential, given as `extra_args`, authenticates too.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -272,7 +271,7 @@ def rpcauth_on_command_line_authenticates(
 
 def malformed_rpcauth_refuses_to_start(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -281,7 +280,7 @@ def malformed_rpcauth_refuses_to_start(
     """Check a malformed `-rpcauth` value is fatal at startup.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -303,7 +302,7 @@ def malformed_rpcauth_refuses_to_start(
 
 def blank_rpcauth_refuses_regardless_of_position(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -312,7 +311,7 @@ def blank_rpcauth_refuses_regardless_of_position(
     """Check a blank `-rpcauth=` is fatal wherever it sits among named entries.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -334,7 +333,7 @@ def blank_rpcauth_refuses_regardless_of_position(
 
 def norpcauth_disables_previous_rpcauth(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -344,7 +343,7 @@ def norpcauth_disables_previous_rpcauth(
     Skipped where the adapter does not declare `Capability.RPC_AUTH_NEGATION`.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -369,7 +368,7 @@ def norpcauth_disables_previous_rpcauth(
 
 def rpcuser_rpcpassword_authenticates_without_a_cookie(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -377,13 +376,15 @@ def rpcuser_rpcpassword_authenticates_without_a_cookie(
     """Check `-rpcuser`/`-rpcpassword` authenticates; no cookie is ever written.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
     """
     datadir = tmp_path / "datadir"
     rpc_port, p2p_port = free_ports(2)
+    probe = make_adapter(cls, executable, tmp_path / "probe", rpc_port, p2p_port)
+    require(Capability.RPC_AUTH_CONFIG, probe.capabilities, skip_counts)
     adapter = make_adapter(
         cls,
         executable,
@@ -393,7 +394,6 @@ def rpcuser_rpcpassword_authenticates_without_a_cookie(
         extra_args=("-rpcuser=bob", "-rpcpassword=bobpw"),
         rpc_auth=("bob", "bobpw"),
     )
-    require(Capability.RPC_AUTH_CONFIG, adapter.capabilities, skip_counts)
     adapter.start()
     try:
         assert _call(rpc_port, "bob", "bobpw", "getbestblockhash") == 200
@@ -405,7 +405,7 @@ def rpcuser_rpcpassword_authenticates_without_a_cookie(
 
 def norpccookiefile_writes_no_cookie_and_rpcauth_still_authenticates(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -413,7 +413,7 @@ def norpccookiefile_writes_no_cookie_and_rpcauth_still_authenticates(
     """Check `-norpccookiefile` writes no cookie; `-rpcauth` still works.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -441,7 +441,7 @@ def norpccookiefile_writes_no_cookie_and_rpcauth_still_authenticates(
 
 def rpccookieperms_sets_posix_permission_bits(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -451,7 +451,7 @@ def rpccookieperms_sets_posix_permission_bits(
     """Check `-rpccookieperms` sets the cookie's mode; unset means owner.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -481,7 +481,7 @@ def rpccookieperms_sets_posix_permission_bits(
 
 def cookie_write_failure_aborts_the_node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -489,7 +489,7 @@ def cookie_write_failure_aborts_the_node(
     """Check a directory sitting at the cookie path is a fatal init error.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

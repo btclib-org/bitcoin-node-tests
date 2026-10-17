@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_addr_selfannouncement`, as bodies over either node.
+"""Core's `p2p_addr_selfannouncement`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_addr_selfannouncement.py`
 (`dab7f2c984bd`, 2026-07-07): a node given `-externalip`
@@ -59,9 +59,9 @@ for it: that build's inbound checks assert the one message, read off its own
 `getnetworkinfo` `version`
 ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
 
-`p2p_addr_selfannouncement_bitcoind_test.py` and
-`p2p_addr_selfannouncement_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_addr_selfannouncement_<node>_test.py` module beside this one
+runs each body, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -102,7 +102,6 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -114,7 +113,7 @@ __all__ = [
     "self_announcement_to_outbound_peers_is_logged",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -152,9 +151,7 @@ _EXTERNALIP_BYPASSES_ONLYNET_VERSION = 320000
 _SEPARATE_FIRST_ANNOUNCEMENT_VERSION = 310000
 
 
-def _debug_log(
-    node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log a log half reads, or skip where the node keeps none.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -252,7 +249,7 @@ class _SelfAnnouncementReceiver:
         raise TimeoutError(err_msg)
 
 
-def _restart(node: BitcoindAdapter | BtclibNodeAdapter) -> None:
+def _restart(node: NodeAdapter) -> None:
     """Core's own node: `-externalip`, out of IBD, `_PEER_ADDRESSES` known."""
     node.restart([f"-externalip={_IP_TO_ANNOUNCE}", *_HARNESS_ARGS])
     node.mine(1)
@@ -389,7 +386,7 @@ def self_announcement_to_inbound_peers(
 ) -> None:
     """Check the wire half: inbound peers receive the self-announcement.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -404,7 +401,7 @@ def self_announcement_to_inbound_peers_is_logged(
 ) -> None:
     """Check the log half: each announcement to an inbound peer is logged.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -420,7 +417,7 @@ def self_announcement_to_outbound_peers(
 ) -> None:
     """Check the wire half: outbound peers receive the self-announcement.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -436,7 +433,7 @@ def self_announcement_to_outbound_peers_is_logged(
 ) -> None:
     """Check the log half: each announcement to an outbound peer is logged.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -465,7 +462,7 @@ def _externalip_bypasses_onlynet(node: NodeAdapter) -> bool:
 def externalip_bypasses_onlynet(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check an onion `-externalip` is a local address under `-onlynet=ipv4`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

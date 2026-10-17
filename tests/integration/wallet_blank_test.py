@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `wallet_blank`, one body per `test_*` method over either node.
+"""Core's `wallet_blank`, one body per `test_*` method over each node.
 
 Read from Core's `test/functional/wallet_blank.py` (`fa5f29774872`,
 2025-12-16, the same file at the pinned `v31.1`): a wallet created
@@ -20,9 +20,8 @@ only the wallets each method names. Core's
 btclib's: the regtest pay-to-witness-script-hash address of an
 all-zero hash, checksummed by `descriptors.add_checksum`.
 
-`wallet_blank_bitcoind_test.py` and `wallet_blank_btclib_node_test.py`
-run them, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `wallet_blank_<node>_test.py` module beside this one runs them,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -37,9 +36,8 @@ from bitcoin_node_tests.capability import Capability, require
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "encryptwallet_keeps_the_blank_flag_and_the_descriptors",
@@ -53,12 +51,12 @@ _UNSPENDABLE_DESCRIPTOR = add_checksum(
 
 
 def importdescriptors_keeps_the_blank_flag(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `test_importdescriptors`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -78,12 +76,12 @@ def importdescriptors_keeps_the_blank_flag(
 
 
 def encryptwallet_keeps_the_blank_flag_and_the_descriptors(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `test_encrypt_descriptors`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

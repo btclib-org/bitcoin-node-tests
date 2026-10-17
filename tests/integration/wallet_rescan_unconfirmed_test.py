@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `wallet_rescan_unconfirmed`, one body over either node.
+"""Core's `wallet_rescan_unconfirmed`, one body over each node.
 
 Read from Core's `test/functional/wallet_rescan_unconfirmed.py`
 (`fa5f29774872`, 2025-12-16, the same file at the pinned `v31.1`): a
@@ -27,8 +27,7 @@ instead. Core's `syncwithvalidationinterfacequeue` is bitcoind's own RPC
 `ADDRESS_BCRT1_UNSPENDABLE` (`address.py`) is btclib's: the regtest
 pay-to-witness-script-hash address of an all-zero hash.
 
-`wallet_rescan_unconfirmed_bitcoind_test.py` and
-`wallet_rescan_unconfirmed_btclib_node_test.py` run it,
+Each `wallet_rescan_unconfirmed_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -47,8 +46,8 @@ from bitcoin_node_tests.mini_wallet import MiniWallet
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["an_import_rescans_a_child_back_in_the_mempool_before_its_parent"]
 
@@ -59,19 +58,19 @@ _COIN = 100_000_000
 _UNSPENDABLE = address_from_witness(0, bytes(32), "regtest")
 
 
-def _sync_validation_queue(node: BitcoindAdapter | BtclibNodeAdapter) -> None:
+def _sync_validation_queue(node: NodeAdapter) -> None:
     """Core's `syncwithvalidationinterfacequeue`, on bitcoind alone."""
     if isinstance(node, BitcoindAdapter):
         node.rpc.call("syncwithvalidationinterfacequeue")
 
 
 def an_import_rescans_a_child_back_in_the_mempool_before_its_parent(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

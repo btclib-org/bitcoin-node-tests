@@ -585,6 +585,23 @@ class Capability(Enum):
     the merge of a whitelisted address with a whitebind's own flags, the
     `in` and `out` directions, and the start refused on a malformed
     list (`p2p_permissions.py`).
+    `BLOCKS_DIR` -- recognise `-blocksdir`, Core's own option naming the
+    directory that holds the block files in place of the data directory,
+    and refuse a start naming one that does not exist
+    (`feature_blocksdir.py`, `feature_filelock.py`). Not `BLK_FILES`,
+    which is the files themselves: a node can take the option and keep
+    its chain in another format.
+    `INCLUDE_CONF` -- read `includeconf` lines of its configuration file,
+    refuse `-includeconf` on the command line, and warn about one in an
+    included file (`feature_includeconf.py`).
+    `UTXO_SET_INFO` -- answer `gettxoutsetinfo`, Core's own RPC reporting
+    the commitments to the UTXO set, `muhash` and `hash_serialized_3`
+    among them (`feature_utxo_set_hash.py`). Named for the RPC, as
+    `BLOCK_STATS` is.
+    `MEMPOOL_ENTRY` -- answer `getmempoolentry`, Core's own RPC reporting
+    one mempool transaction's size, fees, `wtxid` and ancestors
+    (`mempool_accept_wtxid.py`, `mempool_updatefromblock.py`). Named for
+    the RPC, as `BLOCK_STATS` is.
     """
 
     MINE = "mine"
@@ -669,6 +686,10 @@ class Capability(Enum):
     INCREMENTAL_RELAY_FEE = "incremental_relay_fee"
     PEER_PERMISSIONS = "peer_permissions"
     CLUSTER_REPLACEMENT = "cluster_replacement"
+    BLOCKS_DIR = "blocks_dir"
+    INCLUDE_CONF = "include_conf"
+    UTXO_SET_INFO = "utxo_set_info"
+    MEMPOOL_ENTRY = "mempool_entry"
 
 
 class SkipCounts:

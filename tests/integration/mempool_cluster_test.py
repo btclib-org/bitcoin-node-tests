@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_cluster`, one body over either node.
+"""Core's `mempool_cluster`, one body over each node.
 
 Read from Core's `test/functional/mempool_cluster.py` (`659671ac3db7`,
 2026-06-04): the mempool groups the transactions its spends connect
@@ -64,8 +64,7 @@ What differs from Core's file:
   writes in BTC is written here in satoshis, and a fee the node answers
   in BTC is converted to satoshis before it is compared.
 
-`mempool_cluster_bitcoind_test.py` and
-`mempool_cluster_btclib_node_test.py` run the body,
+Each `mempool_cluster_<node>_test.py` module beside this one runs the body,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -86,15 +85,13 @@ from bitcoin_node_tests.mini_wallet import DEFAULT_FEE_RATE, FEE, MiniWallet
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.mini_wallet import Utxo
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["mempool_limits_clusters_and_reports_their_chunks"]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # Core's own `run_test`: the blocks its wallet mines before the first test
 _CHAIN_HEIGHT = 400
@@ -694,7 +691,7 @@ def mempool_limits_clusters_and_reports_their_chunks(
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

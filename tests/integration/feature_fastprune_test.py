@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_fastprune`, one body over either node.
+"""Core's `feature_fastprune`, one body over each node.
 
 Read from Core's `test/functional/feature_fastprune.py` (`fa5f29774872`,
 2025-12-16), the option and MiniWallet families together
@@ -25,8 +25,7 @@ assertions are added, that the new tip carries the transaction and is
 larger than the annex, so a block that never grew past a block file
 cannot pass.
 
-`feature_fastprune_bitcoind_test.py` and
-`feature_fastprune_btclib_node_test.py` run it,
+Each `feature_fastprune_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -43,9 +42,8 @@ from bitcoin_node_tests.mini_wallet import MiniWallet
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["a_block_larger_than_a_block_file_is_stored"]
 
@@ -55,12 +53,12 @@ _ANNEX = b"\x50" + b"\xff" * 0x10000
 
 
 def a_block_larger_than_a_block_file_is_stored(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a block past `-fastprune`'s block-file size connects all the same.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

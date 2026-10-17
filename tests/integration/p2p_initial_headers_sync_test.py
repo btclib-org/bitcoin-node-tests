@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_initial_headers_sync`, as bodies over either node.
+"""Core's `p2p_initial_headers_sync`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_initial_headers_sync.py`
 (`fa4cb96bdec2`, 2026-02-17): a node still at genesis asks one peer for
@@ -29,9 +29,9 @@ What differs from Core's file:
 - the `noban` check's `-whitelist` asks for no capability, as
   `rpc_setban.py`'s own `noban` row does not.
 
-`p2p_initial_headers_sync_bitcoind_test.py` and
-`p2p_initial_headers_sync_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_initial_headers_sync_<node>_test.py` module beside this one
+runs each body, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -56,7 +56,6 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -68,7 +67,7 @@ __all__ = [
     "headers_timeout_of_a_noban_peer_is_logged",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # what Core's own harness starts every node with and `BitcoindAdapter`
 # does not: `write_config`'s (`test_framework/util.py`) `peertimeout`, so
@@ -164,7 +163,7 @@ def headers_are_asked_of_one_peer_per_announcement(cluster: _Cluster) -> None:
     less than a day old asks every peer, and the session's own shared
     node may have mined.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     """
     (adapter,) = cluster(1)
     best_hash = _best_hash(adapter)
@@ -200,9 +199,7 @@ def headers_are_asked_of_one_peer_per_announcement(cluster: _Cluster) -> None:
             peer.close()
 
 
-def _debug_log(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(adapter: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log a log half reads, or skip where the node keeps none.
 
     :raises TypeError: `adapter` declares `Capability.DEBUG_LOG` without
@@ -317,7 +314,7 @@ def _recipients_after_ping(peers: Sequence[Peer]) -> list[Peer]:
 def headers_timeout_drops_the_peer(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the wire half: a stalling sync peer is dropped at the timeout.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -330,7 +327,7 @@ def headers_timeout_drops_the_peer(cluster: _Cluster, skip_counts: SkipCounts) -
 def headers_timeout_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half: the initial `getheaders`, then the timeout's drop.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -345,7 +342,7 @@ def headers_timeout_keeps_a_noban_peer(
 ) -> None:
     """Check the wire half: a `noban` sync peer is kept, one peer asked again.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -360,7 +357,7 @@ def headers_timeout_of_a_noban_peer_is_logged(
 ) -> None:
     """Check the log half: the timeout of a `noban` peer, not dropping it.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

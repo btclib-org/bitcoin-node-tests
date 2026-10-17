@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_updatefromblock`, one body per test over either node.
+"""Core's `mempool_updatefromblock`, one body per test over each node.
 
 Read from Core's `test/functional/mempool_updatefromblock.py`
 (`fa6b05c96ffb`, 2026-03-12) and narrowed to what the option and
@@ -36,9 +36,9 @@ there as it is, within the default ancestor and descendant limits, and
 the chain is the default of 25 and two more, refused as
 `too-long-mempool-chain`.
 
-`mempool_updatefromblock_bitcoind_test.py` and
-`mempool_updatefromblock_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `mempool_updatefromblock_<node>_test.py` module beside this one
+runs each body, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -59,9 +59,8 @@ if TYPE_CHECKING:
 
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "a_chain_over_the_default_cluster_limit_needs_a_reorg_to_fit",
@@ -87,24 +86,25 @@ _DEFAULT_ANCESTOR_LIMIT = 25
 
 
 def _start(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
     *needs: Capability,
-) -> tuple[BitcoindAdapter | BtclibNodeAdapter, bool]:
+) -> tuple[NodeAdapter, bool]:
     """Return one node and whether it runs the cluster mempool.
 
     A node declaring `Capability.LIMIT_CLUSTER_SIZE` is restarted with
     `-limitclustersize=1000`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
-    :param needs: what the body asks for beyond `Capability.MINE`, each
-        asked for ahead of it.
+    :param needs: what the body asks for beyond `Capability.MINE` and
+        `Capability.MEMPOOL_ENTRY`, each asked for ahead of them.
     """
     (node,) = cluster(1)
     for capability in needs:
         require(capability, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)
+    require(Capability.MEMPOOL_ENTRY, node.capabilities, skip_counts)
     clustered = Capability.LIMIT_CLUSTER_SIZE in node.capabilities
     if clustered:
         node.restart(["-limitclustersize=1000"])
@@ -112,7 +112,7 @@ def _start(
 
 
 def reorg_recomputes_every_entry_s_own_ancestors_and_descendants(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check an acyclic tournament's own mempool entries survive a reorg intact.
@@ -123,7 +123,7 @@ def reorg_recomputes_every_entry_s_own_ancestors_and_descendants(
     resurrected whole by a reorg longer than any of those blocks, every
     entry's own `getmempoolentry` answer still holds.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, _ = _start(cluster, skip_counts)
@@ -179,7 +179,7 @@ def reorg_recomputes_every_entry_s_own_ancestors_and_descendants(
 
 
 def a_chain_over_the_default_cluster_limit_needs_a_reorg_to_fit(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a chain over the node's default chain limit is refused entry.
@@ -193,7 +193,7 @@ def a_chain_over_the_default_cluster_limit_needs_a_reorg_to_fit(
     two is resurrected into the mempool once a longer fork reorgs that
     block away, back under the limit the chain never fit unconfirmed.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, clustered = _start(cluster, skip_counts, Capability.GENERATE)

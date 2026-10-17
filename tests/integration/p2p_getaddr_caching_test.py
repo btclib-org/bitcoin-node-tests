@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_getaddr_caching`, one body over either node.
+"""Core's `p2p_getaddr_caching`, one body over each node.
 
 Read from Core's `test/functional/p2p_getaddr_caching.py`
 (`fa5f29774872`, 2025-12-16), an option and the clock together
@@ -37,8 +37,7 @@ answer is the `addr` message it reads, `_received_addrs` having how. Core's
 `getpeerinfo` and compares its user agent, a check of the framework's
 own that is not made here.
 
-`p2p_getaddr_caching_bitcoind_test.py` and
-`p2p_getaddr_caching_btclib_node_test.py` run it,
+Each `p2p_getaddr_caching_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -60,9 +59,8 @@ if TYPE_CHECKING:
     from ipaddress import IPv6Address
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["getaddr_answers_are_cached_per_bind"]
@@ -122,7 +120,7 @@ def _received_addrs(peer: Peer) -> list[IPv6Address]:
 
 def getaddr_answers_are_cached_per_bind(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,

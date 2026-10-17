@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_seednode`, one body over either node.
+"""Core's `p2p_seednode`, one body over each node.
 
 Read from Core's `test/functional/p2p_seednode.py` (`fa5f29774872`,
 2025-12-16), a file of
@@ -52,9 +52,8 @@ Core's last step also passes with its `setmocktime` removed, here and
 under Core's own framework alike (measured against the pinned release):
 the node's own wait then passes on the real clock, inside the step's.
 
-`p2p_seednode_bitcoind_test.py` and `p2p_seednode_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `p2p_seednode_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -71,8 +70,8 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["a_seed_node_is_asked_at_once_only_by_an_empty_address_table"]
@@ -152,7 +151,7 @@ def _seednode_non_empty_addrman(node: BitcoindAdapter) -> None:
 
 def a_seed_node_is_asked_at_once_only_by_an_empty_address_table(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -162,7 +161,7 @@ def a_seed_node_is_asked_at_once_only_by_an_empty_address_table(
     Core's own `run_test`, its three steps in its order.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_orphan_handling`, as bodies over either node.
+"""Core's `p2p_orphan_handling`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_orphan_handling.py` (`9cc7dc50bdc9`,
 2026-08-17): which peers a node asks for the missing parents of an
@@ -120,9 +120,9 @@ between that change's merge and the version's move to `32.99` reads
 older and takes it in all the same, the constant's own comment having
 the commits.
 
-`p2p_orphan_handling_bitcoind_test.py` and
-`p2p_orphan_handling_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_orphan_handling_<node>_test.py` module beside this one runs
+each body, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -171,7 +171,6 @@ from tests.integration.rpc_orphans_test import in_orphanage
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -192,7 +191,7 @@ __all__ = [
     "parents_not_recently_confirmed_are_requested",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # Core's own constants (`test_framework/p2p.py`)
 _NONPREF_PEER_TX_DELAY = 2
@@ -393,7 +392,7 @@ def parents_arriving_during_the_delay_are_not_requested(
 ) -> None:
     """Core's own `test_arrival_timing_orphan`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, clock = _node(cluster, skip_counts, 2)
@@ -436,7 +435,7 @@ def a_rejected_parent_is_requested_only_under_another_witness(
 ) -> None:
     """Core's own `test_orphan_rejected_parents_exceptions`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _fresh_node(cluster, skip_counts)
@@ -519,7 +518,7 @@ def parents_not_recently_confirmed_are_requested(
 ) -> None:
     """Core's own `test_orphan_multiple_parents`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, clock = _node(cluster, skip_counts, 4, Capability.INVALIDATE_BLOCK)
@@ -581,7 +580,7 @@ def parents_already_requested_are_not_requested_again(
 ) -> None:
     """Core's own `test_orphans_overlapping_parents`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _fresh_node(cluster, skip_counts)
@@ -645,7 +644,7 @@ def a_parent_kept_as_an_orphan_is_not_requested(
 ) -> None:
     """Core's own `test_orphan_of_orphan`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _fresh_node(cluster, skip_counts)
@@ -678,7 +677,7 @@ def an_orphan_is_reconsidered_once_its_parent_is_mined(
 ) -> None:
     """Core's own `test_orphan_parent_confirmed`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, clock = _node(cluster, skip_counts, 1)
@@ -709,7 +708,7 @@ def descendants_of_a_rejected_parent_are_rejected_too(
 ) -> None:
     """Core's own `test_orphan_inherit_rejection`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _fresh_node(cluster, skip_counts)
@@ -764,7 +763,7 @@ def an_orphan_of_the_same_txid_is_kept_too(
 ) -> None:
     """Core's own `test_same_txid_orphan`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.
@@ -810,7 +809,7 @@ def a_parent_of_the_same_txid_is_requested_again(
 ) -> None:
     """Core's own `test_same_txid_orphan_of_orphan`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, clock = _node(cluster, skip_counts, 1)
@@ -864,7 +863,7 @@ def an_inv_by_an_orphan_txid_is_requested(
 ) -> None:
     """Core's own `test_orphan_txid_inv`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, clock = _node(cluster, skip_counts, 1)
@@ -909,7 +908,7 @@ def an_outbound_announcer_is_asked_for_parents_first(
 ) -> None:
     """Core's own `test_orphan_handling_prefer_outbound`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, clock = _node(cluster, skip_counts, 1, Capability.TYPED_OUTBOUND)
@@ -948,7 +947,7 @@ def every_announcer_is_asked_for_parents(
 ) -> None:
     """Core's own `test_announcers_before_and_after`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, clock = _node(cluster, skip_counts, 1, Capability.TYPED_OUTBOUND)
@@ -999,7 +998,7 @@ def a_parent_gone_missing_is_requested(
 ) -> None:
     """Core's own `test_parents_change`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, wallet, clock = _node(cluster, skip_counts, 4)
@@ -1082,7 +1081,7 @@ def a_maximal_ancestor_package_is_protected_in_the_orphanage(
 ) -> None:
     """Core's own `test_maximal_package_protected`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _fresh_node(cluster, skip_counts, Capability.DATACARRIER)

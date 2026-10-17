@@ -28,10 +28,10 @@ the node holds. The lock heights are Core's own, so the body mines
 exactly the blocks Core's file does and no other. Core's
 `assert_approx` is `approx` (`wallet_simulaterawtx_test.py`).
 
-`wallet_miniscript_decaying_multisig_descriptor_psbt_bitcoind_test.py`
-and `wallet_miniscript_decaying_multisig_descriptor_psbt_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each
+`wallet_miniscript_decaying_multisig_descriptor_psbt_<node>_test.py`
+module beside this one runs it, `tests/integration/conftest.py`'s own
+module docstring having how.
 """
 
 from __future__ import annotations
@@ -49,9 +49,8 @@ if TYPE_CHECKING:
 
     from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["a_decaying_multisig_spends_with_fewer_signers_past_each_lock"]
 
@@ -84,12 +83,12 @@ def _get_xpub(wallet: BitcoinCoreRpcClient) -> str:
 
 
 def a_decaying_multisig_spends_with_fewer_signers_past_each_lock(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

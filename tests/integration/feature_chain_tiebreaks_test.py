@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_chain_tiebreaks`, one body over either node.
+"""Core's `feature_chain_tiebreaks`, one body over each node.
 
 Read from Core's `test/functional/feature_chain_tiebreaks.py`
 (`20ae9b98eab2`, 2026-03-04), a file needing no mechanism the adapter
@@ -47,8 +47,7 @@ What differs from Core's file:
 Every step is the same at `v31.1`, the release `bitcoind.py` pins, whose
 copy of the file is the pin's.
 
-`feature_chain_tiebreaks_bitcoind_test.py` and
-`feature_chain_tiebreaks_btclib_node_test.py` run it,
+Each `feature_chain_tiebreaks_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -76,13 +75,12 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["equal_work_tips_are_broken_by_arrival"]
 
-type _Node = BitcoindAdapter | BtclibNodeAdapter
+type _Node = NodeAdapter
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -305,7 +303,7 @@ def equal_work_tips_are_broken_by_arrival(
 ) -> None:
     """Core's own `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)

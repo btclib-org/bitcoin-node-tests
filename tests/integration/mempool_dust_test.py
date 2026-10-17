@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_dust`, one body per test over either node.
+"""Core's `mempool_dust`, one body per test over each node.
 
 Read from Core's `test/functional/mempool_dust.py` (`fa5f29774872`,
 2025-12-16) and narrowed to what the option and MiniWallet families reach
@@ -40,9 +40,8 @@ Each body starts its node without the options it is about and restarts
 it with `-permitbaremultisig`, and `-dustrelayfee=0` where that is its
 subject, before any block is mined.
 
-`mempool_dust_bitcoind_test.py` and `mempool_dust_btclib_node_test.py`
-run each body, `tests/integration/conftest.py`'s own module docstring
-having how.
+Each `mempool_dust_<node>_test.py` module beside this one runs each
+body, `tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -61,8 +60,6 @@ from bitcoin_node_tests.mini_wallet import MiniWallet
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -126,12 +123,12 @@ def _allowed(node: NodeAdapter, tx: Tx) -> bool:
 
 
 def a_value_clearly_below_the_dust_threshold_is_refused(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check every standard output shape refuses a one-satoshi value as dust.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -150,12 +147,12 @@ def a_value_clearly_below_the_dust_threshold_is_refused(
 
 
 def a_value_clearly_above_the_dust_threshold_is_allowed(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check every standard output shape allows a value well above dust.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -170,12 +167,12 @@ def a_value_clearly_above_the_dust_threshold_is_allowed(
 
 
 def dustrelayfee_zero_waives_the_dust_check(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-dustrelayfee=0` allows a value the default rate would refuse.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

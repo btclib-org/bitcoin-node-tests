@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_outbound_eviction`, as bodies over either node.
+"""Core's `p2p_outbound_eviction`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_outbound_eviction.py`
 (`fa5f29774872`, 2025-12-16): an outbound peer that has not announced a
@@ -47,9 +47,9 @@ protected, Core's own `getheaders` wait is met by the one the node sent
 the peer on connecting, which asks from the same block, the node sending
 a protected peer no other.
 
-`p2p_outbound_eviction_bitcoind_test.py` and
-`p2p_outbound_eviction_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_outbound_eviction_<node>_test.py` module beside this one runs
+each body, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -70,8 +70,6 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from bitcoin_node_tests.peer import Peer
@@ -83,8 +81,8 @@ __all__ = [
     "protected_peer_is_not_evicted",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
-type _Node = BitcoindAdapter | BtclibNodeAdapter
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
+type _Node = NodeAdapter
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -188,7 +186,7 @@ def lagging_unprotected_peers_are_evicted(
 ) -> None:
     """Core's own `test_outbound_eviction_unprotected`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, clock = _node(cluster, skip_counts)
@@ -251,7 +249,7 @@ def lagging_unprotected_peers_are_evicted(
 def protected_peer_is_not_evicted(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Core's own `test_outbound_eviction_protected`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, clock = _node(cluster, skip_counts)
@@ -278,7 +276,7 @@ def only_misbehaving_unprotected_peers_are_evicted(
 ) -> None:
     """Core's own `test_outbound_eviction_mixed`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, clock = _node(cluster, skip_counts)
@@ -334,7 +332,7 @@ def block_relay_only_peer_is_not_protected(
 ) -> None:
     """Core's own `test_outbound_eviction_blocks_relay_only`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, clock = _node(cluster, skip_counts)

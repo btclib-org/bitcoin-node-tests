@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_uacomment`, one body over either node.
+"""Core's `feature_uacomment`, one body over each node.
 
 Read from Core's `test/functional/feature_uacomment.py` (`fa5f29774872`,
 2025-12-16) and ported in part, the first test of the option family
@@ -22,8 +22,7 @@ unsafe-character checks are dropped too: both ask a node to refuse to
 start on a bad value, which is a fact about a rejected argument, not
 about this capability.
 
-`feature_uacomment_bitcoind_test.py` and
-`feature_uacomment_btclib_node_test.py` run it,
+Each `feature_uacomment_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -36,20 +35,19 @@ from bitcoin_node_tests.capability import Capability, require
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["uacomment_appends_to_the_subversion_string"]
 
 
 def uacomment_appends_to_the_subversion_string(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a comment appears in `getnetworkinfo`'s subversion once named.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

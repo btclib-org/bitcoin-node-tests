@@ -37,11 +37,14 @@ pytestmark = pytest.mark.integration
 
 
 def test_nonexistent_blocksdir_refuses_to_start(
-    make_adapter: AdapterFactory, btclib_node_python: str, tmp_path: Path
+    make_adapter: AdapterFactory,
+    btclib_node_python: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
 ) -> None:
     """The target: the refusal the body module names, over btclib-node."""
     a_nonexistent_blocksdir_refuses_to_start(
-        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path
+        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path, skip_counts
     )
 
 

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_uptime`, one body over either node.
+"""Core's `rpc_uptime`, one body over each node.
 
 Read from Core's `test/functional/rpc_uptime.py` (`406c2348ddbf`,
 2026-06-13) rather than ported: that file drives a `TestNode` over
@@ -14,8 +14,8 @@ single clean-chain node, `uptime` before and after `Capability.CLOCK`
 (`capability.py`) jumps the clock forward, is the whole of what either
 file asks.
 
-`rpc_uptime_bitcoind_test.py` and `rpc_uptime_btclib_node_test.py` run
-it, `tests/integration/conftest.py`'s own module docstring having how.
+Each `rpc_uptime_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 
 A bitcoind before `v31.0` counts `uptime` from the wall clock, so it
 follows `setmocktime` (bitcoin/bitcoin#34328). No probe tells the two
@@ -34,9 +34,8 @@ from bitcoin_node_tests.capability import Capability, require
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["uptime_does_not_jump_with_the_wall_clock"]
 
@@ -51,13 +50,13 @@ _MONOTONIC_UPTIME_VERSION = 310000
 
 
 def uptime_does_not_jump_with_the_wall_clock(
-    adapter: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
+    adapter: NodeAdapter, skip_counts: SkipCounts
 ) -> None:
     """Core's own subject: `uptime` does not follow the mock clock.
 
     A bitcoind before `_MONOTONIC_UPTIME_VERSION` follows it instead.
 
-    :param adapter: `bitcoind_adapter` or `btclib_node_adapter`.
+    :param adapter: a node's own adapter fixture.
     :param skip_counts: the session's own tally.
     """
     require(Capability.CLOCK, adapter.capabilities, skip_counts)

@@ -1,0 +1,66 @@
+# Copyright (c) The btclib developers
+# Distributed under the MIT software license, see the accompanying
+# LICENSE file or https://opensource.org/license/mit for the full text.
+
+"""Core's `p2p_outbound_eviction`, rewritten on tf2's own harness: btcd.
+
+`p2p_outbound_eviction_test.py` beside this module is the body, run here
+against btcd, a target rather than the oracle (rule 3 of issue
+btclib-org/btclib#2220).
+
+    export TF2_INTEGRATION=1 TF2_BTCD=<btcd>
+    uv run pytest tests/integration/p2p_outbound_eviction_btcd_test.py
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import pytest
+
+from tests.integration.p2p_outbound_eviction_test import (
+    block_relay_only_peer_is_not_protected,
+    lagging_unprotected_peers_are_evicted,
+    only_misbehaving_unprotected_peers_are_evicted,
+    protected_peer_is_not_evicted,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from bitcoin_node_tests.btcd import BtcdAdapter
+    from bitcoin_node_tests.capability import SkipCounts
+
+pytestmark = pytest.mark.integration
+
+
+def test_lagging_unprotected_peers_are_evicted(
+    btcd_cluster: Callable[[int], list[BtcdAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btcd."""
+    lagging_unprotected_peers_are_evicted(btcd_cluster, skip_counts)
+
+
+def test_protected_peer_is_not_evicted(
+    btcd_cluster: Callable[[int], list[BtcdAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btcd."""
+    protected_peer_is_not_evicted(btcd_cluster, skip_counts)
+
+
+def test_only_misbehaving_unprotected_peers_are_evicted(
+    btcd_cluster: Callable[[int], list[BtcdAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btcd."""
+    only_misbehaving_unprotected_peers_are_evicted(btcd_cluster, skip_counts)
+
+
+def test_block_relay_only_peer_is_not_protected(
+    btcd_cluster: Callable[[int], list[BtcdAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btcd."""
+    block_relay_only_peer_is_not_protected(btcd_cluster, skip_counts)

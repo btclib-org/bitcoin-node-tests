@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_sigoplimit`, one body over either node.
+"""Core's `mempool_sigoplimit`, one body over each node.
 
 Read from Core's `test/functional/mempool_sigoplimit.py` (`5d25a0c28d19`,
 2026-07-07) and narrowed to what the option and MiniWallet families
@@ -35,8 +35,7 @@ before any block is mined, and with a `-datacarriersize` over the
 default with `scriptpubkey` (`Capability.DATACARRIER`;
 bitcoin/bitcoin#32406, first in `v30.0rc1`).
 
-`mempool_sigoplimit_bitcoind_test.py` and
-`mempool_sigoplimit_btclib_node_test.py` run it,
+Each `mempool_sigoplimit_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -62,9 +61,8 @@ from bitcoin_node_tests.mini_wallet import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["a_sigop_heavy_transaction_is_billed_by_its_equivalent_vsize"]
 
@@ -103,12 +101,12 @@ def _spending_tx(funding_tx: Tx, witness_script: bytes, padding: bytes) -> Tx:
 
 
 def a_sigop_heavy_transaction_is_billed_by_its_equivalent_vsize(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `vsize` follows the sigop-equivalent floor, not the serialized one.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

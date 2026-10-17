@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_whitelist`, one body over either node.
+"""Core's `rpc_whitelist`, one body over each node.
 
 Read from Core's `test/functional/rpc_whitelist.py` (`fa24693819e0`,
 2026-05-26), disk-family mechanism alone (issue btclib-org/btclib#2220,
@@ -28,8 +28,8 @@ so a build without it skips before the data directory exists.
 `btclib_node.py`'s own docstring is where that capability's
 per-executable probe is argued.
 
-`rpc_whitelist_bitcoind_test.py` and `rpc_whitelist_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having how.
+Each `rpc_whitelist_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -47,9 +47,8 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [
@@ -89,7 +88,7 @@ def _call(port: int, user: str, password: str, method: str) -> int:
 
 def rpcwhitelist_restricts_a_users_own_rpc_surface(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -97,7 +96,7 @@ def rpcwhitelist_restricts_a_users_own_rpc_surface(
     """Check a whitelisted user reaches only its own methods; others answer 403.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -128,7 +127,7 @@ def rpcwhitelist_restricts_a_users_own_rpc_surface(
 
 def rpcwhitelistdefault_governs_an_unlisted_user(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -136,7 +135,7 @@ def rpcwhitelistdefault_governs_an_unlisted_user(
     """Check `rpcwhitelistdefault=1` refuses a user `rpcwhitelist` never named.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

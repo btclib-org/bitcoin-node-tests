@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_proxy`, one body over either node.
+"""Core's `feature_proxy`, one body over each node.
 
 Read from Core's `test/functional/feature_proxy.py` (`f82043af507a`,
 2026-06-30), the first file of
@@ -61,9 +61,8 @@ a proxy, a regtest node asks for its chain's own `dummySeed.invalid.` as
 well, and that request can reach the proxy ahead of one of the test's
 own (measured against the pinned release).
 
-`feature_proxy_bitcoind_test.py` and `feature_proxy_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `feature_proxy_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -80,8 +79,6 @@ from bitcoin_node_tests.socks5 import AddressType, Socks5Proxy, Socks5Request
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -267,14 +264,14 @@ def _refusal(node: NodeAdapter, extra_args: list[str]) -> str:
 
 
 def proxy_reaches_every_network_through_one_proxy(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-proxy` alone takes a peer of every network Core's test dials.
 
     Core's node 0.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -287,7 +284,7 @@ def proxy_reaches_every_network_through_one_proxy(
 
 
 def onion_reaches_tor_through_a_proxy_of_its_own(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-onion` takes the onion connection `-proxy` does not.
@@ -297,7 +294,7 @@ def onion_reaches_tor_through_a_proxy_of_its_own(
     username/password, and `-proxyrandomize` off has the node send it
     none.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -328,7 +325,7 @@ def onion_reaches_tor_through_a_proxy_of_its_own(
 
 
 def proxyrandomize_gives_each_connection_credentials_of_its_own(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-proxyrandomize` sends each connection distinct credentials.
@@ -336,7 +333,7 @@ def proxyrandomize_gives_each_connection_credentials_of_its_own(
     Core's node 2: a proxy offering username/password, which the node
     authenticates to with a pair no other connection of its own uses.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -353,7 +350,7 @@ def proxyrandomize_gives_each_connection_credentials_of_its_own(
 
 
 def ipv6_loopback_proxy_reaches_every_network_but_onion(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a proxy on `::1` takes every network `-noonion` leaves it.
@@ -362,7 +359,7 @@ def ipv6_loopback_proxy_reaches_every_network_but_onion(
     `-proxyrandomize` off has the node send it none. No onion address is
     dialled, as Core's own `node_test` dials none for this node.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -391,7 +388,7 @@ def ipv6_loopback_proxy_reaches_every_network_but_onion(
 
 
 def cjdnsreachable_reaches_cjdns_through_the_proxy(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-cjdnsreachable` takes an `fc00::/8` address as CJDNS.
@@ -399,7 +396,7 @@ def cjdnsreachable_reaches_cjdns_through_the_proxy(
     Core's node 4: the CJDNS address goes through `-proxy`'s own proxy,
     as its IPv6 one does, and `getpeerinfo` names its network `cjdns`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -420,7 +417,7 @@ def cjdnsreachable_reaches_cjdns_through_the_proxy(
 
 
 def unix_socket_proxy_reaches_every_network_but_i2p(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-proxy=unix:<path>` takes a peer of every network, as one on TCP.
@@ -429,7 +426,7 @@ def unix_socket_proxy_reaches_every_network_but_i2p(
     `-proxyrandomize`'s own default has the node send it credentials.
     `getnetworkinfo` reports the path behind `unix:`, with no port.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -442,14 +439,14 @@ def unix_socket_proxy_reaches_every_network_but_i2p(
 
 
 def onion_through_a_unix_socket_is_the_proxy_of_onion_alone(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-onion=unix:<path>` alone gives onion a proxy and nothing else.
 
     Core's node 6, of which Core's file dials nothing.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -469,7 +466,7 @@ def onion_through_a_unix_socket_is_the_proxy_of_onion_alone(
 
 
 def i2psam_is_the_proxy_of_i2p_alone(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-i2psam` makes I2P reachable, its endpoint I2P's proxy alone.
@@ -482,7 +479,7 @@ def i2psam_is_the_proxy_of_i2p_alone(
     node never reaches it, which is Core's own comment on it. Nothing
     reads `-i2pacceptincoming=0` back, as nothing in Core's file does.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -499,7 +496,7 @@ def i2psam_is_the_proxy_of_i2p_alone(
 
 
 def proxy_network_suffix_sets_the_proxy_of_that_network(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-proxy=<proxy>=<network>` sets, or removes, one network's proxy.
@@ -513,7 +510,7 @@ def proxy_network_suffix_sets_the_proxy_of_that_network(
     not read tell the two apart. Nothing is dialled, so nothing listens
     at Core's own addresses.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -549,7 +546,7 @@ def proxy_network_suffix_sets_the_proxy_of_that_network(
 
 
 def malformed_proxy_or_onion_is_refused(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a `-proxy` or `-onion` naming no usable proxy refuses to start.
@@ -560,7 +557,7 @@ def malformed_proxy_or_onion_is_refused(
     `Capability.PROXY_PER_NETWORK` reads a suffix as part of the port, so
     the `-proxy` starts giving one expect its refusal of that port.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -590,14 +587,14 @@ def malformed_proxy_or_onion_is_refused(
 
 
 def malformed_i2psam_is_refused(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check an `-i2psam` naming no usable address refuses to start.
 
     Core's own invalid host and invalid port.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -611,7 +608,7 @@ def malformed_i2psam_is_refused(
 
 
 def onlynet_refuses_a_network_it_cannot_reach(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-onlynet` refuses a network it has no way to reach, or none.
@@ -622,7 +619,7 @@ def onlynet_refuses_a_network_it_cannot_reach(
     know. The wording names the option each network's reach is given by,
     so each capability behind those options is asked for too.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

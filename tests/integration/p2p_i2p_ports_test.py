@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_i2p_ports`, one body over either node.
+"""Core's `p2p_i2p_ports`, one body over each node.
 
 Read from Core's `test/functional/p2p_i2p_ports.py` (`fa20275db32c`,
 2025-10-21), a file of
@@ -18,9 +18,8 @@ assumes of its own. Core names a port by formula, the p2p port of a node
 its file never starts; the endpoint here is a port `node.free_port`
 hands out, bound and closed.
 
-`p2p_i2p_ports_bitcoind_test.py` and `p2p_i2p_ports_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `p2p_i2p_ports_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -35,8 +34,8 @@ from bitcoin_node_tests.node import free_port
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["i2p_is_dialled_on_port_zero_alone"]
 
@@ -46,7 +45,7 @@ _PORT_ZERO = "h3r6bkn46qxftwja53pxiykntegfyfjqtnzbm6iv6r5mungmqgmq.b32.i2p:0"
 
 
 def i2p_is_dialled_on_port_zero_alone(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check an I2P address is refused on port 8333 and dialled on port 0.
@@ -55,7 +54,7 @@ def i2p_is_dialled_on_port_zero_alone(
     8333 is refused before the SAM bridge is reached, and one to an
     address on port 0 fails for want of the bridge.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: the node declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.

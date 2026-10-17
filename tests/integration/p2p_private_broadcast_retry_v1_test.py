@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_private_broadcast_retry_v1`, one body over either node.
+"""Core's `p2p_private_broadcast_retry_v1`, one body over each node.
 
 Read from Core's `test/functional/p2p_private_broadcast_retry_v1.py`
 (`4e8c4bc794c0`, 2026-08-04): a private broadcast connection to an IPv4
@@ -37,9 +37,9 @@ What differs from Core's file:
   retries each in v1, and the retry is closed too. Nothing Core's file
   reads is on those connections.
 
-`p2p_private_broadcast_retry_v1_bitcoind_test.py` and
-`p2p_private_broadcast_retry_v1_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_private_broadcast_retry_v1_<node>_test.py` module beside this
+one runs it, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -63,9 +63,8 @@ from bitcoin_node_tests.timeout_factor import scaled
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from bitcoin_node_tests.socks5 import Socks5Request
     from tests.conftest import AdapterFactory
 
@@ -277,7 +276,7 @@ class _Proxies:
 
 def v1_retry_goes_through_the_tor_proxy(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -285,7 +284,7 @@ def v1_retry_goes_through_the_tor_proxy(
     """Core's `run_test`, in its order.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

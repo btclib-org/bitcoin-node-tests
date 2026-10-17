@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_invalid_block`, as bodies over either node.
+"""Core's `p2p_invalid_block`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_invalid_block.py` (`fa16bc53d79c`,
 2026-04-16): a node takes a valid block from a peer, refuses a block
@@ -47,8 +47,7 @@ What differs from Core's file:
   the original block's `getdata` is met by a request already recorded
   under that hash.
 
-`p2p_invalid_block_bitcoind_test.py` and
-`p2p_invalid_block_btclib_node_test.py` run each body,
+Each `p2p_invalid_block_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -83,13 +82,12 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["invalid_blocks_are_logged", "invalid_blocks_are_refused"]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -111,9 +109,7 @@ _WAIT = 60.0
 _ORIGINAL_WAIT = 5.0
 
 
-def _debug_log(
-    node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log the log half reads, or skip where the node keeps none.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -268,7 +264,7 @@ def _connect(node: NodeAdapter) -> Peer:
     return peer
 
 
-def _run(node: BitcoindAdapter | BtclibNodeAdapter, log_path: Path | None) -> None:
+def _run(node: NodeAdapter, log_path: Path | None) -> None:
     """Core's own `run_test`, over `node` already started with `_NOBAN`.
 
     :param log_path: the node's own log where the body is the log half.
@@ -361,7 +357,7 @@ def _run(node: BitcoindAdapter | BtclibNodeAdapter, log_path: Path | None) -> No
 def invalid_blocks_are_refused(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the wire half: each invalid block refused, each valid one taken.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -374,7 +370,7 @@ def invalid_blocks_are_refused(cluster: _Cluster, skip_counts: SkipCounts) -> No
 def invalid_blocks_are_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half: each refusal logged with Core's own reject reason.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

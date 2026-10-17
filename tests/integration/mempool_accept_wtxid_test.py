@@ -12,7 +12,8 @@ non-witness data its mempool already holds, and answers the second's own
 `sendrawtransaction` by announcing the first again, by its own wtxid, to a
 peer that has not seen it. Every assertion Core's file makes is kept.
 
-`MiniWallet` (`Capability.MINE`) funds the parent, as in Core. It needs a
+`MiniWallet` (`Capability.MINE`) funds the parent, as in Core, and
+`getmempoolentry` is `Capability.MEMPOOL_ENTRY`. It needs a
 mature coin, so it first mines one block past `COINBASE_MATURITY`, where
 Core's own node starts on a chain its framework already mined, and the
 block confirming the parent is one it mines carrying that parent. The
@@ -212,6 +213,7 @@ def a_child_sharing_a_txid_is_told_apart_by_its_wtxid(
     """
     (node,) = cluster(1)
     require(Capability.MINE, node.capabilities, skip_counts)
+    require(Capability.MEMPOOL_ENTRY, node.capabilities, skip_counts)
     wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + 1)
     assert node.rpc.call("getmempoolinfo")["size"] == 0

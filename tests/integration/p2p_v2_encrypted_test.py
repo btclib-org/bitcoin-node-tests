@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_v2_encrypted`, as bodies over either node.
+"""Core's `p2p_v2_encrypted`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_v2_encrypted.py` (`fab352053d6e`,
 2026-04-16): a node started with `-v2transport=1` takes test peers
@@ -26,8 +26,7 @@ What differs from Core's file:
 - the test peers are closed before the restart, where Core's own
   `restart_node` forgets them.
 
-`p2p_v2_encrypted_bitcoind_test.py` and
-`p2p_v2_encrypted_btclib_node_test.py` run each body,
+Each `p2p_v2_encrypted_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -60,14 +59,12 @@ from bitcoin_node_tests.timeout_factor import scaled
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["inbound_connections_and_blocks", "outbound_connections"]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -275,7 +272,7 @@ def _send_blocks_and_test(
 def inbound_connections_and_blocks(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check inbound v2 and v1 peers, blocks past a rekeying, and a v1 restart.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = _pair(cluster, skip_counts)
@@ -326,7 +323,7 @@ def inbound_connections_and_blocks(cluster: _Cluster, skip_counts: SkipCounts) -
 def outbound_connections(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check outbound peers: v1, v1 advertised as v2, and v2.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

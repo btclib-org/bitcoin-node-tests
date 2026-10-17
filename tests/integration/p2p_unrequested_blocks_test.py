@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_unrequested_blocks`, one body over either node.
+"""Core's `p2p_unrequested_blocks`, one body over each node.
 
 Read from Core's `test/functional/p2p_unrequested_blocks.py`
 (`fab352053d6e`, 2026-04-16), an option and the log beside node-linking
@@ -42,8 +42,7 @@ file there differs from the pinned revision only in handing each
 `create_block` a coinbase of its own `create_coinbase` rather than a
 height.
 
-`p2p_unrequested_blocks_bitcoind_test.py` and
-`p2p_unrequested_blocks_btclib_node_test.py` run it,
+Each `p2p_unrequested_blocks_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -81,13 +80,12 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["unrequested_blocks_are_processed_only_when_useful"]
 
-type _Node = BitcoindAdapter | BtclibNodeAdapter
+type _Node = NodeAdapter
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -257,7 +255,7 @@ def unrequested_blocks_are_processed_only_when_useful(
 ) -> None:
     """Core's own `setup_network` and `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)

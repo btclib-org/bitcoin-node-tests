@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_preciousblock`, one body over either node.
+"""Core's `rpc_preciousblock`, one body over each node.
 
 Read from Core's `test/functional/rpc_preciousblock.py` (`fa5f29774872`,
 2025-12-16), a file needing no mechanism the adapter lacks
@@ -33,8 +33,7 @@ What differs from Core's file:
 Every step is the same at `v31.1`, the release `bitcoind.py` pins, whose
 copy of the file is the pin's.
 
-`rpc_preciousblock_bitcoind_test.py` and
-`rpc_preciousblock_btclib_node_test.py` run it,
+Each `rpc_preciousblock_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -50,14 +49,12 @@ from bitcoin_node_tests.node import connect_nodes, wait_until_tips_agree
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["a_precious_block_wins_a_tie"]
 
-type _Node = BitcoindAdapter | BtclibNodeAdapter
+type _Node = NodeAdapter
 
 # Core's own `PRIV_KEYS` addresses (`test_framework/test_node.py`), the
 # one its `generate` has each node pay, by the node's own index
@@ -144,7 +141,7 @@ def a_precious_block_wins_a_tie(
 ) -> None:
     """Core's own `setup_network` and `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(3)

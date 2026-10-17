@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_port`, one body over either node.
+"""Core's `feature_port`, one body over each node.
 
 Read from Core's `test/functional/feature_port.py`
 (`997757dd2b4d`, 2024-11-15), the option and log families together
@@ -30,9 +30,8 @@ A refused start compares the node's stderr with Core's `expected_msg`
 whole, the `ErrorMatch.FULL_TEXT` comparison
 `assert_start_raises_init_error` makes by default.
 
-`feature_port_bitcoind_test.py` and `feature_port_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `feature_port_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -50,8 +49,8 @@ from bitcoin_node_tests.node import free_port, free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["port_and_bind_decide_where_the_node_listens"]
@@ -96,7 +95,7 @@ def _refusal(node: BitcoindAdapter, extra_args: list[str]) -> str:
 
 def port_and_bind_decide_where_the_node_listens(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,

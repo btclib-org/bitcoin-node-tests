@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mining_template_verification`, one body over either node.
+"""Core's `mining_template_verification`, one body over each node.
 
 Read from Core's `test/functional/mining_template_verification.py`
 (`6eca11175be6`, 2026-07-16): the node checks a block handed to
@@ -45,9 +45,9 @@ Core checks proposals from several threads over `bitcoin-cli`, a program
 this repository does not run; here each thread holds an RPC client of
 its own (`NodeAdapter.rpc`), concurrency being the subject.
 
-`mining_template_verification_bitcoind_test.py` and
-`mining_template_verification_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `mining_template_verification_<node>_test.py` module beside this
+one runs it, `tests/integration/conftest.py`'s own module docstring
+having how.
 """
 
 from __future__ import annotations
@@ -80,8 +80,6 @@ if TYPE_CHECKING:
 
     from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -264,12 +262,12 @@ def _block_3(node: NodeAdapter, block_0_height: int, txlist: Sequence[Tx]) -> Bl
 
 
 def a_proposed_block_is_checked_and_not_stored(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's `run_test`, in its order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

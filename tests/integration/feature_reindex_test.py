@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_reindex`, one body over either node.
+"""Core's `feature_reindex`, one body over each node.
 
 Read from Core's `test/functional/feature_reindex.py` (`9e6546c517cd`,
 2026-06-21), the option, disk and log families together
@@ -39,8 +39,8 @@ line or "Reindexing finished", and Core's file asserts neither: a node
 that reindexes the chain before the stop arrives has nothing to
 interrupt, and the next start has no reindex to finish.
 
-`feature_reindex_bitcoind_test.py` and `feature_reindex_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_reindex_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -57,8 +57,8 @@ from bitcoin_node_tests.node import free_ports, wait_until
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [
@@ -127,7 +127,7 @@ _INITLOAD_START = "initload thread start"
 
 def _node(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     datadir: Path,
     skip_counts: SkipCounts,
@@ -136,7 +136,7 @@ def _node(
     """Build a node over `datadir`, asking `REINDEX` first, then the rest.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param datadir: the node's own data directory, not yet created.
     :param skip_counts: the session's own tally.
@@ -203,7 +203,7 @@ def _xor(data: bytes, key: bytes, offset: int) -> bytes:
 
 def a_reindex_restores_the_height(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -211,7 +211,7 @@ def a_reindex_restores_the_height(
     """Check each reindex comes back at the height mined, Core's `reindex`.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -237,7 +237,7 @@ def a_reindex_restores_the_height(
 
 def blocks_out_of_order_are_reindexed(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -249,7 +249,7 @@ def blocks_out_of_order_are_reindexed(
     new offset.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
@@ -293,7 +293,7 @@ def blocks_out_of_order_are_reindexed(
 
 def an_interrupted_reindex_keeps_its_index(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -306,7 +306,7 @@ def an_interrupted_reindex_keeps_its_index(
     opens the index rather than wiping it.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

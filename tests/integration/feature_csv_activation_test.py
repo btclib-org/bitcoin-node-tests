@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_csv_activation`, one body over either node.
+"""Core's `feature_csv_activation`, one body over each node.
 
 Read from Core's `test/functional/feature_csv_activation.py`
 (`fab352053d6e`, 2026-04-16), on the option and MiniWallet families together
@@ -51,9 +51,9 @@ places, so no `Capability.CLOCK` is asked for. After each accepted block
 Core's `invalidateblock` (`Capability.INVALIDATE_BLOCK`) takes it back
 off, so the next check builds on the same tip.
 
-`feature_csv_activation_bitcoind_test.py` and
-`feature_csv_activation_btclib_node_test.py` run these,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `feature_csv_activation_<node>_test.py` module beside this one runs
+these, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -82,8 +82,6 @@ if TYPE_CHECKING:
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -281,10 +279,10 @@ class _Chain:
 
 
 def _start_with_csv_height(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
     height: int,
-) -> BitcoindAdapter | BtclibNodeAdapter:
+) -> NodeAdapter:
     """Return one node, restarted with CSV held back until `height`."""
     (node,) = cluster(1)
     require(Capability.TEST_ACTIVATION_HEIGHT, node.capabilities, skip_counts)
@@ -294,12 +292,12 @@ def _start_with_csv_height(
 
 
 def csv_activates_one_block_before_the_configured_height(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `getdeploymentinfo`'s `csv` entry tracks the configured height.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start_with_csv_height(cluster, skip_counts, _CSV_HEIGHT)
@@ -314,14 +312,14 @@ def csv_activates_one_block_before_the_configured_height(
 
 
 def csv_rules_are_enforced_from_the_configured_height(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check BIP68, BIP112 and BIP113 are enforced from the configured height.
 
     Core's own `run_test`, in its own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start_with_csv_height(cluster, skip_counts, _CORE_CSV_HEIGHT)

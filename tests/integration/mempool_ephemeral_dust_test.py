@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_ephemeral_dust`, as bodies over either node.
+"""Core's `mempool_ephemeral_dust`, as bodies over each node.
 
 Read from Core's `test/functional/mempool_ephemeral_dust.py`
 (`7c8030143925`, 2026-02-25, the same file at the pinned `v31.1` and at
@@ -64,9 +64,9 @@ What differs from Core's file:
   (`test/functional/test_framework/mempool_util.py`), which this
   repository's `mempool_util.py` does not carry.
 
-`mempool_ephemeral_dust_bitcoind_test.py` and
-`mempool_ephemeral_dust_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `mempool_ephemeral_dust_<node>_test.py` module beside this one runs
+each body, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -94,8 +94,6 @@ if TYPE_CHECKING:
     from btclib.block.block import Block
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.mini_wallet import Utxo
     from bitcoin_node_tests.node import NodeAdapter
@@ -113,7 +111,7 @@ __all__ = [
     "zero_value_dust_enters_with_the_package_spending_it",
 ]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 # the `CLIENT_VERSION` (`src/clientversion.h`) of `v31.0`, whose first tag,
 # `v31.0rc1`, is the first to carry bitcoin/bitcoin#33892 and
@@ -370,7 +368,7 @@ def zero_value_dust_enters_with_the_package_spending_it(
     as dust; submitted as a package it enters, and reaches the peer. Once
     it is in the mempool no delta may be set on it, and a block takes both.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes, wallet = _pair(
@@ -435,7 +433,7 @@ def a_childless_dusty_parent_stays_unmined(
     descendant fee. A block does not take it; a new child spending its
     dust enters alone, and a block takes both.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes, wallet = _pair(
@@ -493,7 +491,7 @@ def a_restart_drops_an_ephemeral_package(
     back after both nodes restart, the parent reloaded alone paying too
     little.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes, wallet = _pair(
@@ -530,7 +528,7 @@ def a_dusty_parent_paying_a_fee_is_refused(
     a zero-fee parent given a positive delta is refused alone and as a
     package.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes, wallet = _pair(
@@ -584,7 +582,7 @@ def a_parent_with_two_dust_outputs_is_refused(
 
     Core's `test_multidust`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes, wallet = _pair(
@@ -617,7 +615,7 @@ def any_single_dust_output_is_allowed_alone(
     short of the P2TR dust threshold, or that threshold, its spend
     unchecked; restarted with no option, neither node holds anything.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes, wallet = _pair(
@@ -649,7 +647,7 @@ def a_non_truc_dusty_parent_enters_with_its_spender(
     Core's `test_non_truc`. Before `v31.0` the package is refused whole,
     for the parent's fee.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes, wallet = _pair(
@@ -691,7 +689,7 @@ def dust_left_unspent_refuses_the_child(
     is refused whole, and one whose child spends the dust alone, and a
     coin of its own, enters.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes, wallet = _pair(
@@ -776,7 +774,7 @@ def a_reorg_returns_dust_to_the_mempool_unchecked(
     refused as a `TRUC-violation`. A parent with two dust outputs, or with
     a fee, does not come back. Linked again, both nodes agree.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes, wallet = _pair(
@@ -938,7 +936,7 @@ def a_batch_sweep_must_spend_every_parents_dust(
     outputs. Once a transaction spending that other child's own coin
     replaces it, a child spending every output of the batch enters.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes, wallet = _pair(

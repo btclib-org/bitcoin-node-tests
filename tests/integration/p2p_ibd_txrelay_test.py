@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_ibd_txrelay`, as bodies over either node.
+"""Core's `p2p_ibd_txrelay`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_ibd_txrelay.py` (`fab352053d6e`,
 2026-04-16): transaction relay while a node is in initial block
@@ -50,8 +50,7 @@ What differs from Core's file:
   here the wait is for the node's own `getpeerinfo` to name the other
   node alone.
 
-`p2p_ibd_txrelay_bitcoind_test.py` and
-`p2p_ibd_txrelay_btclib_node_test.py` run each body,
+Each `p2p_ibd_txrelay_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -83,13 +82,12 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message, Version
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["ibd_tx_relay_is_logged", "ibd_tx_relay_is_withheld"]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -133,9 +131,7 @@ _IBD_BLOCKS_NOT_FILTERED_VERSION = 310000
 _WAIT = 60.0
 
 
-def _debug_log(
-    node: BitcoindAdapter | BtclibNodeAdapter, skip_counts: SkipCounts
-) -> Path:
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     """Return the log the log half reads, or skip where the node keeps none.
 
     :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
@@ -354,7 +350,7 @@ def _run(node: NodeAdapter, other: NodeAdapter, log_path: Path | None) -> None:
 
 def _nodes(
     cluster: _Cluster, skip_counts: SkipCounts
-) -> tuple[BitcoindAdapter | BtclibNodeAdapter, NodeAdapter]:
+) -> tuple[NodeAdapter, NodeAdapter]:
     """Return two fresh nodes, each started with Core's own `extra_args`.
 
     :returns: the node under test, and the node dialling it.
@@ -378,7 +374,7 @@ def _start(node: NodeAdapter, other: NodeAdapter) -> None:
 def ibd_tx_relay_is_withheld(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the wire half: filters, requests and relay in and out of IBD.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, other = _nodes(cluster, skip_counts)
@@ -389,7 +385,7 @@ def ibd_tx_relay_is_withheld(cluster: _Cluster, skip_counts: SkipCounts) -> None
 def ibd_tx_relay_is_logged(cluster: _Cluster, skip_counts: SkipCounts) -> None:
     """Check the log half: each transaction sent unasked, in Core's own words.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node, other = _nodes(cluster, skip_counts)

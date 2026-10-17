@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_assumevalid`, one body over either node.
+"""Core's `feature_assumevalid`, one body over each node.
 
 Read from Core's `test/functional/feature_assumevalid.py` (`fa16bc53d79c`,
 2026-04-16), an option and the log
@@ -66,8 +66,7 @@ What differs from Core's file:
   holds on a `v29.4` or a `v30.3` build, only the log read against it
   differs, or is left unread where the build logs none.
 
-`feature_assumevalid_bitcoind_test.py` and
-`feature_assumevalid_btclib_node_test.py` run it,
+Each `feature_assumevalid_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -104,7 +103,6 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -113,7 +111,7 @@ __all__ = [
     "script_verification_depends_on_assumevalid_and_its_conditions",
 ]
 
-type _Node = BitcoindAdapter | BtclibNodeAdapter
+type _Node = NodeAdapter
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -325,7 +323,7 @@ def script_verification_depends_on_assumevalid_and_its_conditions(
 ) -> None:
     """Core's own `setup_network` and `run_test`, one node per case.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     with ExitStack() as stack:

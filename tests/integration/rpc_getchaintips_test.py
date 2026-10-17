@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_getchaintips`, one body over either node.
+"""Core's `rpc_getchaintips`, one body over each node.
 
 Read from Core's `test/functional/rpc_getchaintips.py` (`fa16bc53d79c`,
 2026-04-16), a file needing no mechanism the adapter lacks
@@ -39,8 +39,7 @@ Every step is the same at `v31.1`, the release `bitcoind.py` pins: Core's
 file there differs from the pinned revision only in how it hands
 `create_block` a coinbase and a time.
 
-`rpc_getchaintips_bitcoind_test.py` and
-`rpc_getchaintips_btclib_node_test.py` run it,
+Each `rpc_getchaintips_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -66,14 +65,12 @@ from bitcoin_node_tests.node import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["chain_tips_are_reported"]
 
-type _Node = BitcoindAdapter | BtclibNodeAdapter
+type _Node = NodeAdapter
 
 _HALVING_INTERVAL = CONSENSUS_PARAMS["regtest"].subsidy_halving_interval
 
@@ -172,7 +169,7 @@ def chain_tips_are_reported(
 ) -> None:
     """Core's own `setup_network` and `run_test`, in Core's own order.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     nodes = cluster(4)

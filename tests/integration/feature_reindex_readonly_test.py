@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_reindex_readonly`, one body over either node.
+"""Core's `feature_reindex_readonly`, one body over each node.
 
 Read from Core's `test/functional/feature_reindex_readonly.py`
 (`6eca11175be6`, 2026-07-16), the option, disk and log families together
@@ -31,8 +31,7 @@ The node is built over a data directory of its own, through
 a file inside it. The wait after the restart is
 `feature_reindex_test.py`'s own.
 
-`feature_reindex_readonly_bitcoind_test.py` and
-`feature_reindex_readonly_btclib_node_test.py` run it,
+Each `feature_reindex_readonly_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -50,8 +49,8 @@ from bitcoin_node_tests.node import free_ports, wait_until
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["a_read_only_block_file_is_reindexed"]
@@ -77,7 +76,7 @@ def _mempool_loaded(node: BitcoindAdapter) -> bool:
 
 def a_read_only_block_file_is_reindexed(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
     skip_counts: SkipCounts,
@@ -85,7 +84,7 @@ def a_read_only_block_file_is_reindexed(
     """Check a reindex reads a block file it cannot write to.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `rpc_echo_payload`, one body over either node.
+"""Core's `rpc_echo_payload`, one body over each node.
 
 Read from Core's `test/functional/rpc_echo_payload.py` (`fa7bc26d1276`,
 2026-08-06), an option-family row
@@ -36,8 +36,7 @@ bitcoin/bitcoin#35597 removed, is called over a connection of its own per
 call, as `urlopen_transport` makes one. That is the one difference from
 Core's file, which keeps each caller's connection.
 
-`rpc_echo_payload_bitcoind_test.py` and
-`rpc_echo_payload_btclib_node_test.py` run it,
+Each `rpc_echo_payload_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -60,7 +59,6 @@ from bitcoin_node_tests.capability import Capability, require
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -130,12 +128,12 @@ def _call_repeatedly(rpc: BitcoinCoreRpcClient, data: str) -> None:
 
 
 def a_payload_is_answered_or_refused_never_left_to_time_out(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Core's own subject: every request is answered or refused in time.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

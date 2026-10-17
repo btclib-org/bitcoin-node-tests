@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_block_times`, as a body over either node.
+"""Core's `p2p_block_times`, as a body over each node.
 
 Read from Core's `test/functional/p2p_block_times.py` (`5d5397d84108`,
 2026-07-25): `getpeerinfo`'s `last_block_announcement` for an outbound
@@ -34,8 +34,7 @@ Core's harness starts every node with a `peertimeout`
 the body moves the node's clock a second past the wall clock, far short
 of the twenty minutes `CConnman::InactivityCheck` (`src/net.cpp`) waits.
 
-`p2p_block_times_bitcoind_test.py` and
-`p2p_block_times_btclib_node_test.py` run the body,
+Each `p2p_block_times_<node>_test.py` module beside this one runs the body,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -63,14 +62,13 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
     from bitcoin_node_tests.peer import Peer
 
 __all__ = ["block_announcement_time_is_tracked"]
 
-type _Cluster = Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]]
+type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -192,7 +190,7 @@ def block_announcement_time_is_tracked(
 ) -> None:
     """Core's own `run_test`: a first announcement alone sets the time.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

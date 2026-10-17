@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `feature_dirsymlinks`, one body over either node.
+"""Core's `feature_dirsymlinks`, one body over bitcoind and btclib-node.
 
 Read from Core's `test/functional/feature_dirsymlinks.py`
 (`fa5f29774872`, 2025-12-16), disk-family mechanism alone
@@ -20,9 +20,12 @@ no capability beyond what every adapter already answers. Kept whole.
 same way Core's `blk*.dat` layout does: the fact is about the operating
 system's own symlink resolution rather than about either store's format.
 
-`feature_dirsymlinks_bitcoind_test.py` and
-`feature_dirsymlinks_btclib_node_test.py` run it,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each of `feature_dirsymlinks_bitcoind_test.py` and
+`feature_dirsymlinks_btclib_node_test.py` beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how. No
+`feature_dirsymlinks_btcd_test.py` does: btcd keeps its chain in
+`blocks_ffldb` in the chain's directory, where `blocks` and
+`chainstate` do not exist.
 """
 
 from __future__ import annotations
@@ -34,8 +37,7 @@ from bitcoin_node_tests.node import free_ports
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+    from bitcoin_node_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["starts_with_symlinked_blocks_and_chainstate_directories"]
@@ -43,14 +45,14 @@ __all__ = ["starts_with_symlinked_blocks_and_chainstate_directories"]
 
 def starts_with_symlinked_blocks_and_chainstate_directories(
     make_adapter: AdapterFactory,
-    cls: type[BitcoindAdapter | BtclibNodeAdapter],
+    cls: type[NodeAdapter],
     executable: str,
     tmp_path: Path,
 ) -> None:
     """Check a restart over symlinked `blocks/` and `chainstate/` still starts.
 
     :param make_adapter: the session's own adapter factory.
-    :param cls: `BitcoindAdapter` or `BtclibNodeAdapter`.
+    :param cls: a node's own adapter class.
     :param executable: the node's binary, or the interpreter running it.
     :param tmp_path: where the node's own data directory goes.
     """

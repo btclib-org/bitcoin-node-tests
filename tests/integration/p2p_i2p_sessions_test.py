@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_i2p_sessions`, one body over either node.
+"""Core's `p2p_i2p_sessions`, one body over each node.
 
 Read from Core's `test/functional/p2p_i2p_sessions.py` (`fa5f29774872`,
 2025-12-16), a file of
@@ -34,8 +34,7 @@ having no option or RPC for it: that build is asked for its own line, read
 off its own `getnetworkinfo` `version`
 ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
 
-`p2p_i2p_sessions_bitcoind_test.py` and
-`p2p_i2p_sessions_btclib_node_test.py` run it,
+Each `p2p_i2p_sessions_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
 
@@ -52,8 +51,8 @@ from tests.integration.script_verify_flag_test import bitcoind_version
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
+    from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = ["i2pacceptincoming_chooses_a_persistent_or_a_transient_session"]
 
@@ -69,7 +68,7 @@ _I2P_NAMED_VERSION = 310000
 
 
 def i2pacceptincoming_chooses_a_persistent_or_a_transient_session(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check `-i2pacceptincoming` decides which SAM session a dial opens.
@@ -78,7 +77,7 @@ def i2pacceptincoming_chooses_a_persistent_or_a_transient_session(
     a node given `-i2pacceptincoming=1` and then from one given
     `-i2pacceptincoming=0`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: a node declares `Capability.DEBUG_LOG` without
         being the adapter that names a `debug_log_path`.

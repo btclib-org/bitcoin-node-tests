@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_add_connections`, as bodies over either node.
+"""Core's `p2p_add_connections`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_add_connections.py`
 (`4c79f3a34d00`, 2026-09-14): a node made to dial listening test peers by
@@ -33,9 +33,9 @@ What else differs from Core's own file:
 - the restart closes node 0's test peers first, where Core's own
   `stop_node` forgets them.
 
-`p2p_add_connections_bitcoind_test.py` and
-`p2p_add_connections_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `p2p_add_connections_<node>_test.py` module beside this one runs
+each body, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -54,8 +54,6 @@ from bitcoin_node_tests.peer import Listener, Peer
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -130,12 +128,12 @@ def takes_manual(node: NodeAdapter) -> bool:
 
 
 def manual_connection_past_the_outbound_capacity(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a `manual` connection past one that fills the outbound capacity.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -164,12 +162,12 @@ def manual_connection_past_the_outbound_capacity(
 
 
 def outbound_connections_by_type(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check typed outbound counts, a feeler and an early `version`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node0, node1 = cluster(2)

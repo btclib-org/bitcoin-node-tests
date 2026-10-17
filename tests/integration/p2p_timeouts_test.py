@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `p2p_timeouts`, one body over either node.
+"""Core's `p2p_timeouts`, one body over each node.
 
 Read from Core's `test/functional/p2p_timeouts.py` (`fa4cb96bdec2`,
 2026-02-17), the option, clock and log families together
@@ -41,9 +41,8 @@ Core's closing check, a start with `-peertimeout=0` refused with its own
 `expected_msg`, is a third test, matched against the whole of the node's
 stderr as `assert_start_raises_init_error` matches it by default.
 
-`p2p_timeouts_bitcoind_test.py` and `p2p_timeouts_btclib_node_test.py`
-run it, `tests/integration/conftest.py`'s own module docstring having
-how.
+Each `p2p_timeouts_<node>_test.py` module beside this one runs it,
+`tests/integration/conftest.py`'s own module docstring having how.
 """
 
 from __future__ import annotations
@@ -67,7 +66,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from contextlib import AbstractContextManager
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -101,14 +99,14 @@ def _peer_count(node: NodeAdapter) -> int:
 
 
 def _handshake_timeouts(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
     *,
     logged: bool,
 ) -> None:
     """Run Core's own `run_test`, asserting its log lines where `logged`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :param logged: whether to require `Capability.DEBUG_LOG` and assert
         Core's own lines around each step.
@@ -198,36 +196,36 @@ def _handshake_timeouts(
 
 
 def peers_that_never_finish_the_handshake_are_dropped(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check the wire half: all three kept at two seconds, dropped at four.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     _handshake_timeouts(cluster, skip_counts, logged=False)
 
 
 def handshake_timeouts_are_logged(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check the log half: Core's own lines, around the same steps.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     _handshake_timeouts(cluster, skip_counts, logged=True)
 
 
 def a_non_positive_peertimeout_is_refused(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a start with `-peertimeout=0` fails, with Core's own wording.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Core's `mempool_package_limits`, one body per test over either node.
+"""Core's `mempool_package_limits`, one body per test over each node.
 
 Read from Core's `test/functional/mempool_package_limits.py` (`fa5f29774872`,
 2025-12-16) and narrowed to what the option and MiniWallet families reach
@@ -36,9 +36,9 @@ transaction of the package, the reason Core's file asserts at `v31.1` and
 at `fa5f29774872` alike. A node that does not declare
 `Capability.LIMIT_CLUSTER_COUNT` is a counted skip.
 
-`mempool_package_limits_bitcoind_test.py` and
-`mempool_package_limits_btclib_node_test.py` run each body,
-`tests/integration/conftest.py`'s own module docstring having how.
+Each `mempool_package_limits_<node>_test.py` module beside this one runs
+each body, `tests/integration/conftest.py`'s own module docstring having
+how.
 """
 
 from __future__ import annotations
@@ -55,8 +55,6 @@ if TYPE_CHECKING:
 
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
@@ -87,12 +85,12 @@ def _assert_all_allowed(node: NodeAdapter, package: list[Tx]) -> None:
 
 
 def _start(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
-) -> BitcoindAdapter | BtclibNodeAdapter:
+) -> NodeAdapter:
     """Return one node, restarted with `-limitclustercount`.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
@@ -104,12 +102,12 @@ def _start(
 
 
 def in_package_ancestors_count_toward_the_mempool_ancestor_limit(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check 24 in-mempool ancestors and a 2-tx package exceed the limit of 25.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start(cluster, skip_counts)
@@ -133,7 +131,7 @@ def in_package_ancestors_count_toward_the_mempool_ancestor_limit(
 
 
 def in_package_descendants_count_toward_the_mempool_descendant_limit(
-    cluster: Callable[[int], Sequence[BitcoindAdapter | BtclibNodeAdapter]],
+    cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
 ) -> None:
     """Check a top parent's own descendants exceed the limit counted together.
@@ -144,7 +142,7 @@ def in_package_descendants_count_toward_the_mempool_descendant_limit(
     parent's own descendant count only exceeds 25 once the package's two
     transactions join the 24 already in the mempool.
 
-    :param cluster: `bitcoind_cluster` or `btclib_node_cluster`.
+    :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     node = _start(cluster, skip_counts)

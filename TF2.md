@@ -1073,7 +1073,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_dumptxoutset.py` | [`58eeab790d98`](https://github.com/bitcoin/bitcoin/commit/58eeab790d98) | 2026-05-13 | pass, the dump at a forked height asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (dump_utxo_set) |
 | `feature_loadblock.py` | [`fa4fc8c1d7b5`](https://github.com/bitcoin/bitcoin/commit/fa4fc8c1d7b5) | 2026-05-22 | pass | skip (load_block) |
 | `feature_port.py` | [`997757dd2b4d`](https://github.com/bitcoin/bitcoin/commit/997757dd2b4d) | 2024-11-15 | pass | skip (debug_log) |
-| `p2p_opportunistic_1p1c.py` (parent first) | [`0bd3d3dfa562`](https://github.com/bitcoin/bitcoin/commit/0bd3d3dfa562) | 2026-07-24 | pass | skip |
+| `p2p_opportunistic_1p1c.py` (parent first) | [`86ff13a0af06`](https://github.com/bitcoin/bitcoin/commit/86ff13a0af06) | 2026-10-01 | pass | skip |
 | `p2p_opportunistic_1p1c.py` (parent first, P2PK) | same | same | pass | skip |
 | `p2p_opportunistic_1p1c.py` (child first) | same | same | pass | skip |
 | `p2p_opportunistic_1p1c.py` (low, high child) | same | same | pass | skip |

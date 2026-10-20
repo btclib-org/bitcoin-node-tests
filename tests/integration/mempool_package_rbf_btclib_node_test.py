@@ -8,9 +8,7 @@
 here against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). Each test is a counted skip on
 `Capability.PACKAGE_ACCEPTANCE` where the build does not declare it
-(`btclib_node.py`'s own docstring). A build that does fails the replacement
-bodies, the replacement `submitpackage` makes being refused
-([ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334)).
+(`btclib_node.py`'s own docstring).
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/mempool_package_rbf_btclib_node_test.py

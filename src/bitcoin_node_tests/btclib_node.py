@@ -338,8 +338,8 @@ A build that names none does not gain the capability.
 `Capability.CLUSTER_REPLACEMENT` is declared per instance, by
 `_replaces_by_cluster`'s own probe: a build whose `btclib_node.mempool.Mempool`
 has `check_package_replacement`, which counts a replacement's conflicts by
-cluster as Core's `ReplacementChecks` does -- `main` from `cd82fd74`, the
-change that closed
+cluster as Core's `ReplacementChecks` does -- the released `2026.10.18`, and
+`main` from `cd82fd74`, the change that closed
 [ISS btclib-node#1334](https://github.com/btclib-org/btclib-node/issues/1334).
 The released `2026.10.8` has no such method, so an instance built against it
 does not gain the capability.

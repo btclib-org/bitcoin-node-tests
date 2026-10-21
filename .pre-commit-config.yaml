@@ -337,7 +337,7 @@ repos:
     hooks:
       - id: check-sdist
         args: [--inject-junk, --installer=pip]
-        additional_dependencies: ["uv_build>=0.12.0,<0.13"]
+        additional_dependencies: ["uv_build>=0.12.0,<0.14"]
   # nothing here is published -- this rates the source tree only, section
   # 4's condition being a declared backend and not a release. Nothing in
   # test.yml rates a release artifact the way btclib-secp256k1's own

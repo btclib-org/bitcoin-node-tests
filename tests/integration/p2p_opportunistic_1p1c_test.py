@@ -5,7 +5,7 @@
 """Core's `p2p_opportunistic_1p1c`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_opportunistic_1p1c.py`
-(`0bd3d3dfa562`, 2026-07-24): a parent refused for its fee is taken
+(`86ff13a0af06`, 2026-10-01): a parent refused for its fee is taken
 into the mempool with a child paying for both, the two evaluated
 together as one parent and one child (1p1c) where one peer sent both.
 Each of the checks below is one of Core's `test_*` methods, a body over
@@ -39,13 +39,15 @@ a fresh node:
   parent while other peers fill the orphanage with large orphans, some
   evicted where the build bounds each peer's share of the orphanage, none
   where it bounds their number alone;
-- a child kept as an orphan, its parent asked for, stays kept and is
-  taken in with that parent while other peers send small orphans, the
-  same ones from each of a set of peers and others of its own from one
-  more peer, where the build bounds each peer's share of the orphanage;
-  where it bounds their number alone, the orphanage holds that bound
-  once they are sent, and the child is taken in with its parent if still
-  kept, and not if evicted at random.
+- other peers send small orphans while a child is kept as an orphan, its
+  parent asked for: the same orphans from each of a set of peers, the
+  first sending them and the rest announcing them, and others of its own
+  from one more peer. Where the build bounds each peer's share of the
+  orphanage, the set of peers fills it to its bound on announcements, and
+  the child stays kept and is taken in with its parent; where it bounds
+  their number alone, the orphanage holds that bound once they are sent,
+  and the child is taken in with its parent if still kept, and not if
+  evicted at random.
 
 Every body asks for `Capability.ORPHANAGE` first. It starts its node
 with `-maxmempool=5` (`Capability.MAXMEMPOOL`) and a `-datacarriersize`
@@ -123,16 +125,6 @@ child of two parents when one of them is in the mempool. Core's `v29.4`
 file asserts that refusal, and so does the check on such a build.
 bitcoin/bitcoin#31385 changes no RPC, so the check reads the build's
 `getnetworkinfo` `version` against `_TWO_PARENT_VERSION`.
-
-Core's many-orphans check counts each peer sending one of the same small
-orphans as an announcement of it, adding up past the orphanage's bound
-on its latency score, `DEFAULT_MAX_ORPHANAGE_LATENCY_SCORE`
-(`src/node/txorphanage.h`). A node drops an orphan it already keeps when
-another peer sends it as a `tx`, recording no announcement for that peer
-(`TxDownloadManagerImpl::ReceivedTx`, `src/node/txdownloadman_impl.cpp`):
-so `getorphantxs` lists each orphan the check sends under one announcer,
-on the pinned release and on a `master` build alike, every one of them
-kept, and the check stays below that bound.
 
 Each `p2p_opportunistic_1p1c_<node>_test.py` module beside this one runs
 each body, `tests/integration/conftest.py`'s own module docstring having
@@ -279,8 +271,7 @@ _MAX_ORPHAN_TRANSACTIONS = 100
 # the orphanage's bound on its latency score, to which each announcement
 # of an orphan of fewer than ten inputs adds one (`GetLatencyScore`,
 # `src/node/txorphanage.cpp`): Core's own `test_orphanage_dos_many`
-# asserts that its orphans, counted once for each peer sending them, add
-# up past it
+# asserts that its announcements fill the orphanage to it
 _DEFAULT_MAX_ORPHANAGE_LATENCY_SCORE = 3000
 
 
@@ -342,6 +333,16 @@ def _orphans(node: NodeAdapter) -> list[str]:
     txids = node.rpc.call("getorphantxs")
     assert isinstance(txids, list)
     return txids
+
+
+def _announcements(node: NodeAdapter) -> int:
+    """Return how many announcements the node's orphanage holds.
+
+    Each orphan's `from` in `getorphantxs` at verbosity 2, summed.
+    """
+    orphanage = node.rpc.call("getorphantxs", {"verbosity": 2})
+    assert isinstance(orphanage, list)
+    return sum(len(orphan["from"]) for orphan in orphanage)
 
 
 def _mempool(node: NodeAdapter) -> list[str]:
@@ -1006,27 +1007,36 @@ def an_orphan_outlives_many_orphans_from_other_peers(
         cluster, skip_counts, Capability.CLOCK, coins=1, inbound_relay_percent=True
     )
     clock = Clock(node)
-    assert (
-        _NUM_PEERS_SHARED * _BATCH_SIZE + _BATCH_SINGLE_DOSER
-        > _DEFAULT_MAX_ORPHANAGE_LATENCY_SCORE
-    )
+    by_count = _bounds_orphans_by_count(node)
     with ExitStack() as stack:
         peer_normal = RelayConn.inbound(stack, node)
 
-        # the same small orphans from each of a set of peers, some kept
+        # the same small orphans from each of a set of peers: the first sends
+        # them, and the rest announce them, since a node records no
+        # announcement for a peer sending a `tx` it already keeps as an orphan
         shared_orphans = [_small_orphan() for _ in range(_BATCH_SIZE)]
         peer_doser_shared = [
             RelayConn.inbound(stack, node) for _ in range(_NUM_PEERS_SHARED)
         ]
-        for peer_doser in peer_doser_shared:
-            for orphan in shared_orphans:
-                peer_doser.send(_tx(orphan))
+        for orphan in shared_orphans:
+            peer_doser_shared[0].send(_tx(orphan))
+        peer_doser_shared[0].sync_with_ping()
+        shared_inv = Inv(
+            [Inventory(InventoryType.MSG_WTX, tx.hash) for tx in shared_orphans]
+        )
+        for peer_doser in peer_doser_shared[1:]:
+            peer_doser.send(shared_inv)
         for peer_doser in peer_doser_shared:
             peer_doser.sync_with_ping()
         wait_until(
             lambda: any(tx.id.hex() in _orphans(node) for tx in shared_orphans),
             timeout=_WAIT,
         )
+
+        # where the bound is on each peer's share, their announcements fill
+        # the orphanage to its bound
+        if not by_count:
+            assert _announcements(node) == _DEFAULT_MAX_ORPHANAGE_LATENCY_SCORE
 
         # a child of a parent refused for its fee, from a peer of its own
         low_fee_parent = _below_mempoolminfee(node, wallet)
@@ -1056,7 +1066,7 @@ def an_orphan_outlives_many_orphans_from_other_peers(
 
         # where the bound is on their number alone, the orphanage is full,
         # and the child may be among the orphans evicted at random
-        if _bounds_orphans_by_count(node):
+        if by_count:
             wait_until(
                 lambda: len(_orphans(node)) == _MAX_ORPHAN_TRANSACTIONS,
                 timeout=_WAIT,

@@ -2,7 +2,7 @@
 
 Follow [CONTRIBUTING.md](./CONTRIBUTING.md) for issues, pull requests,
 local gates, and worktree commands. Use [REVIEWING.md](./REVIEWING.md)
-for reviews, [README.md](./README.md) for project overview and examples, and
+for reviews, [README.md](./README.md) for the project overview, and
 [REPOSITORY.md](./REPOSITORY.md) before changing workflows or settings.
 See the [organization security policy](https://github.com/btclib-org/.github/blob/main/SECURITY.md)
 for vulnerability reporting.

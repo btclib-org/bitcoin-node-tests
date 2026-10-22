@@ -244,7 +244,7 @@ def test_every_defined_verdict_is_used() -> None:
 
 
 def test_no_entry_states_a_count() -> None:
-    """Enforces CLAUDE.md's "Never state how many of anything a file holds".
+    """Enforces AGENTS.md's rule against stating file counts in TF2.md.
 
     A count of the entries, of the covered files or of the uncovered ones
     is exactly the number that is exact today, wrong after the next

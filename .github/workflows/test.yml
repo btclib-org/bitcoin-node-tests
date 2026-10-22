@@ -40,7 +40,7 @@ jobs:
       pull-requests: read # the callee's own job needs it to list a pull request's files
     with:
       prose-pattern: |-
-        ^(AUTHORS|CHANGELOG|CLAUDE|CONTRIBUTING|REPOSITORY|REVIEWING)\.md$|^\.github/[^/]*\.md$|^\.secrets\..*baseline$
+        ^(AUTHORS|CHANGELOG|AGENTS|CONTRIBUTING|REPOSITORY|REVIEWING)\.md$|^\.github/[^/]*\.md$|^\.secrets\..*baseline$
 
   coverage:
     name: Measure coverage, gated at 100%

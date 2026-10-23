@@ -217,7 +217,7 @@ jobs:
         env:
           BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
         run: |
-          "$BTCLIB_NODE_PYTHON" -m pip install --disable-pip-version-check btclib-node
+          uv pip install --python "$BTCLIB_NODE_PYTHON" btclib-node
       # beside this tree's own checkout rather than over it: `path:` is
       # what keeps the two apart, and the header above has why `main`
       - name: Check out btclib-org/.github's scripts
@@ -525,7 +525,7 @@ jobs:
         env:
           BTCLIB_NODE_PYTHON: ${{ steps.btclib-node-python.outputs.python-path }}
         run: |
-          "$BTCLIB_NODE_PYTHON" -m pip install --disable-pip-version-check \
+          uv pip install --python "$BTCLIB_NODE_PYTHON" \
             "git+https://github.com/btclib-org/btclib-node@main"
           sha=$("$BTCLIB_NODE_PYTHON" -c '
           import importlib.metadata, json

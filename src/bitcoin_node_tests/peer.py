@@ -60,8 +60,8 @@ from btclib.p2p.bip324 import (
     contents_from_message,
     message_from_contents,
 )
-from btclib_ecc.curves import secp256k1
-from btclib_ecc.ecc.ellswift import create_var
+from ecc.curves import secp256k1
+from ecc.ecc.ellswift import create
 
 from bitcoin_node_tests.timeout_factor import scaled
 
@@ -190,7 +190,7 @@ class Peer:
         if not self._dialled and self._opens_with_v1_version():
             return
         prv_key = secrets.randbelow(secp256k1.n - 1) + 1
-        ell_ours = create_var(prv_key)
+        ell_ours = create(prv_key)
         garbage = secrets.token_bytes(secrets.randbelow(_MAX_GARBAGE_LEN + 1))
         self._socket.sendall(ell_ours + garbage)
         ell_theirs = self._take(ELL_SIZE)

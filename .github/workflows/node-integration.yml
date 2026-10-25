@@ -19,9 +19,9 @@ name: node-integration
 # No `schedule:`: section 10 of the organization standard's own record,
 # *Which trees carry which sentinel*, does not name this repository
 # against the `integration-bitcoind` row, so a cron here would be a row
-# the calendar gives nobody, exactly the finding
-# `tests/grid_test.py::test_every_row_of_the_calendar_names_something_that_exists`
-# is for. Every trigger below is a gate's rather than a sentinel's, so
+# the calendar gives nobody, exactly the finding `tests/grid_test.py`'s
+# `test_every_row_of_the_calendar_names_something_that_exists` is for.
+# Every trigger below is a gate's rather than a sentinel's, so
 # `tests/grid_test.py::schedules` never sees this file at all: an
 # ordinary pull request already asks bitcoind the question, which is
 # most of what a weekly repeat would buy.
@@ -42,10 +42,9 @@ name: node-integration
 # runs `*_btclib_node_test.py`, `bitcoind`'s own `skip-reason-prefix`
 # exempting it there. Both install it with btclib-org/.github's own
 # `.github/scripts/install_bitcoind.py`, the script
-# `reusable-integration-bitcoind.yml` runs for `bitcoind`, served the way
-# that workflow serves it: a sparse checkout of that repository at `main`
-# beside this tree, `main` being the trust `bitcoind` already extends by
-# calling that workflow `@main`.
+# `reusable-integration-bitcoind.yml` runs for `bitcoind`, from a sparse
+# checkout of that repository at `main` beside this tree: a tree's own
+# job reads `main`, as section 10 of btclib-org/.github's README.md says.
 #
 # `core-master` and `btclib-node-main` are ISS 8's decision of
 # 2026-09-25: the pinned release stays the only required check -- a
@@ -100,7 +99,7 @@ env:
 
 jobs:
   bitcoind:
-    uses: btclib-org/.github/.github/workflows/reusable-integration-bitcoind.yml@main
+    uses: btclib-org/.github/.github/workflows/reusable-integration-bitcoind.yml@0f5684ab3d7bf310b0d7a2e4dd91a03522f75d67 # v2026.10.25
     permissions:
       contents: read
     with:

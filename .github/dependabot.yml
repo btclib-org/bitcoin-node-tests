@@ -16,8 +16,9 @@
 # not an error anywhere, it is a repository where nothing is proposed.
 #
 # The seven day cooldown is what the interval trades against: a
-# compromised release is usually yanked within days, so nothing is offered
-# before it has been public a week.
+# compromised release is usually yanked within days, so nothing but
+# btclib-org/.github's tags, excluded in the github-actions block, is
+# offered before it has been public a week.
 #
 # The uv ecosystem's own scheduled run used to fail here, on this
 # repository alone of the organization's: `requires-python = ">=3.15"`
@@ -46,6 +47,9 @@ updates:
         patterns: ["*"]
     cooldown:
       default-days: 7
+      # the exclude section 11 of btclib-org/.github's README.md gives for
+      # that repository's own tags, which the calls in .github/workflows pin
+      exclude: ["btclib-org/.github/*"]
 
   # uv.lock is committed and the workflows install from it with --locked, bar
   # node-integration.yml, which installs btclib-node with `uv pip install`,

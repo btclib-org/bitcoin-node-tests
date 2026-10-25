@@ -303,7 +303,7 @@ commit  3fd68a95e68b4c6f3bb6c59d41dd196001110f3a  2026-04-07
 behind  0 revisions; that commit is the tip of the path
 ```
 
-Verdict: **covered**. `btclib_ecc`'s `ecc/ellswift.py`: `create_var` for
+Verdict: **covered**. `ecc`'s `ecc/ellswift.py`: `create` for
 `ellswift_create`, `encode_var` for `xelligatorswift` and `decode_var`
 for `xswiftec`, over `_xswiftec_var` and `_xswiftec_inv_var`.
 `ellswift_ecdh_xonly` returns the bare x-coordinate of the shared point:
@@ -380,14 +380,14 @@ commit  b6fc3cf0046d3106e0dfb30f320d48514eff6fb2  2026-09-28
 behind  0 revisions; that commit is the tip of the path
 ```
 
-Verdict: **covered**, and wider than Core's file: `btclib_ecc`'s
+Verdict: **covered**, and wider than Core's file: `ecc`'s
 `curves/curve.py`, `curves/curve_group.py`, `curves/curve_group_2.py`,
 `curves/curve_group_f.py` and `curves/sec_point.py` carry every curve
 it has rather than secp256k1 alone. What the arithmetic is asserted
 against is not a vector file but the `btclib_secp256k1` bindings, which
 `curves.curve.mult` and its variants delegate to for secp256k1 and which
-`btclib_ecc`'s own suite validates the Python arm against. Core's file
-warns that it is slow and side-channel vulnerable; `btclib_ecc`'s
+`ecc`'s own suite validates the Python arm against. Core's file
+warns that it is slow and side-channel vulnerable; `ecc`'s
 `SECURITY.md` publishes the same about its Python arm.
 
 ### `test/functional/test_framework/crypto/siphash.py`

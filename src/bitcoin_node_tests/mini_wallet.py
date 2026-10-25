@@ -204,7 +204,7 @@ from btclib.script.taproot import serialize as tapscript_serialize
 from btclib.script.witness import Witness
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
-from btclib_ecc.ecc.dsa import sign_
+from ecc.ecc.dsa import sign_
 
 if TYPE_CHECKING:
     from bitcoin_node_tests.node import NodeAdapter

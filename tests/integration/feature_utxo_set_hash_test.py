@@ -135,6 +135,6 @@ def independent_muhash_matches_gettxoutsetinfo(
     for key, coin in utxo_set.items():
         stats.insert(key, coin)
     node_muhash = adapter.rpc.call("gettxoutsetinfo", ["muhash"])["muhash"]
-    assert stats.digest[::-1].hex() == node_muhash
+    assert stats.digest_var[::-1].hex() == node_muhash
     node_hash_serialized_3 = adapter.rpc.call("gettxoutsetinfo")["hash_serialized_3"]
     assert _hash_serialized_3(utxo_set)[::-1].hex() == node_hash_serialized_3

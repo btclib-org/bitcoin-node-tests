@@ -27,8 +27,8 @@ from btclib.script.script import parse
 from btclib.script.script import serialize as script_serialize
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
-from btclib_ecc.curves.curve import secp256k1
-from btclib_ecc.ecc.dsa import verify_
+from ecc.curves.curve import secp256k1
+from ecc.ecc.dsa import verify_
 
 from bitcoin_node_tests.capability import Capability
 from bitcoin_node_tests.mini_wallet import (

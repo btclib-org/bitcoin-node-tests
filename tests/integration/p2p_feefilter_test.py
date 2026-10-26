@@ -134,21 +134,28 @@ def _send_and_ping(peer: Peer, feerate: int) -> None:
     peer.sync_with_ping()
 
 
-def _wait_for_tx_invs(peer: Peer, expected: set[bytes]) -> None:
+def _wait_for_tx_invs(peer: Peer, txs: Sequence[Tx]) -> None:
     """Core's own `wait_for_invs_to_match`, from what `peer` reads from now.
 
-    Every `inv` read is gathered, its transaction entries' hashes kept,
-    until they hold every one of `expected`; an announcement beyond them
-    read by then fails the equality, as it fails Core's own.
+    Every `inv` read is gathered, its transaction entries kept, until they
+    announce every one of `txs`; an announcement beyond them read by then
+    fails the equality, as it fails Core's own. A transaction is announced
+    by `MSG_WTX` and its wtxid where the node sent BIP339's `wtxidrelay`,
+    and by `MSG_TX` and its txid where it did not.
 
-    :param expected: the wtxids to wait for.
-    :raises TimeoutError: `expected` was not all announced in time.
+    :param txs: the transactions to wait for.
+    :raises TimeoutError: `txs` were not all announced in time.
     """
-    announced: set[bytes] = set()
+    expected: set[tuple[int, bytes]]
+    if peer.message_count["wtxidrelay"]:
+        expected = {(InventoryType.MSG_WTX, tx.hash) for tx in txs}
+    else:
+        expected = {(InventoryType.MSG_TX, tx.id) for tx in txs}
+    announced: set[tuple[int, bytes]] = set()
 
     def _complete(message: Message) -> bool:
         announced.update(
-            item.hash
+            (item.type_code, item.hash)
             for item in Inv.parse(message.payload).items
             if item.type_code in {InventoryType.MSG_TX, InventoryType.MSG_WTX}
         )
@@ -158,9 +165,9 @@ def _wait_for_tx_invs(peer: Peer, expected: set[bytes]) -> None:
     assert announced == expected
 
 
-def _send_batch(wallet: MiniWallet, fee_rate: int) -> set[bytes]:
-    """Send `_BATCH` self-transfers over `wallet`'s node; return the wtxids."""
-    return {wallet.send_self_transfer(fee_rate=fee_rate).hash for _ in range(_BATCH)}
+def _send_batch(wallet: MiniWallet, fee_rate: int) -> list[Tx]:
+    """Send `_BATCH` self-transfers over `wallet`'s node, and return them."""
+    return [wallet.send_self_transfer(fee_rate=fee_rate) for _ in range(_BATCH)]
 
 
 def _send_from(node: NodeAdapter, tx: Tx) -> None:
@@ -227,7 +234,7 @@ def feefilter_filters_announcements(cluster: _Cluster, skip_counts: SkipCounts) 
         wait_until_mempools_agree([node, funder], timeout=_WAIT)
         tx = wallet.create_self_transfer(fee_rate=_HIGH_RATE)
         _send_from(node, tx)
-        _wait_for_tx_invs(conn, {tx.hash})
+        _wait_for_tx_invs(conn, [tx])
         wait_until_mempools_agree([node, funder], timeout=_WAIT)
 
         # a `feefilter` of zero, and they are announced again

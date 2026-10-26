@@ -73,6 +73,9 @@ What differs from Core's file besides:
   `v31.0rc1` is the first tag to carry);
 - the spurious `notfound` is followed by a ping round trip, where Core
   sends it and asserts nothing;
+- the fallback checks announce by `MSG_TX` where the node sent no
+  BIP339 `wtxidrelay`, as btcd sends none, and by `MSG_WTX` as Core's
+  do where it did;
 - Core's harness starts every node with a `peertimeout` (`write_config`,
   `test_framework/util.py`) and this port passes none: no body moves the
   node's clock as far as `TIMEOUT_INTERVAL` (`src/net.h`), which
@@ -285,8 +288,19 @@ def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
     return node.debug_log_path
 
 
+def _tx_type(conn: _TxConn) -> InventoryType:
+    """Return the kind `conn` announces a transaction by.
+
+    `MSG_WTX` where the node sent BIP339's `wtxidrelay`, which a node
+    ignores from a peer that did not negotiate it; `MSG_TX` otherwise.
+    """
+    if conn.peer.message_count["wtxidrelay"]:
+        return InventoryType.MSG_WTX
+    return InventoryType.MSG_TX
+
+
 def _fallback(
-    cluster: _Cluster, skip_counts: SkipCounts, wtxid: int, *capabilities: Capability
+    cluster: _Cluster, skip_counts: SkipCounts, tx_hash: int, *capabilities: Capability
 ) -> tuple[NodeAdapter, ExitStack, _TxConn, _TxConn]:
     """Core's own opening of each fallback check: two peers, one asked.
 
@@ -299,7 +313,7 @@ def _fallback(
         peer1 = _TxConn.inbound(stack, node)
         peer2 = _TxConn.inbound(stack, node)
         for peer in (peer1, peer2):
-            peer.send(_inv(InventoryType.MSG_WTX, wtxid))
+            peer.send(_inv(_tx_type(peer), tx_hash))
         # one of the peers is asked for the transaction
         _serving_wait_until(
             [peer1, peer2],
@@ -358,7 +372,7 @@ def a_notfound_falls_back_to_another_peer(
     """
     _, stack, asked, fallback = _fallback(cluster, skip_counts, 0xFFDD)
     with stack:
-        asked.send_and_ping(NotFound([Inventory(InventoryType.MSG_WTX, _hash(0xFFDD))]))
+        asked.send_and_ping(NotFound([Inventory(_tx_type(asked), _hash(0xFFDD))]))
         _serving_wait_until(
             [fallback], lambda: fallback.tx_getdata_count >= 1, timeout=1
         )

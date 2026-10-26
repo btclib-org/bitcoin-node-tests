@@ -77,7 +77,12 @@ a pinned btcd release, and reports without gating too.
 
 ## Contributing
 
-[CONTRIBUTING.md](./CONTRIBUTING.md) has the commands each CI job runs,
+Development is LLM-based: humans are welcome, as long as they are
+comfortable with agentic development ;-). A contribution must have been
+read and understood by the person who submits it.
+[`CONTRIBUTING.md`](./CONTRIBUTING.md#working-with-an-llm) has the rules.
+
+[CONTRIBUTING.md](./CONTRIBUTING.md) also has the commands each CI job runs,
 verbatim. [REVIEWING.md](./REVIEWING.md) is what a pull request is
 answered against. How the organization decides, and who holds which
 role, is its

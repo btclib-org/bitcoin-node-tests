@@ -12,6 +12,15 @@ The `relay` permission check is left out: btcd's `--whitelist` takes an
 address and grants the one permission `noban` stands for, so there is no
 `relay` permission to give or withhold.
 
+The disconnect and `notfound` checks fail against btcd, a deliberate
+difference
+([ISS 487](https://github.com/btclib-org/bitcoin-node-tests/issues/487)):
+btcd asks the other peer for the transaction only once that peer
+announces it again, after a disconnect
+([`netsync/manager.go#L529-L534`](https://github.com/btcsuite/btcd/blob/v0.26.2/netsync/manager.go#L529-L534))
+as after a `notfound`
+([`netsync/manager.go#L1036-L1039`](https://github.com/btcsuite/btcd/blob/v0.26.2/netsync/manager.go#L1036-L1039)).
+
     export TF2_INTEGRATION=1 TF2_BTCD=<btcd>
     uv run pytest tests/integration/p2p_tx_download_btcd_test.py
 """

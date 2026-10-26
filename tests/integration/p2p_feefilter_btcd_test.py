@@ -12,6 +12,10 @@ The `forcerelay` check is left out: btcd's `--whitelist` takes an address
 and grants the one permission `noban` stands for, so there is no
 `forcerelay` peer to ask about.
 
+The inbound-peer check fails against btcd, a btcd defect
+([ISS btcsuite/btcd#2649](https://github.com/btcsuite/btcd/issues/2649)): btcd
+honours a peer's `feefilter` but never sends one.
+
     export TF2_INTEGRATION=1 TF2_BTCD=<btcd>
     uv run pytest tests/integration/p2p_feefilter_btcd_test.py
 """

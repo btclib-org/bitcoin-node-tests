@@ -401,6 +401,10 @@ TF2_INTEGRATION=1 \
     uv run pytest tests/integration
 ```
 
+No local run decides a `btclib-node` cell of `TF2.md`, a btclib-node
+developer's included: a cell gives what the runs `TF2.md`'s *The
+per-test ledger* names measured.
+
 Several nodes named at once run every test that needs one against each,
 a disagreement between them being a finding rather than a failure of the
 suite (rule 3 of
@@ -494,6 +498,13 @@ first, `uv run` downloaded the interpreter `.python-version` names and
 ran on it. So a Core developer needs no interpreter of their own either
 way; lowering the floor is what lets one who already has 3.12 or newer
 skip that download.
+
+**A `bitcoind` run by hand** passes `-nosettings`, and
+`-datadir=<a scratch directory>` for anything that can start a node.
+Without `-nosettings`, even `-help` reads and rewrites the default
+datadir's `settings.json`, as `bitcoind.py`'s `_has_wallet` says.
+Without `-datadir`, a node runs in the default datadir. On a developer's
+machine, that datadir can hold real wallets.
 
 **Options.** Core's own option is the row's key, every one either file
 takes at Core's `master` or at the pinned `v31.1`; `--` is a cell this

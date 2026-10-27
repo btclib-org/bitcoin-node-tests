@@ -793,9 +793,9 @@ fixed for the whole verdict. `feature_torcontrol.py`'s and
 of it.
 
 A `btclib-node` cell whose outcome depends on timing is read from the
-*Compare the report with TF2.md* step of the last few `main` runs of
-`node-integration.yml`, rather than from the latest run alone or from a
-local run. A race macOS mostly wins can lose on Linux CI, as
+*Compare the report with TF2.md* steps of the last few `main` runs of
+`node-integration.yml`, rather than from the latest run alone. A race
+can go either way from one run to the next, as
 [ISS 274](https://github.com/btclib-org/bitcoin-node-tests/issues/274)
 measured.
 

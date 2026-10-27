@@ -401,11 +401,9 @@ TF2_INTEGRATION=1 \
     uv run pytest tests/integration
 ```
 
-Outside a btclib-node developer's own checkout, a local session creates
-no `btclib-node` environment, not even a throwaway one (`uv run --with`,
-`uvx`). It reads btclib-node's behaviour from its source at a named sha,
-and a `btclib-node` cell of `TF2.md` from the runs its *The per-test
-ledger* names.
+No local run decides a `btclib-node` cell of `TF2.md`, a btclib-node
+developer's included: a cell gives what the runs `TF2.md`'s *The
+per-test ledger* names measured.
 
 Several nodes named at once run every test that needs one against each,
 a disagreement between them being a finding rather than a failure of the

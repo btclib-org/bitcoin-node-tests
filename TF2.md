@@ -792,6 +792,13 @@ fixed for the whole verdict. `feature_torcontrol.py`'s and
 `p2p_bip434_feature.py`'s own rows below are this table's own instances
 of it.
 
+A `btclib-node` cell whose outcome depends on timing is read from the
+*Compare the report with TF2.md* step of the last few `main` runs of
+`node-integration.yml`, rather than from the latest run alone or from a
+local run. A race macOS mostly wins can lose on Linux CI, as
+[ISS 274](https://github.com/btclib-org/bitcoin-node-tests/issues/274)
+measured.
+
 A pin or date cell reading **same** repeats the pin and date of the
 nearest row above it that names the same Core test file, the row width
 leaving no room to write them again.

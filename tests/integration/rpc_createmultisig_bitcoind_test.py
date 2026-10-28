@@ -94,7 +94,7 @@ _INVALID_PARAMETER = -8
 # own `getnetworkinfo` `version`, at or past which `combinerawtransaction`
 # refuses a single transaction and one differing from the first: `v32.0`'s,
 # `v32.0rc1` being the first tag carrying
-# `6d86184a8bcc34186d217cc7cfbf7acc21af7ca4`, which the pinned `31.1` lacks.
+# `6d86184a8bcc34186d217cc7cfbf7acc21af7ca4`, which `31.1` lacks.
 # A known limit: a `master` build from its merge (`9961229360`,
 # 2026-05-13) until the version moved to `32.99` (`f3fec67c3e`,
 # 2026-09-11) reports `319900` and refuses them all the same, so this

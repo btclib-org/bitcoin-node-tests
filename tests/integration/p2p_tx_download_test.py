@@ -83,7 +83,7 @@ What differs from Core's file besides:
   completed its handshake for passing without a message either way.
 
 The entries of one `inv` naming the same transaction are processed once
-past the pinned release, from
+in `v32.0` and later, from
 bitcoin/bitcoin@1278a5970d5ada0979052a5bad899e896b8ab40b, which
 `v32.0rc1` is the first tag to carry: a bitcoind whose `getnetworkinfo`
 `version` reads older than that

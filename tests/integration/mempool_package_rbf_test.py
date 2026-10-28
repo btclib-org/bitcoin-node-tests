@@ -4,17 +4,17 @@
 
 """Core's `mempool_package_rbf`, as bodies over each node.
 
-Read from Core's `test/functional/mempool_package_rbf.py` (`fa5f29774872`,
-2025-12-16, the same file at the pinned `v31.1` and at Core's `master`): a
-package of a parent and its child, submitted together over
-`submitpackage`, replaces what its parent conflicts with in the mempool
-where the package pays for it, and is refused, with the reason Core's own
-file matches, where it does not -- too little absolute fee, too little
-more than the replaced transactions paid to cover its own relay, a
-package fee rate no higher than its parent's own, a fee rate beating no
-conflict's, conflicts reaching more clusters than Core's
-`MAX_REPLACEMENT_CANDIDATES`, a child with ancestors in the mempool, or a
-package of more than a parent and a child.
+Read from Core's `test/functional/mempool_package_rbf.py`
+(`fa5f29774872`, 2025-12-16, the same file at `v32.1`): a package of a
+parent and its child, submitted together over `submitpackage`, replaces
+what its parent conflicts with in the mempool where the package pays for
+it, and is refused, with the reason Core's own file matches, where it
+does not -- too little absolute fee, too little more than the replaced
+transactions paid to cover its own relay, a package fee rate no higher
+than its parent's own, a fee rate beating no conflict's, conflicts
+reaching more clusters than Core's `MAX_REPLACEMENT_CANDIDATES`, a child
+with ancestors in the mempool, or a package of more than a parent and a
+child.
 
 Each of Core's subtests is a body of its own, over a fresh node whose
 coins its own `MiniWallet` (`mini_wallet.py`) mines, and every assertion

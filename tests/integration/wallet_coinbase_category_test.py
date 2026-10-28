@@ -5,8 +5,8 @@
 """Core's `wallet_coinbase_category`, one body over each node.
 
 Read from Core's `test/functional/wallet_coinbase_category.py`
-(`fa5f29774872`, 2025-12-16, the same file at the pinned `v31.1`): a
-coinbase paying an address of the node's own wallet is `immature` in
+(`fa5f29774872`, 2025-12-16, the same file at `v32.1`): a coinbase
+paying an address of the node's own wallet is `immature` in
 `listtransactions`, `listsinceblock` and `gettransaction` until it
 matures, `generate` once it has, and `orphan` once the block holding it
 is invalidated. Every assertion of Core's own is kept.

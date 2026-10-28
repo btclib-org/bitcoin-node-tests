@@ -64,7 +64,7 @@ What differs from Core's file:
   `CAddress` reads them, `_as_core_reads`: the services, the port, and
   the last four octets of the address alone.
 
-Two steps are past the pinned release: `getprivatebroadcastinfo` and
+Two steps are in `v32.0` and later only: `getprivatebroadcastinfo` and
 `abortprivatebroadcast` refusing a node without `-privatebroadcast`,
 bitcoin/bitcoin@7b821ef9b75eb3f7b3363a1bd46981fa72db7dd4, and the
 `attempts_remaining` a transaction reports,

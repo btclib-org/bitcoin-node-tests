@@ -219,8 +219,8 @@ def _combinerawtransaction_refusals(
     :param rawtx3: the spend, signed by the last key alone.
     :param checks_mergeability: whether the node is expected to refuse a
         transaction differing from the first, and fewer than two, in the
-        wording Core's pinned file asserts -- where not, what the pinned
-        release answers instead: the empty list refused in its own shorter
+        wording Core's pinned file asserts -- where not, what `31.1`
+        answers instead: the empty list refused in its own shorter
         wording, and a single transaction returned as it came.
     """
     combine = "combinerawtransaction"

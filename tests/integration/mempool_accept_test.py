@@ -19,12 +19,12 @@ bitcoin/bitcoin#29954. It asks for `Capability.PERMIT_BARE_MULTISIG` and
 starts it with before any block is mined.
 
 `testmempoolaccept` reports `vsize_adjusted` and `vsize_bip141` beside
-`vsize` only past the pinned release, from bitcoin/bitcoin#32800's
-merge. Where the build's own `getnetworkinfo` `version` reads older
+`vsize` only in `v32.0` and later, from bitcoin/bitcoin#32800's merge.
+Where the build's own `getnetworkinfo` `version` reads older
 ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
 each allowed transaction is expected without them, as Core's file at
-the pinned `v31.1` expects it. `_VSIZE_FIELDS_VERSION`'s own comment has
-the known limit.
+`v31.1` expects it. `_VSIZE_FIELDS_VERSION`'s own comment has the known
+limit.
 
 A build without bitcoin/bitcoin#32406, read by `mempool_datacarrier_test.py`'s
 `uncapped_by_default`, relays one null-data output per transaction: there

@@ -5,12 +5,12 @@
 """Core's `wallet_signmessagewithaddress`, one body over each node.
 
 Read from Core's `test/functional/wallet_signmessagewithaddress.py`
-(`fa5f29774872`, 2025-12-16, the same file at the pinned `v31.1`): one
-clean-chain node under `-addresstype=legacy`, whose wallet signs a
-message with an address of its own for the node to verify, whose
-signature under one address does not verify under another, and which
-refuses `signmessage` given the wrong number of arguments or an address
-it cannot decode. Every assertion of Core's own is kept.
+(`fa5f29774872`, 2025-12-16, the same file at `v32.1`): one clean-chain
+node under `-addresstype=legacy`, whose wallet signs a message with an
+address of its own for the node to verify, whose signature under one
+address does not verify under another, and which refuses `signmessage`
+given the wrong number of arguments or an address it cannot decode.
+Every assertion of Core's own is kept.
 
 `Capability.NODE_WALLET` (`capability.py`) is asked for first, then
 `Capability.SIGN_MESSAGE_WITH_PRIVKEY`, which names `verifymessage`, of a

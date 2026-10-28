@@ -19,14 +19,15 @@ them, and a refusal's 400 where it arrives before the close. The log half
 asks for `Capability.DEBUG_LOG` and reads bitcoind's `HTTPResponse` lines,
 written under the `-debug=http` `BitcoindAdapter` starts with.
 
-Core's own HTTP server is in bitcoind from bitcoin/bitcoin#35182, which the
-pinned release does not carry. That release, measured, answers 404 to a
-request whose short header lines pass the limit only together, and writes
-no `HTTPResponse` line. The body reads the build's own `getnetworkinfo`
-`version` ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
-On an older build the wire half asserts that 404, and the log half asserts
-no `HTTPResponse` line is written. `_HTTP_SERVER_VERSION`'s own comment has
-the known limit.
+Core's own HTTP server is in bitcoind from bitcoin/bitcoin#35182, which
+a release before `v32.0` does not carry. `31.1`, measured, answers 404
+to a request whose short header lines pass the limit only together, and
+writes no `HTTPResponse` line. The body reads the build's own
+`getnetworkinfo` `version`
+([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+On an older build the wire half asserts that 404, and the log half
+asserts no `HTTPResponse` line is written. `_HTTP_SERVER_VERSION`'s own
+comment has the known limit.
 
 Each `interface_http_<node>_test.py` module beside this one runs every
 body, `tests/integration/conftest.py`'s own module docstring having how.

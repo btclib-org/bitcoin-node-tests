@@ -5,10 +5,10 @@
 """Core's `feature_bip68_sequence`, one body over each node.
 
 Read from Core's `test/functional/feature_bip68_sequence.py`
-(`ab41492c6ba7`, 2026-01-09, the same file at the pinned `v31.1`): the
-mempool holds a spend to BIP68's relative lock times, a reorg evicts a
-spend whose lock it leaves unmet, a block is not held to them before
-the deployment activates, and version 2 transactions are standard.
+(`ab41492c6ba7`, 2026-01-09, the same file at `v32.1`): the mempool
+holds a spend to BIP68's relative lock times, a reorg evicts a spend
+whose lock it leaves unmet, a block is not held to them before the
+deployment activates, and version 2 transactions are standard.
 
 Core's `run_test` is the body, in its own order, over a pair of nodes
 both restarted with Core's own `-testactivationheight=csv@432`

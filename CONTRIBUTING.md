@@ -507,8 +507,8 @@ Without `-datadir`, a node runs in the default datadir. On a developer's
 machine, that datadir can hold real wallets.
 
 **Options.** Core's own option is the row's key, every one either file
-takes at Core's `master` or at the pinned `v31.1`; `--` is a cell this
-suite has nothing under.
+takes at Core's `master` or at `v32.1`; `--` is a cell this suite has
+nothing under.
 
 | Core's option | this suite's equivalent |
 | --- | --- |
@@ -530,7 +530,6 @@ suite has nothing under.
 | `--v1transport` | through the adapter; see below |
 | `--test_methods` | pytest's own node ids, or `-k` |
 | `-f`, `--fff` | -- (Core's dummy argument for IPython) |
-| `--perf` (`v31.1` only) | -- (a `TF2_BITCOIND` wrapper, as `--valgrind`) |
 | `--ansi` | pytest's own `--color=yes\|no\|auto` |
 | `--combinedlogslen`, `-c` | -- (no combined log; `--basetemp` names each) |
 | `--coverage` | -- (paired with `--coveragedir` above) |
@@ -538,7 +537,6 @@ suite has nothing under.
 | `--extended` | -- (every family runs; no extended/basic split) |
 | `--help`, `-h`, `-?` | pytest's own `-h` |
 | `--jobs`, `-j` | `pytest-xdist`'s own `-n` |
-| `--keepcache`, `-k` (`v31.1` only) | -- (no cache, as `--cachedir`) |
 | `--quiet`, `-q` | pytest's own `-q` |
 | `--tmpdirprefix`, `-t` | pytest's own `--basetemp=<dir>` |
 | `--failfast`, `-F` | pytest's own `-x` |

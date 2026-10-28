@@ -16,13 +16,13 @@ The wire half reads the disconnect. Core's `getconnectioncount` check after
 it is dropped: the closed socket already says the node closed it. The log
 half asks for `Capability.DEBUG_LOG`.
 
-The disconnect is in bitcoind from bitcoin/bitcoin#35832, which the pinned
-release does not carry: there the request is ignored and the peer kept.
-The body reads the build's own `getnetworkinfo` `version`
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)). On
-an older build the wire half asserts the peer is kept, and the log half
-asserts the line is not written. `_DISCONNECT_VERSION`'s own comment has the
-known limit.
+The disconnect is in bitcoind from bitcoin/bitcoin#35832, which a
+release before `v32.0` does not carry: there the request is ignored and
+the peer kept. The body reads the build's own `getnetworkinfo` `version`
+([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+On an older build the wire half asserts the peer is kept, and the log
+half asserts the line is not written. `_DISCONNECT_VERSION`'s own
+comment has the known limit.
 
 Each `p2p_nobloomfilter_messages_<node>_test.py` module beside this one
 runs every body, `tests/integration/conftest.py`'s own module docstring

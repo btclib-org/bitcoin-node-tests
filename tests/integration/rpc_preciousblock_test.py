@@ -30,8 +30,7 @@ What differs from Core's file:
   while it reads a block as the sign that the block is missing; this
   body takes `RpcError` alone.
 
-Every step is the same at `v31.1`, the release `bitcoind.py` pins, whose
-copy of the file is the pin's.
+Every step is the same at `v32.1`, whose copy of the file is the pin's.
 
 Each `rpc_preciousblock_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.

@@ -11,7 +11,7 @@ build lacking BIP434 support disconnects for anyway rather than to
 `NetMsgType::FEATURE` landed in
 `6a129983c9bf8efa1081f9a8b462c3635d1cfb39` ("BIP434: FEATURE message
 support"), the same commit that bumped `node/protocol_version.h`'s own
-`PROTOCOL_VERSION` past the pinned release's own value -- so a build
+`PROTOCOL_VERSION` past `31.1`'s own value -- so a build
 below that version does not merely negotiate `FEATURE` differently, it
 has no branch for the `"feature"` command at all, and the
 length-boundary and acceptance checks Core's own file also carries
@@ -69,8 +69,8 @@ _SERVICES = ServiceFlags.NODE_NETWORK | ServiceFlags.NODE_WITNESS
 _USER_AGENT = b"/bitcoin-node-tests:0/"
 
 # node/protocol_version.h, read at Core's `master`: the protocol version
-# BIP434's FEATURE message needs, and the one the pinned release never
-# reaches (module docstring above).
+# BIP434's FEATURE message needs, and the one `31.1` never reaches
+# (module docstring above).
 _FEATURE_VERSION = 70017
 
 

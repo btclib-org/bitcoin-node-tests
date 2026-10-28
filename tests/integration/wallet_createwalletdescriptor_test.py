@@ -5,7 +5,7 @@
 """Core's `wallet_createwalletdescriptor`, one body over each node.
 
 Read from Core's `test/functional/wallet_createwalletdescriptor.py`
-(`fa5f29774872`, 2025-12-16, the same file at the pinned `v31.1`):
+(`fa5f29774872`, 2025-12-16, the same file at `v32.1`):
 `createwalletdescriptor` adds an active descriptor of the type it is
 asked for over an HD key the wallet already holds, and refuses where it
 is given no key and the wallet's active descriptors name none or

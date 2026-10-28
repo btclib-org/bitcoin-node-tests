@@ -40,7 +40,7 @@ peer as inactive and the addresses it is given are dialled by no
 automatic connection. Core reuses one node across its checks, resetting
 its clock to the wall clock at the start of each.
 
-`-externalip` bypasses `-onlynet` past the pinned release, from
+`-externalip` bypasses `-onlynet` in `v32.0` and later, from
 bitcoin/bitcoin@8c87e32bd3937251d6f30295cc1924048e5b74d1, which `v32.0rc1`
 is the first tag to carry: a bitcoind whose `getnetworkinfo` `version`
 reads older than that

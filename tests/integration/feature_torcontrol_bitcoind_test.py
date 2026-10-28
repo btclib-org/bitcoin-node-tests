@@ -14,29 +14,29 @@ speaks the Tor control protocol or has a reason to, so this test carries
 no `Capability` and has no `_btclib_node_test.py` counterpart --
 `TF2.md`'s own per-test ledger names the row that shape takes.
 
-A smaller claim than Core's own test, declared rather than silent: Core's
-own `MockTorControlServer` answers `ADD_ONION` with a reply advertising
-proof-of-work defenses, a negotiation the pinned `31.1` release never
-starts on its own -- measured against `src/torcontrol.cpp` at the
+A smaller claim than Core's own test, declared rather than silent:
+Core's own `MockTorControlServer` answers `ADD_ONION` with a reply
+advertising proof-of-work defenses, a negotiation the `31.1` release
+never starts on its own -- measured against `src/torcontrol.cpp` at the
 `v31.1` tag, whose own `ADD_ONION` command carries no such parameter.
 That half of Core's own file landed on `master` in
-`4c6798a3d386c2c1a4bcc4a8694281a8f0bef92d` ("tor: enable PoW defenses for
-automatically created hidden services"), first released in `v32.0.0`,
-after `v31.1` was cut and with `node/protocol_version.h`'s own
-`PROTOCOL_VERSION` left at `70016` either side of it -- BIP434's own
+`4c6798a3d386c2c1a4bcc4a8694281a8f0bef92d` ("tor: enable PoW defenses
+for automatically created hidden services"), first released in
+`v32.0.0`, after `v31.1` was cut and with `node/protocol_version.h`'s
+own `PROTOCOL_VERSION` left at `70016` either side of it -- BIP434's own
 protocol bump is a later, unrelated commit
-(`p2p_bip434_feature_bitcoind_test.py` cites it), so the p2p
-handshake version this suite already reads elsewhere cannot tell the two
-builds apart here. What can, and is read from the running build rather
-than assumed for the whole class
+(`p2p_bip434_feature_bitcoind_test.py` cites it), so the p2p handshake
+version this suite already reads elsewhere cannot tell the two builds
+apart here. What can, and is read from the running build rather than
+assumed for the whole class
 ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35),
 `capability.py`'s own module docstring), is `getnetworkinfo`'s own
-`version` -- Core's `CLIENT_VERSION`, `10000 * major + 100 * minor +
-build` (`src/clientversion.h`) -- compared against `_POW_DEFENSES_VERSION`
-below, the first value that commit's own release carries: `31.1.0`
-answers `310100`, and Core's own `master` (`32.99.0` under
-`CLIENT_VERSION_MAJOR`/`_MINOR` as this file is written) answers
-`329900`, both measured live against this repository's own pinned
+`version` -- Core's `CLIENT_VERSION`,
+`10000 * major + 100 * minor + build` (`src/clientversion.h`) --
+compared against `_POW_DEFENSES_VERSION` below, the first value that
+commit's own release carries: `31.1.0` answers `310100`, and Core's own
+`master` (`32.99.0` under `CLIENT_VERSION_MAJOR`/`_MINOR` as this file
+is written) answers `329900`, both measured live against the `31.1`
 binary and against a `master` checkout's `CMakeLists.txt`. Kept whole:
 the sequence a fresh onion service takes to come up -- `PROTOCOLINFO`,
 `AUTHENTICATE`, `GETINFO net/listeners/socks` and `ADD_ONION`, in that
@@ -71,7 +71,7 @@ pytestmark = pytest.mark.integration
 # build's own `getnetworkinfo` `version`, at or past which `ADD_ONION`
 # carries `PoWDefensesEnabled=1` -- `v32.0.0`, the first release
 # containing `4c6798a3d386c2c1a4bcc4a8694281a8f0bef92d`. The module
-# docstring above has the measurement against the pinned `31.1` and
+# docstring above has the measurement against `31.1` and
 # against Core's own `master`.
 _POW_DEFENSES_VERSION = 320000
 

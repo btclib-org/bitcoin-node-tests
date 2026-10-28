@@ -1218,9 +1218,10 @@ prose in the later sections.
 - `p2p_addrv2_relay.py`: the first check of Core's `run_test`, a wire row and a
   log row ([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)).
 - `p2p_bip434_feature.py`: narrowed to the disconnects a build
-  without BIP434 makes anyway, the pinned release having no `FEATURE` message
-  (added with bitcoin/bitcoin@6a129983c9bf); the shape asserted is read from the
-  build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+  without BIP434 makes anyway, one before `v32.0rc1` having no `FEATURE`
+  message (added with bitcoin/bitcoin@6a129983c9bf); the shape asserted is
+  read from the build
+  ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
   The length and acceptance checks need `-peertimeout` and belong to
   [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14).
 - `feature_uacomment.py`: a smaller claim: no `testnode{i}` default comment, no
@@ -1751,13 +1752,13 @@ sweep across both. Dropped is Core's own file's ancestor and descendant
 size accounting (`getmempoolentry`), its package-limit scenario
 (`submitpackage`, cluster limits) and its legacy P2SH sigops
 standardness test, all driving package or standardness mechanics beyond
-a single transaction's own accepted vsize. Measured live against the
-pinned release: `testmempoolaccept`'s own answer carries no
-`vsize_adjusted` or `vsize_bip141` field there, `vsize` alone already
-reflecting the sigop-adjusted floor. Its node restarts with a
-`-datacarriersize` besides (`Capability.DATACARRIER`), over the
-`OP_RETURN` padding of the transactions it builds, which a build without
-bitcoin/bitcoin#32406, first in `v30.0rc1`, refuses by default.
+a single transaction's own accepted vsize. Measured live on a build before
+`v32.0rc1`: `testmempoolaccept`'s own answer carries no `vsize_adjusted` or
+`vsize_bip141` field there, `vsize` alone already reflecting the
+sigop-adjusted floor. Its node restarts with a `-datacarriersize` besides
+(`Capability.DATACARRIER`), over the `OP_RETURN` padding of the transactions
+it builds, which a build without bitcoin/bitcoin#32406, first in `v30.0rc1`,
+refuses by default.
 
 `BtclibNodeAdapter` declares `PERMIT_BARE_MULTISIG` on a build past
 [ISS btclib-node#1497](https://github.com/btclib-org/btclib-node/issues/1497),
@@ -1938,8 +1939,8 @@ mined. Core checks its false positive with
 `bip158_basic_element_hash`; this builds the genesis block's own filter
 with btclib's `BasicBlockFilter.from_block` and asks it to `match` both
 scripts. Core's refusal of a null `scanobjects` is `master`'s wording
-from the pinned commit on, and the pinned release refuses the same call
-as a type error instead: either refusal passes, each with its own code.
+from the pinned commit on, and a build before `v32.0rc1` refuses the same
+call as a type error instead: either refusal passes, each with its own code.
 
 `p2p_eviction.py`'s row is Core's own claim in full: inbound peers fill
 the slots `-maxconnections` leaves for transaction-relaying peers, the
@@ -1948,22 +1949,21 @@ disconnected, and it is none of those protected for sending a novel
 block, for sending a transaction or for the lowest ping. How many
 inbound slots a given `-maxconnections` leaves for such peers differs
 between builds: the pinned commit lets transaction-relaying peers take
-only a share of a node's inbound slots, and the pinned release does not
-set them apart. So the value is read from the node's own `-help`
+only a share of a node's inbound slots, and a build before `v32.0rc1` does
+not set them apart. So the value is read from the node's own `-help`
 ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
-which names the share where the build has one -- in
-`-maxconnections`'s own description at the pinned commit, as
-`-inboundrelaypercent` on Core's `master` since -- and the test restarts
-the node with Core's own value for the build it finds: the pinned
-commit's, or the one Core's own file carried before it. `Peer` answers
-a ping only while a caller reads, where Core's own peers answer from a
-background thread, so the test reads for it: after each handshake it
-answers the node's first ping, at once for a fast peer and after Core's
-own delay for a slow one, and waits for the `sync_with_ping` barrier
-Core's `add_p2p_connection` runs. Core sends a transaction without
-waiting for it; this waits until the node's `getrawmempool` lists it
-before the next peer connects, which that barrier would not ensure of a
-node answering a `ping` ahead of the `tx` its peer sent first
+which names the share where the build has one -- in `-maxconnections`'s own
+description at the pinned commit, as `-inboundrelaypercent` on Core's
+`master` since -- and the test restarts the node with Core's own value for
+the build it finds: the pinned commit's, or the one Core's own file carried
+before it. `Peer` answers a ping only while a caller reads, where Core's own
+peers answer from a background thread, so the test reads for it: after each
+handshake it answers the node's first ping, at once for a fast peer and
+after Core's own delay for a slow one, and waits for the `sync_with_ping`
+barrier Core's `add_p2p_connection` runs. Core sends a transaction without
+waiting for it; this waits until the node's `getrawmempool` lists it before
+the next peer connects, which that barrier would not ensure of a node
+answering a `ping` ahead of the `tx` its peer sent first
 ([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410)).
 
 Neither `-fastprune` nor `-blockfilterindex` is one of `cli.py`'s registered
@@ -2095,11 +2095,12 @@ differs from Core's file. The mutated-block check has the node dial an outbound
 full-relay peer, so it asks for `TYPED_OUTBOUND`, and `MINE` for the block it
 announces, which spends a `MiniWallet` coin; the missing-parent check's wire
 half asks for `MINE` alone. Each log half asks for `DEBUG_LOG` besides, and the
-missing-parent one for `TEST_ACTIVATION_HEIGHT` too. Its pin is past the pinned
-release: Core's file there sends a `sendcmpct` and the block's header ahead of
-the `cmpctblock`, where the release's own sends neither, and each `bitcoind`
-cell is one verdict for both builds. `btclib-node`'s cell on the missing-parent
-wire row is a pass, and every other row this file adds is a counted skip.
+missing-parent one for `TEST_ACTIVATION_HEIGHT` too. Its pin is Core's file
+at the pinned release, which sends a `sendcmpct` and the block's header
+ahead of the `cmpctblock`, where Core's file before `v32.0rc1` sends
+neither, and each `bitcoind` cell is one verdict for the pinned release and
+for Core's `master`. `btclib-node`'s cell on the missing-parent wire row is
+a pass, and every other row this file adds is a counted skip.
 
 `feature_anchors.py` is ported on it too, each of Core's checks a body
 over a fresh node in `tests/integration/feature_anchors_test.py`,
@@ -2128,16 +2129,17 @@ each over a fresh node and run over `addr` and then over `addrv2`.
 `CLOCK` and `PEER_TIMEOUT` for Core's own mock time under its harness's
 `-peertimeout`; the outbound halves ask for `TYPED_OUTBOUND` and each log
 half for `DEBUG_LOG` besides. Its `-onlynet` check asks for `EXTERNAL_IP`
-and `ONLYNET`, and its pin is past the pinned release, whose own file has
-no such check: `-externalip` bypasses `-onlynet` only on a build carrying
-bitcoin/bitcoin@8c87e32bd3937251d6f30295cc1924048e5b74d1, which the release
-does not, so the body reads the build's own `getnetworkinfo` `version` and
-asserts, on an older build, that the onion address is left out. Its inbound
-checks are read per-build: the first self-announcement is alone in its
-message only on a build carrying bitcoin/bitcoin#34146, first released in
-`v31.0rc1`, so the body reads the build's own `getnetworkinfo` `version` and
-asserts, on an older build, one message holding it and the `getaddr` answer.
-`btclib-node`'s cell on each row is a counted skip.
+and `ONLYNET`, and its pin carries a check Core's file before `v32.0rc1`
+does not: `-externalip` bypasses `-onlynet` only on a build carrying
+bitcoin/bitcoin@8c87e32bd3937251d6f30295cc1924048e5b74d1, which `v32.0rc1`
+is the first tag to carry, so the body reads the build's own
+`getnetworkinfo` `version` and asserts, on an older build, that the onion
+address is left out. Its inbound checks are read per-build: the first
+self-announcement is alone in its message only on a build carrying
+bitcoin/bitcoin#34146, first released in `v31.0rc1`, so the body reads the
+build's own `getnetworkinfo` `version` and asserts, on an older build, one
+message holding it and the `getaddr` answer. `btclib-node`'s cell on each
+row is a counted skip.
 
 `p2p_ibd_stalling.py` is ported on it too, each of Core's checks a wire
 half and a log half over a fresh node in
@@ -2167,14 +2169,14 @@ announcing by txid is `Peer.handshake`'s `wtxidrelay` off, Core's
 capability, as the `noban` checks above do not.
 The duplicate check is read per-build: the entries of one `inv` naming
 the same transaction are processed once only on a build carrying
-bitcoin/bitcoin@1278a5970d5ada0979052a5bad899e896b8ab40b, which the
-pinned release does not, so the body reads the build's own
+bitcoin/bitcoin@1278a5970d5ada0979052a5bad899e896b8ab40b, which `v32.0rc1`
+is the first tag to carry, so the body reads the build's own
 `getnetworkinfo` `version` and asserts, on an older build, that each is
-processed.
-The inv-block check is read per-build too: `getpeerinfo`'s `inv_to_send`
-is in the node's answer only on a build carrying bitcoin/bitcoin#33448,
-which `v31.0rc1` is the first tag to carry, so the body reads the build's own
-`help getpeerinfo` and leaves `inv_to_send` unread on an older build.
+processed. The inv-block check is read per-build too: `getpeerinfo`'s
+`inv_to_send` is in the node's answer only on a build carrying
+bitcoin/bitcoin#33448, which `v31.0rc1` is the first tag to carry, so the
+body reads the build's own `help getpeerinfo` and leaves `inv_to_send`
+unread on an older build.
 
 `btclib-node`'s cell on the spurious-`notfound`, disconnect, `notfound` and
 large-inv rows is a pass on a build past
@@ -2212,13 +2214,13 @@ under it, so the check asserts there only that the package is kept and
 taken in. The parent-confirmed check is read per-build: an orphan is taken
 into the mempool once a block confirms its parent only on a build
 carrying bitcoin/bitcoin@9cc7dc50bdc9867d079ab7a111d39487a4566767, which
-the pinned release does not, so the body reads the build's own
-`getnetworkinfo` `version` and asserts, on an older build, that the
-orphan is kept. A transaction with no witness spends
-`mini_wallet.py`'s `RAW_P2PK_SCRIPT_PUB_KEY`, Core's own `RAW_P2PK`
-output, under `raw_p2pk_script_sig`, from coinbases the body mines.
-`btclib-node`'s cell on each row is a counted skip, on `ORPHANAGE` or on a
-later capability above.
+`v32.0rc1` is the first tag to carry, so the body reads the build's own
+`getnetworkinfo` `version` and asserts, on an older build, that the orphan
+is kept. A transaction with no witness spends `mini_wallet.py`'s
+`RAW_P2PK_SCRIPT_PUB_KEY`, Core's own `RAW_P2PK` output, under
+`raw_p2pk_script_sig`, from coinbases the body mines. `btclib-node`'s cell
+on each row is a counted skip, on `ORPHANAGE` or on a later capability
+above.
 
 `p2p_compactblocks.py` is ported on it, its rows above each one of
 Core's checks, or the wire or the log half of one, as a body over a
@@ -2233,19 +2235,19 @@ BIP152's messages are `btclib.p2p.compact_blocks`' own. Each `bitcoind`
 cell is one verdict for the pinned release and for Core's `master`.
 
 The invalid-`sendcmpct`, empty-`getblocktxn` and ignored rows read the
-build's own `getnetworkinfo` `version`, and the pinned release carries
-none of the changes they read, which each body asserts there instead. A
-build carrying bitcoin/bitcoin@2d0dce0af54b8eb0ebdaf62f12a92d7e559a281e
-drops the peer on the invalid-`sendcmpct` row, where the pinned release
-keeps it. A build carrying
-bitcoin/bitcoin@28641fd195db2a175fd43fee2e32758aef9816a6 drops the peer
-on the empty-`getblocktxn` row, where the pinned release keeps it. A
-build carrying bitcoin/bitcoin#32606 ignores, on the ignored row, a
-`cmpctblock` from a peer that has sent no `sendcmpct`, and one it did
-not ask for from a peer it has not selected for high-bandwidth mode,
-where the pinned release takes each. Every other body whose check needs
-the node to take a `cmpctblock` it did not ask for first has its peer
-send a `sendcmpct` and deliver a block, so that the node selects it for
+build's own `getnetworkinfo` `version`, and a build before `v32.0rc1`
+carries none of the changes they read, which each body asserts there
+instead. A build carrying
+bitcoin/bitcoin@2d0dce0af54b8eb0ebdaf62f12a92d7e559a281e drops the peer on
+the invalid-`sendcmpct` row, where a build before `v32.0rc1` keeps it. A
+build carrying bitcoin/bitcoin@28641fd195db2a175fd43fee2e32758aef9816a6
+drops the peer on the empty-`getblocktxn` row, where a build before
+`v32.0rc1` keeps it. A build carrying bitcoin/bitcoin#32606 ignores, on the
+ignored row, a `cmpctblock` from a peer that has sent no `sendcmpct`, and
+one it did not ask for from a peer it has not selected for high-bandwidth
+mode, where a build before `v32.0rc1` takes each. Every other body whose
+check needs the node to take a `cmpctblock` it did not ask for first has its
+peer send a `sendcmpct` and deliver a block, so that the node selects it for
 high-bandwidth mode.
 
 `btclib-node`'s cell on each log row is a counted skip, and on the
@@ -2298,12 +2300,11 @@ the others read `getorphantxs`'s `help`.
 ([ISS btclib-node#1420](https://github.com/btclib-org/btclib-node/issues/1420)),
 so `btclib-node`'s cell on each row is a counted skip on a later capability
 above.
-Core's node starts with `-inboundrelaypercent` besides, an option the
-pinned release refuses as unknown: the orphanage check sending many
-orphans passes Core's own value only to a bitcoind whose
-`getnetworkinfo` `version` reads at or past the first release carrying
-the option, and asserts the same without it, the module docstring having
-why.
+Core's node starts with `-inboundrelaypercent` besides, an option a build
+before `v32.0rc1` refuses as unknown: the orphanage check sending many
+orphans passes Core's own value only to a bitcoind whose `getnetworkinfo`
+`version` reads at or past the first release carrying the option, and
+asserts the same without it, the module docstring having why.
 
 `p2p_block_times.py` is ported on it, its row above, in
 `tests/integration/p2p_block_times_test.py`, whose module docstring has
@@ -2429,12 +2430,12 @@ thread of its own as Core's `P2PInterface` does. It asks for
 node is given but `-test=addrman` and `-dnsseed` off, keeps Core's
 steps in their order, and drops the last: Core restarts the node with
 `-listenonion`, which `BitcoindAdapter`'s own argv turns off. Its pin is
-past the pinned release, whose own file has no refusal of
-`getprivatebroadcastinfo` and `abortprivatebroadcast` on a node without
-`-privatebroadcast` and reads no `attempts_remaining`: the release's
-binary answers neither way, so the body reads the build's own
-`getnetworkinfo` `version` and asserts, on an older build, what that
-build answers instead. `btclib-node`'s cell is a counted skip on
+Core's file at the pinned release. Core's file before `v32.0rc1` has no
+refusal of `getprivatebroadcastinfo` and `abortprivatebroadcast` on a node
+without `-privatebroadcast` and reads no `attempts_remaining`, and a build
+before it answers neither way, so the body reads the build's own
+`getnetworkinfo` `version` and asserts, on an older build, what that build
+answers instead. `btclib-node`'s cell is a counted skip on
 `Capability.PRIVATE_BROADCAST`.
 
 `p2p_private_broadcast_cap.py` is ported in
@@ -2459,12 +2460,13 @@ proxy in BIP324's v2 transport; the body closes them instead, nothing
 Core's file reads being on them. It asks for
 `Capability.PRIVATE_BROADCAST` and the capability of every option its
 node is given but `-test=addrman` and `-dnsseed` off. Core's file at the
-pinned release differs from the pin in its factories' signatures alone.
-`BitcoindAdapter` declares `Capability.PRIVATE_BROADCAST` only where the
-build's `-help` lists `-privatebroadcast` (`bitcoind.py`'s own
-`_has_private_broadcast`), so the private broadcast files are a counted
-skip on a release whose `-help` lists none. `btclib-node`'s cell is a
-counted skip on `Capability.PRIVATE_BROADCAST`.
+pinned release is the pin's, and the one before `v32.0rc1` differs from it
+in its factories' signatures alone. `BitcoindAdapter` declares
+`Capability.PRIVATE_BROADCAST` only where the build's `-help` lists
+`-privatebroadcast` (`bitcoind.py`'s own `_has_private_broadcast`), so the
+private broadcast files are a counted skip on a release whose `-help` lists
+none. `btclib-node`'s cell is a counted skip on
+`Capability.PRIVATE_BROADCAST`.
 `rpc_net.py`'s steps that need one node (`addnode`, a peer's service names,
 `getnodeaddresses`, `addpeeraddress`, `getaddrmaninfo` and `getrawaddrman`) are
 ported in `tests/integration/rpc_net_test.py`, each its own row. Its module
@@ -2472,25 +2474,25 @@ docstring has what differs from Core's file. Core gives its nodes a `-proxy`
 nothing listens at, so that no step dials a public address; no step reads what
 the node asks of it, so no proxy runs, and a step given the argument asks for
 `Capability.PROXY`. The steps Core restarts with `-cjdnsreachable` ask for
-`Capability.CJDNS`. A blank `addnode` address is refused only past the pinned
-release, and a blank `addpeeraddress` address from `v31.0rc1` on. The body asks
-the build a call that changes nothing and asserts that build's own answer. The
+`Capability.CJDNS`. A blank `addnode` address is refused from `v32.0rc1` on,
+and a blank `addpeeraddress` address from `v31.0rc1` on. The body asks the
+build a call that changes nothing and asserts that build's own answer. The
 steps that connect Core's nodes are
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s.
 `btclib-node`'s cells are a counted skip on each row's own capability.
 `feature_config_args.py`'s steps whose subject is a proxy option (`-proxy`
-given no value, `-connect` beside `-seednode` and `-dnsseed` and a proxy, and
-`-privatebroadcast` without a Tor or I2P proxy, beside `-connect`, and beside
-`-proxyrandomize` turned off) are ported in
-`tests/integration/feature_config_args_test.py`, each its own row. Its module
-docstring has what differs from Core's file. No step reads what the node asks
-of a proxy, so no `Socks5Proxy` runs; each asks for `Capability.PROXY`, which
-`btclib-node` does not declare, so its cells are a counted skip. The warning
-of `-privatebroadcast` beside `-proxyrandomize` turned off ends in another
-sentence before bitcoin/bitcoin@2630d8e6c9d6, which also adds a sentence to
-`-privatebroadcast`'s `-help` text; the body reads that text and asserts the
-build's own sentence. The file's other steps use a proxy only to keep the node
-off the network, and stay with
+given no value, `-connect` beside `-seednode` and `-dnsseed` and a proxy,
+and `-privatebroadcast` without a Tor or I2P proxy, beside `-connect`, and
+beside `-proxyrandomize` turned off) are ported in
+`tests/integration/feature_config_args_test.py`, each its own row. Its
+module docstring has what differs from Core's file. No step reads what the
+node asks of a proxy, so no `Socks5Proxy` runs; each asks for
+`Capability.PROXY`, which `btclib-node` does not declare, so its cells are a
+counted skip. The warning of `-privatebroadcast` beside `-proxyrandomize`
+turned off ends in another sentence before bitcoin/bitcoin@2630d8e6c9d6,
+which also adds a sentence to `-privatebroadcast`'s `-help` text; the body
+reads that text and asserts the build's own sentence. The file's other steps
+use a proxy only to keep the node off the network, and stay with
 [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s list
 above.
 
@@ -2536,9 +2538,7 @@ The rest of `wallet_*.py` waits on what each file asks beyond that,
 among it: a second node; a restart with the wallet already on disk
 (`wallet_startup.py`, `wallet_reindex.py`); an extended private key
 built on the client (`wallet_createwallet.py`,
-`wallet_listdescriptors.py`, `wallet_keypool.py`); an RPC the pinned
-release does not have (`wallet_multisig_descriptor_psbt.py`'s
-`derivehdkey`); a previous release
+`wallet_listdescriptors.py`, `wallet_keypool.py`); a previous release
 (`wallet_backwards_compatibility.py`); an external signer
 (`wallet_signer.py`); or Core's `bitcoin-wallet` tool beside the clock
 (`wallet_encryption.py`).
@@ -2547,4 +2547,4 @@ release does not have (`wallet_multisig_descriptor_psbt.py`'s
 sense, `-disablewallet` being bitcoind's own option, and it asks for no
 capability at all: a build without the wallet accepts the option too.
 `tests/integration/wallet_disable_bitcoind_test.py`'s own docstring has
-how the pinned release's file differs from the pin.
+how an older file differs from the pin.

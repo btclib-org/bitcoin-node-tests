@@ -37,8 +37,8 @@ What differs from Core's file:
 - Core's `getblock` of the fork's third block is asked twice in a row,
   and once here.
 
-Every step is the same at `v31.1`, the release `bitcoind.py` pins: Core's
-file there differs from the pinned revision only in handing each
+Core's file at `v32.1` is the pin's. Every step is the same at `v31.1`:
+Core's file there differs from the pinned revision only in handing each
 `create_block` a coinbase of its own `create_coinbase` rather than a
 height.
 

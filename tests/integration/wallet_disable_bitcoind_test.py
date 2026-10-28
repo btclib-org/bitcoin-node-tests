@@ -5,10 +5,10 @@
 """Core's `wallet_disable`, rewritten on tf2's own harness: bitcoind.
 
 Read from Core's `test/functional/wallet_disable.py` (`3fd68a95e68b`,
-2026-04-07; the pinned `v31.1` differs only in asserting with `assert`
-where this revision calls `assert_equal`): a node started under
-`-disablewallet` answers no wallet RPC and still validates an address.
-Every assertion of Core's own is kept.
+2026-04-07, the same file at `v32.1`; `v31.1` differs only in asserting
+with `assert` where this revision calls `assert_equal`): a node started
+under `-disablewallet` answers no wallet RPC and still validates an
+address. Every assertion of Core's own is kept.
 
 A bitcoind-only test in `capability.py`'s own sense: `-disablewallet` is
 bitcoind's own option, so this module asks `require` for nothing and has

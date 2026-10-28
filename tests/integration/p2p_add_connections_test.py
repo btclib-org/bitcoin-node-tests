@@ -14,7 +14,7 @@ own `version` before reading the node's.
 Core's first step, a `manual` connection past a filled outbound
 capacity, is a body of its own over a fresh node, and is read per-build
 ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)):
-`addconnection` takes `manual` only past the pinned `v31.1`
+`addconnection` takes `manual` only past `v32.1`
 (bitcoin/bitcoin@4c79f3a34d003bd97824b032383ac816a4147d68). Where the
 build's own `help addconnection` names no `manual`, the body asserts the
 refusal Core's `RPC_INVALID_PARAMETER` answers instead. Core starts that

@@ -109,11 +109,11 @@ What differs from Core's file besides:
   HTTP through libevent (`rpc_echo_payload_test.py`'s module
   docstring has why); Core's keeps one connection.
 
-An orphan is taken into the mempool once a block confirms its parent
-past the pinned release, from
-bitcoin/bitcoin@9cc7dc50bdc9867d079ab7a111d39487a4566767, which `v32.0rc1`
-is the first tag to carry: a bitcoind whose `getnetworkinfo` `version`
-reads older than that
+An orphan is taken into the mempool once a block confirms its parent in
+`v32.0` and later, from
+bitcoin/bitcoin@9cc7dc50bdc9867d079ab7a111d39487a4566767, which
+`v32.0rc1` is the first tag to carry: a bitcoind whose `getnetworkinfo`
+`version` reads older than that
 ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35))
 keeps the orphan, which is asserted there instead. A `master` build
 between that change's merge and the version's move to `32.99` reads

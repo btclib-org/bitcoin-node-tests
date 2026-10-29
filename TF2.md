@@ -1135,7 +1135,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_invalidateblock.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass, the ancestors' check run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (generate) |
 | `rpc_signmessagewithprivkey.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (sign_message_with_privkey) |
 | `feature_chain_tiebreaks.py` | [`20ae9b98eab2`](https://github.com/bitcoin/bitcoin/commit/20ae9b98eab2) | 2026-03-04 | pass, the restart's tip check run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (invalidate_block) |
-| `p2p_sendheaders.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (generate) |
+| `p2p_sendheaders.py` | [`a7acf277dc39`](https://github.com/bitcoin/bitcoin/commit/a7acf277dc39) | 2026-10-02 | pass | skip (generate) |
 | `p2p_fingerprint.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (clock) |
 | `rpc_estimatefee.py` | [`4056908f0fea`](https://github.com/bitcoin/bitcoin/commit/4056908f0fea) | 2026-09-29 | pass, the `options` checks and the estimator refusal run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (estimate_smart_fee) |
 | `feature_assumevalid.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass, its log lines read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (assume_valid) |
@@ -1513,7 +1513,9 @@ prose in the later sections.
 - `p2p_sendheaders.py`: Core's claim in full. Skips on `generate`
   ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404));
   it needs `invalidateblock`
-  ([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480)).
+  ([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480))
+  and `setmocktime`
+  ([ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479)).
 - `p2p_fingerprint.py`: Core's claim in full. Skips on `clock`: `setmocktime` is
   named by no callback
   ([ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479)).

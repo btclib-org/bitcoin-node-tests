@@ -31,9 +31,7 @@ What differs from Core's file:
 
 - `-walletnotify`, given to the file's second node, is not ported: it
   asks for a second node's own wallet sharing the first's descriptors,
-  built from an extended private key the client generates, which
-  `TF2.md`'s own *The node wallet* section lists among what a port of
-  Core's wallet tests still waits on;
+  built from an extended private key the client generates;
 - Core's blocks are mined by the second node and notified by the first
   once they reach it; here the node given `-blocknotify` mines them;
 - Core runs every check on one node, in turn, its invalid chain

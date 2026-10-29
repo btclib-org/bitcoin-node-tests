@@ -29,6 +29,10 @@ standardness test, all of which drive package or standardness mechanics
 beyond a single transaction's own accepted vsize; none of them is
 answered by the option and MiniWallet families alone.
 
+Core's file reads `testmempoolaccept`'s `vsize_adjusted` and
+`vsize_bip141`, which a build before `v32.0rc1` does not answer; this
+reads `vsize`, which every build answers with the floor.
+
 The node starts without `-bytespersigop` and is restarted with it
 before any block is mined, and with a `-datacarriersize` over the
 `OP_RETURN` padding of the transactions below, which `v29.4` refuses by

@@ -16,9 +16,8 @@ needs.
 Not a port of any Core file, unlike every other module of
 `tests/integration/`: Core's own functional tests run one binary
 against copies of itself, so no Core test poses this question the way
-`TF2.md`'s own per-test ledger expects one pinned. `TF2.md` carries this
-result in its own prose instead, under its own heading, rather than as
-a per-test row. The module is named `*_btclib_node_test.py` because it
+`TF2.md`'s own per-test ledger expects one pinned, and that ledger has
+no row for it. The module is named `*_btclib_node_test.py` because it
 needs a btclib-node: `node-integration.yml`'s btclib-node jobs run those
 modules. Its required bitcoind job, which has no btclib-node, exempts
 this module's skip by its reason, which starts with

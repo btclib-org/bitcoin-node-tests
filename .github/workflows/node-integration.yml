@@ -99,7 +99,7 @@ env:
 
 jobs:
   bitcoind:
-    uses: btclib-org/.github/.github/workflows/reusable-integration-bitcoind.yml@eb3b0c28476b98694ab3a3c3a9dce7e8e26ab4f5 # v2026.10.26
+    uses: btclib-org/.github/.github/workflows/reusable-integration-bitcoind.yml@72e0222ef466daf096e3ac8d07e2ba59c0544b1a # v2026.10.28
     permissions:
       contents: read
     with:
@@ -150,7 +150,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           enable-cache: true
       - name: Check out btclib-org/.github's scripts
@@ -203,12 +203,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           enable-cache: true
       - name: Setup a second interpreter for btclib-node
         id: btclib-node-python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.14"
       - name: Install btclib-node into it
@@ -301,7 +301,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           enable-cache: true
       # into the runner's temporary directory, outside the checkout
@@ -372,7 +372,7 @@ jobs:
           persist-credentials: false
           path: bitcoin-core
       - name: Setup uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           enable-cache: true
       # build-essential, cmake and python3 are already on the image;
@@ -507,12 +507,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           enable-cache: true
       - name: Setup a second interpreter for btclib-node
         id: btclib-node-python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.14"
       # git+...@main rather than the PyPI release the job above installs:

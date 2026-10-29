@@ -1158,6 +1158,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `interface_http.py` (excessive request size, log) | same | same | pass, its log lines read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 | `feature_block.py` (wire) | [`f82043af507a`](https://github.com/bitcoin/bitcoin/commit/f82043af507a) | 2026-06-30 | pass | skip (test_activation_height) |
 | `feature_block.py` (log) | same | same | pass | skip |
+| `feature_prune_stale_fork.py` | [`3f44f9aef7cc`](https://github.com/bitcoin/bitcoin/commit/3f44f9aef7cc) | 2026-05-12 | pass, the restart asked only of a build carrying bitcoin/bitcoin#35168 ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (fastprune) |
 
 Each line gives the reason for a file's `btclib-node` cell and, where there is
 one, the issue it is filed as. What differs from Core's file is in the
@@ -1530,6 +1531,8 @@ prose in the later sections.
   invalid-transaction templates and its `LARGE_REORG_SIZE` re-org
   ([ISS 439](https://github.com/btclib-org/bitcoin-node-tests/issues/439)),
   as a body per row, wire and log. Skips on `test_activation_height`.
+- `feature_prune_stale_fork.py`: Core's claim in full. Skips on `fastprune`:
+  `cli.py` registers no `-fastprune`.
 
 ## Node-linking: `connect_nodes`, `disconnect_nodes` and the sync waits
 

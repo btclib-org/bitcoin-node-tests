@@ -529,6 +529,7 @@ _ROWS: dict[str, str] = {
     "feature_remove_pruned_files_on_startup": (
         "`feature_remove_pruned_files_on_startup.py`"
     ),
+    "feature_prune_stale_fork": "`feature_prune_stale_fork.py`",
     "p2p_i2p_ports": "`p2p_i2p_ports.py`",
     "p2p_i2p_sessions": "`p2p_i2p_sessions.py`",
     "p2p_dns_seeds": "`p2p_dns_seeds.py`",

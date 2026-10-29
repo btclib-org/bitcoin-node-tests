@@ -13,24 +13,23 @@ basic filter per block, `scanblocks` answers from it, and
 look for.
 
 Core's own claim in full, in Core's own order: a scan by address and by
-ranged `pkh()` descriptor, `start_height` and `stop_height` bounding
-it, `filter_false_positives` either way, a precomputed false positive
+ranged `pkh()` descriptor, `start_height` and `stop_height` bounding it,
+`filter_false_positives` either way, a precomputed false positive
 colliding with the regtest genesis block's coinbase output, the second
-node started without the index refusing a scan, and every argument
-error Core's file asserts. Four spellings change. Core's `generate`
-mines the mempool node-side and flushes the validation queue before
-returning; this mines the two payments client-side,
-`MiniWallet.generate`'s own `confirm` naming them, and then waits for
-the index to reach the tip. Core's `getnewdestination` is a random
-key's P2TR output here too, built by `ScriptPubKey.p2tr`. Core checks
-its false positive with `bip158_basic_element_hash` over the scripts
-`getblock` reports; this builds the genesis block's own filter with
-`BasicBlockFilter.from_block` and asks it to `match` both scripts, the
-single-element filter matching a script exactly where that script's
-ranged hash equals the coinbase output's. Core's refusal of a null
-`scanobjects` is its `master`'s wording, from the pinned commit on;
-the pinned release refuses the same call with a type error, and either
-refusal passes, each with its own code.
+node started without the index refusing a scan, and every argument error
+Core's file asserts. Four spellings change. Core's `generate` mines the
+mempool node-side and flushes the validation queue before returning;
+this mines the two payments client-side, `MiniWallet.generate`'s own
+`confirm` naming them, and then waits for the index to reach the tip.
+Core's `getnewdestination` is a random key's P2TR output here too, built
+by `ScriptPubKey.p2tr`. Core checks its false positive with
+`bip158_basic_element_hash` over the scripts `getblock` reports; this
+builds the genesis block's own filter with `BasicBlockFilter.from_block`
+and asks it to `match` both scripts, the single-element filter matching
+a script exactly where that script's ranged hash equals the coinbase
+output's. Core's refusal of a null `scanobjects` is its `master`'s
+wording, from the pinned commit on; `31.1` refuses the same call with a
+type error, and either refusal passes, each with its own code.
 
 The second node is independent of the first -- never connected, never
 synced -- and asked for nothing but the refusal, so it is its own test
@@ -89,8 +88,8 @@ _CHILD_5_ADDRESS = "mkS4HXoTYWRTescLGaUTGbtTTYX5EjJyEE"
 _FALSE_POSITIVE_SPK = bytes.fromhex("001400000000000000000000000000000000000cadcb")
 
 # `scanblocks "start" null`'s own refusal: Core's `master` since
-# `aeca0610865e` checks for the missing argument before reading it, the
-# pinned `31.1` reads it as an array first and refuses the null's type
+# `aeca0610865e` checks for the missing argument before reading it, and
+# `31.1` reads it as an array first and refuses the null's type
 _NULL_SCANOBJECTS_MASTER = "scanobjects argument is required for the start action"
 _NULL_SCANOBJECTS_RELEASE = "JSON value of type null is not of expected type array"
 
@@ -229,8 +228,8 @@ def scanblocks_finds_the_blocks_paying_what_it_is_asked_for(
     with pytest.raises(RpcError, match="Invalid action 'foobar'") as excinfo:
         node.rpc.call("scanblocks", ["foobar"])
     assert excinfo.value.code == -8
-    # null scanobjects: Core's `master` names the missing argument, the
-    # pinned release refuses the null as a type error
+    # null scanobjects: Core's `master` names the missing argument, and
+    # `31.1` refuses the null as a type error
     with pytest.raises(RpcError) as excinfo:
         node.rpc.call("scanblocks", ["start", None])
     refusal = excinfo.value

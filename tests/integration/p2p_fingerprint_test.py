@@ -41,11 +41,11 @@ What differs from Core's file:
   `create_block` and `create_coinbase` (`blocktools.py`), its coinbase
   paying `OP_TRUE`.
 
-Every step is the same at `v31.1`, the release `bitcoind.py` pins: Core's
-file there differs from the pinned revision only in handing each
+Core's file at `v32.1` is the pin's. Every step is the same at `v31.1`:
+Core's file there differs from the pinned revision only in handing each
 `create_block` a coinbase of its own `create_coinbase` rather than a
-height, to the same block times. At `v29.4` it also spells a block's hash
-and the sending of a message in its framework's older names.
+height, to the same block times. At `v29.4` it also spells a block's
+hash and the sending of a message in its framework's older names.
 
 Each `p2p_fingerprint_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.

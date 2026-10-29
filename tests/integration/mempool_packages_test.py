@@ -5,10 +5,10 @@
 """Core's `mempool_packages`, one body over each node.
 
 Read from Core's `test/functional/mempool_packages.py` (`6f113cb1847c`,
-2026-02-09, the same file at the pinned `v31.1`): the mempool keeps, for
-each transaction, the mempool transactions it spends and those spending
-it, and the count, size and fees of its ancestors and its descendants,
-a prioritisation included; a node under a smaller `-limitclustercount`
+2026-02-09, the same file at `v32.1`): the mempool keeps, for each
+transaction, the mempool transactions it spends and those spending it,
+and the count, size and fees of its ancestors and its descendants, a
+prioritisation included; a node under a smaller `-limitclustercount`
 holds no more of a family than its limit; and a reorg returns what a
 disconnected block held to the mempool.
 

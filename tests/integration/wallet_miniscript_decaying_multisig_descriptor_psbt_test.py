@@ -6,14 +6,14 @@
 
 Read from Core's
 `test/functional/wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-(`88f802983571`, 2026-01-31, the same file at the pinned `v31.1`): a
-watch-only wallet imports a miniscript `thresh` over four signers' keys
-and three block-height locks, so that it spends 4-of-4 before the first
-lock, then 3-of-4, 2-of-4 and 1-of-4 as each lock height is reached. Each
-spend is a PSBT the signers complete one after another, in a random
-order; a spend signed by fewer signers than all four is refused as
-`non-final` before its lock height and accepted once the chain reaches
-it. Every assertion of Core's own is kept.
+(`88f802983571`, 2026-01-31, the same file at `v32.1`): a watch-only
+wallet imports a miniscript `thresh` over four signers' keys and three
+block-height locks, so that it spends 4-of-4 before the first lock, then
+3-of-4, 2-of-4 and 1-of-4 as each lock height is reached. Each spend is
+a PSBT the signers complete one after another, in a random order; a
+spend signed by fewer signers than all four is refused as `non-final`
+before its lock height and accepted once the chain reaches it. Every
+assertion of Core's own is kept.
 
 `Capability.NODE_WALLET` (`capability.py`) is asked for first, then
 `Capability.GENERATE`, the `generatetoaddress` the body mines with, of a

@@ -5,10 +5,10 @@
 """Core's `wallet_blank`, one body per `test_*` method over each node.
 
 Read from Core's `test/functional/wallet_blank.py` (`fa5f29774872`,
-2025-12-16, the same file at the pinned `v31.1`): a wallet created
-blank keeps its `blank` flag once a descriptor is imported into it,
-and once it is encrypted, its descriptors unchanged by the encryption.
-Every assertion of Core's own is kept.
+2025-12-16, the same file at `v32.1`): a wallet created blank keeps its
+`blank` flag once a descriptor is imported into it, and once it is
+encrypted, its descriptors unchanged by the encryption. Every assertion
+of Core's own is kept.
 
 Each body asks `Capability.NODE_WALLET` (`capability.py`) of a fresh
 node of its own, where Core runs both methods on one node started on

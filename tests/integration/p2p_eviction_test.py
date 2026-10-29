@@ -20,7 +20,7 @@ triggers the eviction, exactly one peer is disconnected, and it is none
 of the peers expected to be protected. What fills those slots differs
 between builds, and is read from the build (ISS 35): the pinned commit
 lets transaction-relaying peers take only half of a node's inbound
-slots, where the pinned `31.1` gives every inbound slot to any peer.
+slots, where `31.1` gives every inbound slot to any peer.
 `-maxconnections=53` leaves twenty-one transaction-relaying slots under
 the split, `-maxconnections=32` twenty-one slots without it, the value
 Core's own file carried before `1b76e0473647`, and

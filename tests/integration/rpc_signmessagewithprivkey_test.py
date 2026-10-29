@@ -21,8 +21,7 @@ addresses, over `deriveaddresses`; btclib derives them here, by `p2pkh`,
 test is about. Core's assertion that the P2PKH address is the one it
 names is kept, and holds btclib's derivation to it.
 
-Every step is the same at `v31.1`, the release `bitcoind.py` pins, whose
-copy of the file is the pin's.
+Every step is the same at `v32.1`, whose copy of the file is the pin's.
 
 Each `rpc_signmessagewithprivkey_<node>_test.py` module beside this one
 runs it, `tests/integration/conftest.py`'s own module docstring having

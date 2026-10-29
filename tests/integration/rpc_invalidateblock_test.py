@@ -47,8 +47,8 @@ What differs from Core's file:
   change's merge,
   bitcoin/bitcoin@a40e9536588c366886de4f4b9d67b8665a509929.
 
-Every step is the same at `v31.1`, the release `bitcoind.py` pins: Core's
-file there differs from the pinned revision only in how it hands
+Core's file at `v32.1` is the pin's. Every step is the same at `v31.1`:
+Core's file there differs from the pinned revision only in how it hands
 `create_block` a coinbase and a time.
 
 Each `rpc_invalidateblock_<node>_test.py` module beside this one runs it,

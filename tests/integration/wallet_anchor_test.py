@@ -5,14 +5,13 @@
 """Core's `wallet_anchor`, one body over each node.
 
 Read from Core's `test/functional/wallet_anchor.py` (`609d265ebc51`,
-2025-09-03, the same file at the pinned `v31.1`): a zero-value
-pay-to-anchor output, and its spend, are found by a watch-only wallet
-importing the anchor's address only through a rescan of the blocks
-holding them, `listunspent` naming the output until the rescan reaches
-its spend. A wallet refuses to import the anchor where it holds private
-keys, and one that holds it watch-only cannot spend it, refusing each
-of `send`, `sendtoaddress` and `sendall`. Every assertion of Core's own
-is kept.
+2025-09-03, the same file at `v32.1`): a zero-value pay-to-anchor
+output, and its spend, are found by a watch-only wallet importing the
+anchor's address only through a rescan of the blocks holding them,
+`listunspent` naming the output until the rescan reaches its spend. A
+wallet refuses to import the anchor where it holds private keys, and one
+that holds it watch-only cannot spend it, refusing each of `send`,
+`sendtoaddress` and `sendall`. Every assertion of Core's own is kept.
 
 `Capability.NODE_WALLET` (`capability.py`) is asked for first, then
 `Capability.MINE`, the `MiniWallet` (`mini_wallet.py`) that builds the

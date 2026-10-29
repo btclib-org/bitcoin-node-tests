@@ -5,14 +5,14 @@
 """Core's `wallet_simulaterawtx`, one body over each node.
 
 Read from Core's `test/functional/wallet_simulaterawtx.py`
-(`fa5f29774872`, 2025-12-16, the same file at the pinned `v31.1`):
+(`fa5f29774872`, 2025-12-16, the same file at `v32.1`):
 `simulaterawtransaction` answers, for each wallet it is asked at, how
-much a list of raw transactions would change that wallet's balance --
-a watch-only descriptor counting as the wallet's own, an input the
-list itself creates counting as available, a transaction the wallet
-funds counting its fee -- and refuses a list spending one output twice
-or spending an output neither the chain nor the list holds. Every
-assertion of Core's own is kept.
+much a list of raw transactions would change that wallet's balance -- a
+watch-only descriptor counting as the wallet's own, an input the list
+itself creates counting as available, a transaction the wallet funds
+counting its fee -- and refuses a list spending one output twice or
+spending an output neither the chain nor the list holds. Every assertion
+of Core's own is kept.
 
 `Capability.NODE_WALLET` (`capability.py`) is asked for first, then
 `Capability.GENERATE`, the `generatetoaddress` the body mines with, of

@@ -5,12 +5,12 @@
 """Core's `mempool_reorg`, as bodies over each node.
 
 Read from Core's `test/functional/mempool_reorg.py` (`fa5f29774872`,
-2025-12-16, the same file at the pinned `v31.1`): spends of coinbases,
-direct and indirect, and a spend time-locked past the tip's median time
-past, go in and out of the mempool as a reorg makes each immature,
-non-final or unconfirmed again; and a transaction a reorg returns from a
-disconnected block is served to a peer asking for it before the node has
-announced it, where one no block has held is not.
+2025-12-16, the same file at `v32.1`): spends of coinbases, direct and
+indirect, and a spend time-locked past the tip's median time past, go in
+and out of the mempool as a reorg makes each immature, non-final or
+unconfirmed again; and a transaction a reorg returns from a disconnected
+block is served to a peer asking for it before the node has announced
+it, where one no block has held is not.
 
 Core's `run_test` is the coinbase body and its `test_reorg_relay` the
 relay body, each over a fresh pair of nodes, and every assertion of

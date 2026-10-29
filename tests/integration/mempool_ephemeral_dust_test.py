@@ -5,13 +5,14 @@
 """Core's `mempool_ephemeral_dust`, as bodies over each node.
 
 Read from Core's `test/functional/mempool_ephemeral_dust.py`
-(`7c8030143925`, 2026-02-25, the same file at the pinned `v31.1` and at
-Core's `master`): a transaction paying no fee may carry one dust output
-where a child in the same package spends it, `CheckEphemeralSpends`
-(`src/policy/ephemeral_policy.cpp`) refusing a child that leaves the dust
-unspent, and `PreCheckEphemeralTx` a parent with dust that pays a fee or
-carries more than one dust output. A block disconnected in a reorg
-returns such a parent to the mempool with no spend of its dust checked.
+(`7c8030143925`, 2026-02-25, the same file at `v32.1`): a transaction
+paying no fee may carry one dust output where a child in the same
+package spends it, `CheckEphemeralSpends`
+(`src/policy/ephemeral_policy.cpp`) refusing a child that leaves the
+dust unspent, and `PreCheckEphemeralTx` a parent with dust that pays a
+fee or carries more than one dust output. A block disconnected in a
+reorg returns such a parent to the mempool with no spend of its dust
+checked.
 
 Two rules are newer than a bitcoind before `v31.0`, whose first tag,
 `v31.0rc1`, is the first to carry both, neither changing an RPC: so

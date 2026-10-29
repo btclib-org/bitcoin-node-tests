@@ -21,7 +21,7 @@ subprocess to generate two of its four credentials, and the
 than about `Capability.RPC_AUTH_CONFIG`, which `_rpcauth_line` below
 generates a credential for the same way `rpc_whitelist_test.py`
 already does. `-rpcuser`/`-rpcpassword` and `-norpccookiefile` each
-write no RPC cookie, measured live against the pinned `31.1` --
+write no RPC cookie, measured live against `31.1` --
 `rpcauth` given alongside either does not bring the cookie back -- so a
 client that waits on the cookie the adapter's `_rpc_client()`
 otherwise reads never sees one and `start` timed out rather than the

@@ -44,8 +44,7 @@ What differs from Core's file:
   check out for a `master` build reporting `30.99` taken after the
   change's merge, bitcoin/bitcoin@56e9703968e26353fd4663e07a7bba198a272d12.
 
-Every step is the same at `v31.1`, the release `bitcoind.py` pins, whose
-copy of the file is the pin's.
+Every step is the same at `v32.1`, whose copy of the file is the pin's.
 
 Each `feature_chain_tiebreaks_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.

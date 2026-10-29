@@ -9,16 +9,16 @@
 never off `test/config.ini`, and its docstring says why. A `bitcoind`
 that sits in a Core build tree has that file beside it, so the two are
 compared there. A `bitcoind` with no build tree beside it is taken for a
-release, and a release carries the wallet: `contrib/guix/libexec/build.sh`
-runs `make -C depends` with no `NO_WALLET`, so `depends/Makefile`'s own
-`wallet_packages_` is non-empty and `depends/toolchain.cmake.in` sets
-`ENABLE_WALLET` on, which the script's own `CONFIGFLAGS` leave alone
-(read at Core's `v31.1`). Either way the test asserts whichever shape the
-running build carries rather than skipping:
-`btclib-org/.github`'s `reusable-integration-bitcoind.yml` fails the
-required job on any skip whose reason does not start with its
-`skip-reason-prefix`, and that job runs a release, installed as
-`bin/bitcoind` alone.
+release, and a release carries the wallet:
+`contrib/guix/libexec/build_linux.sh` runs `make -C depends` with no
+`NO_WALLET`, so `depends/Makefile`'s own `wallet_packages_` is non-empty
+and `depends/toolchain.cmake.in` sets `ENABLE_WALLET` on, which the
+script's own `cmake` call leaves alone (read at Core's `v32.1`). Either
+way the test asserts whichever shape the running build carries rather
+than skipping: `btclib-org/.github`'s
+`reusable-integration-bitcoind.yml` fails the required job on any skip
+whose reason does not start with its `skip-reason-prefix`, and that job
+runs a release, installed as `bin/bitcoind` alone.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """

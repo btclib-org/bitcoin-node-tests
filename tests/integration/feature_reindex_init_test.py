@@ -25,7 +25,7 @@ inside it. Core's harness waits, after a start, for `getmempoolinfo`'s
 mempool" (`TestNode.wait_for_rpc_connection`'s own comment), where
 `NodeAdapter.start` returns on the first RPC answer. This waits the same
 way before reading the height: without the wait, `getblockcount` answered
-`0` right after the start, measured against the pinned release.
+`0` right after the start, measured against `31.1`.
 
 A bitcoind before `v31.0` prints `": "` ahead of that message, `noui`
 having added the empty caption and its separator
@@ -66,7 +66,7 @@ _HEIGHT = 200
 # how many blocks one `mine` call asks for, as `rpc_getblockfrompeer_test`
 # chunks them: a bitcoind's own `generatetoaddress` answers only once every
 # block is mined, and the whole height in one call outlasted the RPC
-# client's own timeout on the pinned release, measured on a loaded machine
+# client's own timeout on `31.1`, measured on a loaded machine
 _MINE_CHUNK = 50
 
 # Core's own `expected_msg`

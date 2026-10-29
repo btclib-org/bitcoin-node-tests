@@ -365,7 +365,7 @@ def _check_extra_args(command: Sequence[str], extra_args: Sequence[str]) -> None
     """Refuse an `extra_args` entry naming an option `command` already sets.
 
     bitcoind takes the last of a repeated option with no diagnostic
-    (measured against the pinned 31.1, given `-datadir` twice), so an
+    (measured against 31.1, given `-datadir` twice), so an
     `extra_args` entry that names one of `command`'s own options
     replaces it silently once appended after `command` -- refused here
     instead, before either ever reaches a process.
@@ -1144,23 +1144,23 @@ def connect_nodes(
     moments after `first` alone would already report the connection.
 
     `addnode`'s own third argument, `v2transport`, is passed explicitly,
-    `False` unless the caller asks otherwise, rather than left to
-    `first`'s own default: bitcoind's own default is
-    `True` since the pinned `31.1` (measured live -- a bare `addnode
-    ... "onetry"` against a `BtclibNodeAdapter` never completes a
-    handshake, bitcoind's own `debug.log` reading "start sending v2
-    handshake to peer=0" immediately followed by "socket closed,
-    disconnecting peer=0"), and a `btclib-node` build without
-    `-v2transport` reads and type-checks the argument without acting on
-    it (`rpc/callbacks.py`'s own docstring). bitcoind itself never falls
-    back to v1 once a v2 attempt is reset
+    `False` unless the caller asks otherwise, rather than left to `first`'s
+    own default: bitcoind's own default is `True` from `v27.0`
+    (`DEFAULT_V2_TRANSPORT`, `src/net.h`; measured live against `31.1` -- a
+    bare `addnode ... "onetry"` against a `BtclibNodeAdapter` never
+    completes a handshake, bitcoind's own `debug.log` reading "start sending
+    v2 handshake to peer=0" immediately followed by "socket closed,
+    disconnecting peer=0"), and a `btclib-node` build without `-v2transport`
+    reads and type-checks the argument without acting on it
+    (`rpc/callbacks.py`'s own docstring). bitcoind itself never falls back
+    to v1 once a v2 attempt is reset
     ([ISS btclib-node#1197](https://github.com/btclib-org/btclib-node/issues/1197)),
     which is why it is stated rather than left to a fallback. Core's own
-    `connect_nodes` (`test_framework.py`) makes the identical choice
-    through its own `peer_advertises_v2` parameter, defaulting to
-    whichever side is dialling; here the default is v1, and a test
-    whose subject is BIP324 between two nodes declaring
-    `Capability.V2TRANSPORT` passes `v2transport=True`.
+    `connect_nodes` (`test_framework.py`) makes the identical choice through
+    its own `peer_advertises_v2` parameter, defaulting to whichever side is
+    dialling; here the default is v1, and a test whose subject is BIP324
+    between two nodes declaring `Capability.V2TRANSPORT` passes
+    `v2transport=True`.
 
     :param first: the node asked to dial.
     :param second: the node dialled.

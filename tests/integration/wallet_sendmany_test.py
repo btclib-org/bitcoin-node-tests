@@ -5,9 +5,9 @@
 """Core's `wallet_sendmany`, one body over each node.
 
 Read from Core's `test/functional/wallet_sendmany.py` (`fa5f29774872`,
-2025-12-16, the same file at the pinned `v31.1`): `sendmany` refuses a
-`subtractfeefrom` naming one output twice, an address it pays nothing,
-a negative or an out-of-range position, or a value that is neither a
+2025-12-16, the same file at `v32.1`): `sendmany` refuses a
+`subtractfeefrom` naming one output twice, an address it pays nothing, a
+negative or an out-of-range position, or a value that is neither a
 position nor an address, and takes one mixing an address with a
 position. Every assertion of Core's own is kept.
 

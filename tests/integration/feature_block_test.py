@@ -37,7 +37,7 @@ What differs from Core's file, beyond what the sequence leaves out:
   `CConnman::InactivityCheck` (`src/net.cpp`) does not drop the peer
   once the node's clock is two hours ahead;
 - Core starts its node with `-prevoutfetchthreads=8` besides, an option
-  of Core's block validation that bitcoind's pinned release refuses as an
+  of Core's block validation that a bitcoind before `v32.0` refuses as an
   invalid parameter.
 
 Each `feature_block_<node>_test.py` module beside this one runs each

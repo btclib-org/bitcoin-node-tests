@@ -130,15 +130,15 @@ What differs from Core's file besides:
   `test_highbandwidth_mode_states_via_getpeerinfo` leaves its peer in.
 
 A `sendcmpct` whose announce octet is neither zero nor one drops the
-peer past the pinned release, from
+peer in `v32.0` and later, from
 bitcoin/bitcoin@2d0dce0af54b8eb0ebdaf62f12a92d7e559a281e, and so does a
 `getblocktxn` naming no index, from
-bitcoin/bitcoin@28641fd195db2a175fd43fee2e32758aef9816a6. A
-`cmpctblock` from a peer that has sent no `sendcmpct`, and one the node
-did not ask for from a peer it has not selected for high-bandwidth mode,
-are ignored past it, from bitcoin/bitcoin#32606. `v32.0rc1` is the first
-tag to carry each. A bitcoind whose `getnetworkinfo` `version` reads
-older than that
+bitcoin/bitcoin@28641fd195db2a175fd43fee2e32758aef9816a6. A `cmpctblock`
+from a peer that has sent no `sendcmpct`, and one the node did not ask
+for from a peer it has not selected for high-bandwidth mode, are ignored
+there too, from bitcoin/bitcoin#32606. `v32.0rc1` is the first tag to
+carry each. A bitcoind whose `getnetworkinfo` `version` reads older than
+that
 ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35))
 keeps the peer, answering the `getblocktxn` with a `blocktxn` carrying
 no transaction, and takes each `cmpctblock`, which is asserted there

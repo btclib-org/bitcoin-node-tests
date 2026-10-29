@@ -93,9 +93,9 @@ concurrency:
 # `bitcoind` job's `with:` below names the same pair, a `workflow_call`
 # job's `with:` having no `env` context to read these from
 env:
-  BITCOIND_VERSION: "31.1"
+  BITCOIND_VERSION: "32.1"
   BITCOIND_SHA256: >-
-    b80d9c3e04da78fb6f0569685673418cf686fadba9042d926d13fb87ff503f9e
+    61545c17c3120fb7412f896d248b11993af04ec8817aad3649c55b2afb044963
 
 jobs:
   bitcoind:
@@ -105,11 +105,10 @@ jobs:
     with:
       # the release under test, and the sha256 of its linux tarball as
       # the independent guix builders attested it in
-      # bitcoin-core/guix.sigs -- matching btclib's own pin, both trees
-      # testing against the same oracle
-      bitcoind-version: "31.1"
+      # bitcoin-core/guix.sigs
+      bitcoind-version: "32.1"
       bitcoind-sha256: >-
-        b80d9c3e04da78fb6f0569685673418cf686fadba9042d926d13fb87ff503f9e
+        61545c17c3120fb7412f896d248b11993af04ec8817aad3649c55b2afb044963
       # tests/integration/conftest.py's own two switches
       integration-env-var: TF2_INTEGRATION
       bitcoind-path-env-var: TF2_BITCOIND

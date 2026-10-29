@@ -5,11 +5,11 @@
 """Core's `wallet_timelock`, one body over each node.
 
 Read from Core's `test/functional/wallet_timelock.py` (`fa5f29774872`,
-2025-12-16, the same file at the pinned `v31.1`): a transaction whose
-`nLockTime` is one second before the tip's median time past, once
-confirmed, keeps its place in every balance and every list the wallet
-answers after the node's clock is set back to that same second. Every
-assertion of Core's own is kept.
+2025-12-16, the same file at `v32.1`): a transaction whose `nLockTime`
+is one second before the tip's median time past, once confirmed, keeps
+its place in every balance and every list the wallet answers after the
+node's clock is set back to that same second. Every assertion of Core's
+own is kept.
 
 `Capability.NODE_WALLET` (`capability.py`) is asked for first, then
 `Capability.GENERATE`, the `generatetoaddress` the body mines with, and

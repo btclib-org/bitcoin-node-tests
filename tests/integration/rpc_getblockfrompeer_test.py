@@ -28,7 +28,7 @@ blocks on the first node and submits them to the other two, a chain of
 the same height and not the same blocks, so Core's literal hash for the
 fetched block is compared with the first node's own `getblockhash`
 instead. Core's `pruneblockchain` heights are literals too, and differ
-between the pinned release and the pin (`git diff v31.1 779f4446803d --
+between `v31.1` and the pin (`git diff v31.1 779f4446803d --
 test/functional/rpc_getblockfrompeer.py`): `pruneblockchain` removes
 whole block files and answers the highest block left without data
 (`GetPruneHeight`, `src/rpc/blockchain.cpp`), so its answer moves with

@@ -13,10 +13,10 @@ height, block and confirmations of one of them. `MiniWallet`
 holding them. Every assertion Core's file makes is kept, in its order,
 the addresses, descriptors, amounts and messages copied from it.
 
-Not every build refuses `start` with a null in place of its scan
-objects the way the pinned file asserts, so the caller says which the
-running node is expected to: the pinned file's missing argument, or the
-pinned release's null of the wrong type.
+Not every build refuses `start` with a null in place of its scan objects
+the way the pinned file asserts, so the caller says which the running
+node is expected to: the pinned file's missing argument, or `31.1`'s
+null of the wrong type.
 
 Core's first check differs in its number and not in what it asks: it
 counts `49` coinbase outputs paying its `MiniWallet`, which is how many
@@ -174,7 +174,7 @@ _RANGE_REFUSALS: tuple[tuple[object, str], ...] = (
     ([0, 1000001], "Range is too large"),
 )
 
-# the pinned release's own refusal of `start` with a null scan-object list
+# `31.1`'s own refusal of `start` with a null scan-object list
 _NULL_OF_THE_WRONG_TYPE = "JSON value of type null is not of expected type array"
 
 # coins `MiniWallet` needs mature: one per output Core's own file sends to
@@ -243,7 +243,7 @@ def the_utxo_set_is_searched_by_descriptor(
     :param refuses_null_as_missing: asked of the running node whether a
         null in place of `start`'s scan objects is refused as the missing
         argument, in the wording Core's pinned file asserts -- where not,
-        as the pinned release refuses it, a null of the wrong type.
+        as `31.1` refuses it, a null of the wrong type.
     """
     (node,) = cluster(1)
     require(Capability.SCAN_UTXO_SET, node.capabilities, skip_counts)

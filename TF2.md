@@ -805,11 +805,14 @@ A pin or date cell reading **same** repeats the pin and date of the
 nearest row above it that names the same Core test file, the row width
 leaving no room to write them again.
 
-This table is not read by `.github/scripts/check_vendored_vectors.py`:
-that script's own docstring says so -- "this tree carrying no second
-ledger" -- and it reads `test/functional/test_framework/` alone, the
-directory the ledger above pins. A pin here is re-checked the same way,
-by hand:
+No weekly check reads this table's pins.
+`.github/scripts/check_vendored_vectors.py` parses the fenced blocks of
+the ledger above, each with its `behind` line, the grammar its docstring
+says it shares with its copies in `btclib` and `btclib-secp256k1`. A row
+here is a table row, with an abbreviated pin, `same` cells and no
+`behind`. `.github/scripts/tf2_master_verdict.py` compares a row's pin
+with upstream only for a test that fails against Core's `master` alone.
+A pin here is re-checked by hand:
 
 ```shell
 entry_path=test/functional/<test>.py
@@ -887,17 +890,17 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_framework_miniwallet.py` (TRUC) | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (datacarrier) |
 | `mempool_resurrect.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
 | `mempool_spend_coinbase.py` | `6eca11175be6` | 2026-07-16 | pass | pass |
-| `feature_dersig.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
+| `feature_dersig.py` | `fa6f7e36a8c2` | 2026-10-23 | pass | skip |
 | `feature_dersig.py` (wire) | same | same | pass | skip |
 | `feature_dersig.py` (log) | same | same | pass | skip |
 | `feature_dersig.py` (signature) | same | same | pass | skip |
-| `feature_cltv.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
+| `feature_cltv.py` | `fa6f7e36a8c2` | 2026-10-23 | pass | skip |
 | `feature_cltv.py` (wire) | same | same | pass | skip |
 | `feature_cltv.py` (log) | same | same | pass | skip |
 | `feature_cltv.py` (failures, activation) | same | same | pass | skip |
 | `feature_cltv.py` (failures, mempool) | same | same | pass | skip |
 | `feature_cltv.py` (failures, block) | same | same | pass | pass |
-| `feature_csv_activation.py` | `fab352053d6e` | 2026-04-16 | pass | skip |
+| `feature_csv_activation.py` | `fa6f7e36a8c2` | 2026-10-23 | pass | skip |
 | `feature_csv_activation.py` (lock times) | same | same | pass | skip |
 | `feature_nulldummy.py` | `fa5f29774872` | 2025-12-16 | pass | skip |
 | `feature_dirsymlinks.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
@@ -981,7 +984,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_reindex.py` (out of order) | same | same | pass | skip (reindex) |
 | `feature_reindex.py` (interrupted) | same | same | pass | skip (reindex) |
 | `feature_reindex_readonly.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (reindex) |
-| `p2p_feefilter.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | pass |
+| `p2p_feefilter.py` | [`fa6f7e36a8c2`](https://github.com/bitcoin/bitcoin/commit/fa6f7e36a8c2) | 2026-10-23 | pass | pass |
 | `p2p_feefilter.py` (forcerelay) | same | same | pass | pass |
 | `p2p_feefilter.py` (filter) | same | same | pass | pass |
 | `p2p_feefilter.py` (block-relay-only) | same | same | pass | skip |
@@ -1100,7 +1103,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_outbound_eviction.py` (mixed) | same | same | pass | skip |
 | `p2p_outbound_eviction.py` (block-relay-only) | same | same | pass | skip |
 | `p2p_tx_privacy.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | pass |
-| `p2p_invalid_block.py` (wire) | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | skip (clock) |
+| `p2p_invalid_block.py` (wire) | [`fa6f7e36a8c2`](https://github.com/bitcoin/bitcoin/commit/fa6f7e36a8c2) | 2026-10-23 | pass | skip (clock) |
 | `p2p_invalid_block.py` (log) | same | same | pass | skip (clock) |
 | `feature_maxtipage.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (max_tip_age) |
 | `p2p_blockfilters.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | skip (peer_block_filters) |
@@ -1119,16 +1122,16 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_cluster.py` | [`659671ac3db7`](https://github.com/bitcoin/bitcoin/commit/659671ac3db7) | 2026-06-04 | pass; skip (limit_cluster_size) on a build before the cluster mempool | skip (limit_cluster_size) |
 | `feature_minchainwork.py` | [`c502b65c007b`](https://github.com/bitcoin/bitcoin/commit/c502b65c007b) | 2026-10-03 | pass | skip (minimum_chain_work) |
 | `feature_minchainwork.py` (outbound) | same | same | pass | skip |
-| `mempool_packages.py` | [`6f113cb1847c`](https://github.com/bitcoin/bitcoin/commit/6f113cb1847c) | 2026-02-09 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mempool_graph) |
+| `mempool_packages.py` | [`fa6f7e36a8c2`](https://github.com/bitcoin/bitcoin/commit/fa6f7e36a8c2) | 2026-10-23 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (mempool_graph) |
 | `feature_versionbits_warning.py` | [`5bd990a3ddb1`](https://github.com/bitcoin/bitcoin/commit/5bd990a3ddb1) | 2026-06-03 | pass, the reserved bit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
-| `mempool_package_rbf.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass, the replacement limit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (maxmempool) |
+| `mempool_package_rbf.py` | [`fa704c5d3caf`](https://github.com/bitcoin/bitcoin/commit/fa704c5d3caf) | 2026-10-23 | pass, the replacement limit asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (maxmempool) |
 | `p2p_headers_sync_with_minchainwork.py` | [`ff3e2e4ebdce`](https://github.com/bitcoin/bitcoin/commit/ff3e2e4ebdce) | 2026-08-19 | pass | skip (minimum_chain_work) |
 | `p2p_unrequested_blocks.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass | skip (minimum_chain_work) |
-| `p2p_1p1c_network.py` | [`95ef0fc5e781`](https://github.com/bitcoin/bitcoin/commit/95ef0fc5e781) | 2025-12-29 | pass, the fees asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | pass |
-| `mempool_ephemeral_dust.py` | [`7c8030143925`](https://github.com/bitcoin/bitcoin/commit/7c8030143925) | 2026-02-25 | pass, `test_non_truc` asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (generate) |
+| `p2p_1p1c_network.py` | [`fa6f7e36a8c2`](https://github.com/bitcoin/bitcoin/commit/fa6f7e36a8c2) | 2026-10-23 | pass, the fees asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | pass |
+| `mempool_ephemeral_dust.py` | [`fa6f7e36a8c2`](https://github.com/bitcoin/bitcoin/commit/fa6f7e36a8c2) | 2026-10-23 | pass, `test_non_truc` asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (generate) |
 | `mempool_ephemeral_dust.py` (nonzero dust) | same | same | pass | pass |
 | `mempool_ephemeral_dust.py` (reorg) | same | same | pass, the reorg asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | pass |
-| `feature_notifications.py` (`-blocknotify`) | [`469b0e59a29a`](https://github.com/bitcoin/bitcoin/commit/469b0e59a29a) | 2026-09-01 | pass | skip (block_notify) |
+| `feature_notifications.py` (`-blocknotify`) | [`fa6f7e36a8c2`](https://github.com/bitcoin/bitcoin/commit/fa6f7e36a8c2) | 2026-10-23 | pass | skip (block_notify) |
 | `feature_notifications.py` (`-alertnotify`) | same | same | pass, the warning's wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (alert_notify) |
 | `feature_notifications.py` (`-shutdownnotify`) | same | same | pass | skip |
 | `feature_settings.py` | [`0654511e1b93`](https://github.com/bitcoin/bitcoin/commit/0654511e1b93) | 2026-06-17 | pass | skip (settings_file) |
@@ -1142,7 +1145,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_estimatefee.py` | [`4056908f0fea`](https://github.com/bitcoin/bitcoin/commit/4056908f0fea) | 2026-09-29 | pass, the `options` checks and the estimator refusal run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (estimate_smart_fee) |
 | `feature_assumevalid.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass, its log lines read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (assume_valid) |
 | `feature_rbf.py` | [`1a85ca1dff1f`](https://github.com/bitcoin/bitcoin/commit/1a85ca1dff1f) | 2026-04-24 | pass, the replacement rules' wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (incremental_relay_fee) |
-| `p2p_permissions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (peer_permissions) |
+| `p2p_permissions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (debug_log) |
 | `p2p_private_broadcast_retry_v1.py` | [`4e8c4bc794c0`](https://github.com/bitcoin/bitcoin/commit/4e8c4bc794c0) | 2026-08-04 | pass | skip (private_broadcast) |
 | `p2p_private_broadcast_cap.py` | [`82a02a2a2208`](https://github.com/bitcoin/bitcoin/commit/82a02a2a2208) | 2026-07-07 | pass, the cap asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (private_broadcast) |
 | `rpc_net.py` (`addnode`) | [`71c30b608382`](https://github.com/bitcoin/bitcoin/commit/71c30b608382) | 2026-09-22 | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
@@ -1304,10 +1307,6 @@ per build; an entry gives the reason only. A row with no entry here is a
 - `mempool_package_rbf.py`: the mempool-ancestor body alone restarts with
   `-maxmempool`, and skips on `maxmempool` where the node does not declare
   it.
-  The basic body restarts its nodes with the `noban` permission, where the node
-  declares `peer_permissions`, so that relay does not wait on the inventory
-  trickle ([ISS 469](https://github.com/btclib-org/bitcoin-node-tests/issues/469)).
-  Core's file does not set `noban_tx_relay`.
 - `feature_dersig.py`: a smaller claim: kept are `getdeploymentinfo`'s
   transition, the version floor (`bad-version`) and the non-DER signature
   ([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)).
@@ -1457,8 +1456,6 @@ per build; an entry gives the reason only. A row with no entry here is a
   ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)),
   and ask for `prioritisetransaction`
   ([ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502))
-  and `-whitelist`
-  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320))
   besides.
   The nonzero-dust body needs `-minrelaytxfee`
   ([ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332)).
@@ -1479,9 +1476,8 @@ per build; an entry gives the reason only. A row with no entry here is a
   ([ISS btclib-node#1576](https://github.com/btclib-org/btclib-node/issues/1576)).
 - `feature_rbf.py`: Core's claim in full. Skips on `incremental_relay_fee`
   ([ISS btclib-node#1596](https://github.com/btclib-org/btclib-node/issues/1596)).
-- `p2p_permissions.py`: Core's claim in full. Skips on `peer_permissions`
-  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320),
-  [ISS btclib-node#1625](https://github.com/btclib-org/btclib-node/issues/1625)).
+- `p2p_permissions.py`: Core's claim in full. The `forcerelay` body skips on
+  `debug_log`; the others pass.
 - `feature_shutdown.py`: has no row
   ([ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)). Its
   subject is the exit of a node asked to `stop` over RPC, which

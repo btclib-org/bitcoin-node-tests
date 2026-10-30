@@ -4,8 +4,8 @@
 
 """Core's `p2p_invalid_block`, as bodies over each node.
 
-Read from Core's `test/functional/p2p_invalid_block.py` (`fa16bc53d79c`,
-2026-04-16): a node takes a valid block from a peer, refuses a block
+Read from Core's `test/functional/p2p_invalid_block.py` (`fa6f7e36a8c2`,
+2026-10-23): a node takes a valid block from a peer, refuses a block
 whose duplicated transaction leaves its merkle root unchanged
 (CVE-2012-2459) and then takes the original block under that same hash,
 refuses a transaction spending one output twice (CVE-2018-17144) whether

@@ -4,13 +4,13 @@
 
 """Core's `mempool_packages`, one body over each node.
 
-Read from Core's `test/functional/mempool_packages.py` (`6f113cb1847c`,
-2026-02-09, the same file at `v32.1`): the mempool keeps, for each
-transaction, the mempool transactions it spends and those spending it,
-and the count, size and fees of its ancestors and its descendants, a
-prioritisation included; a node under a smaller `-limitclustercount`
-holds no more of a family than its limit; and a reorg returns what a
-disconnected block held to the mempool.
+Read from Core's `test/functional/mempool_packages.py` (`fa6f7e36a8c2`,
+2026-10-23; `v32.1`'s copy differs only in a comment): the mempool
+keeps, for each transaction, the mempool transactions it spends and
+those spending it, and the count, size and fees of its ancestors and its
+descendants, a prioritisation included; a node under a smaller
+`-limitclustercount` holds no more of a family than its limit; and a
+reorg returns what a disconnected block held to the mempool.
 
 Core's `run_test` is the body, in its own order, over a pair of nodes,
 and every assertion of Core's own is kept:

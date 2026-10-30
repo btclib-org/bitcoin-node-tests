@@ -5,7 +5,7 @@
 """Core's `feature_notifications`, a body per option over each node.
 
 Read from Core's `test/functional/feature_notifications.py`
-(`469b0e59a29a`, 2026-09-01), the option and the disk families together
+(`fa6f7e36a8c2`, 2026-10-23), the option and the disk families together
 ([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
 Each command Core's first node runs writes a file the test reads back,
 and each is a body here, over a node of its own started with that

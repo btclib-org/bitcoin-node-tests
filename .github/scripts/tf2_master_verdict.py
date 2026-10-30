@@ -40,8 +40,8 @@ paragraph, "Read from Core's `test/functional/<file>.py`" -- the same
 sentence a human re-checking a row of `TF2.md`'s per-test ledger by hand
 would read. Once the Core file is named, its pin comes from that
 ledger's own table rather than from the module's docstring a second
-time: the table is what a weekly re-check would move, where the
-docstring is prose nothing here re-derives automatically.
+time: the table is what a re-check by hand moves, where the docstring
+is prose nothing here re-derives automatically.
 
 The data files a Core test loads are `_DATA_FILES`, stated here rather
 than parsed out of Core's file, which reaches them in more than one way:

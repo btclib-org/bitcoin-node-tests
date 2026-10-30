@@ -248,6 +248,9 @@ tx_out_ser = "tx_out_ser"
 # `_DATA_FILES` is measured at: its middle characters spell `ba`, which
 # typos reads as a misspelt "by"
 "b13ba1a7d3" = "b13ba1a7d3"
+# a Core commit's own short sha, `mempool_package_rbf.py`'s pin: its last
+# characters spell `caf`, which typos reads as a misspelt "calf"
+"fa704c5d3caf" = "fa704c5d3caf"
 
 [tool.typos.type.verbatim]
 extend-glob = ["CHANGELOG.md", ".pre-commit-config.yaml", "TF2.md"]

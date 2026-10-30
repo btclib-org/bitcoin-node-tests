@@ -4,8 +4,8 @@
 
 """Core's `feature_cltv`, one body over each node.
 
-Read from Core's `test/functional/feature_cltv.py` (`fab352053d6e`,
-2026-04-16), on the option and MiniWallet families together
+Read from Core's `test/functional/feature_cltv.py` (`fa6f7e36a8c2`,
+2026-10-23), on the option and MiniWallet families together
 ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
 `-testactivationheight=cltv@N` (`Capability.TEST_ACTIVATION_HEIGHT`)
 holds BIP65 inactive until a chosen height, and blocks built and

@@ -5,9 +5,9 @@
 """Core's `mempool_ephemeral_dust`, as bodies over each node.
 
 Read from Core's `test/functional/mempool_ephemeral_dust.py`
-(`7c8030143925`, 2026-02-25, the same file at `v32.1`): a transaction
-paying no fee may carry one dust output where a child in the same
-package spends it, `CheckEphemeralSpends`
+(`fa6f7e36a8c2`, 2026-10-23; `v32.1`'s copy differs only in a comment
+and a blank line): a transaction paying no fee may carry one dust output
+where a child in the same package spends it, `CheckEphemeralSpends`
 (`src/policy/ephemeral_policy.cpp`) refusing a child that leaves the
 dust unspent, and `PreCheckEphemeralTx` a parent with dust that pays a
 fee or carries more than one dust output. A block disconnected in a

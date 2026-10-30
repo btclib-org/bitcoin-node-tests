@@ -1016,7 +1016,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `wallet_miniscript_decaying_multisig_descriptor_psbt.py` | [`88f802983571`](https://github.com/bitcoin/bitcoin/commit/88f802983571) | 2026-01-31 | pass | skip (node_wallet) |
 | `wallet_anchor.py` | [`609d265ebc51`](https://github.com/bitcoin/bitcoin/commit/609d265ebc51) | 2025-09-03 | pass | skip (node_wallet) |
 | `wallet_disable.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | bitcoind only |
-| `mempool_accept_wtxid.py` | [`3f5211cba8e7`](https://github.com/bitcoin/bitcoin/commit/3f5211cba8e7) | 2026-01-21 | pass | pass |
+| `mempool_accept_wtxid.py` | [`fa704c5d3caf`](https://github.com/bitcoin/bitcoin/commit/fa704c5d3caf) | 2026-10-23 | pass | pass |
 | `rpc_orphans.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | pass |
 | `mining_template_verification.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (block_proposal) |
 | `p2p_i2p_ports.py` | [`fa20275db32c`](https://github.com/bitcoin/bitcoin/commit/fa20275db32c) | 2025-10-21 | pass | skip (i2p_sam) |

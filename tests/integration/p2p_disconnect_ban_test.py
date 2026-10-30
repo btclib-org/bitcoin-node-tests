@@ -10,8 +10,9 @@ two nodes connected both ways, `disconnectnode` refusing an address and
 a node id given together and an address no peer has, then dropping a
 peer by address, the pair reconnecting, and a peer dropped by node id.
 The file's `setban` half is not here: it sets a mock clock, reads
-`debug.log` and deletes `banlist.json` from the data directory, `TF2.md`'s
-node-linking section has where it went.
+`debug.log` and deletes `banlist.json` from the data directory:
+[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)
+holds it.
 
 Core takes `node0`'s first `getpeerinfo` entry for the address it drops
 and expects back after the reconnection. That entry is `node0`'s own

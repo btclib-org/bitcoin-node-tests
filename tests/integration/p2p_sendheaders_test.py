@@ -4,16 +4,17 @@
 
 """Core's `p2p_sendheaders`, one body over each node.
 
-Read from Core's `test/functional/p2p_sendheaders.py` (`6eca11175be6`,
-2026-07-16), a file needing no mechanism the adapter lacks
+Read from Core's `test/functional/p2p_sendheaders.py` (`a7acf277dc39`,
+2026-10-02), a file needing no mechanism the adapter lacks
 ([ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)):
 a node announces a new block to a peer by `inv` until the peer sends
 `sendheaders`, and by `headers` after it. Two nodes are linked as
 Core's `setup_network` links them (`Capability.CONNECT`), the first
 mining (`Capability.GENERATE`) and the second mining the chains that
-reorganise it (`Capability.INVALIDATE_BLOCK`). Two peers connect to
-the first node: one that only ever reads `inv`s, and one without
-`NODE_NETWORK`, whose announcements are the subject.
+reorganise it (`Capability.INVALIDATE_BLOCK`). The first moves its
+clock past Core's `HEADERS_RESPONSE_TIME` (`Capability.CLOCK`). Two
+peers connect to the first node: one that only ever reads `inv`s, and
+one without `NODE_NETWORK`, whose announcements are the subject.
 
 - A `getheaders` with no locator answers the header its stop hash
   names only where that block is validated.
@@ -35,6 +36,9 @@ the first node: one that only ever reads `inv`s, and one without
 - A header that does not connect is answered with a `getheaders`, and
   the headers sent in answer are fetched. Every further such header is
   answered with a `getheaders` too.
+- A header that does not connect is no answer to the `getheaders` in
+  flight: one more, with no empty `headers` before it, is answered with
+  no `getheaders` until `HEADERS_RESPONSE_TIME` has passed.
 
 The peer reading `inv`s is never asked for a block.
 
@@ -53,10 +57,13 @@ What differs from Core's file:
   `create_block` and `create_coinbase` (`blocktools.py`), its coinbase
   paying `OP_TRUE`.
 
-Core's file at `v32.1` is the pin's. Every step is the same at `v31.1`:
-Core's file there differs from the pinned revision only in handing each
-`create_block` a coinbase of its own `create_coinbase` rather than a
-height, and in writing its `test_function` predicates as lambdas.
+Core's file at `v32.1` differs from the pin only in lacking the last
+step above, and at `v31.1` also in handing each `create_block` a
+coinbase of its own `create_coinbase` rather than a height, and in
+writing its `test_function` predicates as lambdas. Every release this
+suite runs answers that step as the pin does: an unconnecting header
+stopped counting as an answer with bitcoin/bitcoin@9f66ac7cf193, first
+in `v28.0`.
 
 Each `p2p_sendheaders_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -134,6 +141,9 @@ _DIRECT_FETCH_RESPONSE_TIME = 0.05
 
 # Core's own `NUM_HEADERS`
 _NUM_HEADERS = 100
+
+# Core's own `HEADERS_RESPONSE_TIME`, in seconds (`net_processing.cpp`)
+_HEADERS_RESPONSE_TIME = 2 * 60
 
 # Core's own `P2P_SERVICES`, what `add_p2p_connection` offers by default
 _P2P_SERVICES = ServiceFlags.NODE_NETWORK | ServiceFlags.NODE_WITNESS
@@ -711,6 +721,18 @@ def _part_5(
         test_node.send_header_for_blocks([blocks[i]])
         test_node.wait_for_getheaders(expected_hash)
 
+    # Core's own part 5c: with no empty `headers` before it, the header is
+    # no answer to the `getheaders` in flight, which holds off the next
+    test_node.clear("getheaders")
+    test_node.send_header_for_blocks([blocks[_NUM_HEADERS]])
+    test_node.sync_with_ping()
+    assert not test_node.has("getheaders")
+    # once `HEADERS_RESPONSE_TIME` has passed, a `getheaders` goes out again
+    node0.set_mock_time(int(time.time()) + _HEADERS_RESPONSE_TIME + 1)
+    test_node.send_header_for_blocks([blocks[_NUM_HEADERS]])
+    test_node.wait_for_getheaders(expected_hash)
+    node0.set_mock_time(0)
+
     # the peer reading `inv`s was never asked for a block
     inv_node.sync_with_ping()
     assert not inv_node.has("getdata")
@@ -731,6 +753,7 @@ def blocks_are_announced_by_headers_after_sendheaders(
         require(Capability.GENERATE, node.capabilities, skip_counts)
     require(Capability.CONNECT, node1.capabilities, skip_counts)
     require(Capability.INVALIDATE_BLOCK, node1.capabilities, skip_counts)
+    require(Capability.CLOCK, node0.capabilities, skip_counts)
 
     # Core's own `setup_network`: the second node dials the first
     connect_nodes(node1, node0)

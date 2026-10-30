@@ -174,7 +174,7 @@ _ONLYNET_UNKNOWN_NETWORKS = ("abc", "tor")
 # bitcoin/bitcoin#34031. A known limit: a `master` build from its merge
 # (`56ce78d5f6`, 2025-12-10) until the version moved to `31.99`
 # (`48b952cbb6`, 2026-03-06) reports `309900` and refuses it all the same,
-# so this test fails against such a build
+# so the `tor` check is not made against such a build
 _TOR_REFUSED_VERSION = 310000
 
 # Core's own `CLIENT_VERSION`, at or past which `-proxy`'s refusal of an

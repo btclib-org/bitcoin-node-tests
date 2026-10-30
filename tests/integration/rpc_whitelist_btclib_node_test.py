@@ -9,7 +9,9 @@ the target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
 A build with
 [ISS btclib-node#1070](https://github.com/btclib-org/btclib-node/issues/1070)
 runs the same assertions the oracle does; one without it counts a skip
-instead of a silent pass.
+instead of a silent pass. The rejected-method body asks for
+`Capability.DEBUG_LOG` besides, and skips on a build that does not
+declare it.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/rpc_whitelist_btclib_node_test.py
@@ -55,7 +57,7 @@ def test_a_rejected_method_is_logged_as_named(
     tmp_path: Path,
     skip_counts: SkipCounts,
 ) -> None:
-    """The target: a whitelisted user reaches only its own methods."""
+    """The target: the body this module's docstring names, over btclib-node."""
     a_rejected_method_is_logged_as_named(
         make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path, skip_counts
     )

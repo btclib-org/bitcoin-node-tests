@@ -50,7 +50,7 @@ def test_a_rejected_method_is_logged_as_named(
     tmp_path: Path,
     skip_counts: SkipCounts,
 ) -> None:
-    """The oracle: a whitelisted user reaches only its own methods."""
+    """The oracle: the body this module's docstring names, over bitcoind."""
     a_rejected_method_is_logged_as_named(
         make_adapter, BitcoindAdapter, bitcoind_path, tmp_path, skip_counts
     )

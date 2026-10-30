@@ -52,7 +52,7 @@ def test_a_rejected_method_is_logged_as_named(
     tmp_path: Path,
     skip_counts: SkipCounts,
 ) -> None:
-    """The target: a whitelisted user reaches only its own methods."""
+    """The target: the body this module's docstring names, over btcd."""
     a_rejected_method_is_logged_as_named(
         make_adapter, BtcdAdapter, btcd_path, tmp_path, skip_counts
     )

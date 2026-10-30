@@ -41,7 +41,8 @@ What differs from Core's file:
   Without it a node announces to an inbound peer after a Poisson delay
   averaging Core's `INBOUND_INVENTORY_BROADCAST_INTERVAL`
   (`src/net_processing.cpp`), so the peer can trail by more than
-  `sync_all`'s default wait, half of what Core's `sync_mempools` waits;
+  `sync_all`'s default wait, half of what Core's `sync_mempools` waits
+  ([ISS 469](https://github.com/btclib-org/bitcoin-node-tests/issues/469));
 - Core's `MiniWallet` mines its coins once, for every subtest; here each
   body's own mines, to maturity, the coins that body spends;
 - a block Core's node mines from its own mempool is built here

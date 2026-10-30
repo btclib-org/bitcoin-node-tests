@@ -1307,11 +1307,6 @@ per build; an entry gives the reason only. A row with no entry here is a
 - `mempool_package_rbf.py`: the mempool-ancestor body alone restarts with
   `-maxmempool`, and skips on `maxmempool` where the node does not declare
   it.
-  Core's file sets `noban_tx_relay` on every node; the basic body alone
-  restarts its nodes with the `noban` permission, where the node declares
-  `peer_permissions`, so that relay does not wait on the inventory trickle
-  ([ISS 469](https://github.com/btclib-org/bitcoin-node-tests/issues/469)).
-  Every other body runs one node.
 - `feature_dersig.py`: a smaller claim: kept are `getdeploymentinfo`'s
   transition, the version floor (`bad-version`) and the non-DER signature
   ([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)).

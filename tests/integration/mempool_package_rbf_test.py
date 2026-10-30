@@ -37,12 +37,11 @@ What differs from Core's file:
   its `generate` calls make asserting nothing about a replacement;
 - Core's `noban_tx_relay` starts every node with
   `-whitelist=noban,in,out@127.0.0.1`; here the basic body's nodes alone
-  restart with it, where the node declares `Capability.PEER_PERMISSIONS`,
-  every other body running one node. Without it a node announces to an
-  inbound peer after a Poisson delay averaging Core's
-  `INBOUND_INVENTORY_BROADCAST_INTERVAL` (`src/net_processing.cpp`), so
-  the peer can trail by more than `sync_all`'s default wait, half of what
-  Core's `sync_mempools` waits;
+  restart with it, where the node declares `Capability.PEER_PERMISSIONS`.
+  Without it a node announces to an inbound peer after a Poisson delay
+  averaging Core's `INBOUND_INVENTORY_BROADCAST_INTERVAL`
+  (`src/net_processing.cpp`), so the peer can trail by more than
+  `sync_all`'s default wait, half of what Core's `sync_mempools` waits;
 - Core's `MiniWallet` mines its coins once, for every subtest; here each
   body's own mines, to maturity, the coins that body spends;
 - a block Core's node mines from its own mempool is built here

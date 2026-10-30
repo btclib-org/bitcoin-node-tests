@@ -22,11 +22,9 @@ The second read is the per-test ledger's pins. `check_vendored_vectors.py`
 parses only the framework ledger's fenced blocks, so a row of the
 per-test table is read here: each Core test file's pin is compared with
 that file's last commit at the same tip of Core's default branch. A pin
-`TF2.md` marks `held` is printed and left out of the issue, and listed
-there only where it is at the tip, its marker then stale, or where no
-commit upstream touches its path. Every row of the table is read or
-refused, and a table with no row is refused, so that a row is never
-skipped unread.
+marked `held` is reported as `TF2.md`'s *The per-test ledger* says.
+Every row of the table is read or refused, and a table with no row is
+refused, so that a row is never skipped unread.
 
 Each read reports under a title of its own, distinct from the other's
 and from `check_vendored_vectors.py`'s per-pin drift title, so a gained
@@ -462,9 +460,8 @@ def report_pins(title: str, sha: str, behind: list[Drift], stale: list[str]) -> 
 
     :param title: the issue title, distinct from the census's own.
     :param sha: the commit the pins were read at.
-    :param behind: each pin behind upstream that is not held, and each
-        held one whose path no commit upstream touches.
-    :param stale: each path whose pin is held and at its tip.
+    :param behind: each pin the issue lists as behind upstream.
+    :param stale: each path the issue lists as held at its tip.
     """
     _track(
         title,
@@ -484,7 +481,7 @@ def main() -> int:
     """
     args = [a for a in sys.argv[1:] if a != "--dry-run"]
     dry_run = len(args) != len(sys.argv) - 1
-    if len(args) != 3:
+    if len(args) != 3 or args[1] == args[2]:
         print(
             f"usage: {Path(sys.argv[0]).name} <ledger path> <census issue title>"
             " <per-test pins issue title> [--dry-run]",

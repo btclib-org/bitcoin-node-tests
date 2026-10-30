@@ -814,8 +814,8 @@ the script cannot read fails the job.
 A pin cell reading **held** after its sha is behind upstream on purpose.
 A row takes it once the change upstream has been read and the port
 stays at its pin; the file's line below the table says why. The script
-leaves a held pin out of its issue, and lists one at its path's tip, its
-marker then stale, or one whose path no commit upstream touches.
+leaves a held pin out of its issue unless the pin is at its path's tip,
+its marker then stale, or no commit upstream touches its path.
 
 To re-check one pin by hand:
 

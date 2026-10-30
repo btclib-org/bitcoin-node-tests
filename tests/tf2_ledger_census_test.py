@@ -345,10 +345,12 @@ def test_main_prints_a_held_pin_and_a_stale_marker(
 
 
 def test_main_usage_error(census: ModuleType, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Too few or too many arguments is a usage error, exit 2."""
+    """Too few or too many arguments, or one title twice, is a usage error."""
     monkeypatch.setattr(sys, "argv", ["prog", "one-arg"])
     assert census.main() == 2
     monkeypatch.setattr(sys, "argv", ["prog", "ledger", "a title"])
+    assert census.main() == 2
+    monkeypatch.setattr(sys, "argv", ["prog", "ledger", "a title", "a title"])
     assert census.main() == 2
 
 

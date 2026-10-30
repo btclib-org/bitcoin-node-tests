@@ -4,8 +4,8 @@
 
 """Core's `rpc_validateaddress`, one body over each node.
 
-Read from Core's `test/functional/rpc_validateaddress.py` (`fa5f29774872`,
-2025-12-16). Its subject is `validateaddress` on the main chain, where a
+Read from Core's `test/functional/rpc_validateaddress.py` (`a4bc96966faa`,
+2026-09-29). Its subject is `validateaddress` on the main chain, where a
 `bc1` address is one of this chain's own and a `tb1` or `tc1` one is
 not: every address of `INVALID_DATA` answers `isvalid` false with the
 error and the `error_locations` its row names, and every address of

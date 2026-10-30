@@ -969,7 +969,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `wallet_signmessagewithaddress.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_blank.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
 | `wallet_coinbase_category.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (node_wallet) |
-| `p2p_initial_headers_sync.py` | [`fa4cb96bdec2`](https://github.com/bitcoin/bitcoin/commit/fa4cb96bdec2) | 2026-02-17 | pass | pass |
+| `p2p_initial_headers_sync.py` | [`fad763752942`](https://github.com/bitcoin/bitcoin/commit/fad763752942) | 2026-10-16 | pass | pass |
 | `p2p_initial_headers_sync.py` (stall, wire) | same | same | pass | skip |
 | `p2p_initial_headers_sync.py` (stall, log) | same | same | pass | skip |
 | `p2p_initial_headers_sync.py` (noban, wire) | same | same | pass | skip |

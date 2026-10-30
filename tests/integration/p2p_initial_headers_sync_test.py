@@ -5,7 +5,7 @@
 """Core's `p2p_initial_headers_sync`, as bodies over each node.
 
 Read from Core's `test/functional/p2p_initial_headers_sync.py`
-(`fa4cb96bdec2`, 2026-02-17): a node still at genesis asks one peer for
+(`fad763752942`, 2026-10-16): a node still at genesis asks one peer for
 headers, and each block announced by every peer adds one more peer it
 asks; then a stalling first peer is dropped once the headers download
 times out, unless it holds the `noban` permission, which keeps it
@@ -26,6 +26,9 @@ What differs from Core's file:
 - a peer reads what the node sent only when the test reads its socket, so
   every peer round-trips a `ping` before the count of peers sent a
   `getheaders` is taken;
+- Core waits until exactly one of two peers has been sent a `getheaders`;
+  here the wait is until one has, and exactly one is then asserted, so a
+  second fails at once rather than at the wait's end;
 - the `noban` check's `-whitelist` asks for no capability, as
   `rpc_setban.py`'s own `noban` row does not.
 
@@ -186,6 +189,7 @@ def headers_are_asked_of_one_peer_per_announcement(cluster: _Cluster) -> None:
         _announce_random_block(peers)
         _wait_for_getheaders(peer1, best_hash)
         peer1.send(Headers())
+        wait_until(lambda: _recipients_after_ping([peer2, peer3]) != [])
         recipients = _getheaders_recipients([peer2, peer3])
         assert len(recipients) == 1
         recipients[0].send(Headers())

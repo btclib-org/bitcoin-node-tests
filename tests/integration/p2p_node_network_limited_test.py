@@ -5,21 +5,24 @@
 """Core's `p2p_node_network_limited`, one body over each node.
 
 Read from Core's `test/functional/p2p_node_network_limited.py`
-(`fa7bac94d87a`, 2026-03-12): three nodes, the first under `-prune=550`.
+(`fadcd0b64e39`, 2026-10-15): three nodes, the first under `-prune=550`.
 The pruned node signals `NODE_NETWORK_LIMITED` and not `NODE_NETWORK`,
 in its `version` to a `Peer` (`peer.py`) and in `getnetworkinfo`'s
 `localservices`; it serves a `getdata` for a block within 288 + 2 of its
 tip and disconnects the peer asking for one older. A node in initial
-block download does not sync from it, and one out of it does. A full
-node catching up from it asks only for the blocks within that window,
-and syncs the rest from a node that is not pruned.
+block download takes its headers and asks it for no block, and one out
+of it syncs from it. A full node catching up from it asks only for the
+blocks within that window, and syncs the rest from a node that is not
+pruned.
 
 The nodes mine (`Capability.MINE`), are connected and disconnected
-(`Capability.CONNECT`, `Capability.DISCONNECT`), and the full node's
-own networking is suspended and resumed over `setnetworkactive`
+(`Capability.CONNECT`, `Capability.DISCONNECT`), and the full node's own
+networking is suspended and resumed over `setnetworkactive`
 (`Capability.SUSPEND_NETWORK`). `-prune` asks for no capability:
 `cli.py` registers it, at btclib-node's released `2026.9.24` and at its
-`main` alike.
+`main` alike. The `ping` RPC and `getpeerinfo`'s `inflight` and
+per-message byte counts, which Core reads to show that the full node
+asked for no block, ask for no capability of their own.
 
 Core's own claim in full. Core adds `NODE_P2P_V2` to the services it
 expects where its run passes `--v2transport`, which starts every node
@@ -35,7 +38,6 @@ Each `p2p_node_network_limited_<node>_test.py` module beside this one runs it,
 
 from __future__ import annotations
 
-import contextlib
 from typing import TYPE_CHECKING
 
 from bitcoin_core_rpc import RpcError, magic_from_chain
@@ -117,6 +119,15 @@ def _chain_tip_status(node: NodeAdapter, block_hash: str) -> str:
         if tip["hash"] == block_hash:
             return str(tip["status"])
     return ""
+
+
+def _pongs_received(node: NodeAdapter) -> int:
+    """Return the `pong` bytes `node` has received from its one peer."""
+    peers = node.rpc.call("getpeerinfo")
+    assert len(peers) == 1
+    pongs = peers[0]["bytesrecv_per_msg"].get("pong", 0)
+    assert isinstance(pongs, int)
+    return pongs
 
 
 def _avoid_requesting_historical_blocks(
@@ -212,13 +223,21 @@ def node_network_limited(
         _request_block(peer, blocks[0])
         peer.wait_for_disconnect(timeout=5)
 
-    # the full node, in initial block download, does not sync from the
-    # pruned one
+    # the full node, in initial block download, takes the pruned node's
+    # headers, and a ping round trip later has decided what to ask for
     connect_nodes(pruned_node, full_node)
-    with contextlib.suppress(TimeoutError):
-        wait_until_tips_agree([pruned_node, full_node], timeout=5)
-    best = full_node.rpc.call("getbestblockhash")
-    assert full_node.rpc.call("getblockheader", [best])["height"] == 0
+    limited_tip = pruned_node.rpc.call("getbestblockhash")
+    wait_until(lambda: _chain_tip_status(full_node, limited_tip) == "headers-only")
+    received_pongs = _pongs_received(full_node)
+    full_node.rpc.call("ping")
+    wait_until(lambda: _pongs_received(full_node) > received_pongs)
+
+    # it is still connected, and has asked for no block
+    peers = full_node.rpc.call("getpeerinfo")
+    assert len(peers) == 1
+    assert full_node.rpc.call("getblockcount") == 0
+    assert peers[0]["inflight"] == []
+    assert peers[0]["bytessent_per_msg"].get("getdata", 0) == 0
 
     # and does once connected to the node that is not pruned
     connect_nodes(miner, full_node)

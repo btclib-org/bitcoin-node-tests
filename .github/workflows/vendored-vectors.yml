@@ -20,7 +20,9 @@ name: vendored vectors
 # walks only the entries a ledger already carries (issue
 # btclib-org/btclib#1751). `.github/scripts/tf2_ledger_census.py` reads
 # the directory itself, recursively and at a fresh commit, and reports
-# under a title distinct from the per-pin drift issue's own.
+# under a title distinct from the per-pin drift issue's own. At the same
+# commit it reads the pins of TF2.md's per-test table, which the vectors
+# job does not parse, and reports them under a third title.
 #
 # issues: write here is granted by no other workflow in this tree.
 
@@ -61,7 +63,7 @@ jobs:
       python-version: "3.12"
 
   census:
-    name: Check TF2.md's census against Core's directory
+    name: Check TF2.md's census and per-test pins against Core
     if: ${{ !github.event.pull_request.draft && github.event.action != 'closed' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -78,7 +80,7 @@ jobs:
       # request or a dispatch testing a change to this script or to the
       # ledger must not close or edit whatever tracking issue is open at
       # the time
-      - name: Re-read test_framework and compare it to TF2.md
+      - name: Re-read test_framework and the per-test pins against TF2.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DRY_RUN: ${{ github.event_name != 'schedule' && '--dry-run' || '' }}
@@ -89,4 +91,5 @@ jobs:
           fi
           python3 .github/scripts/tf2_ledger_census.py \
             TF2.md "test_framework has files TF2.md has no entry for" \
+            "TF2.md per-test rows behind upstream" \
             "${args[@]}"

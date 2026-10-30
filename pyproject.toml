@@ -385,8 +385,9 @@ ignore = [
 # what a weekly run's log says happened, the issue it opens or closes
 # being the same report a second way
 ".github/scripts/check_vendored_vectors.py" = ["T201"]
-# the ledger census script: GAINED, REMOVED and the all-clear line are
-# the same kind of log, for the directory read rather than the per-pin one
+# the ledger census script: GAINED, REMOVED, BEHIND, HELD and the
+# all-clear lines are the same kind of log, for the directory read and
+# the per-test pins
 ".github/scripts/tf2_ledger_census.py" = ["T201"]
 # the master-only verdict: its whole report is what a caller redirects
 # into $GITHUB_STEP_SUMMARY, so stdout is the interface and not a log

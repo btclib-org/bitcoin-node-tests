@@ -673,13 +673,15 @@ links the included root files carry and suppresses no myst warning; the
 `vendored-vectors.yml`, the `vectors` job re-checks every framework pin
 of `TF2.md` already at upstream's tip; the `census` job re-reads
 `test/functional/test_framework/` recursively and compares it to the
-ledger in both directions:
+ledger in both directions, then compares each per-test pin with its
+path's tip:
 
 ```shell
 python .github/scripts/check_vendored_vectors.py \
     TF2.md "TF2.md pins behind upstream" --dry-run
 python .github/scripts/tf2_ledger_census.py \
-    TF2.md "test_framework has files TF2.md has no entry for" --dry-run
+    TF2.md "test_framework has files TF2.md has no entry for" \
+    "TF2.md per-test rows behind upstream" --dry-run
 ```
 
 `codeql.yml` has no line here, and this repository does not carry it yet:
@@ -768,7 +770,7 @@ commit pushed is `verified`; [the standard's *Signatures*][s-sigs] has the rule.
 | `claude-review` | pull request, and `@claude` in a comment | -- |
 | `links` | weekly | -- |
 | `verified-signatures` | push to `main` | -- |
-| `vendored-vectors` | weekly | the framework pins in `TF2.md`, and the census |
+| `vendored-vectors` | weekly | the pins in `TF2.md`, and the census |
 
 Which day each of the rest runs is section 10 of
 [the organization standard](https://github.com/btclib-org/.github), and

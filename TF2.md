@@ -805,14 +805,19 @@ A pin or date cell reading **same** repeats the pin and date of the
 nearest row above it that names the same Core test file, the row width
 leaving no room to write them again.
 
-No weekly check reads this table's pins.
-`.github/scripts/check_vendored_vectors.py` parses the fenced blocks of
-the ledger above, each with its `behind` line, the grammar its docstring
-says it shares with its copies in `btclib` and `btclib-secp256k1`. A row
-here is a table row, with an abbreviated pin, `same` cells and no
-`behind`. `.github/scripts/tf2_master_verdict.py` compares a row's pin
-with upstream only for a test that fails against Core's `master` alone.
-A pin here is re-checked by hand:
+The `census` job of `vendored-vectors.yml` reads this table's pins
+weekly. `.github/scripts/tf2_ledger_census.py` compares each Core test
+file's pin with that file's last commit on Core's default branch, and
+opens or updates an issue of its own listing each pin behind. A pin cell
+the script cannot read fails the job.
+
+A pin cell reading **held** after its sha is behind upstream on purpose.
+A row takes it once the change upstream has been read and the port
+stays at its pin; the file's line below the table says why. The script
+leaves a held pin out of its issue unless the pin is at its path's tip,
+its marker then stale, or no commit upstream touches its path.
+
+To re-check one pin by hand:
 
 ```shell
 entry_path=test/functional/<test>.py
@@ -1165,11 +1170,11 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_block.py` (log) | same | same | pass | skip |
 | `feature_prune_stale_fork.py` | [`3f44f9aef7cc`](https://github.com/bitcoin/bitcoin/commit/3f44f9aef7cc) | 2026-05-12 | pass, the restart asked only of a build carrying bitcoin/bitcoin#35168 ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (fastprune) |
 
-Each line gives the reason for a file's `btclib-node` cell and, where there is
-one, the issue it is filed as. What differs from Core's file is in the
-docstrings of `tests/integration/<file>*_test.py`. The cell gives the verdict
-per build; an entry gives the reason only. A row with no entry here is a
-`bitcoind only` row, or has its reason in the docstring of
+Each line gives the reason for a file's `btclib-node` cell, why a **held** pin
+stays behind, and, where there is one, the issue it is filed as. What differs
+from Core's file is in the docstrings of `tests/integration/<file>*_test.py`.
+The cell gives the verdict per build; an entry gives the reason only. A row with
+no entry here is a `bitcoind only` row, or has its reason in the docstring of
 `tests/integration/<file>_btclib_node_test.py`.
 
 - `feature_blocksdir.py`: a smaller claim, Core also mining before its disk

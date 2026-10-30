@@ -4,12 +4,13 @@
 
 """Core's `p2p_1p1c_network`, one body over each node.
 
-Read from Core's `test/functional/p2p_1p1c_network.py` (`95ef0fc5e781`,
-2025-12-29, the same file at `v32.1`): packages submitted to one node of
-a line reach every other node over p2p, a parent paying too little alone
-relayed with the child paying for it (1p1c), though some of those nodes
-were sent part of a package beforehand -- keeping a child as an orphan,
-or refusing a parent for its fee.
+Read from Core's `test/functional/p2p_1p1c_network.py` (`fa6f7e36a8c2`,
+2026-10-23; `v32.1`'s copy differs only in a comment): packages
+submitted to one node of a line reach every other node over p2p, a
+parent paying too little alone relayed with the child paying for it
+(1p1c), though some of those nodes were sent part of a package
+beforehand -- keeping a child as an orphan, or refusing a parent for its
+fee.
 
 Core's `run_test` is the body, in its own order, over a line of nodes,
 each dialling the one before it as Core's `setup_network` has them, and

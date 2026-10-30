@@ -96,7 +96,8 @@ convention; input validation; the suite opens no socket.
 from [ISS 2220](https://github.com/btclib-org/btclib/issues/2220) now
 that tf2 has a repository of its own. `tf2_ledger_test.py` holds it to a
 transcription of Core's directory; `.github/workflows/vendored-vectors.yml`
-re-checks every pin weekly and a separate job re-reads the directory
-itself, so a file Core gains is a finding distinct from a pin gone stale.
+re-checks every framework pin weekly and a separate job re-reads the
+directory itself, so a file Core gains is a finding distinct from a pin
+gone stale.
 
 [std]: https://github.com/btclib-org/.github/blob/main/README.md

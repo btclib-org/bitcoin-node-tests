@@ -5,16 +5,16 @@
 """Core's `mempool_package_rbf`, as bodies over each node.
 
 Read from Core's `test/functional/mempool_package_rbf.py`
-(`fa5f29774872`, 2025-12-16, the same file at `v32.1`): a package of a
-parent and its child, submitted together over `submitpackage`, replaces
-what its parent conflicts with in the mempool where the package pays for
-it, and is refused, with the reason Core's own file matches, where it
-does not -- too little absolute fee, too little more than the replaced
-transactions paid to cover its own relay, a package fee rate no higher
-than its parent's own, a fee rate beating no conflict's, conflicts
-reaching more clusters than Core's `MAX_REPLACEMENT_CANDIDATES`, a child
-with ancestors in the mempool, or a package of more than a parent and a
-child.
+(`fa704c5d3caf`, 2026-10-23; `v32.1`'s copy lacks only its
+`noban_tx_relay`): a package of a parent and its child, submitted
+together over `submitpackage`, replaces what its parent conflicts with
+in the mempool where the package pays for it, and is refused, with the
+reason Core's own file matches, where it does not -- too little absolute
+fee, too little more than the replaced transactions paid to cover its
+own relay, a package fee rate no higher than its parent's own, a fee
+rate beating no conflict's, conflicts reaching more clusters than Core's
+`MAX_REPLACEMENT_CANDIDATES`, a child with ancestors in the mempool, or
+a package of more than a parent and a child.
 
 Each of Core's subtests is a body of its own, over a fresh node whose
 coins its own `MiniWallet` (`mini_wallet.py`) mines, and every assertion
@@ -35,14 +35,14 @@ What differs from Core's file:
   `sync_all` calls are what check that a package replacement reaches a
   peer over p2p; elsewhere Core's file reads nothing from it, the syncs
   its `generate` calls make asserting nothing about a replacement;
-- the basic body's nodes restart with the
-  `-whitelist=noban,in,out@127.0.0.1` that Core's `noban_tx_relay` gives
-  the nodes of the tests that need a quick sync, where the node declares
-  `Capability.PEER_PERMISSIONS`; Core's file does not set it. Without it
-  a node announces to an inbound peer after a Poisson delay averaging
-  Core's `INBOUND_INVENTORY_BROADCAST_INTERVAL`
-  (`src/net_processing.cpp`), so the peer can trail by more than
-  `sync_all`'s default wait, half of what Core's `sync_mempools` waits;
+- Core's `noban_tx_relay` starts every node with
+  `-whitelist=noban,in,out@127.0.0.1`; here the basic body's nodes alone
+  restart with it, where the node declares `Capability.PEER_PERMISSIONS`,
+  every other body running one node. Without it a node announces to an
+  inbound peer after a Poisson delay averaging Core's
+  `INBOUND_INVENTORY_BROADCAST_INTERVAL` (`src/net_processing.cpp`), so
+  the peer can trail by more than `sync_all`'s default wait, half of what
+  Core's `sync_mempools` waits;
 - Core's `MiniWallet` mines its coins once, for every subtest; here each
   body's own mines, to maturity, the coins that body spends;
 - a block Core's node mines from its own mempool is built here

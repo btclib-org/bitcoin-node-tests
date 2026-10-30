@@ -670,8 +670,8 @@ id no page has. `-W` reports it because `docs/source/conf.py` resolves the
 links the included root files carry and suppresses no myst warning; the
 `grep` is what still finds one the day a suppression goes back in.
 
-`vendored-vectors.yml`, the `vectors` job re-checks every pin of `TF2.md`
-already at upstream's tip; the `census` job re-reads
+`vendored-vectors.yml`, the `vectors` job re-checks every framework pin
+of `TF2.md` already at upstream's tip; the `census` job re-reads
 `test/functional/test_framework/` recursively and compares it to the
 ledger in both directions:
 
@@ -768,7 +768,7 @@ commit pushed is `verified`; [the standard's *Signatures*][s-sigs] has the rule.
 | `claude-review` | pull request, and `@claude` in a comment | -- |
 | `links` | weekly | -- |
 | `verified-signatures` | push to `main` | -- |
-| `vendored-vectors` | weekly | the pins in `TF2.md`, and the census |
+| `vendored-vectors` | weekly | the framework pins in `TF2.md`, and the census |
 
 Which day each of the rest runs is section 10 of
 [the organization standard](https://github.com/btclib-org/.github), and

@@ -4,8 +4,8 @@
 
 """Core's `feature_dersig`, one body per test over each node.
 
-Read from Core's `test/functional/feature_dersig.py` (`fab352053d6e`,
-2026-04-16), on the option and MiniWallet families together
+Read from Core's `test/functional/feature_dersig.py` (`fa6f7e36a8c2`,
+2026-10-23), on the option and MiniWallet families together
 ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
 `-testactivationheight=dersig@N` (`Capability.TEST_ACTIVATION_HEIGHT`)
 holds BIP66 inactive until a chosen height, and `MiniWallet.generate`

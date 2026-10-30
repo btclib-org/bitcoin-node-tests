@@ -5,7 +5,7 @@
 """Core's `feature_csv_activation`, one body over each node.
 
 Read from Core's `test/functional/feature_csv_activation.py`
-(`fab352053d6e`, 2026-04-16), on the option and MiniWallet families together
+(`fa6f7e36a8c2`, 2026-10-23), on the option and MiniWallet families together
 ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
 `-testactivationheight=csv@N` (`Capability.TEST_ACTIVATION_HEIGHT`)
 holds BIP68, BIP112 and BIP113 -- one deployment, `csv` -- inactive until

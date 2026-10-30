@@ -4,8 +4,8 @@
 
 """Core's `p2p_feefilter`, as bodies over each node.
 
-Read from Core's `test/functional/p2p_feefilter.py` (`fa5f29774872`,
-2025-12-16): BIP133's `feefilter`, which a node sends a peer to say the
+Read from Core's `test/functional/p2p_feefilter.py` (`fa6f7e36a8c2`,
+2026-10-23): BIP133's `feefilter`, which a node sends a peer to say the
 lowest fee rate it wants announced, and honours when a peer sends one.
 
 Each of Core's own checks is a body over fresh nodes:

@@ -998,7 +998,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_mutated_blocks.py` (log) | same | same | pass | skip |
 | `p2p_mutated_blocks.py` (missing parent, wire) | same | same | pass | pass |
 | `p2p_mutated_blocks.py` (missing parent, log) | same | same | pass | skip |
-| `feature_anchors.py` | [`ddf033054ff6`](https://github.com/bitcoin/bitcoin/commit/ddf033054ff6) | 2026-09-11 | pass, the network-off step asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
+| `feature_anchors.py` | [`2f7622e3f6f7`](https://github.com/bitcoin/bitcoin/commit/2f7622e3f6f7) | 2026-10-17 | pass, the network-off step asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 | `feature_anchors.py` (onion) | same | same | pass, the network-toggle steps asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (typed_outbound) |
 | `p2p_addr_selfannouncement.py` (inbound, wire) | [`dab7f2c984bd`](https://github.com/bitcoin/bitcoin/commit/dab7f2c984bd) | 2026-07-07 | pass, the first address message asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |
 | `p2p_addr_selfannouncement.py` (inbound, log) | same | same | pass, the first address message asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip |

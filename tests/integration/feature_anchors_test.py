@@ -4,8 +4,8 @@
 
 """Core's `feature_anchors`, as bodies over each node.
 
-Read from Core's `test/functional/feature_anchors.py` (`ddf033054ff6`,
-2026-09-11): a node stopped cleanly writes the addresses of its
+Read from Core's `test/functional/feature_anchors.py` (`2f7622e3f6f7`,
+2026-10-17): a node stopped cleanly writes the addresses of its
 block-relay-only outbound peers, and no other, to `anchors.dat` in its
 chain directory, reads the file back on the next start, deletes it, and
 dials the addresses it held.
@@ -188,8 +188,12 @@ def _wait_for_an_open_connections_pass(node: NodeAdapter, log_path: Path) -> Non
 
 
 def _hex_port(address: str) -> str:
-    """Core's own: the port of `getpeerinfo`'s `addr`, in hex."""
-    return f"{int(address.split(':')[1]):x}"
+    """Core's own: the port of `getpeerinfo`'s `addr`, as four hex digits.
+
+    The file stores a port as two bytes, so a port below `0x1000` is
+    zero-padded.
+    """
+    return f"{int(address.split(':')[1]):04x}"
 
 
 def block_relay_only_peers_are_the_anchors(

@@ -1115,7 +1115,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `feature_maxtipage.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (max_tip_age) |
 | `p2p_blockfilters.py` | [`3fd68a95e68b`](https://github.com/bitcoin/bitcoin/commit/3fd68a95e68b) | 2026-04-07 | pass | skip (peer_block_filters) |
 | `p2p_getaddr_caching.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (known_addresses) |
-| `mempool_reorg.py` (coinbase) | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (invalidate_block) |
+| `mempool_reorg.py` (coinbase) | [`fa3aeb51cfb1`](https://github.com/bitcoin/bitcoin/commit/fa3aeb51cfb1) | 2026-10-26 | pass | skip (invalidate_block) |
 | `mempool_reorg.py` (relay) | same | same | pass | skip (clock) |
 | `interface_rpc.py` (getrpcinfo) | [`fa2bd96cc0d4`](https://github.com/bitcoin/bitcoin/commit/fa2bd96cc0d4) | 2026-08-06 | pass | skip (rpc_info) |
 | `interface_rpc.py` (batch) | same | same | pass | pass |

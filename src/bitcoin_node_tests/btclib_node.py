@@ -410,11 +410,15 @@ no `-incrementalrelayfee`, measured at the released `2026.9.24`
 (`422d2640`) and at `main` (`eb18985c`) alike
 ([ISS btclib-node#1596](https://github.com/btclib-org/btclib-node/issues/1596)).
 
-`Capability.PEER_PERMISSIONS` is never declared: `cli.py` registers no
-`-whitelist` and no `-whitebind`, measured at the released `2026.9.24`
-(`422d2640`) and at `main` (`f2b326d6`) alike, and `getpeerinfo` lists an
-empty `permissions` on `main` and none on the release
-([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)).
+`Capability.PEER_PERMISSIONS` is declared per instance, by
+`_reads_whitelist`'s own probe: a build whose `cli.py` registers
+`-whitelist`
+([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320))
+and `-whitebind`
+([ISS btclib-node#1625](https://github.com/btclib-org/btclib-node/issues/1625)),
+as the released `2026.10.30` and `main` (`98f2662e`) do. The released
+`2026.9.24` (`422d2640`) registers neither, so an instance built against
+it does not gain the capability.
 
 `Capability.BLOCKS_DIR` and `Capability.UTXO_SET_INFO` are class-wide:
 `cli.py` registers `-blocksdir` and `rpc/callbacks.py` names
@@ -952,6 +956,32 @@ def _binds_address(executable: str) -> bool:
     return _config_probe_passes(executable, _BIND_PROBE)
 
 
+# exits 0 only where `-whitelist` and `-whitebind` are read into
+# `Config.whitelist` and `Config.whitebind`; a build missing either flag
+# refuses it and exits nonzero. `-noconf` keeps any `bitcoin.conf` out of it
+_WHITELIST_PROBE = """\
+from btclib_node.cli import build_config
+whitelist = "-whitelist=noban@127.0.0.1"
+whitebind = "-whitebind=noban@127.0.0.1:18556"
+config = build_config(["-regtest", "-noconf", whitelist, whitebind])
+raise SystemExit(0 if config.whitelist and config.whitebind else 1)
+"""
+
+
+@lru_cache
+def _reads_whitelist(executable: str) -> bool:
+    """Return whether `executable`'s btclib-node reads the permission flags.
+
+    Asks the build's own `cli.build_config`, as `_binds_address` above
+    does, to read both flags, and answers whether the resulting config's
+    `whitelist` and `whitebind` both hold a value: `_WHITELIST_PROBE`
+    above. No node started, no port bound, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    return _config_probe_passes(executable, _WHITELIST_PROBE)
+
+
 # the facts true of every build: `connect`, and the two the module
 # docstring names as class-wide
 _EVERY_BUILD = frozenset(
@@ -1015,6 +1045,7 @@ class BtclibNodeAdapter(NodeAdapter):
         `_serves_getorphantxs` answers `Capability.ORPHANAGE`,
         `_replaces_by_cluster` answers `Capability.CLUSTER_REPLACEMENT`,
         `_binds_address` answers `Capability.LISTEN_ADDRESS`,
+        `_reads_whitelist` answers `Capability.PEER_PERMISSIONS`,
         `_serves_mempool_entry` answers `Capability.MEMPOOL_ENTRY`,
         `_reads_includeconf` answers `Capability.INCLUDE_CONF`, and
         `_speaks_v2` answers `Capability.V2TRANSPORT`. The
@@ -1047,6 +1078,7 @@ class BtclibNodeAdapter(NodeAdapter):
                 (_serves_getorphantxs, Capability.ORPHANAGE),
                 (_replaces_by_cluster, Capability.CLUSTER_REPLACEMENT),
                 (_binds_address, Capability.LISTEN_ADDRESS),
+                (_reads_whitelist, Capability.PEER_PERMISSIONS),
                 (_serves_mempool_entry, Capability.MEMPOOL_ENTRY),
                 (_reads_includeconf, Capability.INCLUDE_CONF),
                 (_speaks_v2, Capability.V2TRANSPORT),

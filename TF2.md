@@ -1145,7 +1145,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_estimatefee.py` | [`4056908f0fea`](https://github.com/bitcoin/bitcoin/commit/4056908f0fea) | 2026-09-29 | pass, the `options` checks and the estimator refusal run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (estimate_smart_fee) |
 | `feature_assumevalid.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass, its log lines read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (assume_valid) |
 | `feature_rbf.py` | [`1a85ca1dff1f`](https://github.com/bitcoin/bitcoin/commit/1a85ca1dff1f) | 2026-04-24 | pass, the replacement rules' wording asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (incremental_relay_fee) |
-| `p2p_permissions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (peer_permissions) |
+| `p2p_permissions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (debug_log) |
 | `p2p_private_broadcast_retry_v1.py` | [`4e8c4bc794c0`](https://github.com/bitcoin/bitcoin/commit/4e8c4bc794c0) | 2026-08-04 | pass | skip (private_broadcast) |
 | `p2p_private_broadcast_cap.py` | [`82a02a2a2208`](https://github.com/bitcoin/bitcoin/commit/82a02a2a2208) | 2026-07-07 | pass, the cap asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (private_broadcast) |
 | `rpc_net.py` (`addnode`) | [`71c30b608382`](https://github.com/bitcoin/bitcoin/commit/71c30b608382) | 2026-09-22 | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
@@ -1461,8 +1461,6 @@ per build; an entry gives the reason only. A row with no entry here is a
   ([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)),
   and ask for `prioritisetransaction`
   ([ISS btclib-node#1502](https://github.com/btclib-org/btclib-node/issues/1502))
-  and `-whitelist`
-  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320))
   besides.
   The nonzero-dust body needs `-minrelaytxfee`
   ([ISS btclib-node#1332](https://github.com/btclib-org/btclib-node/issues/1332)).
@@ -1483,9 +1481,8 @@ per build; an entry gives the reason only. A row with no entry here is a
   ([ISS btclib-node#1576](https://github.com/btclib-org/btclib-node/issues/1576)).
 - `feature_rbf.py`: Core's claim in full. Skips on `incremental_relay_fee`
   ([ISS btclib-node#1596](https://github.com/btclib-org/btclib-node/issues/1596)).
-- `p2p_permissions.py`: Core's claim in full. Skips on `peer_permissions`
-  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320),
-  [ISS btclib-node#1625](https://github.com/btclib-org/btclib-node/issues/1625)).
+- `p2p_permissions.py`: Core's claim in full. The `forcerelay` body skips on
+  `debug_log`; the others pass.
 - `feature_shutdown.py`: has no row
   ([ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)). Its
   subject is the exit of a node asked to `stop` over RPC, which

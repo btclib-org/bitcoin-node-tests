@@ -113,6 +113,9 @@ _ROWS: dict[str, str] = {
     "feature_blocksdir": "`feature_blocksdir.py`",
     "feature_filelock": "`feature_filelock.py`",
     "rpc_whitelist": "`rpc_whitelist.py`",
+    "rpc_whitelist::test_a_rejected_method_is_logged_as_named": (
+        "`rpc_whitelist.py` (rejected method, log)"
+    ),
     "rpc_users": "`rpc_users.py`",
     "rpc_users::test_norpcauth_disables_previous_rpcauth": (
         "`rpc_users.py` (`-norpcauth`)"

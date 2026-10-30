@@ -830,8 +830,9 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | --- | --- | --- | --- | --- |
 | `feature_blocksdir.py` | `0d1301b47a35` | 2026-03-24 | pass | skip (blk) |
 | `feature_filelock.py` | `fa5f29774872` | 2025-12-16 | pass | pass |
-| `rpc_whitelist.py` | `fa24693819e0` | 2026-05-26 | pass | pass |
-| `rpc_users.py` | `faf993ee4421` | 2026-05-26 | pass | pass |
+| `rpc_whitelist.py` | [`fad441867c9b`](https://github.com/bitcoin/bitcoin/commit/fad441867c9b) | 2026-10-12 | pass | pass |
+| `rpc_whitelist.py` (rejected method, log) | same | same | pass, the newline asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (debug_log) |
+| `rpc_users.py` | [`fad441867c9b`](https://github.com/bitcoin/bitcoin/commit/fad441867c9b) | 2026-10-12 | pass | pass |
 | `rpc_users.py` (`-norpcauth`) | same | same | pass | pass |
 | `rpc_users.py` (`-rpcuser`/`-rpcpassword`) | same | same | pass | pass |
 | `rpc_users.py` (`-norpccookiefile`) | same | same | pass | pass |

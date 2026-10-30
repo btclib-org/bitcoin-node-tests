@@ -23,6 +23,7 @@ import pytest
 
 from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from tests.integration.rpc_whitelist_test import (
+    a_rejected_method_is_logged_as_named,
     rpcwhitelist_restricts_a_users_own_rpc_surface,
     rpcwhitelistdefault_governs_an_unlisted_user,
 )
@@ -44,6 +45,18 @@ def test_rpcwhitelist_restricts_a_users_own_rpc_surface(
 ) -> None:
     """The target: a whitelisted user reaches only its own methods."""
     rpcwhitelist_restricts_a_users_own_rpc_surface(
+        make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path, skip_counts
+    )
+
+
+def test_a_rejected_method_is_logged_as_named(
+    make_adapter: AdapterFactory,
+    btclib_node_python: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: a whitelisted user reaches only its own methods."""
+    a_rejected_method_is_logged_as_named(
         make_adapter, BtclibNodeAdapter, btclib_node_python, tmp_path, skip_counts
     )
 

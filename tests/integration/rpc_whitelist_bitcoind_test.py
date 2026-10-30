@@ -18,6 +18,7 @@ import pytest
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from tests.integration.rpc_whitelist_test import (
+    a_rejected_method_is_logged_as_named,
     rpcwhitelist_restricts_a_users_own_rpc_surface,
     rpcwhitelistdefault_governs_an_unlisted_user,
 )
@@ -39,6 +40,18 @@ def test_rpcwhitelist_restricts_a_users_own_rpc_surface(
 ) -> None:
     """The oracle: a whitelisted user reaches only its own methods."""
     rpcwhitelist_restricts_a_users_own_rpc_surface(
+        make_adapter, BitcoindAdapter, bitcoind_path, tmp_path, skip_counts
+    )
+
+
+def test_a_rejected_method_is_logged_as_named(
+    make_adapter: AdapterFactory,
+    bitcoind_path: str,
+    tmp_path: Path,
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: a whitelisted user reaches only its own methods."""
+    a_rejected_method_is_logged_as_named(
         make_adapter, BitcoindAdapter, bitcoind_path, tmp_path, skip_counts
     )
 

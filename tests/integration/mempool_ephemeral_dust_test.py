@@ -45,10 +45,10 @@ What differs from Core's file:
 
 - Core's nodes carry each subtest's options on from the one before it;
   here each body's pair starts with the options Core's own nodes have
-  where that subtest begins: the `-whitelist=noban,in,out@127.0.0.1`
-  Core's `noban_tx_relay` starts every node with for the first five,
-  and none after, Core's own restarts naming options of their own and
-  so dropping it;
+  where that subtest begins. Every start and restart here passes
+  `-whitelist=noban,in,out@127.0.0.1`: Core's `noban_tx_relay` writes it
+  into every node's `bitcoin.conf`, so Core's own restarts keep it
+  whatever options they name;
 - Core's `MiniWallet` spends the coins of the chain its framework
   caches, and its `rescan_utxos` finds more once a block confirms them;
   here each body's own mines, to maturity, the coins that body spends;
@@ -119,7 +119,8 @@ type _Cluster = Callable[[int], Sequence[NodeAdapter]]
 # bitcoin/bitcoin#33616
 _ZERO_FEE_REORG_VERSION = 310000
 
-# what Core's own `noban_tx_relay` starts every node with
+# what Core's own `noban_tx_relay` writes into every node's `bitcoin.conf`,
+# which every start and restart reads
 _NOBAN = "-whitelist=noban,in,out@127.0.0.1"
 
 # what Core's own restarts of both nodes name, around the subtests
@@ -614,7 +615,8 @@ def any_single_dust_output_is_allowed_alone(
     Core's `test_nonzero_dust`: with no relay floor, `testmempoolaccept`
     allows a parent whose one dust output holds a satoshi, a satoshi
     short of the P2TR dust threshold, or that threshold, its spend
-    unchecked; restarted with no option, neither node holds anything.
+    unchecked; restarted without `-minrelaytxfee=0`, neither node holds
+    anything.
 
     :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
@@ -626,17 +628,18 @@ def any_single_dust_output_is_allowed_alone(
         Capability.CONNECT,
         Capability.MINE,
         coins=3,
+        extra_args=[_NOBAN],
     )
     node = nodes[0]
 
-    _restart(nodes, [_NO_RELAY_FLOOR])
+    _restart(nodes, [_NOBAN, _NO_RELAY_FLOOR])
     for value in (1, _P2TR_DUST_THRESHOLD - 1, _P2TR_DUST_THRESHOLD):
         assert _mempool(node) == []
         dusty, _, _ = _package(wallet, version=3, dust_value=value)
         test_res = _test_accept(node, [dusty])
         assert test_res[0]["allowed"], (value, test_res)
 
-    _restart(nodes, [])
+    _restart(nodes, [_NOBAN])
     _assert_mempool_contents(nodes, [])
 
 
@@ -660,6 +663,7 @@ def a_non_truc_dusty_parent_enters_with_its_spender(
         Capability.GENERATE,
         Capability.MINE,
         coins=1,
+        extra_args=[_NOBAN],
     )
     node = nodes[0]
 
@@ -702,6 +706,7 @@ def dust_left_unspent_refuses_the_child(
         Capability.GENERATE,
         Capability.MINE,
         coins=3,
+        extra_args=[_NOBAN],
     )
     node = nodes[0]
 
@@ -785,6 +790,7 @@ def a_reorg_returns_dust_to_the_mempool_unchecked(
         Capability.DISCONNECT,
         Capability.MINE,
         coins=4,
+        extra_args=[_NOBAN],
     )
     node = nodes[0]
 
@@ -949,10 +955,11 @@ def a_batch_sweep_must_spend_every_parents_dust(
         Capability.GENERATE,
         Capability.MINE,
         coins=_BATCH + 2,
+        extra_args=[_NOBAN],
     )
     node = nodes[0]
 
-    _restart(nodes, [_NO_RELAY_FLOOR])
+    _restart(nodes, [_NOBAN, _NO_RELAY_FLOOR])
     assert _mempool(node) == []
     dusty, sweep, _ = _package(wallet, version=2)
     _submit(node, [dusty, sweep])
@@ -1008,5 +1015,5 @@ def a_batch_sweep_must_spend_every_parents_dust(
     _generate(nodes, wallet)
     assert _mempool(node) == []
 
-    _restart(nodes, [])
+    _restart(nodes, [_NOBAN])
     assert _mempool(node) == []

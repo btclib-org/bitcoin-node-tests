@@ -628,7 +628,7 @@ repository's.
 ```text
 repo    bitcoin/bitcoin
 path    test/functional/test_framework/test_framework.py
-commit  fa4308dfbf3a59f95deac382fa955570f814e8ca  2026-10-12
+commit  b469ff8fddb6594b69d564cca436b7baa8ed99bb  2026-10-23
 behind  0 revisions; that commit is the tip of the path
 ```
 
@@ -640,7 +640,7 @@ derives from.
 ```text
 repo    bitcoin/bitcoin
 path    test/functional/test_framework/test_node.py
-commit  fa4308dfbf3a59f95deac382fa955570f814e8ca  2026-10-12
+commit  276db20b64e841fda73cf074501043b88af963ca  2026-10-19
 behind  0 revisions; that commit is the tip of the path
 ```
 

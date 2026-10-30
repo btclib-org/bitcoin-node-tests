@@ -20,6 +20,7 @@ import pytest
 
 from tests.integration.feature_proxy_test import (
     cjdnsreachable_reaches_cjdns_through_the_proxy,
+    clearing_the_ipv4_proxy_clears_the_name_proxy,
     i2psam_is_the_proxy_of_i2p_alone,
     ipv6_loopback_proxy_reaches_every_network_but_onion,
     malformed_i2psam_is_refused,
@@ -116,6 +117,14 @@ def test_proxy_network_suffix_sets_the_proxy_of_that_network(
 ) -> None:
     """The oracle: the body this module's docstring names, over bitcoind."""
     proxy_network_suffix_sets_the_proxy_of_that_network(bitcoind_cluster, skip_counts)
+
+
+def test_clearing_the_ipv4_proxy_clears_the_name_proxy(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: the body this module's docstring names, over bitcoind."""
+    clearing_the_ipv4_proxy_clears_the_name_proxy(bitcoind_cluster, skip_counts)
 
 
 def test_malformed_proxy_or_onion_is_refused(

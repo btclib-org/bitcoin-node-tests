@@ -962,7 +962,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_generate.py` | [`6eca11175be6`](https://github.com/bitcoin/bitcoin/commit/6eca11175be6) | 2026-07-16 | pass | skip (generate) |
 | `rpc_signrawtransactionwithkey.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (sign_raw_transaction) |
 | `rpc_scantxoutset.py` | [`b388674acf06`](https://github.com/bitcoin/bitcoin/commit/b388674acf06) | 2026-08-06 | pass, `start`'s refusal of a null scan-object list asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (scan_utxo_set) |
-| `feature_proxy.py` | [`f82043af507a`](https://github.com/bitcoin/bitcoin/commit/f82043af507a) | 2026-06-30 | pass; skip (proxy_per_network) on a build whose `-help` shows no `-proxy` suffix, the malformed suffix starts' refusal asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (proxy) |
+| `feature_proxy.py` | [`fd65406b39a8`](https://github.com/bitcoin/bitcoin/commit/fd65406b39a8) | 2026-10-01 | pass; skip (proxy_per_network) on a build whose `-help` shows no `-proxy` suffix, the malformed suffix starts' refusal asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (proxy) |
 | `feature_proxy.py` (`-cjdnsreachable`) | same | same | pass | skip (cjdns) |
 | `feature_proxy.py` (`-i2psam`) | same | same | pass | skip (i2p_sam) |
 | `feature_proxy.py` (`-onlynet`) | same | same | pass | skip (onlynet) |
@@ -1153,7 +1153,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_permissions.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (debug_log) |
 | `p2p_private_broadcast_retry_v1.py` | [`4e8c4bc794c0`](https://github.com/bitcoin/bitcoin/commit/4e8c4bc794c0) | 2026-08-04 | pass | skip (private_broadcast) |
 | `p2p_private_broadcast_cap.py` | [`82a02a2a2208`](https://github.com/bitcoin/bitcoin/commit/82a02a2a2208) | 2026-07-07 | pass, the cap asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (private_broadcast) |
-| `rpc_net.py` (`addnode`) | [`71c30b608382`](https://github.com/bitcoin/bitcoin/commit/71c30b608382) | 2026-09-22 | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
+| `rpc_net.py` (`addnode`) | [`332c3e8e3e17`](https://github.com/bitcoin/bitcoin/commit/332c3e8e3e17) | 2026-10-01 | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
 | `rpc_net.py` (service flags) | same | same | pass | skip (proxy) |
 | `rpc_net.py` (`getnodeaddresses`) | same | same | pass | skip (proxy) |
 | `rpc_net.py` (`addpeeraddress`) | same | same | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (known_addresses) |

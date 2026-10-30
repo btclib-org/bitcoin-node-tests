@@ -20,6 +20,7 @@ import pytest
 
 from tests.integration.feature_proxy_test import (
     cjdnsreachable_reaches_cjdns_through_the_proxy,
+    clearing_the_ipv4_proxy_clears_the_name_proxy,
     i2psam_is_the_proxy_of_i2p_alone,
     ipv6_loopback_proxy_reaches_every_network_but_onion,
     malformed_i2psam_is_refused,
@@ -114,6 +115,14 @@ def test_proxy_network_suffix_sets_the_proxy_of_that_network(
 ) -> None:
     """The target: the body this module's docstring names, over btcd."""
     proxy_network_suffix_sets_the_proxy_of_that_network(btcd_cluster, skip_counts)
+
+
+def test_clearing_the_ipv4_proxy_clears_the_name_proxy(
+    btcd_cluster: Callable[[int], list[BtcdAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The target: the body this module's docstring names, over btcd."""
+    clearing_the_ipv4_proxy_clears_the_name_proxy(btcd_cluster, skip_counts)
 
 
 def test_malformed_proxy_or_onion_is_refused(

@@ -1063,7 +1063,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_orphan_handling.py` (announcers) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (parents change) | same | same | pass | skip |
 | `p2p_orphan_handling.py` (maximal package) | same | same | pass, a connection per call on a libevent build ([ISS 461](https://github.com/btclib-org/bitcoin-node-tests/issues/461)) | skip |
-| `p2p_compactblocks.py` (sendcmpct) | [`28641fd195db`](https://github.com/bitcoin/bitcoin/commit/28641fd195db) | 2026-07-31 | pass | pass |
+| `p2p_compactblocks.py` (sendcmpct) | [`b9788a5a10bd`](https://github.com/bitcoin/bitcoin/commit/b9788a5a10bd) | 2026-09-30 | pass | pass |
 | `p2p_compactblocks.py` (construction) | same | same | pass | pass |
 | `p2p_compactblocks.py` (requests) | same | same | pass | pass |
 | `p2p_compactblocks.py` (getblocktxn requests) | same | same | pass | pass |
@@ -1081,6 +1081,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `p2p_compactblocks.py` (invalid sendcmpct, wire) | same | same | pass, the disconnect asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | pass |
 | `p2p_compactblocks.py` (invalid sendcmpct, log) | same | same | pass, the disconnect asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 | `p2p_compactblocks.py` (invalid cmpctblock) | same | same | pass | pass |
+| `p2p_compactblocks.py` (invalid cmpctblock, optimistic) | same | same | pass, the disconnect asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip |
 | `p2p_compactblocks.py` (sendcmpct, outbound) | same | same | pass | skip |
 | `p2p_compactblocks.py` (stalling peer) | same | same | pass | pass |
 | `p2p_compactblocks.py` (parallel reconstruction) | same | same | pass | skip |

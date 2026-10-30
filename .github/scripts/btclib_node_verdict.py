@@ -704,6 +704,9 @@ _ROWS: dict[str, str] = {
     "p2p_compactblocks::test_an_invalid_cmpctblock_drops_the_peer": (
         "`p2p_compactblocks.py` (invalid cmpctblock)"
     ),
+    "p2p_compactblocks::test_an_invalid_optimistic_cmpctblock_drops_the_peer": (
+        "`p2p_compactblocks.py` (invalid cmpctblock, optimistic)"
+    ),
     "p2p_compactblocks::test_sendcmpct_negotiates_over_an_outbound_peer": (
         "`p2p_compactblocks.py` (sendcmpct, outbound)"
     ),

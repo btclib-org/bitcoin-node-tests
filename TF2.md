@@ -1121,7 +1121,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `interface_rpc.py` (status codes) | same | same | pass | pass |
 | `interface_rpc.py` (notifications) | same | same | pass | skip (generate) |
 | `interface_rpc.py` (work queue) | same | same | pass | skip (rpc_work_queue) |
-| `p2p_ibd_txrelay.py` (wire) | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (clock) |
+| `p2p_ibd_txrelay.py` (wire) | [`7777598f87ea`](https://github.com/bitcoin/bitcoin/commit/7777598f87ea) | 2026-10-22 | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (clock) |
 | `p2p_ibd_txrelay.py` (log) | same | same | pass, the old block's coinbase asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | skip (clock) |
 | `feature_bip68_sequence.py` | [`ab41492c6ba7`](https://github.com/bitcoin/bitcoin/commit/ab41492c6ba7) | 2026-01-09 | pass | skip (test_activation_height) |
 | `mempool_accept.py` | [`eaef8d31118d`](https://github.com/bitcoin/bitcoin/commit/eaef8d31118d) | 2026-07-07 | pass, `vsize_adjusted` and `vsize_bip141` asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), the null-data and bare-multisig checks per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | pass |

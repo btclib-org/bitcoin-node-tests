@@ -4,8 +4,8 @@
 
 """Core's `p2p_eviction`, one body over each node.
 
-Read from Core's `test/functional/p2p_eviction.py` (`1b76e0473647`,
-2026-07-24), the option and MiniWallet families together
+Read from Core's `test/functional/p2p_eviction.py` (`fa9a9657506d`,
+2026-10-15), the option and MiniWallet families together
 ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
 once `-maxconnections` leaves no inbound slot for a new peer, the node
 evicts an existing inbound one (`Capability.INBOUND_EVICTION`), and never
@@ -18,17 +18,17 @@ Core's own claim in full: twenty-one inbound peers fill the slots Core's
 own arithmetic leaves for transaction-relaying peers, the twenty-second
 triggers the eviction, exactly one peer is disconnected, and it is none
 of the peers expected to be protected. What fills those slots differs
-between builds, and is read from the build (ISS 35): the pinned commit
-lets transaction-relaying peers take only half of a node's inbound
-slots, where `31.1` gives every inbound slot to any peer.
+between builds, and is read from the build (ISS 35): Core's
+`1b76e0473647` lets transaction-relaying peers take only half of a
+node's inbound slots, where `31.1` gives every inbound slot to any peer.
 `-maxconnections=53` leaves twenty-one transaction-relaying slots under
 the split, `-maxconnections=32` twenty-one slots without it, the value
 Core's own file carried before `1b76e0473647`, and
 `_splits_inbound_slots` below asks the node's own `-help` which of the
-two it is -- `-inboundrelaypercent`, whose default keeps the pinned
-commit's half, or the pinned commit's own wording of the split. The
-node starts without `-maxconnections` and is restarted with the value
-the probe picks, Core's own `extra_args` given at a restart.
+two it is -- `-inboundrelaypercent`, whose default keeps that commit's
+half, or that commit's own wording of the split. The node starts without
+`-maxconnections` and is restarted with the value the probe picks,
+Core's own `extra_args` given at a restart.
 
 `Peer` answers a ping only while a caller is reading, where Core's
 `P2PInterface` answers from a background thread, so `_sync_with_ping`
@@ -43,12 +43,11 @@ peer connects, which that barrier would not ensure of a node answering a
 ([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410)).
 
 Which peer was evicted is read off `Peer.is_connected`, Core's own
-`is_connected`, which waits for nothing. Core reads it once for each
-peer, after the evicting peer's `sync_with_ping`; `_evicted` below
-repeats that sweep until some peer reads disconnected, within a scaled
-bound, because bitcoind's `AttemptToEvictConnection` (`src/net.cpp`)
-only marks the peer, and its socket is closed on a later pass of the
-node's own network loop.
+`is_connected`, which waits for nothing. Core sweeps every peer until
+one reads disconnected, because bitcoind's `AttemptToEvictConnection`
+(`src/net.cpp`) only marks the peer, and its socket is closed on a
+later pass of the node's own network loop. `_evicted` below is that
+wait, within a scaled bound, and returns the sweep that ends it.
 
 Each `p2p_eviction_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how, each

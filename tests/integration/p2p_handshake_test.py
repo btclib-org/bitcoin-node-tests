@@ -48,6 +48,7 @@ from btclib.p2p import ServiceFlags, Verack, Version
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.debug_log import assert_debug_log
+from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
 from bitcoin_node_tests.node import wait_until
 from bitcoin_node_tests.peer import Listener, Peer
 
@@ -210,9 +211,19 @@ def _mine_at(node: NodeAdapter, timestamp: int) -> None:
     block (`src/validationinterface.cpp`), and a dial made before the
     queue drains is judged against the tip before it. The RPC is
     bitcoind's own, so it is called on bitcoind alone.
+
+    Any other node is handed a block built client-side and timed at
+    `timestamp`: `NodeAdapter.mine` times a block off the wall clock,
+    which a node whose clock is set back refuses as `time-too-new`.
     """
     node.set_mock_time(timestamp)
-    node.mine(1)
+    if isinstance(node, BitcoindAdapter):
+        node.mine(1)
+    else:
+        block = build_next_block(node, MiniWallet(node).script_pub_key, time=timestamp)
+        tip = block.header.hash.hex()
+        node.rpc.call("submitblock", [block.serialize(check_validity=False).hex()])
+        wait_until(lambda: node.rpc.call("getbestblockhash") == tip)
     node.set_mock_time(0)
     if isinstance(node, BitcoindAdapter):
         node.rpc.call("syncwithvalidationinterfacequeue")

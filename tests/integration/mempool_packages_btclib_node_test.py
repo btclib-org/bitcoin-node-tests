@@ -6,9 +6,12 @@
 
 `mempool_packages_test.py` beside this module is the body, run here
 against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). The test is a counted skip on every build, on
-`Capability.MEMPOOL_GRAPH`, which neither build declares
-([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501)).
+btclib-org/btclib#2220). The test asks for `Capability.MEMPOOL_GRAPH` and
+`Capability.INVALIDATE_BLOCK`, each declared per build (`btclib_node.py`'s
+own docstring): a build without either is a counted skip. On a build
+declaring both it is a counted skip on `Capability.LIMIT_CLUSTER_COUNT`:
+btclib-node runs the cluster mempool and registers no
+`-limitclustercount`.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/mempool_packages_btclib_node_test.py

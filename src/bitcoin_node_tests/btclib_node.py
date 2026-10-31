@@ -144,12 +144,6 @@ and at `main` (`d7693b2f5a16`) alike.
 names no callback in that same dispatch table, measured at the released
 `2026.9.24` (`422d2640`) and at `main` (`d0ead5f0`) alike.
 
-`Capability.TYPED_OUTBOUND` is never declared, on either build:
-`addconnection` names no callback in that same dispatch table, measured
-at the released `2026.9.24` (`422d2640`) and at `main` (`25776772`)
-alike, and `addnode`, the one RPC there that dials, takes Core's own
-arguments, none of them a connection type.
-
 `Capability.RPC_WORK_QUEUE` is never declared either: `cli.py` registers
 neither `-rpcthreads` nor `-rpcworkqueue`, measured at the released
 `2026.9.24` and at `main` (`25776772`) alike.
@@ -163,12 +157,6 @@ measured at the released `2026.9.24` and at `main` (`25776772`) alike.
 `-acceptnonstdtxn` is not among the flags `-help -noconf` prints, measured
 at the released `2026.9.24` and at `main` (`19c5661e`) alike.
 
-`Capability.SUSPEND_NETWORK` is never declared either: `setnetworkactive`
-names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
-table, measured at the released `2026.9.24` and at `main` (`19c5661e`)
-alike
-([ISS btclib-node#1392](https://github.com/btclib-org/btclib-node/issues/1392)).
-
 `Capability.DESCRIPTOR_INFO` is never declared either: `getdescriptorinfo`
 names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
 table, measured at the released `2026.9.24` (`422d2640`) and at `main`
@@ -178,26 +166,6 @@ table, measured at the released `2026.9.24` (`422d2640`) and at `main`
 declared either: `cli.py` registers neither `-peertimeout` nor
 `-mempoolexpiry`, measured at the released `2026.9.24` (`422d2640`) and
 at `main` (`4e155386`) alike.
-
-`Capability.SIGN_RAW_TRANSACTION` is never declared either: neither
-`signrawtransactionwithkey` nor `combinerawtransaction` names a callback
-in `src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at
-the released `2026.9.24` (`422d2640`) and at `main` (`4e155386`) alike
-([ISS btclib-node#1400](https://github.com/btclib-org/btclib-node/issues/1400)).
-
-`Capability.INVALIDATE_BLOCK` is never declared either: neither
-`invalidateblock` nor `reconsiderblock` names a callback in
-`src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at the
-released `2026.9.24` (`422d2640`) and at `main` (`59618462`) alike
-([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480),
-[ISS btclib-node#1536](https://github.com/btclib-org/btclib-node/issues/1536)).
-
-`Capability.SCAN_UTXO_SET` is never declared either: `scantxoutset`
-names no callback in that same dispatch table, measured at the released
-`2026.9.24` (`422d2640`) and at `main` (`d2b4efa5`) alike
-([ISS btclib-node#1406](https://github.com/btclib-org/btclib-node/issues/1406)).
-The released `2026.10.30` (`30e9573`) names it
-([ISS 547](https://github.com/btclib-org/bitcoin-node-tests/issues/547)).
 
 `Capability.REINDEX_AFTER_FAILURE` is never declared either: `cli.py`
 registers no `-test`, measured at the released `2026.9.24` and at `main`
@@ -244,12 +212,6 @@ declared either: `cli.py` registers neither `-capturemessages` nor
 `getorphantxs` in its dispatch table. The released `2026.10.4` does not
 and `main` (`ab2a63cc`) does.
 
-`Capability.BLOCK_PROPOSAL` is never declared either: `getblocktemplate`
-names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
-table, measured at the released `2026.9.24` (`422d2640`) and at `main`
-(`503edaec`) alike, each answering it `Method not found`
-([ISS btclib-node#1427](https://github.com/btclib-org/btclib-node/issues/1427)).
-
 `Capability.ADDRESS_FETCH` is never declared either: `cli.py` registers
 no `-seednode`, measured against its `_build_parser` at the released
 `2026.9.24` (`422d2640`) and its `_OPTIONS` at `main` (`d4559960`) alike
@@ -261,10 +223,6 @@ neither `-dnsseed` nor `-forcednsseed`, measured against its
 `_OPTIONS` at `main` (`d4559960`) alike
 ([ISS btclib-node#1192](https://github.com/btclib-org/btclib-node/issues/1192),
 [ISS btclib-node#1265](https://github.com/btclib-org/btclib-node/issues/1265)).
-Nor is `Capability.KNOWN_ADDRESSES`: neither `addpeeraddress` nor
-`getnodeaddresses` names a callback in `src/btclib_node/rpc/callbacks.py`'s
-own dispatch table, measured at the same two commits
-([ISS btclib-node#1443](https://github.com/btclib-org/btclib-node/issues/1443)).
 
 `Capability.EXTERNAL_IP` is never declared either: `cli.py` registers no
 `-externalip`, measured at the released `2026.9.24` (`422d2640`) and at
@@ -282,11 +240,6 @@ released `2026.9.24` (`422d2640`) and at `main` (`d4559960`) alike,
 no `-startupnotify`, measured at the released `2026.9.24` (`422d2640`)
 and at `main` (`d4559960`) alike
 ([ISS btclib-node#1449](https://github.com/btclib-org/btclib-node/issues/1449)).
-
-`Capability.DUMP_UTXO_SET` is never declared either: no source file
-names `dumptxoutset`, measured at the released `2026.9.24` (`422d2640`)
-and at `main` (`ecb9b190`) alike
-([ISS btclib-node#1471](https://github.com/btclib-org/btclib-node/issues/1471)).
 
 `Capability.LOAD_BLOCK` is never declared either: no source file
 names `loadblock`, measured at the released `2026.9.24` (`422d2640`)
@@ -312,30 +265,11 @@ option to turn either off, measured at the released `2026.9.24`
 (`422d2640`) and at `main` (`9ae620c2`) alike
 ([ISS btclib-node#1395](https://github.com/btclib-org/btclib-node/issues/1395)).
 
-`Capability.RPC_INFO` is never declared either: `getrpcinfo` names no
-callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch table,
-measured at the released `2026.9.24` (`422d2640`) and at `main`
-(`76d7daa4`) alike
-([ISS btclib-node#1486](https://github.com/btclib-org/btclib-node/issues/1486)).
-
-`Capability.CLUSTER_LINEARIZATION` is never declared either:
-`getmempoolcluster` and `getmempoolfeeratediagram` name no callback in
-`src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at the
-released `2026.9.24` (`422d2640`) and at `main` (`93c1d066`) alike
-([ISS btclib-node#1499](https://github.com/btclib-org/btclib-node/issues/1499)).
-
 `Capability.MINIMUM_CHAIN_WORK` is never declared either: `cli.py`
 registers no `-minimumchainwork`, the floor being the chain's own
 `minimum_chain_work` (`btclib.consensus`), measured at the released
 `2026.9.24` (`422d2640`) and at `main` (`93c1d066`) alike
 ([ISS btclib-node#1500](https://github.com/btclib-org/btclib-node/issues/1500)).
-
-`Capability.MEMPOOL_GRAPH` is never declared either:
-`getmempoolancestors`, `getmempooldescendants` and
-`gettxspendingprevout` name no callback in
-`src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at the
-released `2026.9.24` (`422d2640`) and at `main` (`93c1d066`) alike
-([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501)).
 
 `Capability.PACKAGE_ACCEPTANCE` is declared per instance, by
 `_serves_submitpackage`'s own probe: a build whose `rpc/callbacks.py` names
@@ -386,22 +320,6 @@ no `-settings`, and no file under `src/` reads or writes a
 at `main` (`84677942`) alike
 ([ISS btclib-node#1523](https://github.com/btclib-org/btclib-node/issues/1523)).
 
-`Capability.PRECIOUS_BLOCK` is never declared either: `preciousblock`
-names no callback in `src/btclib_node/rpc/callbacks.py`'s own dispatch
-table, measured at the released `2026.9.24` (`422d2640`) and at `main`
-(`d0943a37`) alike
-([ISS btclib-node#1534](https://github.com/btclib-org/btclib-node/issues/1534)).
-
-`Capability.SIGN_MESSAGE_WITH_PRIVKEY` is never declared either: no
-file names `signmessagewithprivkey` or `verifymessage`, measured at the
-released `2026.9.24` (`422d2640`) and at `main` (`59618462`) alike
-([ISS btclib-node#1538](https://github.com/btclib-org/btclib-node/issues/1538)).
-
-`Capability.ESTIMATE_SMART_FEE` is never declared either: no file names
-`estimatesmartfee` or `estimaterawfee`, measured at the released
-`2026.9.24` (`422d2640`) and at `main` (`02b2ed6e`) alike
-([ISS btclib-node#1543](https://github.com/btclib-org/btclib-node/issues/1543)).
-
 `Capability.CHAIN_TIPS` is declared per instance, by `_serves_chain_tips`'s
 own probe: a build whose `rpc/callbacks.py` names `getchaintips` in its
 public `callbacks`, as `main` (`e471c576`) does. The released `2026.9.24`
@@ -417,6 +335,26 @@ not gain the capability.
 no `-incrementalrelayfee`, measured at the released `2026.9.24`
 (`422d2640`) and at `main` (`eb18985c`) alike
 ([ISS btclib-node#1596](https://github.com/btclib-org/btclib-node/issues/1596)).
+
+Each capability `_RPC_CAPABILITIES` names is declared per instance, by
+`_served_rpcs`'s own probe: where the build's `rpc/callbacks.py` names every RPC
+`_RPC_CAPABILITIES` lists for it. The released `2026.9.24` (`422d2640`) names
+none of them, and the released `2026.10.30` (`30e9573`) and `main` (`995a2b46`),
+whose `src/` is the same, name all of them
+([ISS 547](https://github.com/btclib-org/bitcoin-node-tests/issues/547)). What
+each capability asks beyond its RPCs' names was measured at `2026.10.30`.
+`addconnection` dials each of `outbound-full-relay`, `block-relay-only`,
+`addr-fetch` and `feeler` (its `_ADDCONNECTION_TYPES`), and refuses any chain
+but regtest, so `TYPED_OUTBOUND` is in `_REGTEST_ONLY` below. `getblocktemplate`
+takes BIP23's `proposal` mode (`rpc/mining.py`'s `_proposal`).
+`setnetworkactive` drops every held connection on a `false`
+(`P2pManager.set_network_active`). `scantxoutset` reads descriptors
+(`rpc/utxo_set.py`), and `dumptxoutset` takes `rollback` (`rpc/snapshot.py`).
+Run live, `getmempoolcluster` answered a three-transaction chain's cluster by
+chunk, `getmempoolfeeratediagram` its diagram and `getmempoolinfo` an `optimal`;
+`getmempoolancestors`, bare and verbose, `getmempooldescendants` and
+`gettxspendingprevout` answered the chain's links. Where a row of `TF2.md` still
+fails on one of these capabilities, its entry there names its issue.
 
 `Capability.PEER_PERMISSIONS` is declared per instance, by
 `_reads_whitelist`'s own probe: a build whose `cli.py` registers
@@ -449,6 +387,7 @@ against it does not gain the capability.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import tempfile
@@ -972,6 +911,67 @@ def _serves_generate(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# prints the names the build's dispatch table holds, as a JSON list
+_SERVED_RPCS_PROBE = """\
+import json
+from btclib_node.rpc.callbacks import callbacks
+print(json.dumps(sorted(callbacks)))
+"""
+
+
+@lru_cache
+def _served_rpcs(executable: str) -> frozenset[str]:
+    """Return the RPC names `executable`'s own btclib-node dispatches.
+
+    Reads the build's own `rpc.callbacks.callbacks`, as `_serves_ban_list`
+    above does, but answers every name it holds rather than whether it
+    holds some: `_SERVED_RPCS_PROBE` above. A build that cannot be
+    imported answers none. Otherwise in the standing of
+    `_writes_auth_cookie` above: no node started, no port bound, and
+    cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _SERVED_RPCS_PROBE],
+        check=False,
+        capture_output=True,
+        encoding="utf-8",
+    )
+    if probe.returncode != 0:
+        return frozenset()
+    return frozenset(json.loads(probe.stdout))
+
+
+# each capability a build declares where `_served_rpcs` holds every RPC
+# named here: the module docstring says what each was measured to give
+# beyond the names
+_RPC_CAPABILITIES = {
+    Capability.TYPED_OUTBOUND: frozenset({"addconnection"}),
+    Capability.SUSPEND_NETWORK: frozenset({"setnetworkactive"}),
+    Capability.SIGN_RAW_TRANSACTION: frozenset(
+        {"signrawtransactionwithkey", "combinerawtransaction"}
+    ),
+    Capability.INVALIDATE_BLOCK: frozenset({"invalidateblock", "reconsiderblock"}),
+    Capability.SCAN_UTXO_SET: frozenset({"scantxoutset"}),
+    Capability.BLOCK_PROPOSAL: frozenset({"getblocktemplate"}),
+    Capability.KNOWN_ADDRESSES: frozenset({"addpeeraddress", "getnodeaddresses"}),
+    Capability.RPC_INFO: frozenset({"getrpcinfo"}),
+    Capability.CLUSTER_LINEARIZATION: frozenset(
+        {"getmempoolcluster", "getmempoolfeeratediagram"}
+    ),
+    Capability.MEMPOOL_GRAPH: frozenset(
+        {"getmempoolancestors", "getmempooldescendants", "gettxspendingprevout"}
+    ),
+    Capability.PRECIOUS_BLOCK: frozenset({"preciousblock"}),
+    Capability.SIGN_MESSAGE_WITH_PRIVKEY: frozenset(
+        {"signmessagewithprivkey", "verifymessage"}
+    ),
+    Capability.ESTIMATE_SMART_FEE: frozenset({"estimatesmartfee", "estimaterawfee"}),
+    Capability.DUMP_UTXO_SET: frozenset({"dumptxoutset"}),
+}
+
+
 # exits 0 only where `-noincludeconf` is read: a build registering no
 # negated `-includeconf` refuses it and exits nonzero. `-noconf` keeps any
 # `bitcoin.conf` out of it
@@ -1059,12 +1059,15 @@ _EVERY_BUILD = frozenset(
 # builds regtest's own blocks alone; `setmocktime` refuses any other chain
 # (`rpc/callbacks.py`'s own `set_mock_time`); `generatetoaddress` and
 # `generateblock` give up after `maxtries` nonces (`rpc/mining.py`), a bound
-# regtest's own target is met within and another chain's is not in practice
+# regtest's own target is met within and another chain's is not in practice;
+# `addconnection` refuses any other chain (`rpc/callbacks.py`'s own
+# `add_connection`)
 _REGTEST_ONLY = frozenset(
     {
         Capability.MINE,
         Capability.CLOCK,
         Capability.GENERATE,
+        Capability.TYPED_OUTBOUND,
     }
 )
 
@@ -1125,11 +1128,13 @@ class BtclibNodeAdapter(NodeAdapter):
         `_serves_mempool_entry` answers `Capability.MEMPOOL_ENTRY`,
         `_reads_includeconf` answers `Capability.INCLUDE_CONF`,
         `_serves_setmocktime` answers `Capability.CLOCK`,
-        `_serves_generate` answers `Capability.GENERATE`, and
-        `_speaks_v2` answers `Capability.V2TRANSPORT`. The
-        class-level `capabilities` -- `_EVERY_BUILD` -- is left untouched
-        where every probe answers `False`. A `chain` other than regtest
-        drops `_REGTEST_ONLY`'s capabilities whatever their probes answer.
+        `_serves_generate` answers `Capability.GENERATE`,
+        `_speaks_v2` answers `Capability.V2TRANSPORT`, and
+        `_served_rpcs` answers each capability `_RPC_CAPABILITIES` names.
+        The class-level `capabilities` -- `_EVERY_BUILD` -- is left
+        untouched where every probe answers `False`. A `chain` other than
+        regtest drops `_REGTEST_ONLY`'s capabilities whatever their probes
+        answer.
         """
         super().__init__(
             executable,
@@ -1165,6 +1170,12 @@ class BtclibNodeAdapter(NodeAdapter):
                 (_connects_alone, Capability.MINE),
             )
             if probe(executable)
+        }
+        served = _served_rpcs(executable)
+        probed |= {
+            capability
+            for capability, rpcs in _RPC_CAPABILITIES.items()
+            if rpcs <= served
         }
         if chain != "regtest":
             probed -= _REGTEST_ONLY

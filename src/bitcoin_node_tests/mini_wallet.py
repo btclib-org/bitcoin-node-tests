@@ -110,17 +110,16 @@ took from one is not cached again by a later `confirm` naming it; one
 already scanned still drops the cached coins it spends, which an unsent
 parent carried in the same block may just have cached.
 `rescan_utxos` rebuilds the whole cache from `scantxoutset` instead, an
-RPC `BtclibNodeAdapter` does not serve (it never declares
-`Capability.SCAN_UTXO_SET`), and one that would also cache every coin of
-this script that any other `MiniWallet` on the same node holds. Its
-mempool pass is kept in the one respect that decides a scanned coin: a
-coin the scan adds is left out where a transaction in the node's mempool
-already spends it -- a spend of one of `new_utxos`' own coins, broadcast
-before its parent was mined -- read off `getrawmempool` and
-`getrawtransaction`, only when the scan added a coin. What
-`rescan_utxos` caches and this does not: a coin a block mined elsewhere
-pays, a coin only a mempool transaction pays, and a coin a caller took
-from the cache and never spent.
+RPC not every node serves (`Capability.SCAN_UTXO_SET`), and one that
+would also cache every coin of this script that any other `MiniWallet`
+on the same node holds. Its mempool pass is kept in the one respect that
+decides a scanned coin: a coin the scan adds is left out where a
+transaction in the node's mempool already spends it -- a spend of one of
+`new_utxos`' own coins, broadcast before its parent was mined -- read
+off `getrawmempool` and `getrawtransaction`, only when the scan added a
+coin. What `rescan_utxos` caches and this does not: a coin a block mined
+elsewhere pays, a coin only a mempool transaction pays, and a coin a
+caller took from the cache and never spent.
 
 `build_fork`, alongside the class, is `create_empty_fork`
 (`test/functional/test_framework/blocktools.py`): unsubmitted blocks

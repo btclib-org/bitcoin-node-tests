@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import sys
+from contextlib import ExitStack
 from functools import _lru_cache_wrapper
 from pathlib import Path
 from types import SimpleNamespace
@@ -54,6 +55,7 @@ def test_capabilities_gain_rpc_auth_config_where_the_build_writes_a_cookie(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -85,6 +87,7 @@ def test_capabilities_gain_rpc_auth_negation_where_the_build_negates(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -117,6 +120,7 @@ def test_capabilities_gain_inbound_eviction_where_the_build_evicts(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -148,6 +152,7 @@ def test_capabilities_gain_mine_where_the_build_connects_alone(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -177,6 +182,7 @@ def test_capabilities_gain_ban_where_the_build_serves_a_ban_list(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -206,6 +212,7 @@ def test_capabilities_gain_min_relay_tx_fee_where_the_build_sets_it(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -237,6 +244,7 @@ def test_capabilities_gain_permit_bare_multisig_where_the_build_reads_it(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=True),
     ):
@@ -268,6 +276,7 @@ def test_capabilities_gain_chain_tips_where_the_build_serves_them(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -299,6 +308,7 @@ def test_capabilities_gain_disconnect_where_the_build_serves_it(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -330,6 +340,7 @@ def test_capabilities_gain_package_acceptance_where_the_build_serves_it(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -361,6 +372,7 @@ def test_capabilities_gain_orphanage_where_the_build_serves_it(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -392,6 +404,7 @@ def test_capabilities_gain_cluster_replacement_where_the_build_counts_clusters(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -423,6 +436,7 @@ def test_capabilities_gain_listen_address_where_the_build_reads_bind(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -454,6 +468,7 @@ def test_capabilities_gain_peer_permissions_where_the_build_reads_whitelist(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -485,6 +500,7 @@ def test_capabilities_gain_v2transport_where_the_build_speaks_bip324(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=True),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -516,6 +532,7 @@ def test_capabilities_are_the_class_set_where_no_probe_holds(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -545,6 +562,7 @@ def test_capabilities_gain_mempool_entry_where_the_build_serves_it(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -577,6 +595,7 @@ def test_capabilities_gain_clock_where_the_build_serves_setmocktime(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=True),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -606,6 +625,7 @@ def test_capabilities_gain_generate_where_the_build_serves_it(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=True),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -637,6 +657,7 @@ def test_capabilities_gain_include_conf_where_the_build_reads_it(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=True),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
         patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset()),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -717,7 +738,7 @@ def test_cookie_and_log_are_the_chain_s_own(
 def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
     tmp_path: Path,
 ) -> None:
-    """Holding probes give no `MINE`, `CLOCK` or `GENERATE` off regtest."""
+    """Holding probes give no `_REGTEST_ONLY` capability off regtest."""
     with (
         patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
         patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
@@ -736,6 +757,11 @@ def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=True),
         patch.object(btclib_node_module, "_serves_generate", return_value=True),
+        patch.object(
+            btclib_node_module,
+            "_served_rpcs",
+            return_value=frozenset({"addconnection"}),
+        ),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -1619,3 +1645,115 @@ def test_generate_probe_answers_from_the_table_s_keys(
     answer = btclib_node_module._serves_generate(sys.executable)
     btclib_node_module._serves_generate.cache_clear()
     assert answer is served
+
+
+_NO_OTHER_PROBE = (
+    "_writes_auth_cookie",
+    "_negates_rpcauth",
+    "_evicts_inbound",
+    "_connects_alone",
+    "_serves_ban_list",
+    "_sets_min_relay_fee",
+    "_serves_chain_tips",
+    "_serves_disconnect",
+    "_serves_submitpackage",
+    "_serves_getorphantxs",
+    "_replaces_by_cluster",
+    "_binds_address",
+    "_reads_whitelist",
+    "_serves_mempool_entry",
+    "_reads_includeconf",
+    "_serves_setmocktime",
+    "_serves_generate",
+    "_speaks_v2",
+    "_permits_bare_multisig",
+)
+
+
+def _adapter_serving(tmp_path: Path, served: frozenset[str]) -> BtclibNodeAdapter:
+    """Return an adapter serving `served`, each other probe false."""
+    with ExitStack() as stack:
+        for name in _NO_OTHER_PROBE:
+            stack.enter_context(
+                patch.object(btclib_node_module, name, return_value=False)
+            )
+        stack.enter_context(
+            patch.object(btclib_node_module, "_served_rpcs", return_value=served)
+        )
+        return BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+
+
+@pytest.mark.parametrize(
+    "capability", sorted(btclib_node_module._RPC_CAPABILITIES, key=str)
+)
+def test_capabilities_gain_each_one_whose_rpcs_the_table_serves(
+    capability: Capability, tmp_path: Path
+) -> None:
+    """A build serving a capability's RPCs, and no other, declares it alone."""
+    rpcs = btclib_node_module._RPC_CAPABILITIES[capability]
+    adapter = _adapter_serving(tmp_path, rpcs | {"getblockcount"})
+    assert adapter.capabilities == BtclibNodeAdapter.capabilities | {capability}
+
+
+@pytest.mark.parametrize(
+    "capability",
+    sorted(
+        (
+            capability
+            for capability, rpcs in btclib_node_module._RPC_CAPABILITIES.items()
+            if len(rpcs) > 1
+        ),
+        key=str,
+    ),
+)
+def test_capabilities_lack_one_whose_rpcs_the_table_serves_in_part(
+    capability: Capability, tmp_path: Path
+) -> None:
+    """A build missing one of a capability's RPCs does not declare it."""
+    rpcs = sorted(btclib_node_module._RPC_CAPABILITIES[capability])
+    adapter = _adapter_serving(tmp_path, frozenset(rpcs[1:]))
+    assert capability not in adapter.capabilities
+
+
+def test_served_rpcs_reads_the_probe_s_own_stdout() -> None:
+    """`_served_rpcs` is the JSON list `_SERVED_RPCS_PROBE` prints."""
+    btclib_node_module._served_rpcs.cache_clear()
+    answer = SimpleNamespace(returncode=0, stdout='["getblock", "setban"]\n')
+    with patch("subprocess.run", return_value=answer) as run:
+        served = btclib_node_module._served_rpcs("fake-python-main")
+    btclib_node_module._served_rpcs.cache_clear()
+    assert served == frozenset({"getblock", "setban"})
+    run.assert_called_once_with(
+        ["fake-python-main", "-c", btclib_node_module._SERVED_RPCS_PROBE],
+        check=False,
+        capture_output=True,
+        encoding="utf-8",
+    )
+
+
+def test_served_rpcs_is_empty_where_the_probe_fails() -> None:
+    """A nonzero exit -- no such table -- serves nothing."""
+    btclib_node_module._served_rpcs.cache_clear()
+    answer = SimpleNamespace(returncode=1, stdout="")
+    with patch("subprocess.run", return_value=answer):
+        served = btclib_node_module._served_rpcs("fake-python-release")
+    btclib_node_module._served_rpcs.cache_clear()
+    assert served == frozenset()
+
+
+def test_served_rpcs_probe_lists_the_table_s_keys(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_SERVED_RPCS_PROBE` prints the keys of a stub `callbacks`."""
+    package = tmp_path / "btclib_node" / "rpc"
+    package.mkdir(parents=True)
+    (tmp_path / "btclib_node" / "__init__.py").write_text("")
+    (package / "__init__.py").write_text("")
+    (package / "callbacks.py").write_text(
+        'callbacks = {"setnetworkactive": None, "getrpcinfo": None}\n'
+    )
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path))
+    btclib_node_module._served_rpcs.cache_clear()
+    served = btclib_node_module._served_rpcs(sys.executable)
+    btclib_node_module._served_rpcs.cache_clear()
+    assert served == frozenset({"setnetworkactive", "getrpcinfo"})

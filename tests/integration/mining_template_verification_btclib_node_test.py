@@ -6,9 +6,9 @@
 
 `mining_template_verification_test.py` beside this module is the body,
 run here against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `Capability.BLOCK_PROPOSAL` is not declared
-(`btclib_node.py`'s own docstring is why), so each is a counted skip
-ahead of `Capability.MINE`.
+btclib-org/btclib#2220). The test asks for `Capability.BLOCK_PROPOSAL`
+ahead of `Capability.MINE`. It is declared per build (`btclib_node.py`'s
+own docstring): a build without it is a counted skip.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/mining_template_*_btclib_node_test.py

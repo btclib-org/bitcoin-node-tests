@@ -6,9 +6,11 @@
 
 `interface_rpc_test.py` beside this module is the body, run here against
 the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `btclib_node.py`'s own docstring has no build
-declaring `Capability.RPC_INFO` or `Capability.RPC_WORK_QUEUE`, so the
-`getrpcinfo` test and the work queue test are counted skips.
+btclib-org/btclib#2220). The `getrpcinfo` test asks for
+`Capability.RPC_INFO`, declared per build (`btclib_node.py`'s own
+docstring): a build without it is a counted skip. The work queue test is
+a counted skip on every build, on `Capability.RPC_WORK_QUEUE`, which no
+build declares.
 
 The batch and the status code tests ask for nothing beyond the node's
 own RPC. A build before

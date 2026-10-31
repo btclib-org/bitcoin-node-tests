@@ -10,11 +10,12 @@ btclib-org/btclib#2220). The missing-parent wire half is a counted skip on
 PyPI's `2026.9.24`, which declares no `Capability.MINE`, and passes on a
 `main` past
 [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071).
-Every other body is a counted skip on every build: the mutated-block
-halves have the node dial the test, `Capability.TYPED_OUTBOUND` being
-declared by none (`btclib_node.py`'s own docstring), and the
-missing-parent log half asks for `Capability.TEST_ACTIVATION_HEIGHT` and
-`Capability.DEBUG_LOG`, neither declared by any build.
+The mutated-block halves have the node dial the test, and ask for
+`Capability.TYPED_OUTBOUND`, declared per build
+(`btclib_node.py`'s own docstring); the log half is a counted skip on
+`Capability.DEBUG_LOG`, bitcoind's alone. The missing-parent log half
+asks for `Capability.TEST_ACTIVATION_HEIGHT` and `Capability.DEBUG_LOG`,
+neither declared by any build.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_mutated_blocks_btclib_node_test.py

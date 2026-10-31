@@ -6,11 +6,10 @@
 
 `p2p_outbound_eviction_test.py` beside this module is the body, run here
 against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). Each body has the node dial the test, and
-`Capability.TYPED_OUTBOUND` is declared by no build (`btclib_node.py`'s
-own docstring,
-[ISS btclib-node#1465](https://github.com/btclib-org/btclib-node/issues/1465)),
-so each test is a counted skip.
+btclib-org/btclib#2220). Each body has the node dial the test, and is a
+counted skip on every build: `Capability.TYPED_OUTBOUND` is declared per
+build (`btclib_node.py`'s own docstring), and `Capability.PEER_TIMEOUT`,
+asked for past it, by none.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_outbound_eviction_btclib_node_test.py

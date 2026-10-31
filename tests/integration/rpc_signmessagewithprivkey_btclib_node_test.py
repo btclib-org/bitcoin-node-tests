@@ -6,9 +6,10 @@ r"""Core's `rpc_signmessagewithprivkey`, on tf2's own harness: btclib-node.
 
 `rpc_signmessagewithprivkey_test.py` beside this module is the body, run
 here against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). The test is a counted skip on
-`Capability.SIGN_MESSAGE_WITH_PRIVKEY`, which `btclib_node.py`'s own
-docstring has no build declaring.
+btclib-org/btclib#2220). The test asks for
+`Capability.SIGN_MESSAGE_WITH_PRIVKEY`, declared per build
+(`btclib_node.py`'s own docstring): a build without it is a counted
+skip.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \

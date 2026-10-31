@@ -7,9 +7,8 @@ r"""Core's `p2p_addr_selfannouncement`, rewritten on this harness: btclib-node.
 `p2p_addr_selfannouncement_test.py` beside this module is the body, run
 here against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). Each body is a counted skip on every build:
-`Capability.EXTERNAL_IP`, which every body asks for, is declared by none,
-and neither are `Capability.KNOWN_ADDRESSES` nor
-`Capability.TYPED_OUTBOUND` (`btclib_node.py`'s own docstring).
+`Capability.EXTERNAL_IP`, which every body asks for first, is declared by
+none (`btclib_node.py`'s own docstring).
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \

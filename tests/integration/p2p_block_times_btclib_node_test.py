@@ -6,11 +6,9 @@
 
 `p2p_block_times_test.py` beside this module is the body, run here
 against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). It has the node dial the test, and
-`Capability.TYPED_OUTBOUND` is declared by no build (`btclib_node.py`'s
-own docstring,
-[ISS btclib-node#1465](https://github.com/btclib-org/btclib-node/issues/1465)),
-so the test is a counted skip.
+btclib-org/btclib#2220). It has the node dial the test, and asks for
+`Capability.TYPED_OUTBOUND`, declared on a build serving `addconnection`
+(`btclib_node.py`'s own docstring), so it is a counted skip on any other.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_block_times_btclib_node_test.py

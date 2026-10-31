@@ -6,9 +6,11 @@
 
 `feature_anchors_test.py` beside this module is the body, run here
 against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). Each body is a counted skip on every build: it
-has the node dial the test, `Capability.TYPED_OUTBOUND` being declared by
-none (`btclib_node.py`'s own docstring).
+btclib-org/btclib#2220). Each body has the node dial the test, which
+`Capability.TYPED_OUTBOUND` covers on a build serving `addconnection`
+(`btclib_node.py`'s own docstring). Past it the block-relay-only body is a
+counted skip on `Capability.DEBUG_LOG`, bitcoind's alone, and the onion
+body on `Capability.PROXY`, which no build declares.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/feature_anchors_btclib_node_test.py

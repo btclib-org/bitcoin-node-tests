@@ -6,9 +6,11 @@ r"""Core's `rpc_signrawtransactionwithkey`, on tf2's own harness: btclib-node.
 
 `rpc_signrawtransactionwithkey_test.py` beside this module is the body,
 run here against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `Capability.SIGN_RAW_TRANSACTION` is not
-declared (`btclib_node.py`'s own docstring is why), so each is a counted
-skip, ahead of `Capability.MINE` where the body asks for it.
+btclib-org/btclib#2220). `Capability.SIGN_RAW_TRANSACTION`, asked
+for ahead of `Capability.MINE` where the body asks for that, is declared
+on a build serving `signrawtransactionwithkey` and
+`combinerawtransaction` (`btclib_node.py`'s own docstring), and each is a
+counted skip on any other.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \

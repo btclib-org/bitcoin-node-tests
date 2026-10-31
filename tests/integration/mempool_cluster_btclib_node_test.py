@@ -10,10 +10,9 @@ btclib-org/btclib#2220). The test is a counted skip on every build, on
 `Capability.LIMIT_CLUSTER_SIZE`: `-limitclustersize` is not one of
 `cli.py`'s registered options
 ([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383)).
-Neither build declares `Capability.MEMPOOL_GRAPH`
-([ISS btclib-node#1501](https://github.com/btclib-org/btclib-node/issues/1501))
-or `Capability.CLUSTER_LINEARIZATION` either
-([ISS btclib-node#1499](https://github.com/btclib-org/btclib-node/issues/1499)).
+`Capability.MEMPOOL_GRAPH` and `Capability.CLUSTER_LINEARIZATION`,
+which it asks for later, are declared on a build serving their RPCs
+(`btclib_node.py`'s own docstring).
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/mempool_cluster_btclib_node_test.py

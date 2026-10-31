@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_getaddr_caching.py`
 (`fa5f29774872`, 2025-12-16), an option and the clock together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node listening on a loopback address and on two onion binds
 (`Capability.LISTEN_ADDRESS`), its address table filled over
 `addpeeraddress` (`Capability.KNOWN_ADDRESSES`), answers every `getaddr`
@@ -51,16 +51,16 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import Addr, GetAddr
 from btclib.p2p.limits import MAX_ADDR_TO_SEND
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_port, free_ports
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_port, free_ports
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from ipaddress import IPv6Address
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["getaddr_answers_are_cached_per_bind"]

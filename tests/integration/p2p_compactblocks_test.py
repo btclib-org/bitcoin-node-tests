@@ -144,7 +144,7 @@ for from a peer it has not selected for high-bandwidth mode, are ignored
 there too, from bitcoin/bitcoin#32606. `v32.0rc1` is the first tag to
 carry each. A bitcoind whose `getnetworkinfo` `version` reads older than
 that
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35))
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35))
 keeps the peer, answering the `getblocktxn` with a `blocktxn` carrying
 no transaction, and takes each `cmpctblock`, which is asserted there
 instead, the log halves reading the node's own lines for the exchange
@@ -196,11 +196,11 @@ from btclib.script.witness import Witness
 from btclib.tx import Tx
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.mini_wallet import MiniWallet, build_next_block
+from btclib_functional_tests.peer import Peer
 from tests.integration.p2p_conns_test import Conn
 
 if TYPE_CHECKING:
@@ -209,9 +209,9 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Payload, Version
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.mini_wallet import Utxo
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.mini_wallet import Utxo
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_block_off_the_tip_is_not_sent_compact",
@@ -990,7 +990,7 @@ def _carries(node: NodeAdapter, version: int) -> bool:
     Core's own claim for every node, bitcoind before `version` excepted:
     that build does what the check's own body asserts there instead, read
     off its own `getnetworkinfo` `version`
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
     """
     if not isinstance(node, BitcoindAdapter):
         return True

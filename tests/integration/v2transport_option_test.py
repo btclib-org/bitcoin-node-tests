@@ -4,7 +4,7 @@
 
 """Core's `--v2transport`, restated through the adapter, over each node.
 
-Issue [bitcoin-node-tests#36](https://github.com/btclib-org/bitcoin-node-tests/issues/36):
+Issue [btclib-functional-tests#36](https://github.com/btclib-org/btclib-functional-tests/issues/36):
 this suite has no central test-framework object for Core's own
 `--v2transport`/`--v1transport` to set a default on, so the equivalent is
 Core's own `-v2transport` flag, node by node, here through
@@ -21,14 +21,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import connect_nodes
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import connect_nodes
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "v2transport_0_connects_nodes_over_v1",

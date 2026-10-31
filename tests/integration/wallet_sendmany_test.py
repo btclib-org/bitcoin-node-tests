@@ -30,14 +30,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.capability import Capability, require
 from tests.integration.wallet_signmessagewithaddress_test import refused
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["sendmany_refuses_a_subtractfeefrom_naming_no_single_output"]
 

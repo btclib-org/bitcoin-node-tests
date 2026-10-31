@@ -26,15 +26,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mempool_util import fill_mempool
-from bitcoin_node_tests.mini_wallet import PADDING_DATACARRIER_SIZE
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mempool_util import fill_mempool
+from btclib_functional_tests.mini_wallet import PADDING_DATACARRIER_SIZE
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["fill_mempool_evicts_its_own_low_fee_rate_transaction"]
 

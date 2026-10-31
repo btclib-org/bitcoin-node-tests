@@ -22,8 +22,8 @@ from tests.integration.p2p_node_network_limited_test import node_network_limited
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.bitcoind import BitcoindAdapter
+    from btclib_functional_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
 

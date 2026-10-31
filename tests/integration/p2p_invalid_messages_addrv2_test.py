@@ -79,19 +79,19 @@ from typing import TYPE_CHECKING
 from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import Message
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.btcd import BtcdAdapter
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_ports
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.btcd import BtcdAdapter
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import free_ports
+from btclib_functional_tests.peer import Peer
 from tests.integration.p2p_invalid_messages_dropped_test import debug_log, sync
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

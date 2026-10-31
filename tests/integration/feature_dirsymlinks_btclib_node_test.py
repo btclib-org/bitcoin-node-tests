@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+from btclib_functional_tests.btclib_node import BtclibNodeAdapter
 from tests.integration.feature_dirsymlinks_test import (
     starts_with_symlinked_blocks_and_chainstate_directories,
 )

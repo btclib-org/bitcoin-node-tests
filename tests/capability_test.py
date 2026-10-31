@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from bitcoin_node_tests.capability import (
+from btclib_functional_tests.capability import (
     Capability,
     MissingCapabilityError,
     SkipCounts,
@@ -123,7 +123,7 @@ def test_the_hookwrapper_turns_the_exception_into_a_skip(
     pytester.makeconftest(
         """
         import pytest
-        from bitcoin_node_tests.capability import MissingCapabilityError
+        from btclib_functional_tests.capability import MissingCapabilityError
 
         @pytest.hookimpl(wrapper=True)
         def pytest_runtest_call(item):
@@ -136,7 +136,7 @@ def test_the_hookwrapper_turns_the_exception_into_a_skip(
     )
     pytester.makepyfile(
         """
-        from bitcoin_node_tests.capability import MissingCapabilityError
+        from btclib_functional_tests.capability import MissingCapabilityError
 
         def test_it():
             raise MissingCapabilityError("node does not declare mine")

@@ -7,7 +7,7 @@
 Read from Core's `test/functional/mempool_sigoplimit.py` (`5d25a0c28d19`,
 2026-07-07) and narrowed to what the option and MiniWallet families
 reach together
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 `-bytespersigop` (`Capability.BYTES_PER_SIGOP`) converts a transaction's
 own sigop count into an equivalent virtual size, and
 `MiniWallet.send_to` funds a P2WSH output carrying a witness script this
@@ -55,8 +55,8 @@ from btclib.script.witness import Witness
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import (
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import (
     PADDING_DATACARRIER_SIZE,
     MiniWallet,
     nulldata_script_pub_key,
@@ -65,8 +65,8 @@ from bitcoin_node_tests.mini_wallet import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["a_sigop_heavy_transaction_is_billed_by_its_equivalent_vsize"]
 

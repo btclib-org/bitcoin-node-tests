@@ -12,7 +12,7 @@ error and the `error_locations` its row names, and every address of
 `VALID_DATA` answers `isvalid` true with the `scriptPubKey` its row
 names and neither the error nor its locations. `NodeAdapter`'s own
 `chain="main"` (`node.py`) is what starts the node there
-([ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63)),
+([ISS 63](https://github.com/btclib-org/btclib-functional-tests/issues/63)),
 under Core's own `-prune=899`. `Capability.VALIDATE_ADDRESS` gates each
 test.
 
@@ -39,15 +39,15 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

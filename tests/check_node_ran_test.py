@@ -20,7 +20,7 @@ from types import ModuleType
 
 import pytest
 
-from bitcoin_node_tests.capability import Capability
+from btclib_functional_tests.capability import Capability
 
 _SCRIPT = Path(__file__).parents[1] / ".github" / "scripts" / "check_node_ran.py"
 

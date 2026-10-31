@@ -27,8 +27,8 @@ from tests.integration.p2p_timeouts_test import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from bitcoin_node_tests.btcd import BtcdAdapter
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.btcd import BtcdAdapter
+    from btclib_functional_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
 

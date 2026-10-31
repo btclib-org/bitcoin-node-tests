@@ -4,7 +4,7 @@
 
 """A require-only test ends in `pytest.fail`, and asks for what its twin does.
 
-[ISS 82](https://github.com/btclib-org/bitcoin-node-tests/issues/82): a
+[ISS 82](https://github.com/btclib-org/btclib-functional-tests/issues/82): a
 test whose body is only `del` statements and `require(...)` calls passes
 the moment the node under test declares every capability it names,
 without the scenario its own name claims ever running. This module is
@@ -64,7 +64,7 @@ def _is_fail_call(stmt: ast.stmt) -> bool:
 def _classify(fn: ast.FunctionDef) -> str:
     """Return what shape `fn`'s own body, docstring aside, takes.
 
-    `"bare"` is [ISS 82](https://github.com/btclib-org/bitcoin-node-tests/issues/82)'s
+    `"bare"` is [ISS 82](https://github.com/btclib-org/btclib-functional-tests/issues/82)'s
     own defect: nothing but `del`/`require`, with no terminal
     `pytest.fail`. `"stub"` is the same body ended in one. Anything else
     -- a real assertion, an empty body -- is `"other"` and is neither a

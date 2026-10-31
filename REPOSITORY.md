@@ -30,15 +30,25 @@ differs today is a change made since that date.
 
 ## Creating the repository
 
+The repository was created as `bitcoin-node-tests` and renamed on
+2026-10-31, as ISS btclib-org/btclib-functional-tests#543 decided; GitHub
+redirects the old URLs. Read back on 2026-10-31:
+
+```shell
+gh api repos/btclib-org/btclib-functional-tests --jq '{name, description}'
+# {"description":"Bitcoin Core's functional tests rewritten on btclib,
+#  with bitcoind as the oracle","name":"btclib-functional-tests"}
+```
+
 The name and the calls that follow stand in blocks of their own. The
 repository is public, and that is a prerequisite rather than a
 preference: branch protection is a paid feature for a private repository
 on the free plan.
 
 ```shell
-gh repo create btclib-org/bitcoin-node-tests --public \
-  --description "Bitcoin Core's functional test suite, rewritten on btclib, \
-run against any node that speaks bitcoin's RPC and p2p" \
+gh repo create btclib-org/btclib-functional-tests --public \
+  --description "Bitcoin Core's functional tests rewritten on btclib, \
+with bitcoind as the oracle" \
   --disable-wiki
 ```
 
@@ -46,7 +56,7 @@ run against any node that speaks bitcoin's RPC and p2p" \
 read-back below is what says it is the default:
 
 ```shell
-git push git@github.com:btclib-org/bitcoin-node-tests.git main
+git push git@github.com:btclib-org/btclib-functional-tests.git main
 ```
 
 Then the switches section 11 turns off or on at the repository level, in
@@ -56,7 +66,7 @@ and the squash commit's title and body. `homepage` is set apart, under *A
 field the standard scopes to a releasing tree* below.
 
 ```shell
-gh api -X PATCH repos/btclib-org/bitcoin-node-tests \
+gh api -X PATCH repos/btclib-org/btclib-functional-tests \
   -F has_issues=true -F has_wiki=false -F has_projects=false \
   -F allow_squash_merge=true -F allow_merge_commit=false \
   -F allow_rebase_merge=false -F allow_auto_merge=true \
@@ -68,12 +78,12 @@ gh api -X PATCH repos/btclib-org/bitcoin-node-tests \
 Read back:
 
 ```shell
-gh api repos/btclib-org/bitcoin-node-tests \
+gh api repos/btclib-org/btclib-functional-tests \
   --jq '{visibility, default_branch: .default_branch, has_issues,
          wiki: .has_wiki, projects: .has_projects}'
 # {"default_branch":"main","has_issues":true,"projects":false,
 #  "visibility":"public","wiki":false}
-gh api repos/btclib-org/bitcoin-node-tests/pages
+gh api repos/btclib-org/btclib-functional-tests/pages
 # {"message":"Not Found", ...}, gh: Not Found (HTTP 404)
 ```
 
@@ -125,7 +135,7 @@ reason outside it; `core-master` and
 `btclib-node-main` track Core's own `master` and btclib-node's own
 `main`, and a required check depending on either would fail a pull
 request for a reason outside it ([ISS
-8](https://github.com/btclib-org/bitcoin-node-tests/issues/8), decided
+8](https://github.com/btclib-org/btclib-functional-tests/issues/8), decided
 2026-09-25).
 
 No sentinel appears in the rule, and none of them may: `links.yml` and
@@ -146,7 +156,7 @@ branch that has none; every later change `PATCH`es the sub-endpoint it is
 about, a partial `PUT` dropping the rest:
 
 ```shell
-gh api -X PUT repos/btclib-org/bitcoin-node-tests/branches/main/protection \
+gh api -X PUT repos/btclib-org/btclib-functional-tests/branches/main/protection \
   --input - <<'JSON'
 {"required_status_checks": {"strict": false, "checks": [
    {"context": "test: every job passed", "app_id": 15368},
@@ -170,7 +180,7 @@ where the endpoint types `app_id` as an integer.
 Read back:
 
 ```shell
-gh api repos/btclib-org/bitcoin-node-tests/branches/main/protection \
+gh api repos/btclib-org/btclib-functional-tests/branches/main/protection \
   --jq '{checks: [.required_status_checks.checks[] | [.context, .app_id]],
          strict: .required_status_checks.strict,
          reviews: .required_pull_request_reviews
@@ -196,7 +206,7 @@ goes through the sub-endpoint alone, the sentence above's reason for never
 repeating the whole `PUT`:
 
 ```shell
-branch=repos/btclib-org/bitcoin-node-tests/branches/main
+branch=repos/btclib-org/btclib-functional-tests/branches/main
 gh api -X PATCH "$branch"/protection/required_status_checks \
   --input - <<'JSON'
 {"strict": false, "checks": [
@@ -229,7 +239,7 @@ and classic protection, taking the most restrictive combination.
 `main-integrity` has no bypass actor, for anyone:
 
 ```shell
-gh api -X POST repos/btclib-org/bitcoin-node-tests/rulesets --input - <<'JSON'
+gh api -X POST repos/btclib-org/btclib-functional-tests/rulesets --input - <<'JSON'
 {"name": "main-integrity", "target": "branch", "enforcement": "active",
  "conditions": {"ref_name": {"include": ["refs/heads/main"], "exclude": []}},
  "bypass_actors": [],
@@ -248,7 +258,7 @@ everyone. btclib-org/.github's
 commands that land a pull request are `CONTRIBUTING.md`'s *Landing it*.
 
 ```shell
-gh api -X POST repos/btclib-org/bitcoin-node-tests/rulesets --input - <<'JSON'
+gh api -X POST repos/btclib-org/btclib-functional-tests/rulesets --input - <<'JSON'
 {"name": "main-self-merge", "target": "branch", "enforcement": "active",
  "conditions": {"ref_name": {"include": ["refs/heads/main"], "exclude": []}},
  "bypass_actors": [{"actor_id": 3296421, "actor_type": "User",
@@ -272,7 +282,7 @@ repository](https://github.com/btclib-org/.github/blob/main/README.md#branch-pro
 Read on 2026-10-15:
 
 ```shell
-gh api repos/btclib-org/bitcoin-node-tests/branches/main/protection \
+gh api repos/btclib-org/btclib-functional-tests/branches/main/protection \
   --jq '.required_signatures.enabled'
 # false
 ```
@@ -293,7 +303,7 @@ nothing else, matching every other repository of the organization even
 though no release is tagged here:
 
 ```shell
-gh api -X POST repos/btclib-org/bitcoin-node-tests/rulesets --input - <<'JSON'
+gh api -X POST repos/btclib-org/btclib-functional-tests/rulesets --input - <<'JSON'
 {"name": "tag-integrity", "target": "tag", "enforcement": "active",
  "conditions": {"ref_name": {"include": ["refs/tags/v*"], "exclude": []}},
  "bypass_actors": [],
@@ -306,9 +316,9 @@ JSON
 endpoint:
 
 ```shell
-for id in $(gh api repos/btclib-org/bitcoin-node-tests/rulesets \
+for id in $(gh api repos/btclib-org/btclib-functional-tests/rulesets \
     --jq '.[].id'); do
-  gh api repos/btclib-org/bitcoin-node-tests/rulesets/"$id" \
+  gh api repos/btclib-org/btclib-functional-tests/rulesets/"$id" \
     --jq '{name, target, enforcement, include: .conditions.ref_name.include,
            rules: [.rules[].type],
            bypass: [.bypass_actors[] | [.actor_id, .bypass_mode]],
@@ -339,7 +349,7 @@ presses it once the review and the checks are in; the call is the one
 under *Creating the repository*. Read back:
 
 ```shell
-gh api repos/btclib-org/bitcoin-node-tests \
+gh api repos/btclib-org/btclib-functional-tests \
   --jq '{allow_squash_merge, allow_merge_commit, allow_rebase_merge,
          allow_auto_merge, squash_merge_commit_title,
          squash_merge_commit_message, delete_branch_on_merge}'
@@ -377,7 +387,7 @@ override — so it is left to inherit, and this is the call that reads the
 value it gets:
 
 ```shell
-gh api repos/btclib-org/bitcoin-node-tests/actions/permissions/workflow \
+gh api repos/btclib-org/btclib-functional-tests/actions/permissions/workflow \
   --jq '{default_workflow_permissions, can_approve_pull_request_reviews}'
 # {"can_approve_pull_request_reviews":false,
 #  "default_workflow_permissions":"read"}
@@ -392,7 +402,7 @@ moves it back for the organization rather than here.
 Read on 2026-09-27:
 
 ```shell
-gh api repos/btclib-org/bitcoin-node-tests/actions/permissions
+gh api repos/btclib-org/btclib-functional-tests/actions/permissions
 # {"enabled":true,"allowed_actions":"all","sha_pinning_required":true}
 gh api orgs/btclib-org/actions/permissions \
   --jq '{allowed_actions, sha_pinning_required}'
@@ -406,7 +416,7 @@ fields](https://github.com/btclib-org/.github/blob/main/README.md#tokens-publish
 ## Sign-off on web commits
 
 ```shell
-gh api repos/btclib-org/bitcoin-node-tests --jq .web_commit_signoff_required
+gh api repos/btclib-org/btclib-functional-tests --jq .web_commit_signoff_required
 # true
 gh api orgs/btclib-org --jq .web_commit_signoff_required
 # true
@@ -429,7 +439,7 @@ recorded here, and the tree that names neither job is this one, so
 neither is recorded:
 
 ```shell
-gh api repos/btclib-org/bitcoin-node-tests/environments --jq .total_count
+gh api repos/btclib-org/btclib-functional-tests/environments --jq .total_count
 # 0
 ```
 
@@ -440,20 +450,21 @@ job naming it.
 
 **Imported, and it builds.** The project is on
 [readthedocs.org](https://app.readthedocs.org/) under the slug
-`bitcoin-node-tests`, connected through the organization-wide
-`read-the-docs-community` GitHub App rather than a per-repository
-webhook, matching `btclib-wallet`'s `REPOSITORY.md` section of the same
-name:
+`bitcoin-node-tests`, the repository's former name, connected through
+the organization-wide `read-the-docs-community` GitHub App rather than a
+per-repository webhook, matching `btclib-wallet`'s `REPOSITORY.md`
+section of the same name:
 
 ```shell
 p=https://app.readthedocs.org/api/v3/projects/bitcoin-node-tests
 curl -s "$p/" | jq -c '{default_branch, default_version, repository: .repository.url}'
 # {"default_branch":"main","default_version":"latest",
-#  "repository":"https://github.com/btclib-org/bitcoin-node-tests.git"}
+#  "repository":"https://github.com/btclib-org/btclib-functional-tests.git"}
+# (Read on 2026-10-31, after the rename.)
 curl -s "$p/versions/?active=true" \
   | jq -c '.results[] | [.slug, .type, .identifier]'
 # ["latest","branch","main"]
-gh api repos/btclib-org/bitcoin-node-tests/hooks --jq length
+gh api repos/btclib-org/btclib-functional-tests/hooks --jq length
 # 0
 ```
 
@@ -499,15 +510,15 @@ security updates and private vulnerability reporting are free on a
 public repository and off by default:
 
 ```shell
-gh api -X PATCH repos/btclib-org/bitcoin-node-tests --input - <<'JSON'
+gh api -X PATCH repos/btclib-org/btclib-functional-tests --input - <<'JSON'
 {"security_and_analysis": {
    "secret_scanning": {"status": "enabled"},
    "secret_scanning_push_protection": {"status": "enabled"}}}
 JSON
-gh api -X PUT repos/btclib-org/bitcoin-node-tests/vulnerability-alerts
-gh api -X PUT repos/btclib-org/bitcoin-node-tests/automated-security-fixes
+gh api -X PUT repos/btclib-org/btclib-functional-tests/vulnerability-alerts
+gh api -X PUT repos/btclib-org/btclib-functional-tests/automated-security-fixes
 gh api -X PUT \
-  repos/btclib-org/bitcoin-node-tests/private-vulnerability-reporting
+  repos/btclib-org/btclib-functional-tests/private-vulnerability-reporting
 ```
 
 Code scanning's **default setup** has to stay off, this tree carrying no
@@ -515,30 +526,30 @@ Code scanning's **default setup** has to stay off, this tree carrying no
 
 ```shell
 gh api -X PATCH -F state=not-configured \
-  repos/btclib-org/bitcoin-node-tests/code-scanning/default-setup
+  repos/btclib-org/btclib-functional-tests/code-scanning/default-setup
 gh api -X PATCH -F state=not-configured \
-  repos/btclib-org/bitcoin-node-tests/code-quality/setup
+  repos/btclib-org/btclib-functional-tests/code-quality/setup
 ```
 
 Read back:
 
 ```shell
-gh api repos/btclib-org/bitcoin-node-tests --jq '.security_and_analysis'
+gh api repos/btclib-org/btclib-functional-tests --jq '.security_and_analysis'
 # {"dependabot_security_updates":{"status":"enabled"},
 #  "secret_scanning":{"status":"enabled"},
 #  "secret_scanning_non_provider_patterns":{"status":"disabled"},
 #  "secret_scanning_push_protection":{"status":"enabled"},
 #  "secret_scanning_validity_checks":{"status":"disabled"}}
-gh api -i repos/btclib-org/bitcoin-node-tests/vulnerability-alerts | head -1
+gh api -i repos/btclib-org/btclib-functional-tests/vulnerability-alerts | head -1
 # HTTP/2.0 204 No Content
-gh api repos/btclib-org/bitcoin-node-tests/automated-security-fixes
+gh api repos/btclib-org/btclib-functional-tests/automated-security-fixes
 # {"enabled":true,"paused":false}
-gh api repos/btclib-org/bitcoin-node-tests/private-vulnerability-reporting
+gh api repos/btclib-org/btclib-functional-tests/private-vulnerability-reporting
 # {"enabled":true}
-gh api repos/btclib-org/bitcoin-node-tests/code-scanning/default-setup \
+gh api repos/btclib-org/btclib-functional-tests/code-scanning/default-setup \
   --jq .state
 # not-configured
-gh api repos/btclib-org/bitcoin-node-tests/code-quality/setup --jq .state
+gh api repos/btclib-org/btclib-functional-tests/code-quality/setup --jq .state
 # not-configured
 ```
 
@@ -556,14 +567,14 @@ the topics are set from `pyproject.toml` rather than typed a second time:
 ```shell
 sed -n '/^keywords = \[/,/^]/s/^ *"\(.*\)",$/\1/p' pyproject.toml \
   | jq -R . | jq -s '{names: .}' \
-  | gh api -X PUT repos/btclib-org/bitcoin-node-tests/topics --input -
+  | gh api -X PUT repos/btclib-org/btclib-functional-tests/topics --input -
 ```
 
 Read back, and compared, sorted because GitHub returns topics in an order
 of its own; the diff is expected empty:
 
 ```shell
-diff <(gh api repos/btclib-org/bitcoin-node-tests --jq '.topics[]' | sort) \
+diff <(gh api repos/btclib-org/btclib-functional-tests --jq '.topics[]' | sort) \
      <(sed -n '/^keywords = \[/,/^]/s/^ *"\(.*\)",$/\1/p' pyproject.toml \
        | sort)
 # (empty)
@@ -600,7 +611,7 @@ The endpoints above answer for more than this repository decides, and the
 scope at the top is what leaves the rest out.
 
 **Most of the repository document is not a setting.**
-`gh api repos/btclib-org/bitcoin-node-tests --jq 'keys[]'` answers with
+`gh api repos/btclib-org/btclib-functional-tests --jq 'keys[]'` answers with
 URLs, counts, timestamps and derived state beside the switches, and the
 switches among them this file records are the ones a section above reads
 back with a call of its own.
@@ -617,9 +628,9 @@ stores, so the repository's own stores are expected empty and a copy in
 either would be that decision undone:
 
 ```shell
-gh api repos/btclib-org/bitcoin-node-tests/actions/secrets --jq .total_count
+gh api repos/btclib-org/btclib-functional-tests/actions/secrets --jq .total_count
 # 0
-gh api repos/btclib-org/bitcoin-node-tests/dependabot/secrets --jq .total_count
+gh api repos/btclib-org/btclib-functional-tests/dependabot/secrets --jq .total_count
 # 0
 ```
 
@@ -630,7 +641,7 @@ over one of the same name on the organization, so the repository's own
 store is read too:
 
 ```shell
-gh api repos/btclib-org/bitcoin-node-tests/actions/variables --jq .total_count
+gh api repos/btclib-org/btclib-functional-tests/actions/variables --jq .total_count
 # 0
 ```
 
@@ -640,7 +651,7 @@ gh api repos/btclib-org/bitcoin-node-tests/actions/variables --jq .total_count
 that the two surfaces still agree:
 
 ```shell
-diff <(gh api repos/btclib-org/bitcoin-node-tests --jq '.homepage') \
+diff <(gh api repos/btclib-org/btclib-functional-tests --jq '.homepage') \
      <(sed -n '/^\[project.urls\]/,/^\[/p' pyproject.toml \
        | sed -n 's/^homepage = "\(.*\)"$/\1/p')
 # (empty)

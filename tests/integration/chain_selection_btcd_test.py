@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btcd import BtcdAdapter
+from btclib_functional_tests.btcd import BtcdAdapter
 from tests.integration.chain_selection_test import (
     node_starts_on_the_chain_it_is_given,
 )

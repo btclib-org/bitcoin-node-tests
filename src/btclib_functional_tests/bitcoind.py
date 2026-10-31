@@ -23,9 +23,9 @@ from typing import TYPE_CHECKING, override
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import NodeAdapter
-from bitcoin_node_tests.timeout_factor import rpc_client_timeout
+from btclib_functional_tests.capability import Capability
+from btclib_functional_tests.node import NodeAdapter
+from btclib_functional_tests.timeout_factor import rpc_client_timeout
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
@@ -131,7 +131,7 @@ def _has_wallet(executable: str) -> bool:
 
     `ENABLE_WALLET` is the one `[components]` entry a capability
     `BitcoindAdapter` declares rests on
-    ([ISS 53](https://github.com/btclib-org/bitcoin-node-tests/issues/53)).
+    ([ISS 53](https://github.com/btclib-org/btclib-functional-tests/issues/53)).
     `ENABLE_ZMQ`, `ENABLE_EXTERNAL_SIGNER`, `ENABLE_EMBEDDED_ASMAP` and
     `ENABLE_USDT_TRACEPOINTS` gate nothing a `Capability` member names --
     `-zmqpub*` and `getzmqnotifications`, `-signer` and
@@ -289,7 +289,7 @@ class BitcoindAdapter(NodeAdapter):
     `disconnectnode`, and `Capability.BAN` is `setban`/`listbanned`/
     `clearbanned`: all three, like `addnode`, are in this release's own
     `help` listing with no argument, unconditional the same way
-    (measured against `31.1`, [ISS bitcoin-node-tests#43](https://github.com/btclib-org/bitcoin-node-tests/issues/43)).
+    (measured against `31.1`, [ISS btclib-functional-tests#43](https://github.com/btclib-org/btclib-functional-tests/issues/43)).
     `Capability.RAW_MESSAGE` is `sendmsgtopeer`, a debug RPC this release
     answers (measured against `31.1`: not in `help`'s own
     listing, which is for discoverability rather than availability, but
@@ -337,7 +337,7 @@ class BitcoindAdapter(NodeAdapter):
     `-bytespersigop` and `-maxmempool` are all ordinary mempool/relay-policy
     flags of this binary's own, recognised regardless of what a caller sets
     them to
-    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
+    ([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)).
     `Capability.DESCRIPTOR_ACTIVITY` and `Capability.BLOCK_STATS` are
     unconditional too: `getdescriptoractivity` and `getblockstats` are
     both RPCs of this binary's own, answered regardless of which
@@ -690,7 +690,7 @@ class BitcoindAdapter(NodeAdapter):
         Without it, one `generatetoaddress` over a loaded wallet spent most
         of its time in those flushes and outlasted the RPC client's own
         timeout on a loaded machine (measured against `31.1`,
-        [ISS 226](https://github.com/btclib-org/bitcoin-node-tests/issues/226)).
+        [ISS 226](https://github.com/btclib-org/btclib-functional-tests/issues/226)).
         A build without wallet support starts on it too:
         `DummyWalletInit::AddWalletOptions` (`src/dummywallet.cpp`) hides it
         rather than leaving it unknown.
@@ -706,7 +706,7 @@ class BitcoindAdapter(NodeAdapter):
         `ConnectionResetError` its read raises, so a close landing between
         that probe and the request can reach the caller as a `FetchError`
         raised from one (measured against `31.1`,
-        [ISS 336](https://github.com/btclib-org/bitcoin-node-tests/issues/336)).
+        [ISS 336](https://github.com/btclib-org/btclib-functional-tests/issues/336)).
 
         `-rpcallowip=127.0.0.1` is what makes `-rpcbind` bind at all:
         Core's `HTTPBindAddresses` (`src/httpserver.cpp`) ignores
@@ -717,7 +717,7 @@ class BitcoindAdapter(NodeAdapter):
         which `_wait_for_rpc` (`node.py`) reports on its exit code rather
         than waiting out its timeout against a node answering on `::1`
         alone (measured against `31.1`,
-        [ISS 135](https://github.com/btclib-org/bitcoin-node-tests/issues/135)).
+        [ISS 135](https://github.com/btclib-org/btclib-functional-tests/issues/135)).
         It admits no client the default does not: `InitHTTPAllowList`
         admits `127.0.0.0/8` and `::1` whatever `-rpcallowip` names.
         Core's own framework passes neither option (`util.py`'s
@@ -733,7 +733,7 @@ class BitcoindAdapter(NodeAdapter):
         is asked for one. Regtest's seed, `dummySeed.invalid.`, resolves
         nowhere, so a regtest node reaches it only through a proxy, and a
         test giving the node one passes `-dnsseed=0` itself
-        [ISS 205](https://github.com/btclib-org/bitcoin-node-tests/issues/205).
+        [ISS 205](https://github.com/btclib-org/btclib-functional-tests/issues/205).
         Core's own `write_config` (`util.py`) writes all three on every chain,
         `connect=0` unless a test passes `disable_autoconnect=False`.
         `-connect=0` would turn listening off by default, but
@@ -856,7 +856,7 @@ class BitcoindAdapter(NodeAdapter):
         restart leaves the wallet on disk and unloaded, and a second adapter
         over the same datadir finds the first one's there, where
         `createwallet` answers "Database already exists" (measured against
-        `31.1`, [ISS 86](https://github.com/btclib-org/bitcoin-node-tests/issues/86)).
+        `31.1`, [ISS 86](https://github.com/btclib-org/btclib-functional-tests/issues/86)).
         `listwalletdir` is what names a wallet on disk and unloaded.
         """
         loaded = self.rpc.call("listwallets")

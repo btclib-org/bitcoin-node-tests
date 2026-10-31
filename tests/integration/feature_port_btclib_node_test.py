@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+from btclib_functional_tests.btclib_node import BtclibNodeAdapter
 from tests.integration.feature_port_test import (
     port_and_bind_decide_where_the_node_listens,
 )
@@ -28,7 +28,7 @@ from tests.integration.feature_port_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

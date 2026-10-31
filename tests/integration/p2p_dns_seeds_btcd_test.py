@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btcd import BtcdAdapter
+from btclib_functional_tests.btcd import BtcdAdapter
 from tests.integration.p2p_dns_seeds_test import (
     dns_seeds_are_queried_only_when_peers_are_wanting,
 )
@@ -26,7 +26,7 @@ from tests.integration.p2p_dns_seeds_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

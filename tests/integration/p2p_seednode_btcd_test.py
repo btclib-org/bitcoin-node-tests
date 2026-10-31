@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btcd import BtcdAdapter
+from btclib_functional_tests.btcd import BtcdAdapter
 from tests.integration.p2p_seednode_test import (
     a_seed_node_is_asked_at_once_only_by_an_empty_address_table,
 )
@@ -26,7 +26,7 @@ from tests.integration.p2p_seednode_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

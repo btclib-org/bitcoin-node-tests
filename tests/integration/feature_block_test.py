@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_block.py`: a node is fed a
 sequence of valid and invalid blocks, forks and re-orgs, over one peer,
-and each block's verdict is checked. `bitcoin_node_tests.feature_block`
+and each block's verdict is checked. `btclib_functional_tests.feature_block`
 builds that sequence as data, and its module docstring says what the
 sequence leaves out of Core's file. Each body here feeds the whole
 sequence to a fresh node over p2p, the way Core's `P2PDataStore` does.
@@ -54,10 +54,10 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.block.genesis import genesis_block
 from btclib.p2p import BlockPayload, GetData, Headers, Message
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.feature_block import (
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.feature_block import (
     BIP34_HEIGHT,
     BlockStep,
     CoinStep,
@@ -67,17 +67,17 @@ from bitcoin_node_tests.feature_block import (
     TipStep,
     steps,
 )
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.feature_block import Step
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.feature_block import Step
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["blocks_are_judged", "blocks_are_judged_and_logged"]
 

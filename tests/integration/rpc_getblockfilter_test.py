@@ -27,14 +27,14 @@ from typing import TYPE_CHECKING
 import pytest
 from bitcoin_core_rpc import RpcError
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import connect_nodes, wait_until_tips_agree
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import connect_nodes, wait_until_tips_agree
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["getblockfilter_answers_for_active_and_stale_blocks"]
 

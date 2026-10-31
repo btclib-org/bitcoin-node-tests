@@ -21,7 +21,7 @@ starts it with before any block is mined.
 `testmempoolaccept` reports `vsize_adjusted` and `vsize_bip141` beside
 `vsize` only in `v32.0` and later, from bitcoin/bitcoin#32800's merge.
 Where the build's own `getnetworkinfo` `version` reads older
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)),
 each allowed transaction is expected without them, as Core's file at
 `v31.1` expects it. `_VSIZE_FIELDS_VERSION`'s own comment has the known
 limit.
@@ -82,9 +82,9 @@ from btclib.tx.limits import SEQUENCE_FINAL
 from ecc.curves.curve import secp256k1
 from ecc.ecc.dsa import sign_
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet, build_next_block
 from tests.integration.mempool_datacarrier_test import (
     mempool_info_reports,
     uncapped_by_default,
@@ -93,8 +93,8 @@ from tests.integration.mempool_datacarrier_test import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["mempool_acceptance_of_raw_transactions"]
 
@@ -191,7 +191,7 @@ def _reports_vsize_fields(node: NodeAdapter) -> bool:
     Core's own claim for every node, bitcoind before
     `_VSIZE_FIELDS_VERSION` excepted, read off its own `getnetworkinfo`
     `version`
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
     """
     if not isinstance(node, BitcoindAdapter):
         return True

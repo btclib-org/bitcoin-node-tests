@@ -24,14 +24,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import connect_nodes, wait_until_tips_agree
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import connect_nodes, wait_until_tips_agree
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["a_block_mined_on_node0_reaches_node1_and_node2"]
 

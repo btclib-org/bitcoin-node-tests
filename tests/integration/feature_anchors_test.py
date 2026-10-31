@@ -63,19 +63,19 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.hashes import hash256
 from btclib.p2p import ServiceFlags
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_ports, wait_until
-from bitcoin_node_tests.peer import Listener, Peer
-from bitcoin_node_tests.socks5 import Socks5Proxy
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import free_ports, wait_until
+from btclib_functional_tests.peer import Listener, Peer
+from btclib_functional_tests.socks5 import Socks5Proxy
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [
@@ -169,7 +169,7 @@ def _anchors_survive_a_network_toggle(
 ) -> bool:
     """Return whether this build keeps anchors across a switched-off network.
 
-    Read per build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)):
+    Read per build ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)):
     a node other than bitcoind is held to it.
     """
     version = bitcoind_version(node)

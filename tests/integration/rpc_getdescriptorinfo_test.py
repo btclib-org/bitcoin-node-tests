@@ -43,7 +43,7 @@ which `_before_v30` gives from each row, and accepts a private key with
 whitespace, its base58 decoding skipping it. No probe tells the two
 apart, the node having no option or RPC for it: that build is read off its
 own `getnetworkinfo` `version`
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+([ISS 354](https://github.com/btclib-org/btclib-functional-tests/issues/354)).
 
 Each `rpc_getdescriptorinfo_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -60,12 +60,12 @@ from btclib.b58 import wif_from_prv_key
 from btclib_wallet.descriptors.descriptors import add_checksum
 from ecc.curves import secp256k1
 
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.capability import Capability, require
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "DESCRIPTORS",

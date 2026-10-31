@@ -25,7 +25,7 @@
 # (a release candidate, decided by the maintainer 2026-09-24) sat above
 # Dependabot's own Python-version detection, which tops out at 3.14
 # (`tool_version_not_supported`, read from a run's own job log,
-# `gh run view <id> --log-failed`). Issue bitcoin-node-tests#36 lowered
+# `gh run view <id> --log-failed`). Issue btclib-functional-tests#36 lowered
 # the floor to 3.12 for an unrelated reason -- a Core developer running
 # this suite with whatever Python they already have -- which also
 # brings it back under Dependabot's own detection ceiling.

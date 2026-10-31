@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_assumevalid.py` (`fa16bc53d79c`,
 2026-04-16), an option and the log
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)): a
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)): a
 chain carries a coinbase output spent, once it matures, by a transaction
 with an empty (invalid) signature, and that spend is buried under a
 further stretch of blocks reaching past two weeks' worth of work.
@@ -88,11 +88,11 @@ from btclib.script.script import serialize
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY, SEQUENCE_FINAL
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Peer
 from tests.integration.script_verify_flag_test import (
     bitcoind_version,
     block_script_verify_flag_failed,
@@ -103,8 +103,8 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "TEST_TIMEOUT",

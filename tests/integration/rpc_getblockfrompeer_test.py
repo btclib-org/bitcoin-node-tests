@@ -50,15 +50,19 @@ from bitcoin_core_rpc import RpcError, magic_from_chain
 from btclib.block.block import Block
 from btclib.p2p import Headers, ServiceFlags
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import connect_nodes, wait_until, wait_until_tips_agree
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import (
+    connect_nodes,
+    wait_until,
+    wait_until_tips_agree,
+)
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["getblockfrompeer_fetches_what_the_node_lacks"]
 

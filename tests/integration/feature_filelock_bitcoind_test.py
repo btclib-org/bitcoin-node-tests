@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.bitcoind import BitcoindAdapter
 from tests.integration.feature_filelock_test import (
     second_instance_on_same_blocksdir_refuses_to_start,
     second_instance_on_same_datadir_refuses_to_start,
@@ -25,7 +25,7 @@ from tests.integration.feature_filelock_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

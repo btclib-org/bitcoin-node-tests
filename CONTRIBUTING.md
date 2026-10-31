@@ -309,7 +309,7 @@ markdownlint-cli2](https://img.shields.io/badge/lint-markdownlint--cli2-yellowgr
 [![pre-commit
 enabled](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![GitHub repository:
-btclib-org/bitcoin-node-tests](https://img.shields.io/badge/GitHub-btclib--org%2Fbitcoin--node--tests-181717?logo=github)](https://github.com/btclib-org/bitcoin-node-tests/)
+btclib-org/btclib-functional-tests](https://img.shields.io/badge/GitHub-btclib--org%2Fbtclib--functional--tests-181717?logo=github)](https://github.com/btclib-org/btclib-functional-tests/)
 
 To get an overview of the project, read the [README](./README.md) and
 [ISS 2220](https://github.com/btclib-org/btclib/issues/2220), the charter
@@ -334,10 +334,10 @@ and no alias layer (rule 2).
 
 ### The public surface
 
-The adapter under `src/bitcoin_node_tests/` -- `bitcoind`, `btcd`,
+The adapter under `src/btclib_functional_tests/` -- `bitcoind`, `btcd`,
 `btclib_node`, `capability`, `debug_log`, `feature_block`, `mempool_util`,
 `mini_wallet`, `node`, `peer`, `socks5`, `timeout_factor` -- is each its own
-submodule with its own `__all__`, and `docs/source/bitcoin_node_tests.rst` gives
+submodule with its own `__all__`, and `docs/source/btclib_functional_tests.rst` gives
 each an `automodule` section of its own. The package root re-exports none of
 them and keeps an empty `__all__` by decision, a caller importing the submodule
 it needs instead. **Every module and every package declares `__all__`**, at
@@ -481,7 +481,7 @@ a formality.
 
 ### Running against a Core developer's own build
 
-Issue [bitcoin-node-tests#36](https://github.com/btclib-org/bitcoin-node-tests/issues/36):
+Issue [btclib-functional-tests#36](https://github.com/btclib-org/btclib-functional-tests/issues/36):
 a Core developer runs this suite beside `test/functional`, or in place
 of it, with the options `test_framework.py` and `test_runner.py` give
 them.
@@ -578,17 +578,17 @@ per-process scope `SkipCounts` already carries for the same `-n auto`
 reason. `node.wait_until` is the shared, scaled loop
 `tests/integration/`'s own test modules poll a predicate through, rather
 than each reimplementing one unscaled beside it
-([ISS 90](https://github.com/btclib-org/bitcoin-node-tests/issues/90)).
+([ISS 90](https://github.com/btclib-org/btclib-functional-tests/issues/90)).
 Each RPC client every adapter builds bounds a call by `timeout_factor.py`'s
 own `rpc_client_timeout`: Core's own `rpc_timeout`, scaled, then halved.
 The same `pytest_configure` scales `pyproject.toml`'s own per-test
 `timeout` by the factor, unless pytest-timeout's own `--timeout` or
 `PYTEST_TIMEOUT` names a bound of the caller's own
-([ISS 91](https://github.com/btclib-org/bitcoin-node-tests/issues/91)).
+([ISS 91](https://github.com/btclib-org/btclib-functional-tests/issues/91)).
 A test with a Core wait at or past that `timeout` marks itself
 `scaled_timeout(seconds)` and gets a `timeout` of `seconds`, scaled the same
 way; a bound of the caller's own still applies instead
-([ISS 309](https://github.com/btclib-org/bitcoin-node-tests/issues/309)).
+([ISS 309](https://github.com/btclib-org/btclib-functional-tests/issues/309)).
 `--timeout-factor 0` scales by 999, which is how Core's own
 `BitcoinTestFramework.parse_args` carries out its help's "Setting it to 0
 disables all timeouts": every wait above is still a bound, only a long one,
@@ -756,7 +756,7 @@ fails is a finding.
 release moving a cell of `TF2.md`'s `btclib-node` column turns it red for
 a reason outside any pull request; `core-master` and `btclib-node-main`
 track Core's own `master` and btclib-node's own `main` rather than the pinned
-release under test, by [ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8)'s
+release under test, by [ISS 8](https://github.com/btclib-org/btclib-functional-tests/issues/8)'s
 decision of 2026-09-25.
 
 `verified-signatures.yml` reports after each push to `main` whether every

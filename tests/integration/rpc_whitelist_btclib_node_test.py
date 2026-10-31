@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+from btclib_functional_tests.btclib_node import BtclibNodeAdapter
 from tests.integration.rpc_whitelist_test import (
     a_rejected_method_is_logged_as_named,
     rpcwhitelist_restricts_a_users_own_rpc_surface,
@@ -33,7 +33,7 @@ from tests.integration.rpc_whitelist_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

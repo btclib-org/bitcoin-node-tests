@@ -46,21 +46,21 @@ from btclib.consensus import CONSENSUS_PARAMS
 from btclib.p2p import BlockPayload, GetData, Headers, Ping, Pong, ServiceFlags
 from btclib.p2p.bip324 import REKEY_INTERVAL
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import (
     connect_nodes,
     disconnect_nodes,
     sync_all,
     wait_until,
 )
-from bitcoin_node_tests.peer import Listener, Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.peer import Listener, Peer
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["inbound_connections_and_blocks", "outbound_connections"]
 

@@ -4,7 +4,7 @@
 
 """The printed skip tally is the sum over the whole run, xdist or not.
 
-Issue btclib-org/bitcoin-node-tests#16: `SkipCounts` is one instance per
+Issue btclib-org/btclib-functional-tests#16: `SkipCounts` is one instance per
 process, and `-n auto` starts several -- a controller that runs no test
 of its own (`xdist.dsession.DSession.pytest_collection` refuses
 collection there) and one worker per `-n` slot, each with its own empty
@@ -24,7 +24,7 @@ import pytest
 # the project root, so the nested session below -- which starts in its
 # own temporary directory, well outside this tree -- can still import
 # `tests.integration.conftest`: that package is not installed, unlike
-# `bitcoin_node_tests` itself, so it needs its own directory on
+# `btclib_functional_tests` itself, so it needs its own directory on
 # `PYTHONPATH` rather than relying on site-packages
 _ROOT = Path(__file__).resolve().parents[2]
 
@@ -39,7 +39,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 # imported too
 _CONFTEST = """
     import pytest
-    from bitcoin_node_tests.capability import MissingCapabilityError
+    from btclib_functional_tests.capability import MissingCapabilityError
     from tests.integration.conftest import (
         pytest_sessionfinish,
         pytest_testnodedown,
@@ -60,7 +60,7 @@ _CONFTEST = """
 # the printed tally are two different assertions, neither standing in for
 # the other
 _TESTS = """
-    from bitcoin_node_tests.capability import Capability, require
+    from btclib_functional_tests.capability import Capability, require
 
     def test_mine_1(skip_counts):
         require(Capability.MINE, frozenset(), skip_counts)
@@ -117,13 +117,13 @@ def test_the_tally_is_unchanged_with_no_worker_split(
 # here rather than restated: a nested session that never spawns a real node
 # still exercises the option's registration and, for `--timeout-factor`,
 # that `pytest_configure` actually sets `timeout_factor`'s own multiplier
-# -- issue bitcoin-node-tests#36
+# -- issue btclib-functional-tests#36
 _OPTION_CONFTEST = """
     from tests.integration.conftest import pytest_addoption, pytest_configure
 """
 
 _TIMEOUT_FACTOR_TEST = """
-    from bitcoin_node_tests.timeout_factor import scaled
+    from btclib_functional_tests.timeout_factor import scaled
 
     def test_the_factor_option_reaches_the_module():
         assert scaled(2.0) == 5.0
@@ -148,7 +148,7 @@ def test_timeout_factor_option_reads_0_as_core_does(
     monkeypatch.setenv("PYTHONPATH", str(_ROOT))
     pytester.makeconftest(_OPTION_CONFTEST)
     pytester.makepyfile("""
-        from bitcoin_node_tests.timeout_factor import scaled
+        from btclib_functional_tests.timeout_factor import scaled
 
         def test_the_factor_is_999(request):
             assert request.config.getoption("--timeout-factor") == 999.0
@@ -165,7 +165,7 @@ def test_timeout_factor_option_defaults_to_1x(
     monkeypatch.setenv("PYTHONPATH", str(_ROOT))
     pytester.makeconftest(_OPTION_CONFTEST)
     pytester.makepyfile("""
-        from bitcoin_node_tests.timeout_factor import scaled
+        from btclib_functional_tests.timeout_factor import scaled
 
         def test_the_factor_is_unscaled():
             assert scaled(2.0) == 2.0
@@ -320,7 +320,7 @@ def test_scaled_timeout_marker_leaves_a_callers_own_bound_alone(
 # message; unmarked, as a bare pytest-timeout
 _STALLED_TEST = """
     import pytest
-    from bitcoin_node_tests.node import wait_until
+    from btclib_functional_tests.node import wait_until
 
     {mark}
     def test_stalled():
@@ -425,7 +425,7 @@ def test_a_failure_report_prints_no_line_past_the_bound(
     """A long message prints as lines of at most 2300, its end kept.
 
     A GitHub runner stalls on a line of some megabytes (issue
-    btclib-org/bitcoin-node-tests#442). `CI` is set because pytest then
+    btclib-org/btclib-functional-tests#442). `CI` is set because pytest then
     prints the one-line summary's message whole.
     """
     monkeypatch.setenv("PYTHONPATH", str(_ROOT))

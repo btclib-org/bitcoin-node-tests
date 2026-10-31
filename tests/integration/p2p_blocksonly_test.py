@@ -70,11 +70,11 @@ from btclib.p2p import (
 )
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import wait_until
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.node import wait_until
 from tests.integration.p2p_conns_test import RelayConn
 
 if TYPE_CHECKING:
@@ -84,8 +84,8 @@ if TYPE_CHECKING:
 
     from btclib.tx.tx import Tx
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_block_relay_only_peer_is_refused_transactions",

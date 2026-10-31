@@ -57,20 +57,20 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import SendTxRcncl, ServiceFlags, Verack, Version, WtxidRelay
 from btclib.p2p.limits import PROTOCOL_VERSION
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Listener, Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Listener, Peer
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "sendtxrcncl_is_ignored_without_the_option",

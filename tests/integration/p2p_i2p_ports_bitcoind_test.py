@@ -22,8 +22,8 @@ from tests.integration.p2p_i2p_ports_test import i2p_is_dialled_on_port_zero_alo
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.bitcoind import BitcoindAdapter
+    from btclib_functional_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
 

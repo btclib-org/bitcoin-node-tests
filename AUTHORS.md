@@ -1,5 +1,5 @@
 # Authors
 
-To see the list of bitcoin-node-tests authors for copyright purposes, see
+To see the list of btclib-functional-tests authors for copyright purposes, see
 the revision history in source control:
-<https://github.com/btclib-org/bitcoin-node-tests/graphs/contributors>
+<https://github.com/btclib-org/btclib-functional-tests/graphs/contributors>

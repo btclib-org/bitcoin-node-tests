@@ -25,7 +25,7 @@ this peer's own `verack` completes, and one sent by a peer that never
 got as far as offering the version `FEATURE` needs at all.
 
 Second, to a fact read from the running build rather than assumed for
-the whole class ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35),
+the whole class ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35),
 `capability.py`'s own module docstring): every test below reads
 `getnetworkinfo`'s own `protocolversion` and asserts whichever of the
 two shapes the running build actually carries, `feature_torcontrol`'s
@@ -57,16 +57,16 @@ import pytest
 from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import Feature, Ping, Pong, ServiceFlags, Verack, Version, WtxidRelay
 
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
+    from btclib_functional_tests.bitcoind import BitcoindAdapter
 
 pytestmark = pytest.mark.integration
 
 _MAGIC = magic_from_chain("regtest")
 _SERVICES = ServiceFlags.NODE_NETWORK | ServiceFlags.NODE_WITNESS
-_USER_AGENT = b"/bitcoin-node-tests:0/"
+_USER_AGENT = b"/btclib-functional-tests:0/"
 
 # node/protocol_version.h, read at Core's `master`: the protocol version
 # BIP434's FEATURE message needs, and the one `31.1` never reaches

@@ -39,15 +39,15 @@ from btclib.b32 import address_from_witness
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["an_import_rescans_a_child_back_in_the_mempool_before_its_parent"]
 

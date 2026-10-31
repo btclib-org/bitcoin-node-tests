@@ -25,7 +25,7 @@ the first is measured the way `ISS 8`'s decision of 2026-09-25 lays down,
   the port may never have matched the file it cites: the required job
   passes such a port wherever the pinned release predates a behaviour
   change the pin already carries, and only `master` fails it
-  ([ISS 143](https://github.com/btclib-org/bitcoin-node-tests/issues/143)).
+  ([ISS 143](https://github.com/btclib-org/btclib-functional-tests/issues/143)).
   A pin compared with the file's last commit tells none of these apart,
   so the port is checked by hand against the pinned file's own
   expectation first.

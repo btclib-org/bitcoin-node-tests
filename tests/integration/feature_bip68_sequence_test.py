@@ -84,18 +84,18 @@ from btclib.tx.limits import (
     SEQUENCE_LOCKTIME_TYPE_FLAG,
 )
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet, build_fork, build_next_block
-from bitcoin_node_tests.node import connect_nodes, sync_all, wait_until_tips_agree
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet, build_fork, build_next_block
+from btclib_functional_tests.node import connect_nodes, sync_all, wait_until_tips_agree
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.mini_wallet import Utxo
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.mini_wallet import Utxo
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["mempool_enforces_bip68_before_consensus_does"]
 

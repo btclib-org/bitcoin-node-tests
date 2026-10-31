@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_versionbits_warning.py`
 (`5bd990a3ddb1`, 2026-06-03), the option and the disk families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node started with `-alertnotify` (`Capability.ALERT_NOTIFY`) is sent
 blocks from a peer that signal a version bit no deployment uses. It
 raises no warning after a period in which fewer blocks than the threshold
@@ -56,16 +56,16 @@ from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
 from btclib.p2p import BlockPayload
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports, wait_until
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports, wait_until
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["unknown_rules_raise_a_warning"]

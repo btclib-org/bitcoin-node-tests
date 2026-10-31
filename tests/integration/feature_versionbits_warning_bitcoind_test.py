@@ -9,7 +9,7 @@ Read from Core's `test/functional/feature_versionbits_warning.py`:
 here against bitcoind, which declares every capability it asks for.
 Whether the body expects no warning for a bit BIP323 reserves is read
 from the running build's own `getnetworkinfo` `version`
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)),
 `_ignores_reserved_bits` below having which builds do.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.bitcoind import BitcoindAdapter
 from tests.integration.feature_versionbits_warning_test import (
     unknown_rules_raise_a_warning,
 )
@@ -29,8 +29,8 @@ from tests.integration.feature_versionbits_warning_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

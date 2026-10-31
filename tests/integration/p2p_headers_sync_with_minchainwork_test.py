@@ -7,7 +7,7 @@
 Read from Core's `test/functional/p2p_headers_sync_with_minchainwork.py`
 (`ff3e2e4ebdce`, 2026-08-19), an option, the log and the clock beside
 node-linking
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 the first node dials each of the others, the second under
 `-minimumchainwork=0x1f`, the third and the last under `0x1000`
 (`Capability.MINIMUM_CHAIN_WORK`), the last giving the first `noban`.
@@ -74,24 +74,24 @@ from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
 from btclib.p2p import GetHeaders, Headers
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import (
     connect_nodes,
     disconnect_nodes,
     sync_all,
     wait_until,
     wait_until_tips_agree,
 )
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "TEST_TIMEOUT",

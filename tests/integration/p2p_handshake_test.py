@@ -16,7 +16,7 @@ a `ping` after the second `verack`; the log half is bitcoind's own
 wording, gated on `Capability.DEBUG_LOG`.
 
 The rest of Core's file has the node dial the test
-([ISS 44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)),
+([ISS 44](https://github.com/btclib-org/btclib-functional-tests/issues/44)),
 each check split the same way and each body over a fresh node:
 
 - an outbound peer offering less than `NODE_NETWORK | NODE_WITNESS` is
@@ -45,20 +45,20 @@ from typing import TYPE_CHECKING
 from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import ServiceFlags, Verack, Version
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Listener, Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.mini_wallet import MiniWallet, build_next_block
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Listener, Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "feeler_completion_is_logged",

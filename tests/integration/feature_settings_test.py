@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_settings.py` (`0654511e1b93`,
 2026-06-17), an option and the disk
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 the settings file a node keeps in its chain's data directory
 (`Capability.SETTINGS_FILE`). A node writes it at its first start,
 holding only Core's `_warning_`. The values in it are logged at the next
@@ -54,16 +54,16 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

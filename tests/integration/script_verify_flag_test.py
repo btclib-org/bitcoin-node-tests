@@ -16,10 +16,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.bitcoind import BitcoindAdapter
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["bitcoind_version", "block_script_verify_flag_failed"]
 
@@ -31,7 +31,7 @@ _BLOCK_WORDING_VERSION = 300000
 def bitcoind_version(node: NodeAdapter) -> int | None:
     """Return `node`'s own `getnetworkinfo` `version`, `None` off bitcoind.
 
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35))
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35))
     """
     if not isinstance(node, BitcoindAdapter):
         return None

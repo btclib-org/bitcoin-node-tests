@@ -188,7 +188,7 @@ no wallet, `src/btclib_node/rpc/callbacks.py`'s own dispatch table naming
 no wallet RPC -- no `createwallet`, `getnewaddress` or `signmessage` --
 measured at the released `2026.9.24` and at `main` (`d2b4efa5`) alike. A
 wallet kept beside the node is
-[ISS 199](https://github.com/btclib-org/bitcoin-node-tests/issues/199)'s
+[ISS 199](https://github.com/btclib-org/btclib-functional-tests/issues/199)'s
 to reach.
 
 `Capability.TX_RECONCILIATION` and `Capability.PEER_BLOOM_FILTERS` are
@@ -341,8 +341,8 @@ Each capability `_RPC_CAPABILITIES` names is declared per instance, by
 `_RPC_CAPABILITIES` lists for it. The released `2026.9.24` (`422d2640`) names
 none of them, and the released `2026.10.30` (`30e9573`) and `main` (`995a2b46`),
 whose `src/` is the same, name all of them
-([ISS 547](https://github.com/btclib-org/bitcoin-node-tests/issues/547)). What
-each capability asks beyond its RPCs' names was measured at `2026.10.30`.
+([ISS 547](https://github.com/btclib-org/btclib-functional-tests/issues/547)).
+What each capability asks beyond its RPCs' names was measured at `2026.10.30`.
 `addconnection` dials each of `outbound-full-relay`, `block-relay-only`,
 `addr-fetch` and `feeler` (its `_ADDCONNECTION_TYPES`), and refuses any chain
 but regtest, so `TYPED_OUTBOUND` is in `_REGTEST_ONLY` below. `getblocktemplate`
@@ -408,9 +408,9 @@ from typing import TYPE_CHECKING, override
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import NodeAdapter
-from bitcoin_node_tests.timeout_factor import rpc_client_timeout
+from btclib_functional_tests.capability import Capability
+from btclib_functional_tests.node import NodeAdapter
+from btclib_functional_tests.timeout_factor import rpc_client_timeout
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet

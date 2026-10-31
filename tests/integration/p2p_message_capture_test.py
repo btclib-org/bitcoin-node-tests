@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_message_capture.py`
 (`fa5f29774872`, 2025-12-16), the option and disk families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node started with `-capturemessages` (`Capability.CAPTURE_MESSAGES`)
 writes what it exchanges with a peer to `msgs_recv.dat` and
 `msgs_sent.dat`, under its chain directory's `message_capture/`, and each
@@ -44,16 +44,16 @@ import btclib.p2p
 from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import Payload
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports, wait_until
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports, wait_until
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["messages_are_captured_to_disk"]

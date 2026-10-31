@@ -1,14 +1,14 @@
 ---
 name: Bug report
-description: Something in bitcoin-node-tests does not work as documented
+description: Something in btclib-functional-tests does not work as documented
 type: Bug
 
 body:
   - type: markdown
     attributes:
       value: >
-        Not every bug reachable from bitcoin-node-tests is
-        bitcoin-node-tests's bug: the keys, scripts, transactions and
+        Not every bug reachable from btclib-functional-tests is
+        btclib-functional-tests's bug: the keys, scripts, transactions and
         signatures it builds on are
         [btclib](https://github.com/btclib-org/btclib/issues)'s, the rpc
         client is

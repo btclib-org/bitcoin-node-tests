@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.bitcoind import BitcoindAdapter
 from tests.integration.feature_remove_pruned_files_on_startup_test import (
     pruned_files_are_removed,
 )
@@ -26,7 +26,7 @@ from tests.integration.feature_remove_pruned_files_on_startup_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

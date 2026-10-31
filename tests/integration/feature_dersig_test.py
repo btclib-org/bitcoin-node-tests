@@ -6,13 +6,13 @@
 
 Read from Core's `test/functional/feature_dersig.py` (`fa6f7e36a8c2`,
 2026-10-23), on the option and MiniWallet families together
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 `-testactivationheight=dersig@N` (`Capability.TEST_ACTIVATION_HEIGHT`)
 holds BIP66 inactive until a chosen height, and `MiniWallet.generate`
 (`Capability.MINE`) mines to it with no node wallet.
 
 Core's own closing checks are kept too, in a body of their own
-([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)):
+([ISS 167](https://github.com/btclib-org/btclib-functional-tests/issues/167)):
 a spend whose signature is not strict DER is mined in the block before
 BIP66 activates, and from the configured height on is refused by
 `testmempoolaccept` and `submitblock`, each in Core's own wording, while
@@ -53,10 +53,10 @@ from btclib.script.script import parse, serialize
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import (
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.mini_wallet import (
     FEE,
     RAW_P2PK_SCRIPT_PUB_KEY,
     MiniWallet,
@@ -71,8 +71,8 @@ if TYPE_CHECKING:
     from btclib.block.block import Block
     from btclib.script.script_pub_key import ScriptPubKey
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_block_below_the_minimum_version_is_logged",

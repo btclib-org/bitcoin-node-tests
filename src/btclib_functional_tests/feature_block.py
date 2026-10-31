@@ -30,7 +30,7 @@ What differs from Core's file:
 - the invalid-transaction templates of `test/functional/data/invalid_txs.py`
   are not in the sequence, and neither is the re-org of
   `LARGE_REORG_SIZE` blocks, which Core's own `--skipreorg` leaves out
-  ([ISS 439](https://github.com/btclib-org/bitcoin-node-tests/issues/439));
+  ([ISS 439](https://github.com/btclib-org/btclib-functional-tests/issues/439));
 - Core mines a block spending the output of the largest valid script
   with `generateblock`, and asks `generateblock` for one spending the
   output of the smallest invalid one. Here both are blocks built like

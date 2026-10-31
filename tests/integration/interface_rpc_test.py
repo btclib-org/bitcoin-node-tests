@@ -5,7 +5,7 @@
 """Core's `interface_rpc`, one body over each node.
 
 Read from Core's `test/functional/interface_rpc.py` (`fa2bd96cc0d4`,
-2026-08-06), [ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s:
+2026-08-06), [ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)'s:
 the JSON-RPC server's own answers, each read off the HTTP exchange
 rather than through a client that interprets them. `_post` sends a body
 as it is written, over the node's own RPC connection and credential,
@@ -37,7 +37,7 @@ after `Server response:`, and matches the message `TestNodeCLI.send_cli`
 (`test_node.py`) rewrites that into, where this sends the same request
 over `_exchange` and matches the 503 and the body the server sent; what
 `bitcoin-cli` makes of it is `interface_bitcoin_cli.py`'s subject
-([ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)).
+([ISS 49](https://github.com/btclib-org/btclib-functional-tests/issues/49)).
 `http_request` returns no header, so `_post` does not check the
 `Content-Type` Core's `AuthServiceProxy._get_response` checks, a check
 of Core's harness rather than of any step of the test.
@@ -59,15 +59,15 @@ from bitcoin_core_rpc import RPCErrorCode
 from bitcoin_core_rpc.transport import http_request
 from btclib.network import NETWORKS
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.btclib_node import BtclibNodeAdapter
+from btclib_functional_tests.capability import Capability, require
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_batch_is_answered_member_by_member",

@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_permissions.py` (`fa5f29774872`,
 2025-12-16), an option and the wire
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 the permissions `-whitelist` and `-whitebind` grant, read off `getpeerinfo`
 (`Capability.PEER_PERMISSIONS`). Each of Core's checks is kept, in its
 order:
@@ -56,25 +56,25 @@ from btclib.p2p import TxPayload
 from btclib.tx import Tx, TxOut
 from btclib.tx.limits import COINBASE_MATURITY, SEQUENCE_FINAL
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.node import (
     connect_nodes,
     free_port,
     wait_until,
     wait_until_tips_agree,
 )
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_forcerelay_peer_has_a_transaction_relayed_that_the_mempool_holds",

@@ -4,7 +4,7 @@
 
 r"""A block mined on bitcoind reaches btclib-node, over a real connection.
 
-[ISS 43](https://github.com/btclib-org/bitcoin-node-tests/issues/43)'s
+[ISS 43](https://github.com/btclib-org/btclib-functional-tests/issues/43)'s
 own "most valuable case": bitcoind mines, and btclib-node -- never
 asked to mine anything itself -- receives the block from a real peer
 rather than from `submitblock` on its own behalf. Nothing here asks
@@ -35,13 +35,13 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import connect_nodes, wait_until_tips_agree
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import connect_nodes, wait_until_tips_agree
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.bitcoind import BitcoindAdapter
+    from btclib_functional_tests.btclib_node import BtclibNodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
 

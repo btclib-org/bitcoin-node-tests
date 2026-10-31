@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+from btclib_functional_tests.btclib_node import BtclibNodeAdapter
 from tests.integration.adapter_lifecycle_test import (
     mine_extends_the_tip_by_the_blocks_it_returns,
     stop_reports_a_node_killed_out_from_under_it,
@@ -29,7 +29,7 @@ from tests.integration.adapter_lifecycle_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

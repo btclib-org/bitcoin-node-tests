@@ -12,7 +12,7 @@ starts no node wallet, so no `wallets/` directory of the node's own ever
 exists to check the permissions of. Kept whole: the node's own chain
 directory and its own log file are owner-only, `0700` and `0600`, disk
 family alone (
-[ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)).
+[ISS 7](https://github.com/btclib-org/btclib-functional-tests/issues/7)).
 
 The log file is `debug.log` for bitcoind (`BitcoindAdapter.debug_log_path`)
 `history.log` for btclib-node (`BtclibNodeAdapter.log_path`) and
@@ -29,12 +29,12 @@ from __future__ import annotations
 import stat
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.btcd import BtcdAdapter
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.btcd import BtcdAdapter
+from btclib_functional_tests.btclib_node import BtclibNodeAdapter
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["chain_directory_and_log_file_are_owner_only"]
 

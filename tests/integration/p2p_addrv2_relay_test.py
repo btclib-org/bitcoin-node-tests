@@ -19,7 +19,7 @@ that `SENDADDRV2` branch never reads, so it is dropped.
 The rest of Core's file is not ported here: its relay check moves the
 node's clock with `setmocktime`, and its oversized-`addrv2` check runs
 on the node after that, the clock still set -- [ISS
-14](https://github.com/btclib-org/bitcoin-node-tests/issues/14). Each
+14](https://github.com/btclib-org/btclib-functional-tests/issues/14). Each
 `p2p_addrv2_relay_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
@@ -31,14 +31,14 @@ from typing import TYPE_CHECKING
 from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import SendAddrV2
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "sendaddrv2_after_verack_disconnects_the_peer",

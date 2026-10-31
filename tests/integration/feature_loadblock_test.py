@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_loadblock.py`
 (`fa4fc8c1d7b5`, 2026-05-22), the option and disk families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node restarted with `-loadblock` (`Capability.LOAD_BLOCK`) naming a
 file of the first node's chain reaches that node's height and tip.
 
@@ -42,15 +42,15 @@ from typing import TYPE_CHECKING
 from bitcoin_core_rpc import magic_from_chain
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import wait_until
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import wait_until
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["a_bootstrap_file_loads_the_chain"]
 

@@ -1,7 +1,7 @@
-.. bitcoin-node-tests documentation master file: the root `toctree`.
+.. btclib-functional-tests documentation master file: the root `toctree`.
 
-bitcoin-node-tests documentation
-=================================
+btclib-functional-tests documentation
+=====================================
 
 .. toctree::
    :maxdepth: 1

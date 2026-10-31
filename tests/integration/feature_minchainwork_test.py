@@ -7,7 +7,7 @@
 Read from Core's `test/functional/feature_minchainwork.py`
 (`c502b65c007b`, 2026-10-03), an option and the clock beside
 node-linking
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 three nodes in a line, each dialling the one before it, the second and
 the third under `-minimumchainwork=0x65`
 (`Capability.MINIMUM_CHAIN_WORK`) and the third's clock two days ahead
@@ -74,18 +74,18 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.block.block_header import BlockHeader
 from btclib.p2p import GetHeaders, Headers, Ping, Pong
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import connect_nodes, sync_all
-from bitcoin_node_tests.peer import Listener, Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.node import connect_nodes, sync_all
+from btclib_functional_tests.peer import Listener, Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "block_relay_waits_for_the_minimum_chain_work",

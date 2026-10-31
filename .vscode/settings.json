@@ -18,7 +18,7 @@
   // fixing is a separate question from what the editor should say, and the
   // survey that answers it is
   //
-  //   uvx pyright --pythonpath .venv/bin/python src/bitcoin_node_tests tests
+  //   uvx pyright --pythonpath .venv/bin/python src/btclib_functional_tests tests
   //
   // Completion, hover and go-to-definition are unaffected by this setting
   "python.analysis.typeCheckingMode": "off",
@@ -28,11 +28,11 @@
   // the mypy the extension bundles is older than the locked one, and an
   // `enable_error_code` name it does not know is dropped with a warning no
   // extension surfaces. The environment is the .venv uv sync creates, which
-  // is also what makes `import bitcoin_node_tests` resolve, the install in it being
+  // is also what makes `import btclib_functional_tests` resolve, the install in it being
   // editable
   "mypy-type-checker.importStrategy": "fromEnvironment",
   // reportingScope stays at its default: the extension checks the file in
-  // the editor, the hook checks src/bitcoin_node_tests, tests and
+  // the editor, the hook checks src/btclib_functional_tests, tests and
   // .github/scripts
 
   // the two ruff hooks, `ruff-check --fix` and `ruff-format`, on save.

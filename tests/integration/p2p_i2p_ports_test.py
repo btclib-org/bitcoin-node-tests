@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_i2p_ports.py` (`fa20275db32c`,
 2025-10-21), a file of
-[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47):
+[ISS 47](https://github.com/btclib-org/btclib-functional-tests/issues/47):
 a node given `-i2psam` refuses to dial an I2P address on any port but
 `0`, the one SAM 3.1 connects to, and dials the SAM bridge for one on
 port `0`. Both of Core's steps are kept, in its order, each reading
@@ -26,16 +26,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_port
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import free_port
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["i2p_is_dialled_on_port_zero_alone"]
 

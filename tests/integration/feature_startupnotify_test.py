@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_startupnotify.py`
 (`fa71c15f8610`, 2025-11-26), the option and disk families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node started without `-startupnotify` writes no file, and restarted
 with it (`Capability.STARTUP_NOTIFY`) runs the command once, which
 appends a line to a file inside its data directory, and answers RPC.
@@ -33,14 +33,14 @@ from __future__ import annotations
 import shlex
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports, wait_until
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports, wait_until
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["the_startup_command_runs_once"]

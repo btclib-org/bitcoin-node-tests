@@ -14,11 +14,11 @@ from unittest.mock import patch
 
 import pytest
 
-from bitcoin_node_tests import bitcoind as bitcoind_module
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import NodeAdapter
-from bitcoin_node_tests.timeout_factor import set_factor
+from btclib_functional_tests import bitcoind as bitcoind_module
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability
+from btclib_functional_tests.node import NodeAdapter
+from btclib_functional_tests.timeout_factor import set_factor
 
 # the probes themselves, for their own tests: `_any_build` patches the names
 _has_private_broadcast = bitcoind_module._has_private_broadcast

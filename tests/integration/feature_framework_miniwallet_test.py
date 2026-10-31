@@ -18,14 +18,14 @@ wallet's own namespacing, neither of which bears on how the cache is fed.
 
 The third body asks what Core's own file never calls and several other
 Core files do: `confirmed_only`
-([ISS 69](https://github.com/btclib-org/bitcoin-node-tests/issues/69)),
+([ISS 69](https://github.com/btclib-org/btclib-functional-tests/issues/69)),
 over a cache holding a coin this wallet's own `generate` confirmed, one
 a block the node mined itself confirmed (`generateblock`, naming that one
 transaction), and one only the mempool holds.
 
 The last two ask what Core's own `mempool_truc.py` and
 `mempool_package_rbf.py` rest on
-([ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103)):
+([ISS 103](https://github.com/btclib-org/btclib-functional-tests/issues/103)):
 that a caller-chosen `fee_rate` is the fee `getmempoolentry` reports,
 priced over the tx's own vsize or over `target_vsize`, and not refused
 above `sendrawtransaction`'s own default `maxfeerate`; and that
@@ -53,8 +53,8 @@ import pytest
 from bitcoin_core_rpc import RpcError
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import (
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import (
     DEFAULT_FEE_RATE,
     PADDING_DATACARRIER_SIZE,
     MiniWallet,
@@ -63,8 +63,8 @@ from bitcoin_node_tests.mini_wallet import (
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "mini_wallet_confirmed_only_tells_mined_coins_from_mempool_ones",

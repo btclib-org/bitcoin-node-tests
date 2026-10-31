@@ -53,9 +53,9 @@ from typing import TYPE_CHECKING, override
 
 from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import NodeAdapter
-from bitcoin_node_tests.timeout_factor import rpc_client_timeout
+from btclib_functional_tests.capability import Capability
+from btclib_functional_tests.node import NodeAdapter
+from btclib_functional_tests.timeout_factor import rpc_client_timeout
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet

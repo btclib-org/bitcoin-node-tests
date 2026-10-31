@@ -20,8 +20,8 @@ import pytest
 from tests.integration.rpc_uptime_test import uptime_does_not_jump_with_the_wall_clock
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.bitcoind import BitcoindAdapter
+    from btclib_functional_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
 

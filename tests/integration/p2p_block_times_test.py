@@ -24,7 +24,7 @@ before `_add_outbound` returns, ahead of any block in the store.
 `getpeerinfo` reports `last_block_announcement` only past the pinned
 release, from bitcoin/bitcoin#27052's merge. Where the build's own
 `getnetworkinfo` `version` reads older
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)),
 the body asserts the field absent at each of Core's checks of it, and
 keeps Core's `last_block` check. The constant's own comment has the
 known limit.
@@ -52,19 +52,19 @@ from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
 from btclib.p2p import BlockPayload, GetData, Headers
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Listener
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Listener
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from btclib.p2p import Message
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
-    from bitcoin_node_tests.peer import Peer
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
+    from btclib_functional_tests.peer import Peer
 
 __all__ = ["block_announcement_time_is_tracked"]
 
@@ -159,7 +159,7 @@ def _reports_announcement(node: NodeAdapter) -> bool:
     Core's own claim for every node, bitcoind before
     `_LAST_BLOCK_ANNOUNCEMENT_VERSION` excepted, read off its own
     `getnetworkinfo` `version`
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
     """
     if not isinstance(node, BitcoindAdapter):
         return True

@@ -8,7 +8,7 @@ Read from Core's `test/functional/feature_filelock.py` (`fa5f29774872`,
 2025-12-16): a second process started over a datadir, or a blocksdir, a
 first one already holds is fatal, disk-family mechanism alone
 (issue btclib-org/btclib#2220,
-[ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)) --
+[ISS 7](https://github.com/btclib-org/btclib-functional-tests/issues/7)) --
 `NodeAdapter.start`'s own capture of a process's early exit (`node.py`)
 is what every `assert_start_raises_init_error`-shaped test already
 reads through. The datadir's refusal asks for no `Capability`: it is a
@@ -36,14 +36,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

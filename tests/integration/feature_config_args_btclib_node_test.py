@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+from btclib_functional_tests.btclib_node import BtclibNodeAdapter
 from tests.integration.feature_config_args_test import (
     a_connect_node_ignores_the_seednode_and_the_dnsseed_beside_a_proxy,
     a_proxy_without_a_value_is_refused,
@@ -29,7 +29,7 @@ from tests.integration.feature_config_args_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

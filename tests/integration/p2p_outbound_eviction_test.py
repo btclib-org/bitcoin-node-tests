@@ -61,8 +61,8 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.block.block_header import BlockHeader
 from btclib.p2p import GetHeaders, Headers
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.peer import Listener
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.peer import Listener
 from tests.integration.p2p_conns_test import Clock
 
 if TYPE_CHECKING:
@@ -70,9 +70,9 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
-    from bitcoin_node_tests.peer import Peer
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
+    from btclib_functional_tests.peer import Peer
 
 __all__ = [
     "block_relay_only_peer_is_not_protected",

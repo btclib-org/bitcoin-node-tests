@@ -36,7 +36,7 @@ name: node-integration
 #
 # `btclib-node` and `btclib-node-main` also install the same pinned
 # `bitcoind` the job above does, and set `TF2_BITCOIND` from it (issue
-# bitcoin-node-tests#61): without one,
+# btclib-functional-tests#61): without one,
 # `mixed_cluster_block_sync_btclib_node_test.py` -- the "most valuable
 # case" of ISS 43, needing both nodes at once -- skips on every job that
 # runs `*_btclib_node_test.py`, `bitcoind`'s own `skip-reason-prefix`
@@ -359,9 +359,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          path: bitcoin-node-tests
+          path: btclib-functional-tests
       # a second checkout beside the first, never over it: this job
-      # reads two repositories, and `bitcoin-node-tests`' own tests
+      # reads two repositories, and `btclib-functional-tests`' own tests
       # import from a package the shared workspace's PATH already knows,
       # nothing here changing how that resolves
       - name: Checkout Bitcoin Core at master
@@ -466,7 +466,7 @@ jobs:
       # Core's own behaviour still matches TF2.md's pins, a question
       # `*_btclib_node_test.py` cannot answer either way
       - name: Run the integration tests against Core master
-        working-directory: bitcoin-node-tests
+        working-directory: btclib-functional-tests
         env:
           TF2_INTEGRATION: "1"
           TF2_BITCOIND: ${{ github.workspace }}/bitcoin-core/build/bin/bitcoind
@@ -487,7 +487,7 @@ jobs:
           path: pinned-report
       - name: Classify a failure unique to master
         if: always()
-        working-directory: bitcoin-node-tests
+        working-directory: btclib-functional-tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

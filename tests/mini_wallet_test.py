@@ -30,8 +30,8 @@ from btclib.tx.limits import COINBASE_MATURITY
 from ecc.curves.curve import secp256k1
 from ecc.ecc.dsa import verify_
 
-from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.mini_wallet import (
+from btclib_functional_tests.capability import Capability
+from btclib_functional_tests.mini_wallet import (
     DEFAULT_FEE_RATE,
     FEE,
     PADDING_DATACARRIER_SIZE,
@@ -43,7 +43,7 @@ from bitcoin_node_tests.mini_wallet import (
     nulldata_script_pub_key,
     raw_p2pk_script_sig,
 )
-from bitcoin_node_tests.node import NodeAdapter
+from btclib_functional_tests.node import NodeAdapter
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -332,7 +332,7 @@ def test_generate_refuses_an_unsolved_candidate() -> None:
     rpc = _FakeRpc()
     wallet = MiniWallet(_FakeNode(rpc))
     with (
-        patch("bitcoin_node_tests.mini_wallet.mine", return_value=None),
+        patch("btclib_functional_tests.mini_wallet.mine", return_value=None),
         pytest.raises(RuntimeError, match="no nonce solved"),
     ):
         wallet.generate(1)

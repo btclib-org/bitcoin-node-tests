@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from bitcoin_node_tests.timeout_factor import (
+from btclib_functional_tests.timeout_factor import (
     factor_from_option,
     rpc_client_timeout,
     scaled,

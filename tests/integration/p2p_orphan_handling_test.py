@@ -114,7 +114,7 @@ An orphan is taken into the mempool once a block confirms its parent in
 bitcoin/bitcoin@9cc7dc50bdc9867d079ab7a111d39487a4566767, which
 `v32.0rc1` is the first tag to carry: a bitcoind whose `getnetworkinfo`
 `version` reads older than that
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35))
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35))
 keeps the orphan, which is asserted there instead. A `master` build
 between that change's merge and the version's move to `32.99` reads
 older and takes it in all the same, the constant's own comment having
@@ -145,15 +145,15 @@ from btclib.script.witness import Witness
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import (
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.mini_wallet import (
     PADDING_DATACARRIER_SIZE,
     MiniWallet,
     Utxo,
 )
-from bitcoin_node_tests.node import wait_until
+from btclib_functional_tests.node import wait_until
 from tests.integration.p2p_conns_test import Clock, RelayConn
 from tests.integration.p2p_private_broadcast_test import malleated_to_invalid_witness
 from tests.integration.p2pk_coins_test import (
@@ -171,8 +171,8 @@ from tests.integration.rpc_orphans_test import in_orphanage
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_maximal_ancestor_package_is_protected_in_the_orphanage",
@@ -379,7 +379,7 @@ def _reconsiders_on_block(node: NodeAdapter) -> bool:
     Core's own claim for every node, bitcoind before
     `_RECONSIDERS_ON_BLOCK_VERSION` excepted: that build keeps the orphan,
     read off its own `getnetworkinfo` `version`
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
     """
     if not isinstance(node, BitcoindAdapter):
         return True

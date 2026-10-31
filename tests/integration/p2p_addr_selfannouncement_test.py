@@ -44,7 +44,7 @@ its clock to the wall clock at the start of each.
 bitcoin/bitcoin@8c87e32bd3937251d6f30295cc1924048e5b74d1, which `v32.0rc1`
 is the first tag to carry: a bitcoind whose `getnetworkinfo` `version`
 reads older than that
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35))
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35))
 leaves the onion address out of `localaddresses`, which is asserted
 there instead. A `master` build between that change's merge and the
 version's move to `32.99` reads older and bypasses all the same, the
@@ -57,7 +57,7 @@ peer in the same message as its answer to the peer's `getaddr`
 No probe tells the two behaviours apart, the node having no option or RPC
 for it: that build's inbound checks assert the one message, read off its own
 `getnetworkinfo` `version`
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+([ISS 354](https://github.com/btclib-org/btclib-functional-tests/issues/354)).
 
 Each `p2p_addr_selfannouncement_<node>_test.py` module beside this one
 runs each body, `tests/integration/conftest.py`'s own module docstring
@@ -87,12 +87,12 @@ from btclib.p2p import (
 )
 from btclib.p2p.addrv2 import peer_from_addr_entry
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Listener, Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Listener, Peer
+from btclib_functional_tests.timeout_factor import scaled
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
@@ -102,8 +102,8 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "externalip_bypasses_onlynet",
@@ -264,7 +264,7 @@ def _first_alone(node: NodeAdapter, *, outbound: bool) -> bool:
     every build. An inbound peer gets it alone from a bitcoind at
     `_SEPARATE_FIRST_ANNOUNCEMENT_VERSION` or later, and with the `getaddr`
     answer from an older one
-    ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+    ([ISS 354](https://github.com/btclib-org/btclib-functional-tests/issues/354)).
     """
     version = bitcoind_version(node)
     return (
@@ -451,7 +451,7 @@ def _externalip_bypasses_onlynet(node: NodeAdapter) -> bool:
     Core's own claim for every node, bitcoind before
     `_EXTERNALIP_BYPASSES_ONLYNET_VERSION` excepted: that build leaves the
     address out, read off its own `getnetworkinfo` `version`
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
     """
     if not isinstance(node, BitcoindAdapter):
         return True

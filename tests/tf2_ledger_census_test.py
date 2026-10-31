@@ -620,7 +620,7 @@ def test_a_failed_gh_call_prints_its_stderr_and_is_not_retried(
 ) -> None:
     """Each call through `_gh_output` shows gh's words, once, and gives up.
 
-    [ISS 457](https://github.com/btclib-org/bitcoin-node-tests/issues/457).
+    [ISS 457](https://github.com/btclib-org/btclib-functional-tests/issues/457).
     """
     call, stdout, _ = _CALLS[name]
     calls, slept = _failing_gh(census, monkeypatch, [stderr], stdout)

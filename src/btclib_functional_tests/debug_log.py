@@ -23,7 +23,7 @@ from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.timeout_factor import scaled
 
 __all__ = [
     "assert_debug_log",

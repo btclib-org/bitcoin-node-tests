@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_nulldummy.py` (`fa5f29774872`,
 2025-12-16), every step of it kept in its own order
-([ISS 64](https://github.com/btclib-org/bitcoin-node-tests/issues/64)):
+([ISS 64](https://github.com/btclib-org/btclib-functional-tests/issues/64)):
 `-testactivationheight=segwit@N` (`Capability.TEST_ACTIVATION_HEIGHT`)
 holds segwit, and NULLDUMMY (BIP147) with it, inactive until a chosen
 height, and each step spends a multisig output whose dummy element --
@@ -69,8 +69,8 @@ from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 from ecc.ecc.dsa import sign_
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet, build_next_block
 from tests.integration.script_verify_flag_test import block_script_verify_flag_failed
 
 if TYPE_CHECKING:
@@ -78,8 +78,8 @@ if TYPE_CHECKING:
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["nulldummy_is_policy_before_activation_and_consensus_after"]
 

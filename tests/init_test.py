@@ -2,20 +2,20 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Tests for the `bitcoin_node_tests` package metadata."""
+"""Tests for the `btclib_functional_tests` package metadata."""
 
 import importlib
 import importlib.metadata
 
 import pytest
 
-import bitcoin_node_tests
+import btclib_functional_tests
 
 
 def test_version() -> None:
     """Verify __version__ matches the installed metadata."""
-    assert bitcoin_node_tests.__version__ == importlib.metadata.version(
-        "bitcoin-node-tests"
+    assert btclib_functional_tests.__version__ == importlib.metadata.version(
+        "btclib-functional-tests"
     )
 
 
@@ -33,19 +33,19 @@ def test_version_without_installed_metadata(
     def raise_package_not_found(_: str) -> str:
         raise importlib.metadata.PackageNotFoundError
 
-    # patch the attribute of the module, not the name bitcoin_node_tests
+    # patch the attribute of the module, not the name btclib_functional_tests
     # imported: the `from importlib.metadata import version` line looks it
     # up again on reload, which is what makes this reachable at all
     monkeypatch.setattr(importlib.metadata, "version", raise_package_not_found)
     try:
-        assert importlib.reload(bitcoin_node_tests).__version__ == "unknown"
+        assert importlib.reload(btclib_functional_tests).__version__ == "unknown"
     finally:
         # reload once more with the lookup restored, so the module every
         # other test sees carries the real version again. monkeypatch would
         # undo the patch by itself, but not the module state it produced
         monkeypatch.undo()
-        importlib.reload(bitcoin_node_tests)
+        importlib.reload(btclib_functional_tests)
 
-    assert bitcoin_node_tests.__version__ == importlib.metadata.version(
-        "bitcoin-node-tests"
+    assert btclib_functional_tests.__version__ == importlib.metadata.version(
+        "btclib-functional-tests"
     )

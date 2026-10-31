@@ -4,7 +4,7 @@
 
 """Core's `--tracerpc`, restated as a pytest option: bitcoind, over a real RPC.
 
-Issue [bitcoin-node-tests#36](https://github.com/btclib-org/bitcoin-node-tests/issues/36):
+Issue [btclib-functional-tests#36](https://github.com/btclib-org/btclib-functional-tests/issues/36):
 `tests/node_test.py`'s own tests prove `node.traced_transport` in
 isolation, a fake transport standing in for the real one; this is the
 same wrapper reaching an actual node's own RPC, `BitcoindAdapter`'s own
@@ -20,8 +20,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path

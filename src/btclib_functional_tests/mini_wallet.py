@@ -4,7 +4,7 @@
 
 """`MiniWallet`: coins without a wallet, cached from blocks it mines itself.
 
-[ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4), step 5
+[ISS 4](https://github.com/btclib-org/btclib-functional-tests/issues/4), step 5
 of [ISS btclib-org/btclib#2220](https://github.com/btclib-org/btclib/issues/2220):
 Core's own `MiniWallet` (`test/functional/test_framework/wallet.py`) feeds
 its own cache by calling `generatetodescriptor` and then `scantxoutset` --
@@ -38,7 +38,7 @@ signing surface.
 `RAW_P2PK_SCRIPT_PUB_KEY` and `raw_p2pk_script_sig`, alongside the class,
 are that third mode's output and its signature, for a caller whose
 subject needs a coin spent under a real signature
-([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)):
+([ISS 167](https://github.com/btclib-org/btclib-functional-tests/issues/167)):
 the class never pays one, and the caller pays it -- a coinbase it builds,
 typically -- and spends it itself.
 
@@ -52,7 +52,7 @@ already draws. `BtclibNodeAdapter` declares it only on a build that
 connects a submitted block with no peer, and its own `mine` is this
 class's `generate` (`btclib_node.py`'s own docstring has both).
 
-[ISS 4](https://github.com/btclib-org/bitcoin-node-tests/issues/4)'s own
+[ISS 4](https://github.com/btclib-org/btclib-functional-tests/issues/4)'s own
 remaining ports add several things beyond the mechanism above. Two are
 read off Core's own `wallet.py` rather than invented: `get_utxo` finds a
 specific cached coin by its own txid, with no maturity filter -- a caller
@@ -97,7 +97,7 @@ already knowing it -- `send_self_transfer`'s own return value, typically
 -- rather than this class fetching `getrawmempool` and
 `getrawtransaction` back to rediscover what it already handed the node.
 
-[ISS 247](https://github.com/btclib-org/bitcoin-node-tests/issues/247):
+[ISS 247](https://github.com/btclib-org/btclib-functional-tests/issues/247):
 a `confirm` transaction this wallet never sent -- built by a `create_*`
 method and broadcast some other way, over `submitpackage`, p2p relay or
 a raw `sendrawtransaction` -- is scanned into the cache once its block
@@ -139,7 +139,7 @@ is left to the caller, which reads `submitblock`'s own answer, a refusal
 as much as an acceptance, or submits it inside `assert_debug_log` to read
 bitcoind's own log line instead.
 
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+[ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)'s
 own `mempool_package_limits.py` and `mempool_updatefromblock.py` need a
 coin cache several transactions deep rather than one spend at a time:
 `create_self_transfer_multi` spends one or several cached coins into
@@ -156,7 +156,7 @@ multi-output send caches more than one coin under the same `txid`, and a
 caller spending them in an order its own loop chooses rather than the
 order they were cached needs the pair rather than the first match alone.
 
-[ISS 103](https://github.com/btclib-org/bitcoin-node-tests/issues/103):
+[ISS 103](https://github.com/btclib-org/btclib-functional-tests/issues/103):
 an RBF or TRUC test's subject is the fee, the sequence or the version, so
 the self-transfers take what Core's own take -- `fee_rate`, `fee`,
 `version`, `locktime` and `sequence` on `create_self_transfer`, the last
@@ -166,7 +166,7 @@ satoshis per 1000 virtual bytes for a rate: the unit `fee_per_output`
 already has in Core, and `create_self_transfer`'s own docstring has what
 else differs.
 
-[ISS 242](https://github.com/btclib-org/bitcoin-node-tests/issues/242):
+[ISS 242](https://github.com/btclib-org/btclib-functional-tests/issues/242):
 the cache learns of a transaction when this class sends it, as Core's
 own `scan_tx` runs in its `sendrawtransaction` (`wallet.py`), or when
 `generate` confirms it (ISS 247, above). A `create_*` method adds nothing
@@ -206,7 +206,7 @@ from btclib.tx.limits import COINBASE_MATURITY
 from ecc.ecc.dsa import sign_
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "DEFAULT_FEE_RATE",
@@ -466,7 +466,7 @@ def nulldata_script_pub_key(data: bytes) -> ScriptPubKey:
     the historical "standard" bound, which a `-datacarriersize` test asks
     a *node* about rather than a fact this library should enforce before
     the request ever leaves this process
-    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
+    ([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)).
     `check_validity=False`: `ScriptPubKey.assert_valid` runs no length
     check of its own on a nulldata script, so this only ever skips the
     network-name check `Script.__init__` would otherwise repeat.

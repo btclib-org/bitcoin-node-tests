@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_includeconf.py` (`fa71c15f8610`,
 2025-11-26), the option and disk families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 `includeconf=` in `bitcoin.conf` reads each file it names after the one
 naming it, one named inside an included file is ignored with a warning,
 one naming a missing file refuses the start, and `-includeconf` on the
@@ -60,14 +60,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

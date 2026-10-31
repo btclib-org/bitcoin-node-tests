@@ -4,7 +4,7 @@
 
 """`BitcoindAdapter`'s wallet probe, against what the build says of itself.
 
-[ISS 53](https://github.com/btclib-org/bitcoin-node-tests/issues/53):
+[ISS 53](https://github.com/btclib-org/btclib-functional-tests/issues/53):
 `bitcoind.py`'s own `_has_wallet` reads wallet support off the binary,
 never off `test/config.ini`, and its docstring says why. A `bitcoind`
 that sits in a Core build tree has that file beside it, so the two are
@@ -32,9 +32,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability
+from btclib_functional_tests.node import free_ports
 
 if TYPE_CHECKING:
     from tests.conftest import AdapterFactory

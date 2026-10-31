@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+from btclib_functional_tests.btclib_node import BtclibNodeAdapter
 from tests.integration.feature_anchors_test import (
     block_relay_only_peers_are_the_anchors,
     onion_anchor_is_dumped_and_dialled,
@@ -32,7 +32,7 @@ from tests.integration.feature_anchors_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

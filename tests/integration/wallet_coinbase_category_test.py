@@ -33,15 +33,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.capability import Capability, require
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
 
     from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["a_coinbase_is_immature_then_generate_then_orphan"]
 

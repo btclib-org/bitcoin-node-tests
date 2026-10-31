@@ -9,7 +9,7 @@ requires = ["uv_build>=0.12.0,<0.14"]
 build-backend = "uv_build"
 
 [project]
-name = "bitcoin-node-tests"
+name = "btclib-functional-tests"
 # a placeholder, and the reason is CONTRIBUTING.md's "A version, and no
 # release": nothing here is released. Section 12's calendar versioning
 # applies to what a release publishes
@@ -22,7 +22,7 @@ authors = [{ name = "The btclib developers", email = "devs@btclib.org" }]
 # Departs from section 1's application rule (`.python-version` the
 # newest a dependency allows) and from btclib-org/.github#1324 (every
 # tree moves to 3.15 ahead of its release), by the maintainer's own
-# decision on issue bitcoin-node-tests#36: a Core developer runs this
+# decision on issue btclib-functional-tests#36: a Core developer runs this
 # suite with whatever Python they already have, and a release candidate
 # is one more interpreter to install for no dependency's sake. Measured
 # against this tree's own code and every dependency `uv.lock` resolves:
@@ -84,10 +84,10 @@ classifiers = [
 # `repository` below already carries this repository's own page, which a
 # reader following the *About* link is already looking at
 homepage = "https://btclib.org"
-download = "https://github.com/btclib-org/bitcoin-node-tests/releases"
-repository = "https://github.com/btclib-org/bitcoin-node-tests"
-issues = "https://github.com/btclib-org/bitcoin-node-tests/issues"
-pull_requests = "https://github.com/btclib-org/bitcoin-node-tests/pulls"
+download = "https://github.com/btclib-org/btclib-functional-tests/releases"
+repository = "https://github.com/btclib-org/btclib-functional-tests"
+issues = "https://github.com/btclib-org/btclib-functional-tests/issues"
+pull_requests = "https://github.com/btclib-org/btclib-functional-tests/pulls"
 
 [dependency-groups]
 harness = [
@@ -152,7 +152,7 @@ required-version = ">=0.13.4"
 
 [tool.uv.build-backend]
 # `module-name` is not written: it defaults to `project.name` normalized,
-# which is `bitcoin_node_tests` already.
+# which is `btclib_functional_tests` already.
 source-include = [
     "*.md",
     "*.toml",
@@ -167,7 +167,7 @@ source-include = [
 source-exclude = [
     "/docs/build",
     "/docs/**/.*",
-    "/src/bitcoin_node_tests/**/.*",
+    "/src/btclib_functional_tests/**/.*",
     "/tests/**/.*",
     "*.egg-info",
     ".gitignore",
@@ -257,7 +257,7 @@ extend-glob = ["CHANGELOG.md", ".pre-commit-config.yaml", "TF2.md"]
 extend-ignore-re = ['`[^`]*`']
 
 [tool.coverage.run]
-source = ["bitcoin_node_tests", "tests"]
+source = ["btclib_functional_tests", "tests"]
 # tests/integration is omitted because the ratchet measures what an
 # ordinary run executes, and those tests skip themselves without
 # TF2_INTEGRATION: their bodies would be uncovered lines of tests/ at

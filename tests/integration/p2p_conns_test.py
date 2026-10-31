@@ -33,9 +33,9 @@ from btclib.p2p import (
     TxPayload,
 )
 
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Listener, Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Listener, Peer
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message, Payload, Version
 
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "Clock",

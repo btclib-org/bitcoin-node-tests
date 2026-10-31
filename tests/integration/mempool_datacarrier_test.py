@@ -7,7 +7,7 @@
 Read from Core's `test/functional/mempool_datacarrier.py` (`fa5f29774872`,
 2025-12-16) and narrowed to what the option and MiniWallet families reach
 together
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 `-datacarrier` and `-datacarriersize` (`Capability.DATACARRIER`) gate
 whether, and how large, an `OP_RETURN` output is relayed, and
 `MiniWallet.create_self_transfer` (`Capability.MINE`) is what funds the
@@ -58,15 +58,15 @@ from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx import Tx, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet, nulldata_script_pub_key
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet, nulldata_script_pub_key
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "bare_multisig_is_permitted_by_default",

@@ -9,10 +9,10 @@ against bitcoind, the oracle. The scenarios about bitcoind and its adapter
 stay here:
 `mine` after a `restart` and over a datadir an earlier adapter left,
 both about the wallet `BitcoindAdapter.mine` pays to
-([ISS 86](https://github.com/btclib-org/bitcoin-node-tests/issues/86)),
+([ISS 86](https://github.com/btclib-org/btclib-functional-tests/issues/86)),
 and a kept RPC connection still open after idling past bitcoind's default
 `-rpcservertimeout`
-([ISS 336](https://github.com/btclib-org/bitcoin-node-tests/issues/336)).
+([ISS 336](https://github.com/btclib-org/btclib-functional-tests/issues/336)).
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """
@@ -25,9 +25,9 @@ from typing import TYPE_CHECKING
 import pytest
 from bitcoin_core_rpc import transport
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports
 from tests.integration.adapter_lifecycle_test import (
     mine_extends_the_tip_by_the_blocks_it_returns,
     stop_reports_a_node_killed_out_from_under_it,
@@ -36,7 +36,7 @@ from tests.integration.adapter_lifecycle_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

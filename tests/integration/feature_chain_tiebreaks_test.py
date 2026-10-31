@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_chain_tiebreaks.py`
 (`20ae9b98eab2`, 2026-03-04), a file needing no mechanism the adapter
-lacks ([ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)):
+lacks ([ISS 317](https://github.com/btclib-org/btclib-functional-tests/issues/317)):
 of the blocks of equal work a node holds, it takes as its tip the one
 whose chain it held in full first, and keeps that tip across a restart.
 The nodes start unlinked on a clean chain, each fed blocks by a peer.
@@ -64,18 +64,18 @@ from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
 from btclib.p2p import BlockPayload, GetData, Headers
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from btclib.p2p import Message
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["equal_work_tips_are_broken_by_arrival"]
 
@@ -207,7 +207,7 @@ def _keeps_its_tip_across_a_restart(node: NodeAdapter) -> bool:
 
     Core's own claim for every node, bitcoind before `_TIP_KEPT_VERSION`
     excepted, read off its own `getnetworkinfo` `version`
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
     """
     if not isinstance(node, BitcoindAdapter):
         return True

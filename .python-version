@@ -1,6 +1,6 @@
 # Departs from section 1's application rule and from
 # btclib-org/.github#1324, by the maintainer's own decision on issue
-# bitcoin-node-tests#36: a Core developer runs this suite with whatever
+# btclib-functional-tests#36: a Core developer runs this suite with whatever
 # Python they already have, so this names the lowest interpreter every
 # dependency and this tree's own code allow, not the newest one a
 # release candidate offers. `pyproject.toml`'s own comment on

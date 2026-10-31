@@ -23,8 +23,8 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 from bitcoin_core_rpc import HttpError, RpcError, RPCErrorCode
 
-from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.capability import Capability
+from btclib_functional_tests.node import (
     NodeAdapter,
     connect_nodes,
     disconnect_nodes,
@@ -37,7 +37,7 @@ from bitcoin_node_tests.node import (
     wait_until_mempools_agree,
     wait_until_tips_agree,
 )
-from bitcoin_node_tests.timeout_factor import set_factor
+from btclib_functional_tests.timeout_factor import set_factor
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -150,12 +150,12 @@ def test_free_ports_returns_pairwise_distinct_bindable_ports() -> None:
 def test_free_ports_draws_below_every_ephemeral_range() -> None:
     """No port `free_ports` returns is one the kernel could hand out itself.
 
-    [ISS 192](https://github.com/btclib-org/bitcoin-node-tests/issues/192):
+    [ISS 192](https://github.com/btclib-org/btclib-functional-tests/issues/192):
     a port inside Linux's default `ip_local_port_range`, which starts at
     32768, can be taken by any outgoing connection before the node binds
     it.
     """
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     assert node_module._PORTS.stop <= 32768
     assert all(port in node_module._PORTS for port in free_ports(3))
@@ -168,14 +168,14 @@ def _xdist(worker: str, count: int) -> dict[str, str]:
 
 def test_worker_block_is_the_whole_range_outside_xdist() -> None:
     """A process `pytest-xdist` did not start draws from all of `_PORTS`."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     assert node_module._worker_block({}) == node_module._PORTS
 
 
 def test_worker_blocks_are_disjoint_slices_of_the_range() -> None:
     """No two workers of one run share a port, and none leaves `_PORTS`."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     blocks = [node_module._worker_block(_xdist(f"gw{i}", 4)) for i in range(4)]
     ports = [port for block in blocks for port in block]
@@ -185,14 +185,14 @@ def test_worker_blocks_are_disjoint_slices_of_the_range() -> None:
 
 def test_worker_block_is_the_whole_range_for_an_id_naming_no_number() -> None:
     """A worker named by `--tx popen//id=...` draws from all of `_PORTS`."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     assert node_module._worker_block(_xdist("custom", 4)) == node_module._PORTS
 
 
 def test_worker_block_of_a_restarted_worker_wraps_onto_the_count() -> None:
     """A worker numbered past the count takes the block its number wraps to."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     restarted = node_module._worker_block(_xdist("gw5", 4))
     assert restarted == node_module._worker_block(_xdist("gw1", 4))
@@ -229,7 +229,7 @@ def test_port_cursor_skips_a_held_port_and_wraps_round(
     held_ports: set[int], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A port whose probe bind fails is skipped; the walk wraps at the end."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     monkeypatch.setattr("secrets.randbelow", lambda n: n - 1)
     held_ports.add(11)
@@ -240,10 +240,10 @@ def test_port_cursor_skips_a_held_port_and_wraps_round(
 def test_port_cursor_does_not_repeat_across_calls(held_ports: set[int]) -> None:
     """Two draws of one port each answer two ports, not the same one twice.
 
-    [ISS 85](https://github.com/btclib-org/bitcoin-node-tests/issues/85)'s
+    [ISS 85](https://github.com/btclib-org/btclib-functional-tests/issues/85)'s
     own defect: two sequential `free_port` calls answering one port.
     """
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     del held_ports
     cursor = node_module._PortCursor(range(10, 12))
@@ -254,7 +254,7 @@ def test_port_cursor_skips_a_port_a_socket_listens_on() -> None:
     """A port an IPv4 socket listens on, as a node's does, fails the probe."""
     import socket  # noqa: PLC0415
 
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     with socket.socket() as listener:
         listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -268,7 +268,7 @@ def test_port_cursor_skips_a_port_a_socket_listens_on() -> None:
 
 def test_port_cursor_raises_where_a_lap_finds_too_few(held_ports: set[int]) -> None:
     """One lap of the block is the whole search, held ports and all."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     cursor = node_module._PortCursor(range(10, 12))
     with pytest.raises(RuntimeError, match="2 of 3 ports free"):
@@ -456,7 +456,7 @@ def test_start_raises_carrying_a_real_process_s_own_stderr(tmp_path: Path) -> No
 
 def test_start_raises_on_a_timeout(tmp_path: Path) -> None:
     """An RPC that never answers within the deadline is a `TimeoutError`."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     adapter = _FakeAdapter(
         "fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc(answers_after=10**6)
@@ -493,13 +493,13 @@ def test_start_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
 def test_start_timeout_chains_the_last_transient_rpc_failure(tmp_path: Path) -> None:
     """The `TimeoutError` carries what the node last answered, not `None`.
 
-    Regression test for [ISS 98](https://github.com/btclib-org/bitcoin-node-tests/issues/98):
+    Regression test for [ISS 98](https://github.com/btclib-org/btclib-functional-tests/issues/98):
     the pre-fix `_wait_for_rpc` raised a bare `TimeoutError`, so a caller's
     own `except ... as e: e.__cause__` read `None` for every timeout, a
     permanent answer included, and there was nothing in the traceback
     saying what the node had actually been sending back.
     """
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     rpc = _FakeRpc(answers_after=10**6)
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=rpc)
@@ -531,12 +531,12 @@ def test_start_timeout_carries_the_errors_stderr_and_this_start_s_log(
 ) -> None:
     """The `TimeoutError` says what the node was doing, not only its deadline.
 
-    Regression test for [ISS 134](https://github.com/btclib-org/bitcoin-node-tests/issues/134):
+    Regression test for [ISS 134](https://github.com/btclib-org/btclib-functional-tests/issues/134):
     a timeout's message named its deadline alone. The line an earlier
     start left in the same log is not this start's, and stays out of the
     message.
     """
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     datadir = tmp_path / "node"
     datadir.mkdir()
@@ -633,7 +633,7 @@ def test_start_timeout_reads_a_log_the_node_never_wrote_as_empty(
     tmp_path: Path,
 ) -> None:
     """A node stuck before opening its log leaves that part empty."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     datadir = tmp_path / "node"
     adapter = _LoggingAdapter("fake-node", datadir, 0, 0, rpc=_FakeRpc())
@@ -653,7 +653,7 @@ def test_start_timeout_names_no_log_where_the_adapter_knows_none(
     tmp_path: Path,
 ) -> None:
     """`NodeAdapter._log_path`'s own `None` leaves the log out."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     adapter = _FakeAdapter("fake-node", tmp_path / "node", 0, 0, rpc=_FakeRpc())
     with (
@@ -672,7 +672,7 @@ def test_start_raises_at_once_on_an_rpc_error_that_is_not_warmup(
 ) -> None:
     """A node answering with a real RPC error is failed at once, not waited out.
 
-    Regression test for [ISS 98](https://github.com/btclib-org/bitcoin-node-tests/issues/98):
+    Regression test for [ISS 98](https://github.com/btclib-org/btclib-functional-tests/issues/98):
     the pre-fix `_wait_for_rpc` caught every exception alike, so this waited
     out the whole startup timeout and was reported as `TimeoutError` --
     silence -- rather than as the answer the node actually sent.
@@ -825,7 +825,7 @@ def test_two_adapters_over_one_datadir_each_read_their_own_stderr(
 ) -> None:
     """A second start over a running node's datadir leaves its stderr alone.
 
-    Regression test for [ISS 105](https://github.com/btclib-org/bitcoin-node-tests/issues/105):
+    Regression test for [ISS 105](https://github.com/btclib-org/btclib-functional-tests/issues/105):
     the second process's own stderr goes to a file of its own, so the
     first node's `stop` reads back what the first process wrote.
     """
@@ -893,7 +893,7 @@ def test_stop_kills_a_process_that_outlives_the_wait(tmp_path: Path) -> None:
 
 def test_stop_timeout_is_scaled_by_the_global_factor(tmp_path: Path) -> None:
     """`--timeout-factor` scales the wait for the process to exit too."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     process = MagicMock()
     process.poll.return_value = None
@@ -1566,7 +1566,7 @@ class _FakeTipRpc(_FakeRpc):
 
 def test_mine_returns_the_hashes_once_the_last_is_the_tip(tmp_path: Path) -> None:
     """`mine` polls `getbestblockhash` past a stale tip, then returns hex."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     rpc = _FakeTipRpc("01" * 32, "02" * 32)
     adapter = _FakeAdapter("fake-node", tmp_path, 0, 0, rpc=rpc)
@@ -1578,7 +1578,7 @@ def test_mine_returns_the_hashes_once_the_last_is_the_tip(tmp_path: Path) -> Non
 
 def test_mine_zero_blocks_asks_the_node_nothing(tmp_path: Path) -> None:
     """`mine(0)` answers `[]` and polls no tip."""
-    from bitcoin_node_tests import node as node_module  # noqa: PLC0415
+    from btclib_functional_tests import node as node_module  # noqa: PLC0415
 
     rpc = _FakeTipRpc("00" * 32)
     adapter = _FakeAdapter("fake-node", tmp_path, 0, 0, rpc=rpc)

@@ -15,7 +15,7 @@ spells the call its own way in `dial`.
 
 A fact that differs between two builds of one node is read from the
 build under test, never fixed as a class-wide constant
-([ISS bitcoin-node-tests#35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)):
+([ISS btclib-functional-tests#35](https://github.com/btclib-org/btclib-functional-tests/issues/35)):
 the class says what every build of that node can do, and the running
 build says what this one can. Where the fact is whether a capability
 is there at all, it is still a `Capability`, declared per *instance*
@@ -46,7 +46,7 @@ rather than by that test. `tests/integration/` is where the rest of the
 members are exercised, `MINE`, `CONNECT` and `RAW_MESSAGE` among them.
 
 `UA_COMMENT` is the first of the option family
-([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3),
+([ISS btclib-functional-tests#3](https://github.com/btclib-org/btclib-functional-tests/issues/3),
 whose own body already answers the design question this way), and it
 sets the shape every later option takes: one member per Core option a
 ported test actually asks for, added the moment that test is ported
@@ -68,14 +68,14 @@ Not every Core option a test names earns a member here. Step 5's own
 charter carries the narrower rule first: "wallet and USDT tests stay
 out" and "a test of bitcoind's own options runs against bitcoind alone".
 The first rule's wallet half is overridden by
-[ISS bitcoin-node-tests#45](https://github.com/btclib-org/bitcoin-node-tests/issues/45),
+[ISS btclib-functional-tests#45](https://github.com/btclib-org/btclib-functional-tests/issues/45),
 which brings Core's node-wallet tests in, one body over both nodes behind
 `NODE_WALLET`, which `BitcoindAdapter` alone declares. An option only
 bitcoind has a reason to carry -- `-disablewallet`, `-torcontrol` -- is
 never declared or skipped by another node under this
 mechanism; it is a bitcoind-only test's subject, a shape this module
 does not build.
-[ISS bitcoin-node-tests#23](https://github.com/btclib-org/bitcoin-node-tests/issues/23)
+[ISS btclib-functional-tests#23](https://github.com/btclib-org/btclib-functional-tests/issues/23)
 gives that shape a place of its own, and this paragraph is the one rule
 that decides which option qualifies, rather than a decision made test by
 test: a `*_bitcoind_test.py` module with no `*_btclib_node_test.py`
@@ -139,13 +139,13 @@ class Capability(Enum):
     `node.disconnect_nodes` asks over `disconnectnode`. Not implied by
     `CONNECT`: `addnode` and `disconnectnode` are two different RPCs, and
     a node answering the first need not answer the second (measured of
-    `btclib-node`, [ISS bitcoin-node-tests#43](https://github.com/btclib-org/bitcoin-node-tests/issues/43)'s
+    `btclib-node`, [ISS btclib-functional-tests#43](https://github.com/btclib-org/btclib-functional-tests/issues/43)'s
     own finding).
     `BAN` -- record and enforce a `setban`/`listbanned`/`clearbanned` ban
     list, the way `rpc_setban`'s own subject does: an address already
     connected drops the moment it is banned. Node-linking's own third
     capability, beside `CONNECT` and `DISCONNECT`
-    ([ISS bitcoin-node-tests#43](https://github.com/btclib-org/bitcoin-node-tests/issues/43)).
+    ([ISS btclib-functional-tests#43](https://github.com/btclib-org/btclib-functional-tests/issues/43)).
     `RAW_MESSAGE` -- send an arbitrary p2p message to an already-connected
     peer, named by that peer's own index, the way Core's `sendmsgtopeer`
     does on the node under test's behalf; `p2p_net_deadlock`'s own
@@ -158,7 +158,7 @@ class Capability(Enum):
     `DEBUG_LOG` -- write a debug log a caller can read and match Core's
     own wording against, the way `assert_debug_log`
     (`debug_log.py`) does. The log family (the third of step 5's five,
-    [ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5))
+    [ISS 5](https://github.com/btclib-org/btclib-functional-tests/issues/5))
     is what this names: where the fact an `assert_debug_log` call in
     Core asks about is also observable on the wire -- a disconnect,
     `getpeerinfo` -- the ported assertion reads the wire instead and
@@ -170,7 +170,7 @@ class Capability(Enum):
     `UA_COMMENT` -- append a caller-chosen comment to the subversion
     string `getnetworkinfo` reports, the fact Core's own `-uacomment`
     asks for. The first of the option family (rule 4,
-    [ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)).
+    [ISS btclib-functional-tests#3](https://github.com/btclib-org/btclib-functional-tests/issues/3)).
     `CLOCK` -- accept a caller-set wall clock, Core's `setmocktime`
     (`test/functional/test_framework/test_node.py`'s own
     `TestNode.setmocktime`): every RPC and every p2p timeout this node
@@ -181,7 +181,7 @@ class Capability(Enum):
     own `rpc_users` and `rpc_whitelist` add a credential or restrict its
     RPC surface through the config file rather than the command line.
     The disk family's own second capability
-    ([ISS bitcoin-node-tests#7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)):
+    ([ISS btclib-functional-tests#7](https://github.com/btclib-org/btclib-functional-tests/issues/7)):
     the fact is `bitcoin.conf` itself, `datadir_path`'s own file, not a
     fact the wire has a call for.
     `RPC_AUTH_NEGATION` -- recognise `-norpcauth` on the command line,
@@ -201,19 +201,19 @@ class Capability(Enum):
     own comment on each, "Always active unless overridden", measured
     against `31.1`), so this is what lets a test hold one of
     them back long enough to observe the boundary at all
-    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
+    ([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)).
     `V2TRANSPORT` -- accept BIP324 v2 connections, the way Core's own
     `-v2transport` does: `getpeerinfo`'s `transport_protocol_type` reads
     `v2` on such a connection, from another node of this kind or from a
     `Peer` (`peer.py`) asked for v2 -- issues
-    [bitcoin-node-tests#36](https://github.com/btclib-org/bitcoin-node-tests/issues/36)
-    and [bitcoin-node-tests#175](https://github.com/btclib-org/bitcoin-node-tests/issues/175).
+    [btclib-functional-tests#36](https://github.com/btclib-org/btclib-functional-tests/issues/36)
+    and [btclib-functional-tests#175](https://github.com/btclib-org/btclib-functional-tests/issues/175).
     `DATACARRIER` -- recognise `-datacarrier` and `-datacarriersize`,
     Core's own pair of relay-policy knobs for an `OP_RETURN` output: the
     first turns its relay on or off, the second bounds how large one may
     be. One member for the pair rather than two: neither flag is ever
     tested apart from the other in
-    [ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+    [ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)'s
     own `mempool_datacarrier.py`, both landing at once.
     `PERMIT_BARE_MULTISIG` -- recognise `-permitbaremultisig`, Core's own
     switch for whether a bare `OP_CHECKMULTISIG` output is relayed at
@@ -227,7 +227,7 @@ class Capability(Enum):
     `LIMIT_CLUSTER_COUNT` -- recognise `-limitclustercount`, Core's own
     cap on how many transactions, in-mempool and in-package together, one
     mempool cluster may hold
-    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+    ([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)'s
     own `mempool_package_limits.py`). Checked apart from
     `LIMIT_CLUSTER_SIZE`: a test can ask for either alone.
     `LIMIT_CLUSTER_SIZE` -- recognise `-limitclustersize`, Core's own cap
@@ -237,20 +237,20 @@ class Capability(Enum):
     on the mempool's own total size -- what
     `mempool_util.fill_mempool` needs a node started small enough under
     to reach eviction at all
-    ([ISS bitcoin-node-tests#70](https://github.com/btclib-org/bitcoin-node-tests/issues/70)).
+    ([ISS btclib-functional-tests#70](https://github.com/btclib-org/btclib-functional-tests/issues/70)).
     `DESCRIPTOR_ACTIVITY` -- answer `getdescriptoractivity`, Core's own
     RPC pairing spend and receive events with the descriptors and blocks
     a caller names. Named for the RPC rather than for an option, the way
     `MINE`/`CONNECT`/`DISCONNECT`/`BAN`/`RAW_MESSAGE` already are: no
     flag gates it, so what a node either answers or does not is the
     method itself
-    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
+    ([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)).
     `BLOCK_STATS` -- answer `getblockstats`, Core's own per-block
     statistics RPC, named the same way and for the same reason.
     `FASTPRUNE` -- recognise `-fastprune`, Core's own debug-only switch
     to block files far smaller than a real node's, so that a test reaches
     a block file's size limit with a single large block
-    ([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+    ([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)'s
     own `feature_fastprune.py`).
     `INBOUND_EVICTION` -- make room for a new inbound peer, once its
     inbound slots are full, by disconnecting an existing one that none of
@@ -271,7 +271,7 @@ class Capability(Enum):
     connection type the caller chooses, `outbound-full-relay`,
     `block-relay-only`, `addr-fetch` or `feeler`, the way Core's
     `TestNode.add_outbound_p2p_connection` asks `addconnection` to
-    ([ISS bitcoin-node-tests#44](https://github.com/btclib-org/bitcoin-node-tests/issues/44)).
+    ([ISS btclib-functional-tests#44](https://github.com/btclib-org/btclib-functional-tests/issues/44)).
     Not `CONNECT`: `addnode` dials a manual connection, one type only.
     `NodeAdapter.add_outbound_connection` (`node.py`) is the call, and
     `peer.Listener` what a test has the node dial.
@@ -346,7 +346,7 @@ class Capability(Enum):
     `-proxyrandomize`; report each network's proxy in `getnetworkinfo`;
     and refuse to start on a `-proxy` or `-onion` naming no usable proxy
     (`feature_proxy.py`,
-    [ISS bitcoin-node-tests#47](https://github.com/btclib-org/bitcoin-node-tests/issues/47)).
+    [ISS btclib-functional-tests#47](https://github.com/btclib-org/btclib-functional-tests/issues/47)).
     One member for the three options, as `DATACARRIER` is for its pair:
     `-onion` names a SOCKS5 proxy as `-proxy` does, for onion alone, and
     `-proxyrandomize` qualifies whichever of the two is given.
@@ -379,12 +379,12 @@ class Capability(Enum):
     `listtransactions` among them -- at `/wallet/<name>`, the endpoint
     `bitcoin_core_rpc`'s own `for_wallet` addresses. The subject of Core's
     own `wallet_*.py`, which drive bitcoind's built-in wallet
-    ([ISS bitcoin-node-tests#45](https://github.com/btclib-org/bitcoin-node-tests/issues/45)).
+    ([ISS btclib-functional-tests#45](https://github.com/btclib-org/btclib-functional-tests/issues/45)).
     Not `MINE`: that names a block the node accepts as its tip, which a
     node without a wallet still offers over `submitblock`, where this
     names the wallet itself. A wallet a separate program keeps for a node
     is not this member either
-    ([ISS bitcoin-node-tests#199](https://github.com/btclib-org/bitcoin-node-tests/issues/199)).
+    ([ISS btclib-functional-tests#199](https://github.com/btclib-org/btclib-functional-tests/issues/199)).
     `TX_RECONCILIATION` -- offer and accept BIP330's transaction
     reconciliation once `-txreconciliation` asks for it, Core's own
     switch: `sendtxrcncl` sent to a peer that relays transactions, and a

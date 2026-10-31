@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.bitcoind import BitcoindAdapter
 from tests.integration.feature_settings_test import (
     the_settings_file_is_written_read_and_checked,
     the_wallet_setting_takes_only_strings,
@@ -26,7 +26,7 @@ from tests.integration.feature_settings_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

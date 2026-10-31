@@ -7,7 +7,7 @@
 Read from Core's `test/functional/p2p_leak_tx.py` (`fa5f29774872`,
 2025-12-16) and narrowed to what the clock and MiniWallet families reach
 together
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 `Capability.CLOCK` (`setmocktime`) is what holds the node's own
 transaction-announcement clock still until this module is ready to
 advance it, and `MiniWallet.send_self_transfer` (`Capability.MINE`) is
@@ -55,16 +55,16 @@ from btclib.p2p import GetData, Inv, Inventory, InventoryType, NotFound, TxPaylo
 from btclib.tx import Tx, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.peer import Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.peer import Peer
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "notfound_on_replaced_tx",

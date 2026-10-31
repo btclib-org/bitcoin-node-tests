@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_dns_seeds.py` (`fa4cb96bdec2`,
 2026-02-17), a file of
-[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47):
+[ISS 47](https://github.com/btclib-org/btclib-functional-tests/issues/47):
 a node given `-connect` asks its chain's DNS seeds for no peers unless
 `-dnsseed` says so, refuses `-forcednsseed` beside `-dnsseed` off, skips
 the seeds once outbound full-relay peers connect but not block-relay-only
@@ -67,17 +67,17 @@ from typing import TYPE_CHECKING
 import pytest
 from bitcoin_core_rpc import magic_from_chain
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_ports
-from bitcoin_node_tests.peer import Listener, Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import free_ports
+from btclib_functional_tests.peer import Listener, Peer
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["dns_seeds_are_queried_only_when_peers_are_wanting"]

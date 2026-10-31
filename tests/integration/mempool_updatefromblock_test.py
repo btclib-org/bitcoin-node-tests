@@ -7,7 +7,7 @@
 Read from Core's `test/functional/mempool_updatefromblock.py`
 (`fa6b05c96ffb`, 2026-03-12) and narrowed to what the option and
 MiniWallet families reach together
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 `-limitclustersize` (`Capability.LIMIT_CLUSTER_SIZE`) is the one option
 either kept subtest configures, and `MiniWallet.create_self_transfer_multi`
 /`create_self_transfer_chain` are what build the graphs Core's own file
@@ -55,16 +55,16 @@ import pytest
 from bitcoin_core_rpc import RpcError
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import FEE, MiniWallet, build_fork
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import FEE, MiniWallet, build_fork
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_chain_over_the_default_cluster_limit_needs_a_reorg_to_fit",

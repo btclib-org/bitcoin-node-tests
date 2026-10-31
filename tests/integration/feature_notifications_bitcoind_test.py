@@ -9,7 +9,7 @@ Read from Core's `test/functional/feature_notifications.py`:
 here against bitcoind, which declares every capability they ask for.
 Which wording of the warning about an invalid chain with more work the
 body expects is read from the running build's own `getnetworkinfo`
-`version` ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+`version` ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)),
 `_names_the_invalid_chain` below having which builds use which.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.bitcoind import BitcoindAdapter
 from tests.integration.feature_notifications_test import (
     a_large_work_invalid_chain_is_alerted,
     every_new_tip_is_notified,
@@ -31,8 +31,8 @@ from tests.integration.feature_notifications_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

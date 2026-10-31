@@ -54,9 +54,9 @@ from btclib.p2p.bip324 import (
 )
 from btclib.p2p.limits import MAX_LOCATOR_SZ
 
-from bitcoin_node_tests.node import free_port
-from bitcoin_node_tests.peer import Listener, Peer
-from bitcoin_node_tests.timeout_factor import set_factor
+from btclib_functional_tests.node import free_port
+from btclib_functional_tests.peer import Listener, Peer
+from btclib_functional_tests.timeout_factor import set_factor
 
 _MAGIC = magic_from_chain("regtest")
 
@@ -466,7 +466,7 @@ def test_handshake_leaves_the_socket_at_the_default_wait(
     """
     ticks = itertools.count()
     monkeypatch.setattr(
-        "bitcoin_node_tests.peer.time",
+        "btclib_functional_tests.peer.time",
         types.SimpleNamespace(monotonic=lambda: float(next(ticks))),
     )
     peer = _handshaken(fake_node)

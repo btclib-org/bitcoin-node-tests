@@ -1,4 +1,4 @@
-# bitcoin-node-tests
+# btclib-functional-tests
 
 Bitcoin Core's functional test suite, rewritten on
 [btclib](https://github.com/btclib-org/btclib), as a non-regression
@@ -13,19 +13,19 @@ software is and whether it can be used, whether it works, and what the
 OpenSSF makes of it. This tree publishes nothing, so the first group and
 the licence badge, both tier 1's, are absent.
 -->
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/btclib-org/bitcoin-node-tests/main.svg)](https://results.pre-commit.ci/latest/github/btclib-org/bitcoin-node-tests/main)
-[![lint workflow status](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/lint.yml?query=branch%3Amain)
-[![test workflow status](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/test.yml?query=branch%3Amain)
-[![docs workflow status](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/docs.yml/badge.svg?branch=main)](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/docs.yml?query=branch%3Amain)
-[![vendored-vectors workflow status](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/vendored-vectors.yml/badge.svg?branch=main)](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/vendored-vectors.yml?query=branch%3Amain)
-[![links workflow status](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/links.yml/badge.svg?branch=main)](https://github.com/btclib-org/bitcoin-node-tests/actions/workflows/links.yml?query=branch%3Amain)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/btclib-org/btclib-functional-tests/main.svg)](https://results.pre-commit.ci/latest/github/btclib-org/btclib-functional-tests/main)
+[![lint workflow status](https://github.com/btclib-org/btclib-functional-tests/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-functional-tests/actions/workflows/lint.yml?query=branch%3Amain)
+[![test workflow status](https://github.com/btclib-org/btclib-functional-tests/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-functional-tests/actions/workflows/test.yml?query=branch%3Amain)
+[![docs workflow status](https://github.com/btclib-org/btclib-functional-tests/actions/workflows/docs.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-functional-tests/actions/workflows/docs.yml?query=branch%3Amain)
+[![vendored-vectors workflow status](https://github.com/btclib-org/btclib-functional-tests/actions/workflows/vendored-vectors.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-functional-tests/actions/workflows/vendored-vectors.yml?query=branch%3Amain)
+[![links workflow status](https://github.com/btclib-org/btclib-functional-tests/actions/workflows/links.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-functional-tests/actions/workflows/links.yml?query=branch%3Amain)
 
 The ambition is a suite for every full node speaking that protocol:
 today [Bitcoin Core](https://github.com/bitcoin/bitcoin),
 [btclib-node](https://github.com/btclib-org/btclib-node) and
 [btcd](https://github.com/btcsuite/btcd), tomorrow whichever other
 implementation gains an adapter -- a `NodeAdapter` subclass declaring
-what it can do (`src/bitcoin_node_tests/node.py`), the way `bitcoind.py`,
+what it can do (`src/btclib_functional_tests/node.py`), the way `bitcoind.py`,
 `btclib_node.py` and `btcd.py` already do. A test passes on `bitcoind`
 before its failure on any other node counts as a finding, filed on that
 node's own tracker. A `btclib-node` failure where the test is the defect,
@@ -73,7 +73,7 @@ finding on that node's own tracker rather than a defect of this
 repository's gates. The pinned release stays the only required oracle:
 `core-master` builds `bitcoind` from Bitcoin Core's own `master`, and
 `btclib-node-main` installs from that project's own `main`, both by
-[ISS 8](https://github.com/btclib-org/bitcoin-node-tests/issues/8)'s
+[ISS 8](https://github.com/btclib-org/btclib-functional-tests/issues/8)'s
 decision, and both report without gating. `btcd` runs the btcd tests against
 a pinned btcd release, and reports without gating too.
 
@@ -94,7 +94,7 @@ what it intends to do, and what it deliberately does not, is its
 
 ## Links
 
-- Source: <https://github.com/btclib-org/bitcoin-node-tests>
+- Source: <https://github.com/btclib-org/btclib-functional-tests>
 - [CHANGELOG.md](./CHANGELOG.md)
 
 <!-- No "actively supported by" line: section 2 of the organization

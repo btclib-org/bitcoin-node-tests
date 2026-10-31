@@ -13,7 +13,7 @@ own `version` before reading the node's.
 
 Core's first step, a `manual` connection past a filled outbound
 capacity, is a body of its own over a fresh node, and is read per-build
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)):
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)):
 `addconnection` takes `manual` only past `v32.1`
 (bitcoin/bitcoin@4c79f3a34d003bd97824b032383ac816a4147d68). Where the
 build's own `help addconnection` names no `manual`, the body asserts the
@@ -47,15 +47,15 @@ import pytest
 from bitcoin_core_rpc import RpcError, magic_from_chain
 from btclib.p2p import ServiceFlags, Verack, Version, WtxidRelay
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Listener, Peer
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Listener, Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "manual_connection_past_the_outbound_capacity",

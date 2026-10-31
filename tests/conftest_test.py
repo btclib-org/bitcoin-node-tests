@@ -16,7 +16,7 @@ exists for is taken in a subprocess started from `tests/`.
 `stop_all`, `stash_or_report` and `fold_worker_tally` below need neither
 a subprocess nor a real xdist session: each takes a plain sequence or
 mapping rather than the pytest or xdist object it is read off of, so a
-test drives it directly (issue bitcoin-node-tests#101). `AdapterFactory`
+test drives it directly (issue btclib-functional-tests#101). `AdapterFactory`
 needs no node either: an adapter it constructs is never started.
 """
 
@@ -33,13 +33,13 @@ from typing import cast, override
 import pytest
 from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-from bitcoin_node_tests.capability import (
+from btclib_functional_tests.capability import (
     Capability,
     MissingCapabilityError,
     SkipCounts,
     require,
 )
-from bitcoin_node_tests.node import NodeAdapter
+from btclib_functional_tests.node import NodeAdapter
 from tests.conftest import (
     AdapterFactory,
     CoverageConfiguration,

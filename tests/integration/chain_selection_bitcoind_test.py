@@ -7,7 +7,7 @@
 `chain_selection_test.py` beside this module is the body, run here
 against bitcoind, the oracle, once for each chain
 `BitcoindAdapter.chains` names
-([ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63)).
+([ISS 63](https://github.com/btclib-org/btclib-functional-tests/issues/63)).
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """
@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.bitcoind import BitcoindAdapter
 from tests.integration.chain_selection_test import (
     node_starts_on_the_chain_it_is_given,
 )

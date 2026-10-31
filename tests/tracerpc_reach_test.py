@@ -4,7 +4,7 @@
 
 """Every adapter `tests/integration/` builds is built with `--tracerpc`.
 
-[ISS 89](https://github.com/btclib-org/bitcoin-node-tests/issues/89):
+[ISS 89](https://github.com/btclib-org/btclib-functional-tests/issues/89):
 `NodeAdapter` takes `trace_rpc` per instance, so an adapter constructed
 without it never traces, whatever the command line says. The
 `make_adapter` fixture is what passes the option on; this module is the

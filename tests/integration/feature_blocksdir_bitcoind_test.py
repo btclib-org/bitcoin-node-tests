@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.bitcoind import BitcoindAdapter
 from tests.integration.feature_blocksdir_test import (
     a_nonexistent_blocksdir_refuses_to_start,
     an_existing_blocksdir_holds_the_chain_in_cores_own_files,
@@ -26,7 +26,7 @@ from tests.integration.feature_blocksdir_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

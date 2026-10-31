@@ -36,15 +36,15 @@ from typing import TYPE_CHECKING
 import pytest
 from bitcoin_core_rpc import RpcError
 
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.capability import Capability, require
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
 
     from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["refused", "signmessage_signs_for_the_address_it_names"]
 

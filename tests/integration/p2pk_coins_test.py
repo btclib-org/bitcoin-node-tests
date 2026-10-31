@@ -23,7 +23,7 @@ from btclib.script.script import serialize
 from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 
-from bitcoin_node_tests.mini_wallet import (
+from btclib_functional_tests.mini_wallet import (
     DEFAULT_FEE_RATE,
     FEE,
     RAW_P2PK_SCRIPT_PUB_KEY,
@@ -35,7 +35,7 @@ from bitcoin_node_tests.mini_wallet import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "mine_p2pk_coins",

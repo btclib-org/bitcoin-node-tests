@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_seednode.py` (`fa5f29774872`,
 2025-12-16), a file of
-[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47):
+[ISS 47](https://github.com/btclib-org/btclib-functional-tests/issues/47):
 a node given no `-seednode` asks none, one whose address table is empty
 asks its `-seednode` at once, and one whose table holds addresses dials
 those first and asks its `-seednode` only once its wait has passed.
@@ -62,16 +62,16 @@ import random
 import time
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["a_seed_node_is_asked_at_once_only_by_an_empty_address_table"]

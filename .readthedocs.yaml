@@ -5,7 +5,7 @@
 # The dotted name is the canonical one; readthedocs.yml is honored too,
 # but documented as deprecated.
 #
-# The build has to install bitcoin-node-tests itself, not sphinx alone: every
+# The build has to install btclib-functional-tests itself, not sphinx alone: every
 # autodoc directive in docs/source imports its module, a failed import is
 # a sphinx warning rather than an error, and a "requirements:
 # docs/requirements.txt" install would publish a bare module title in
@@ -47,7 +47,7 @@ build:
     python: "latest"
   # build.commands rather than the sphinx: and python: keys, which cannot
   # express this and are rejected when it is present.
-  # autodoc has to import bitcoin_node_tests, so the project has to be
+  # autodoc has to import btclib_functional_tests, so the project has to be
   # installed, and what read the docs can express natively is "pip install
   # ." plus a requirements file. uv installs the docs dependency group
   # instead, from uv.lock, which is why there is no docs/requirements.txt:

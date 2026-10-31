@@ -22,7 +22,7 @@ matching Core's own `restart_node(1, [...])`. Where Core restarts with
 The plain restart's own ban check reads `listbanned` first, the way
 Core's own `is_banned` helper does, before the refused reconnection is
 even attempted
-([ISS 94](https://github.com/btclib-org/bitcoin-node-tests/issues/94)).
+([ISS 94](https://github.com/btclib-org/btclib-functional-tests/issues/94)).
 The reconnection is then Core's own: `addnode ... "onetry"` on `node0`,
 with `v2transport` false as `connect_nodes` passes it, inside
 `assert_debug_log` (`debug_log.py`) on `node1`, whose
@@ -45,16 +45,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import connect_nodes, wait_until_disconnected
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import connect_nodes, wait_until_disconnected
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_ban_drops_the_connection_it_matches",

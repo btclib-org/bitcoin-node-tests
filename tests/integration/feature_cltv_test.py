@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_cltv.py` (`fa6f7e36a8c2`,
 2026-10-23), on the option and MiniWallet families together
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 `-testactivationheight=cltv@N` (`Capability.TEST_ACTIVATION_HEIGHT`)
 holds BIP65 inactive until a chosen height, and blocks built and
 submitted here (`Capability.MINE`) reach it.
@@ -23,7 +23,7 @@ only once the configured height is reached, and Core's own file checks
 exactly this version.
 
 BIP65's failure reasons are kept too
-([ISS 167](https://github.com/btclib-org/bitcoin-node-tests/issues/167)).
+([ISS 167](https://github.com/btclib-org/btclib-functional-tests/issues/167)).
 They need no signature: Core's coins are its `RAW_OP_TRUE` ones,
 coinbases paying a bare `OP_TRUE` and spent with a scriptSig of
 `OP_NOP`s alone, and `_cltv_invalidate` prepends to that scriptSig what
@@ -63,10 +63,10 @@ from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY, SEQUENCE_FINAL
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import (
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.mini_wallet import (
     FEE,
     MiniWallet,
     build_fork,
@@ -79,8 +79,8 @@ if TYPE_CHECKING:
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_version_3_block_is_logged_once_active",

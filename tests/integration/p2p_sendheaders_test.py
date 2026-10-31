@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_sendheaders.py` (`a7acf277dc39`,
 2026-10-02), a file needing no mechanism the adapter lacks
-([ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)):
+([ISS 317](https://github.com/btclib-org/btclib-functional-tests/issues/317)):
 a node announces a new block to a peer by `inv` until the peer sends
 `sendheaders`, and by `headers` after it. Two nodes are linked as
 Core's `setup_network` links them (`Capability.CONNECT`), the first
@@ -95,10 +95,10 @@ from btclib.p2p import (
     ServiceFlags,
 )
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import connect_nodes, sync_all
-from bitcoin_node_tests.peer import Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import connect_nodes, sync_all
+from btclib_functional_tests.peer import Peer
+from btclib_functional_tests.timeout_factor import scaled
 from tests.integration.p2p_conns_test import Conn
 
 if TYPE_CHECKING:
@@ -106,8 +106,8 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message, Payload, Version
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["blocks_are_announced_by_headers_after_sendheaders"]
 

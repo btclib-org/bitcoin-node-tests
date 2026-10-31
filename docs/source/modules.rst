@@ -1,7 +1,7 @@
-bitcoin\_node\_tests
-====================
+btclib\_functional\_tests
+=========================
 
 .. toctree::
    :maxdepth: 4
 
-   bitcoin_node_tests
+   btclib_functional_tests

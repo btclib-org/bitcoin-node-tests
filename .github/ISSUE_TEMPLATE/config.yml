@@ -9,7 +9,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/btclib-org/bitcoin-node-tests/security/advisories/new
+    url: https://github.com/btclib-org/btclib-functional-tests/security/advisories/new
     about: >
       Never a public issue. This opens a private advisory, visible to the
       maintainers alone.

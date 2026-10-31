@@ -38,14 +38,14 @@ from urllib.request import Request
 from bitcoin_core_rpc import BitcoinCoreRpcClient, HttpError, RpcError, RPCErrorCode
 from bitcoin_core_rpc.transport import HttpTransport, SessionTransport
 
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
     from collections.abc import Set as AbstractSet
 
-    from bitcoin_node_tests.capability import Capability
+    from btclib_functional_tests.capability import Capability
 
 __all__ = [
     "NodeAdapter",
@@ -110,7 +110,7 @@ def free_ports(count: int) -> tuple[int, ...]:
     the kernel hands out is one it can hand out again, to any other
     process's `bind` to port `0` or outgoing connection, between this
     call returning and the caller's node binding it
-    ([ISS 192](https://github.com/btclib-org/bitcoin-node-tests/issues/192)).
+    ([ISS 192](https://github.com/btclib-org/btclib-functional-tests/issues/192)).
 
     Each process draws from a block of its own, `_worker_block`'s, the
     way Core's own `p2p_port` (`test_framework/util.py`) offsets each
@@ -232,7 +232,7 @@ class _ThreadSessions:
     `bitcoin_core_rpc.transport.urlopen_transport` opens a connection per
     call and the node closes it, leaving one socket in `TIME_WAIT` on the
     node's port per call
-    ([ISS 278](https://github.com/btclib-org/bitcoin-node-tests/issues/278));
+    ([ISS 278](https://github.com/btclib-org/btclib-functional-tests/issues/278));
     a `SessionTransport` keeps one open across calls instead.
 
     One per thread rather than one for the adapter: a `SessionTransport`
@@ -254,7 +254,7 @@ class _ThreadSessions:
     `p2p_private_broadcast_test.py` is the test that needs this, its
     SOCKS5 proxy calling the node from a thread of its own per proxied
     connection
-    ([ISS 336](https://github.com/btclib-org/bitcoin-node-tests/issues/336)).
+    ([ISS 336](https://github.com/btclib-org/btclib-functional-tests/issues/336)).
 
     `close` closes every connection each of them holds, and leaves each
     usable: the next call opens a connection afresh.
@@ -570,7 +570,7 @@ class NodeAdapter(ABC):
     default (a cookie, `BitcoindAdapter`'s and, where the build writes
     one, `BtclibNodeAdapter`'s): a node started with `-rpcuser`/
     `-rpcpassword` or `-norpccookiefile` writes no cookie at all
-    ([ISS bitcoin-node-tests#34](https://github.com/btclib-org/bitcoin-node-tests/issues/34)),
+    ([ISS btclib-functional-tests#34](https://github.com/btclib-org/btclib-functional-tests/issues/34)),
     so a client waiting on one never sees it and `start` times out
     rather than the node ever answering. The caller who put such a flag
     in `extra_args` already knows the plaintext credential it configured
@@ -706,19 +706,19 @@ class NodeAdapter(ABC):
         it ends: a second adapter over the same datadir writes into a
         file of its own rather than over the one a running node still
         writes to
-        ([ISS 105](https://github.com/btclib-org/bitcoin-node-tests/issues/105)).
+        ([ISS 105](https://github.com/btclib-org/btclib-functional-tests/issues/105)).
 
         A start that raises leaves nothing running: the process is killed
         and forgotten before the error propagates, the way Core's own
         `TestNode.assert_start_raises_init_error` ends one, so a caller's
         own teardown has no process to lose track of and `stop` stays a
         no-op after it
-        ([ISS 79](https://github.com/btclib-org/bitcoin-node-tests/issues/79)).
+        ([ISS 79](https://github.com/btclib-org/btclib-functional-tests/issues/79)).
 
         A process this adapter already holds is refused rather than
         replaced: the replaced one would keep running past `stop`, holding
         its datadir's lock and its ports
-        ([ISS 92](https://github.com/btclib-org/bitcoin-node-tests/issues/92)).
+        ([ISS 92](https://github.com/btclib-org/btclib-functional-tests/issues/92)).
         Core's own `TestNode.assert_start_raises_init_error` asserts the
         same of its node before spawning one.
 
@@ -790,14 +790,14 @@ class NodeAdapter(ABC):
         than left behind holding its datadir and ports, then waited for
         over the same bound, the way Core's own `TestNode.kill_process`
         ends one; the slow shutdown is then raised, not hidden
-        ([ISS 76](https://github.com/btclib-org/bitcoin-node-tests/issues/76)).
+        ([ISS 76](https://github.com/btclib-org/btclib-functional-tests/issues/76)).
 
         An exit code other than `_CLEAN_EXIT` is raised too, whether the
         process had already exited before this call -- a crash during the
         test, which a test's own last RPC call would not have seen -- or
         exited so on `terminate`: Core's own `TestNode.stop_node` checks
         the code the same way
-        ([ISS 84](https://github.com/btclib-org/bitcoin-node-tests/issues/84)).
+        ([ISS 84](https://github.com/btclib-org/btclib-functional-tests/issues/84)).
         A process that had already exited with `_CLEAN_EXIT`, the way an
         RPC `stop` ends one, is a clean stop.
 
@@ -1088,7 +1088,7 @@ def wait_until(predicate: Callable[[], bool], *, timeout: float = 30.0) -> None:
     method like that to live on, so a free function serves in its place,
     and a test-local wait that needs nothing beyond a predicate calls it
     instead of reimplementing this loop, unscaled, beside it
-    ([ISS 90](https://github.com/btclib-org/bitcoin-node-tests/issues/90)).
+    ([ISS 90](https://github.com/btclib-org/btclib-functional-tests/issues/90)).
 
     :param predicate: checked every 0.1 s until it returns `True`.
     :param timeout: how long to keep polling, before `--timeout-factor`'s

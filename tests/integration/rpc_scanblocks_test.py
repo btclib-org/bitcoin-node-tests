@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/rpc_scanblocks.py` (`aeca0610865e`,
 2026-07-01), the option and MiniWallet families together
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 `-blockfilterindex=1` (`Capability.BLOCK_FILTER_INDEX`) keeps BIP158's
 basic filter per block, `scanblocks` answers from it, and
 `MiniWallet.send_to` (`Capability.MINE`) pays the two outputs the scans
@@ -57,15 +57,15 @@ from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx.limits import COINBASE_MATURITY
 from ecc.curves import secp256k1
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "scanblocks_finds_the_blocks_paying_what_it_is_asked_for",

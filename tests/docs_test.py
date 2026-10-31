@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 _ROOT = Path(__file__).parents[1]
-_PACKAGE_DIR = _ROOT / "src" / "bitcoin_node_tests"
+_PACKAGE_DIR = _ROOT / "src" / "btclib_functional_tests"
 _DOCS_DIR = _ROOT / "docs" / "source"
 # what a documented module looks like to sphinx: ".. automodule:: name",
 # whatever indentation and options follow it
@@ -56,7 +56,7 @@ def _is_public(parts: tuple[str, ...]) -> bool:
 def _dotted(parts: tuple[str, ...]) -> str:
     """Return the dotted name of a module path, a package by its own name."""
     return ".".join(
-        ("bitcoin_node_tests", *parts[: -1 if parts[-1] == "__init__" else None])
+        ("btclib_functional_tests", *parts[: -1 if parts[-1] == "__init__" else None])
     )
 
 
@@ -97,8 +97,8 @@ def test_the_docs_sources_were_found_at_all() -> None:
     A wrong `_DOCS_DIR` would make `_documented()` empty, which the second
     of them reports as success.
     """
-    assert (_DOCS_DIR / "bitcoin_node_tests.rst").is_file()
-    assert "bitcoin_node_tests" in _documented()
+    assert (_DOCS_DIR / "btclib_functional_tests.rst").is_file()
+    assert "btclib_functional_tests" in _documented()
 
 
 def test_a_toctree_line_is_not_a_stanza() -> None:
@@ -107,24 +107,24 @@ def test_a_toctree_line_is_not_a_stanza() -> None:
         ".. toctree::\n"
         "   :maxdepth: 4\n"
         "\n"
-        "   bitcoin_node_tests.psbt\n"
+        "   btclib_functional_tests.psbt\n"
         "\n"
-        ".. automodule:: bitcoin_node_tests.psbt.psbt_utils\n"
+        ".. automodule:: btclib_functional_tests.psbt.psbt_utils\n"
         "   :members:\n"
     )
-    assert _documented_in(source) == {"bitcoin_node_tests.psbt.psbt_utils"}
+    assert _documented_in(source) == {"btclib_functional_tests.psbt.psbt_utils"}
 
 
 @pytest.mark.parametrize(
     "parts, public, dotted",
     [
-        (("bip44",), True, "bitcoin_node_tests.bip44"),
-        (("psbt", "psbt"), True, "bitcoin_node_tests.psbt.psbt"),
-        (("__init__",), True, "bitcoin_node_tests"),
-        (("psbt", "__init__"), True, "bitcoin_node_tests.psbt"),
-        (("_internal",), False, "bitcoin_node_tests._internal"),
-        (("psbt", "_helpers"), False, "bitcoin_node_tests.psbt._helpers"),
-        (("_internal", "bip44"), False, "bitcoin_node_tests._internal.bip44"),
+        (("bip44",), True, "btclib_functional_tests.bip44"),
+        (("psbt", "psbt"), True, "btclib_functional_tests.psbt.psbt"),
+        (("__init__",), True, "btclib_functional_tests"),
+        (("psbt", "__init__"), True, "btclib_functional_tests.psbt"),
+        (("_internal",), False, "btclib_functional_tests._internal"),
+        (("psbt", "_helpers"), False, "btclib_functional_tests.psbt._helpers"),
+        (("_internal", "bip44"), False, "btclib_functional_tests._internal.bip44"),
     ],
 )
 def test_is_public_and_dotted(

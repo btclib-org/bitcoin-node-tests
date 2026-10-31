@@ -10,7 +10,7 @@ against bitcoind, which declares every capability it asks for. Whether
 that body expects a dump at a height a fork also reaches, or `31.1`'s
 refusal of it, is read from the running build's own `getnetworkinfo`
 `version`
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)),
 `_ROLLS_BACK_PAST_A_FORK_VERSION` below having why.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.bitcoind import BitcoindAdapter
 from tests.integration.rpc_dumptxoutset_test import (
     the_utxo_set_is_dumped,
 )
@@ -30,8 +30,8 @@ from tests.integration.rpc_dumptxoutset_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

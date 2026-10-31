@@ -16,10 +16,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from bitcoin_node_tests import btclib_node as btclib_node_module
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.timeout_factor import set_factor
+from btclib_functional_tests import btclib_node as btclib_node_module
+from btclib_functional_tests.btclib_node import BtclibNodeAdapter
+from btclib_functional_tests.capability import Capability
+from btclib_functional_tests.timeout_factor import set_factor
 
 
 def test_class_wide_capabilities_are_the_facts_true_of_every_build() -> None:

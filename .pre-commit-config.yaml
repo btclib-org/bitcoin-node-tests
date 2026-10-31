@@ -262,7 +262,7 @@ repos:
         name: ruff format (in place fixes)
   # what ruff's D rules do not reach: they ask that a docstring exists, and
   # this asks that the arguments and the return it documents are the ones
-  # the signature declares. Scoped to bitcoin_node_tests, which is where
+  # the signature declares. Scoped to btclib_functional_tests, which is where
   # the contract has to be written down
   - repo: https://github.com/jsh9/pydoclint
     rev: 0.11.1
@@ -270,7 +270,7 @@ repos:
       - id: pydoclint
         name: pydoclint (arguments and return values)
         args: [--config=pyproject.toml]
-        files: ^src/bitcoin_node_tests/.*\.py$
+        files: ^src/btclib_functional_tests/.*\.py$
   - repo: local
     hooks:
       - id: decoded-subprocess-encoding
@@ -294,7 +294,7 @@ repos:
         name: mypy (strict, in the project environment)
         entry: >
           uv run --locked --no-default-groups --group lint --group test
-          mypy src/bitcoin_node_tests tests .github/scripts
+          mypy src/btclib_functional_tests tests .github/scripts
         language: system
         types: [python]
         pass_filenames: false

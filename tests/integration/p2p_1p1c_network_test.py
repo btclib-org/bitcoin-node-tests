@@ -89,20 +89,20 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import TxPayload
 from btclib.tx import Tx
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mempool_util import fill_mempool
-from bitcoin_node_tests.mini_wallet import (
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mempool_util import fill_mempool
+from btclib_functional_tests.mini_wallet import (
     PADDING_DATACARRIER_SIZE,
     MiniWallet,
     Utxo,
 )
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.node import (
     connect_nodes,
     sync_all,
     wait_until,
     wait_until_mempools_agree,
 )
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.peer import Peer
 from tests.integration.p2pk_coins_test import (
     mine_p2pk_coins,
     p2pk_new_utxo,
@@ -113,8 +113,8 @@ from tests.integration.script_verify_flag_test import bitcoind_version
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["every_node_takes_the_packages_one_node_is_given"]
 

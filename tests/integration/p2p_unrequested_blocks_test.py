@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_unrequested_blocks.py`
 (`fab352053d6e`, 2026-04-16), an option and the log beside node-linking
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 two nodes not linked, the second under `-minimumchainwork=0x10`
 (`Capability.MINIMUM_CHAIN_WORK`), each mining a block of its own
 (`Capability.GENERATE`) and each fed blocks by a peer. The first node
@@ -70,18 +70,22 @@ from btclib.p2p import (
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import SEQUENCE_FINAL
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import connect_nodes, wait_until, wait_until_tips_agree
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import (
+    connect_nodes,
+    wait_until,
+    wait_until_tips_agree,
+)
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["unrequested_blocks_are_processed_only_when_useful"]
 

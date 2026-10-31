@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_notifications.py`
 (`fa6f7e36a8c2`, 2026-10-23), the option and the disk families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)).
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)).
 Each command Core's first node runs writes a file the test reads back,
 and each is a body here, over a node of its own started with that
 option alone:
@@ -63,15 +63,15 @@ from btclib.block.mining import mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports, wait_until
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports, wait_until
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

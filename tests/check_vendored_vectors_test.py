@@ -121,7 +121,7 @@ def test_a_removing_commit_is_drift_that_may_be_a_removal(
 ) -> None:
     """A deleted pin's tip is the deleting commit, named as possibly that.
 
-    [ISS 150](https://github.com/btclib-org/bitcoin-node-tests/issues/150).
+    [ISS 150](https://github.com/btclib-org/btclib-functional-tests/issues/150).
     """
     ledger = tmp_path / "TF2.md"
     ledger.write_text(_LEDGER, encoding="utf-8")
@@ -178,7 +178,7 @@ def test_a_behind_line_is_told_from_its_absence(
     `trailing-whitespace` rewrites `behind` followed by blanks to the
     bare key, so the bare key is the shape an empty line takes once
     committed.
-    [ISS 184](https://github.com/btclib-org/bitcoin-node-tests/issues/184).
+    [ISS 184](https://github.com/btclib-org/btclib-functional-tests/issues/184).
     """
     ledger = _LEDGER.replace("behind  0\n", behind_line)
     assert checker._entries_at_tip(ledger) == ([], [f"`bignum.py` ({reason})"])
@@ -235,7 +235,7 @@ def test_a_failed_gh_call_prints_its_stderr_and_is_not_retried(
 ) -> None:
     """A 404 and both rate limits are final: gh's words reach stderr.
 
-    [ISS 446](https://github.com/btclib-org/bitcoin-node-tests/issues/446).
+    [ISS 446](https://github.com/btclib-org/btclib-functional-tests/issues/446).
     """
     calls, slept = _failing_gh(checker, monkeypatch, [stderr])
 

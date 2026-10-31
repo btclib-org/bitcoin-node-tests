@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/rpc_echo_payload.py` (`fa7bc26d1276`,
 2026-08-06), an option-family row
-([ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)):
+([ISS btclib-functional-tests#3](https://github.com/btclib-org/btclib-functional-tests/issues/3)):
 a node restarted with `-rpcworkqueue=2` and `-rpcthreads=2`
 (`Capability.RPC_WORK_QUEUE`) takes payloads of random length, large
 ones included, from more concurrent callers than its threads and its
@@ -53,14 +53,14 @@ from bitcoin_core_rpc import (
     urlopen_transport,
 )
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_payload_is_answered_or_refused_never_left_to_time_out",

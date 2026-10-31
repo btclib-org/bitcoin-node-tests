@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/rpc_signmessagewithprivkey.py`
 (`fa5f29774872`, 2025-12-16), a file needing no mechanism the adapter
-lacks ([ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)):
+lacks ([ISS 317](https://github.com/btclib-org/btclib-functional-tests/issues/317)):
 one clean-chain node signs a message with a private key the caller hands
 it, over `signmessagewithprivkey`, and verifies that signature under the
 key's P2PKH address, over `verifymessage`
@@ -35,14 +35,14 @@ from typing import TYPE_CHECKING
 from btclib.b32 import p2wpkh
 from btclib.b58 import p2pkh, p2wpkh_p2sh, prv_key_data_from_wif
 
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.capability import Capability, require
 from tests.integration.wallet_signmessagewithaddress_test import refused
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["a_message_signed_with_a_private_key_verifies"]
 

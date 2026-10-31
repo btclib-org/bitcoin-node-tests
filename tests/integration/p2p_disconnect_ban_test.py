@@ -11,7 +11,7 @@ a node id given together and an address no peer has, then dropping a
 peer by address, the pair reconnecting, and a peer dropped by node id.
 The file's `setban` half is not here: it sets a mock clock, reads
 `debug.log` and deletes `banlist.json` from the data directory:
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)
+[ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)
 holds it.
 
 Core takes `node0`'s first `getpeerinfo` entry for the address it drops
@@ -33,14 +33,14 @@ from typing import TYPE_CHECKING
 import pytest
 from bitcoin_core_rpc import RpcError
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import connect_nodes, wait_until
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import connect_nodes, wait_until
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["disconnectnode_drops_a_peer_by_address_and_by_node_id"]
 

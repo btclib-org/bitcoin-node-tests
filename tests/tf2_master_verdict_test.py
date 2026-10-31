@@ -338,7 +338,7 @@ def test_has_moved_is_false_for_the_pin_itself_with_no_call(
     """The pin itself has not moved, and needs no comparison to say so.
 
     The API answers a full sha, which the ledger's abbreviated pin is a
-    prefix of ([ISS 83](https://github.com/btclib-org/bitcoin-node-tests/issues/83)).
+    prefix of ([ISS 83](https://github.com/btclib-org/btclib-functional-tests/issues/83)).
     """
     assert verdict.has_moved("0d1301b47a35", _FULL_SHA) is False
     assert fake_gh.calls == []
@@ -413,7 +413,7 @@ def test_verdicts_sends_an_unchanged_file_to_the_port_first(
 
     A port that never matched its pinned file fails only against master
     too, so the line does not call it Core's regression
-    ([ISS 143](https://github.com/btclib-org/bitcoin-node-tests/issues/143)).
+    ([ISS 143](https://github.com/btclib-org/btclib-functional-tests/issues/143)).
     """
     module = tmp_path / "tests" / "integration"
     module.mkdir(parents=True)
@@ -446,7 +446,7 @@ def test_verdicts_names_a_data_file_that_moved_alone(
 ) -> None:
     """A data file moved and its test file did not: a stale port, named.
 
-    [ISS 146](https://github.com/btclib-org/bitcoin-node-tests/issues/146).
+    [ISS 146](https://github.com/btclib-org/btclib-functional-tests/issues/146).
     """
     _stats_module(tmp_path)
     fake_gh.commits[f"{_DIR}/rpc_getblockstats.py"] = (_STATS_SHA, "2026-05-25")
@@ -656,7 +656,7 @@ def test_a_failed_gh_call_prints_its_stderr_and_is_not_retried(
 ) -> None:
     """Each call through `_gh_output` shows gh's words, once, and gives up.
 
-    [ISS 457](https://github.com/btclib-org/bitcoin-node-tests/issues/457).
+    [ISS 457](https://github.com/btclib-org/btclib-functional-tests/issues/457).
     """
     call, stdout, _ = _CALLS[name]
     calls, slept = _failing_gh(verdict, monkeypatch, [stderr], stdout)

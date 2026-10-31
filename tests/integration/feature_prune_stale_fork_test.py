@@ -23,7 +23,7 @@ to Core's own first deterministic address, `_MINE_CHUNK` at a time.
 A bitcoind that `_carries_the_fix` says lacks bitcoin/bitcoin#35168, the
 fix for bitcoin/bitcoin#35050, is not restarted: the restart is Core's
 subject, and checks that fix
-([ISS 62](https://github.com/btclib-org/bitcoin-node-tests/issues/62)).
+([ISS 62](https://github.com/btclib-org/btclib-functional-tests/issues/62)).
 
 The node is built over a data directory of its own, through
 `make_adapter` (`tests/integration/conftest.py`), since it starts with
@@ -40,16 +40,16 @@ import pytest
 from bitcoin_core_rpc import RpcError
 from btclib.script.script_pub_key import ScriptPubKey
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import build_fork
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import build_fork
+from btclib_functional_tests.node import free_ports
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["a_pruned_stale_fork_survives_a_restart"]

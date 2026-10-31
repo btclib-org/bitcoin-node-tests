@@ -24,8 +24,8 @@ repeated, one over the bound where Core's own count is ten over it.
 The rest of Core's file is not ported here: it moves the node's clock
 with `setmocktime`, dials out of the node (Core's
 `add_outbound_p2p_connection`), or both -- [ISS
-14](https://github.com/btclib-org/bitcoin-node-tests/issues/14) and [ISS
-44](https://github.com/btclib-org/bitcoin-node-tests/issues/44). Each
+14](https://github.com/btclib-org/btclib-functional-tests/issues/14) and [ISS
+44](https://github.com/btclib-org/btclib-functional-tests/issues/44). Each
 `p2p_addr_relay_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
 """
@@ -38,14 +38,14 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import Addr, TimestampedNetworkAddress
 from btclib.p2p.limits import MAX_ADDR_TO_SEND
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "oversized_addr_disconnects_the_peer",

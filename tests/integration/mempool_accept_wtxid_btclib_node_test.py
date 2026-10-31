@@ -26,8 +26,8 @@ from tests.integration.mempool_accept_wtxid_test import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.btclib_node import BtclibNodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
 

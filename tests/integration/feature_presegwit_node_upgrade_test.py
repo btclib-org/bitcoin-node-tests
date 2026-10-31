@@ -7,7 +7,7 @@
 Read from Core's `test/functional/feature_presegwit_node_upgrade.py`
 (`fad7bd9ba3eef03fcdd7cb17011ea0c6e483c767`, 2026-01-14) and ported,
 an option-family test
-([ISS 3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)):
+([ISS 3](https://github.com/btclib-org/btclib-functional-tests/issues/3)):
 `-testactivationheight=segwit@N` (`Capability.TEST_ACTIVATION_HEIGHT`)
 holds segwit inactive until a chosen height, blocks are mined below it
 over `submitblock` (`Capability.MINE`), and the node is then restarted
@@ -51,7 +51,7 @@ having added the empty caption and its separator
 (bitcoin/bitcoin#34276). No probe tells the two apart, the node having no
 option or RPC for it: that build is asserted to print it, read off its own
 `getnetworkinfo` `version`
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+([ISS 354](https://github.com/btclib-org/btclib-functional-tests/issues/354)).
 
 Each `feature_presegwit_node_upgrade_<node>_test.py` module beside this
 one runs it, `tests/integration/conftest.py`'s own module docstring
@@ -68,9 +68,9 @@ from typing import TYPE_CHECKING
 import pytest
 from btclib.block.block import witness_commitment_output
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet, build_next_block
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet, build_next_block
+from btclib_functional_tests.timeout_factor import scaled
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
@@ -78,8 +78,8 @@ if TYPE_CHECKING:
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["a_pre_segwit_chain_needs_a_reindex_to_upgrade"]
 

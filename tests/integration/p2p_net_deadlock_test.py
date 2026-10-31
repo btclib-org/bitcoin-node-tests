@@ -25,15 +25,15 @@ import secrets
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import connect_nodes, wait_until_tips_agree
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import connect_nodes, wait_until_tips_agree
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["simultaneous_large_messages_do_not_deadlock"]
 

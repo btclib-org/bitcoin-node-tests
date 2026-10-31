@@ -72,14 +72,14 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import FeeFilter, Inv, InventoryType
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.node import (
     connect_nodes,
     wait_until_mempools_agree,
     wait_until_tips_agree,
 )
-from bitcoin_node_tests.peer import Listener, Peer
+from btclib_functional_tests.peer import Listener, Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -87,8 +87,8 @@ if TYPE_CHECKING:
     from btclib.p2p import Message
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "feefilter_filters_announcements",

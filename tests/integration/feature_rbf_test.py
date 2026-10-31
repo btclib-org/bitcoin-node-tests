@@ -85,15 +85,15 @@ from btclib.script.script_pub_key import ScriptPubKey
 from btclib.tx import Tx, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.mini_wallet import Utxo
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.mini_wallet import Utxo
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["replace_by_fee_follows_its_rules"]
 

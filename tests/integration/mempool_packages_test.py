@@ -92,26 +92,26 @@ from btclib.amount import sats_from_btc
 from btclib.p2p import GetData, Inv, InventoryType, Ping, Pong
 from btclib.tx import Tx
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet, build_fork
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet, build_fork
+from btclib_functional_tests.node import (
     connect_nodes,
     sync_all,
     wait_until,
     wait_until_mempools_agree,
     wait_until_tips_agree,
 )
-from bitcoin_node_tests.peer import Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.peer import Peer
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from btclib.block.block import Block
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.mini_wallet import Utxo
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.mini_wallet import Utxo
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["mempool_tracks_ancestors_and_descendants"]
 

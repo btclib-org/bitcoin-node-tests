@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/mempool_expiry.py` (`fa5f29774872`,
 2025-12-16), the option, MiniWallet and clock families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a transaction still in the mempool five seconds short of the expiry
 timeout is gone five seconds past it, the child spending it goes with
 it, an independent transaction stays, and a prioritisation given to the
@@ -37,14 +37,14 @@ import pytest
 from bitcoin_core_rpc import RpcError
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["a_transaction_and_its_child_expire_together"]
 

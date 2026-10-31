@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/rpc_users.py` (`fad441867c9b`,
 2026-10-12), disk-family mechanism alone (issue btclib-org/btclib#2220,
-[ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)):
+[ISS 7](https://github.com/btclib-org/btclib-functional-tests/issues/7)):
 `rpcauth`, `rpcuser`/`rpcpassword` and `rpccookieperms` are each written
 to the datadir this adapter is given, either through `bitcoin.conf`
 before it ever starts or on the command line as `extra_args` -- neither
@@ -26,7 +26,7 @@ write no RPC cookie, measured live against `31.1` --
 client that waits on the cookie the adapter's `_rpc_client()`
 otherwise reads never sees one and `start` timed out rather than the
 node ever answering RPC
-([ISS bitcoin-node-tests#34](https://github.com/btclib-org/bitcoin-node-tests/issues/34)).
+([ISS btclib-functional-tests#34](https://github.com/btclib-org/btclib-functional-tests/issues/34)).
 `rpc_auth`
 (`NodeAdapter.__init__`, `node.py`) is what lets them back in: the
 caller that puts either flag in `extra_args` already knows the
@@ -94,15 +94,15 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

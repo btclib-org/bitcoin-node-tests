@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_i2p_sessions.py` (`fa5f29774872`,
 2025-12-16), a file of
-[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47):
+[ISS 47](https://github.com/btclib-org/btclib-functional-tests/issues/47):
 a node given `-i2psam` dials an I2P address over a persistent SAM
 session where `-i2pacceptincoming=1` and over a transient one where
 `-i2pacceptincoming=0`. Both of Core's steps are kept, in its order,
@@ -32,7 +32,7 @@ A bitcoind before `v31.0` logs `Creating persistent SAM session`, without
 `I2P` (bitcoin/bitcoin#34051). No probe tells the two apart, the node
 having no option or RPC for it: that build is asked for its own line, read
 off its own `getnetworkinfo` `version`
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+([ISS 354](https://github.com/btclib-org/btclib-functional-tests/issues/354)).
 
 Each `p2p_i2p_sessions_<node>_test.py` module beside this one runs it,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -42,17 +42,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_port
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import free_port
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["i2pacceptincoming_chooses_a_persistent_or_a_transient_session"]
 

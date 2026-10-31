@@ -52,7 +52,7 @@ from enum import IntEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable

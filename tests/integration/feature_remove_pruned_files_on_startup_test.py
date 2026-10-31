@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_remove_pruned_files_on_startup.py`
 (`fa9aced8006b`, 2025-01-22), the option and disk families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node under `-prune=1` and `-fastprune` (`Capability.FASTPRUNE`) mines
 enough blocks to fill several block files (`Capability.BLK_FILES`), and
 `pruneblockchain` deletes the first two block files and their undo files
@@ -45,14 +45,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports, wait_until
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports, wait_until
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["pruned_files_are_removed"]

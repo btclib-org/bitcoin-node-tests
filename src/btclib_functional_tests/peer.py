@@ -63,7 +63,7 @@ from btclib.p2p.bip324 import (
 from ecc.curves import secp256k1
 from ecc.ecc.ellswift import create
 
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -80,7 +80,7 @@ __all__ = [
 # either node rather than the least either happens to demand.
 _SERVICES = ServiceFlags.NODE_NETWORK | ServiceFlags.NODE_WITNESS
 
-_USER_AGENT = b"/bitcoin-node-tests:0/"
+_USER_AGENT = b"/btclib-functional-tests:0/"
 
 # BIP324's bound on the garbage either side sends ahead of its terminator
 _MAX_GARBAGE_LEN = 4095

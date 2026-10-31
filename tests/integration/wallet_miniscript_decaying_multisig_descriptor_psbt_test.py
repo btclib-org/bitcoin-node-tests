@@ -40,7 +40,7 @@ import random
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.capability import Capability, require
 from tests.integration.wallet_signmessagewithaddress_test import refused
 from tests.integration.wallet_simulaterawtx_test import approx
 
@@ -49,8 +49,8 @@ if TYPE_CHECKING:
 
     from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["a_decaying_multisig_spends_with_fewer_signers_past_each_lock"]
 

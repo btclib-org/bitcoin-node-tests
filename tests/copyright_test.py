@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-import bitcoin_node_tests
+import btclib_functional_tests
 
 _ROOT = Path(__file__).parents[1]
 _HEADER = "".join(Path(__file__).read_text(encoding="utf-8").splitlines(True)[:3])
@@ -78,8 +78,8 @@ def test_no_dunder_repeats_the_metadata() -> None:
     installed distribution's metadata instead.
     """
     for dunder in ("__author__", "__author_email__", "__copyright__", "__license__"):
-        assert not hasattr(bitcoin_node_tests, dunder), (
-            f"bitcoin_node_tests.{dunder} exists"
+        assert not hasattr(btclib_functional_tests, dunder), (
+            f"btclib_functional_tests.{dunder} exists"
         )
 
 

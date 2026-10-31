@@ -63,7 +63,7 @@ jobs:
           enable-cache: true
           # .python-version's own comment has the floor and why it is
           # 3.12 rather than the newest interpreter a dependency allows
-          # (issue bitcoin-node-tests#36)
+          # (issue btclib-functional-tests#36)
           python-version: "3.12"
       - name: Run pytest under coverage
         run: uv run --locked --no-default-groups --group test pytest

@@ -6,13 +6,13 @@
 
 Read from Core's `test/functional/rpc_net.py` (`332c3e8e3e17`,
 2026-10-01), a file of
-[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47):
+[ISS 47](https://github.com/btclib-org/btclib-functional-tests/issues/47):
 `addnode` and `getaddednodeinfo`, the service names of a peer,
 `getnodeaddresses`, `addpeeraddress`, `getaddrmaninfo` and
 `getrawaddrman`. The steps that connect Core's two nodes
 (`test_connection_count`, `test_getpeerinfo`, `test_getnettotals`,
 `test_getnetworkinfo` and `test_sendmsgtopeer`) are not ported: they are
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s.
+[ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)'s.
 
 Core's `set_test_params` gives its nodes `-proxy=127.0.0.1:1`, so that
 no step dials a public address, `addnode`'s `11.22.33.44` and the
@@ -26,7 +26,7 @@ steps whose node starts with `-test=addrman` ask for
 `Capability.ADDRESS_TABLES`, for that option, the `-checkaddrman` the
 `addpeeraddress` step adds to it, and the `getrawaddrman` and
 `getaddrmaninfo` they read
-([ISS 555](https://github.com/btclib-org/bitcoin-node-tests/issues/555)).
+([ISS 555](https://github.com/btclib-org/btclib-functional-tests/issues/555)).
 
 Each step runs on a node of its own, started with the arguments Core's
 node has at that step, where Core runs the steps in turn on two nodes.
@@ -61,7 +61,7 @@ the build a call that changes nothing and asserts what that build answers:
 `getnodeaddresses` refuses `tor` from `v31.0` on (bitcoin/bitcoin#34031),
 where an older build reads it as `onion`. That refusal is asserted only of a
 build whose `getnetworkinfo` `version` reads `v31.0` or later
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), or
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)), or
 of a node other than bitcoind.
 
 `p2p_port(2)` (`test_framework/util.py`), the address `addnode` adds, is
@@ -82,17 +82,17 @@ import pytest
 from bitcoin_core_rpc import RpcError, magic_from_chain
 from btclib.p2p import ServiceFlags
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports
+from btclib_functional_tests.peer import Peer
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

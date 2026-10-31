@@ -37,7 +37,7 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from bitcoin_node_tests.capability import (
+from btclib_functional_tests.capability import (
     Capability,
     MissingCapabilityError,
     SkipCounts,

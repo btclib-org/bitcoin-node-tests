@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_blocksxor.py`
 (`fa5f29774872`, 2025-12-16), the option, MiniWallet and disk families
-together ([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+together ([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node under `-blocksxor=1` (`Capability.BLOCKS_XOR`) and `-fastprune`
 (`Capability.FASTPRUNE`) spreads the blocks `MiniWallet` mines
 (`Capability.MINE`) over several block files and as many undo files, in
@@ -53,15 +53,15 @@ import pytest
 from bitcoin_core_rpc import magic_from_chain
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import PADDING_DATACARRIER_SIZE, MiniWallet
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import PADDING_DATACARRIER_SIZE, MiniWallet
+from btclib_functional_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["block_files_are_obfuscated_with_the_xor_key"]

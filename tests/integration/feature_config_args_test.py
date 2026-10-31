@@ -6,14 +6,14 @@
 
 Read from Core's `test/functional/feature_config_args.py`
 (`2630d8e6c9d6`, 2026-09-22), a file of
-[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47):
+[ISS 47](https://github.com/btclib-org/btclib-functional-tests/issues/47):
 `-proxy` given no value is refused (`test_invalid_command_line_options`),
 `-connect` ignores `-seednode`, and `-dnsseed` too where a proxy is given
 (`test_connect_with_seednode`), and `-privatebroadcast` is refused without
 a Tor or I2P proxy or beside `-connect`, and warns beside
 `-proxyrandomize=0` (`test_privatebroadcast`). The file's other steps are
 not ported here: they are
-[ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)'s
+[ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)'s
 log and configuration file steps, the proxy in them only keeping the node
 off the network.
 
@@ -56,17 +56,17 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import free_ports
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

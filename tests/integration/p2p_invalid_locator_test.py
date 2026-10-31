@@ -24,13 +24,13 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import GetBlocks, GetHeaders, Headers, Inv, InventoryType
 from btclib.p2p.limits import MAX_LOCATOR_SZ
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.peer import Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.peer import Peer
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["max_locator_size"]
 

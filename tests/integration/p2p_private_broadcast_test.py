@@ -112,14 +112,14 @@ from btclib.script.witness import Witness
 from btclib.tx import Tx
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import free_ports, wait_until
-from bitcoin_node_tests.peer import Listener, Peer
-from bitcoin_node_tests.socks5 import Socks5Proxy
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.node import free_ports, wait_until
+from btclib_functional_tests.peer import Listener, Peer
+from btclib_functional_tests.socks5 import Socks5Proxy
+from btclib_functional_tests.timeout_factor import scaled
 from tests.integration.mempool_accept_wtxid_test import malleated_package
 
 if TYPE_CHECKING:
@@ -127,9 +127,9 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message, Payload
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
-    from bitcoin_node_tests.socks5 import Socks5Request
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
+    from btclib_functional_tests.socks5 import Socks5Request
     from tests.conftest import AdapterFactory
 
 __all__ = [
@@ -163,7 +163,7 @@ _PRIVATE_BROADCAST_RPCS_VERSION = 320000
 # Core's own `P2P_SERVICES` (`test_framework/p2p.py`)
 _P2P_SERVICES = ServiceFlags.NODE_NETWORK | ServiceFlags.NODE_WITNESS
 
-_USER_AGENT = b"/bitcoin-node-tests:0/"
+_USER_AGENT = b"/btclib-functional-tests:0/"
 
 # Core's own user agent for a private broadcast connection
 _PRIVATE_USER_AGENT = b"/pynode:0.0.1/"

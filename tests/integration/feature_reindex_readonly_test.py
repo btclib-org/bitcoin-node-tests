@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_reindex_readonly.py`
 (`6eca11175be6`, 2026-07-16), the option, disk and log families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node under `-fastprune` (`Capability.FASTPRUNE`) mines a block larger
 than a block file, so its chain spills into the next block file, and,
 restarted with `-reindex` (`Capability.REINDEX`) once the first of them
@@ -41,16 +41,16 @@ import os
 import stat
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_ports, wait_until
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import free_ports, wait_until
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["a_read_only_block_file_is_reindexed"]

@@ -17,7 +17,7 @@ are what `tests/integration/conftest.py`'s own hooks and fixtures call:
 `[tool.coverage.run]`'s `omit` excludes that whole module, so their
 bodies live here, in the one other file the "python tests naming" hook
 lets sit beside `*_test.py` files without being one itself, and are
-measured by an ordinary run (issue bitcoin-node-tests#101).
+measured by an ordinary run (issue btclib-functional-tests#101).
 """
 
 import os
@@ -28,8 +28,8 @@ from typing import Protocol, cast
 import pytest
 from hypothesis import settings
 
-from bitcoin_node_tests.capability import MissingCapabilityError, SkipCounts
-from bitcoin_node_tests.node import NodeAdapter
+from btclib_functional_tests.capability import MissingCapabilityError, SkipCounts
+from btclib_functional_tests.node import NodeAdapter
 
 pytest_plugins = ["pytester"]
 
@@ -223,7 +223,7 @@ def pytest_configure(config: pytest.Config) -> None:
 class Stoppable(Protocol):
     """What `stop_all` needs of an adapter: `NodeAdapter.stop`, structurally.
 
-    A `Protocol` rather than `bitcoin_node_tests.node.NodeAdapter` itself,
+    A `Protocol` rather than `btclib_functional_tests.node.NodeAdapter` itself,
     so a test can stand one up without a real `NodeAdapter` subclass.
     """
 

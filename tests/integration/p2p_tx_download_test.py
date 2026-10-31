@@ -87,7 +87,7 @@ in `v32.0` and later, from
 bitcoin/bitcoin@1278a5970d5ada0979052a5bad899e896b8ab40b, which
 `v32.0rc1` is the first tag to carry: a bitcoind whose `getnetworkinfo`
 `version` reads older than that
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35))
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35))
 processes each entry, which is asserted there instead. A `master` build
 between that change's merge and the version's move to `32.99` reads
 older and processes each once all the same, the constant's own comment
@@ -117,17 +117,17 @@ from btclib.p2p import (
 )
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mempool_util import fill_mempool
-from bitcoin_node_tests.mini_wallet import PADDING_DATACARRIER_SIZE, MiniWallet
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mempool_util import fill_mempool
+from btclib_functional_tests.mini_wallet import PADDING_DATACARRIER_SIZE, MiniWallet
+from btclib_functional_tests.node import (
     connect_nodes,
     wait_until,
     wait_until_mempools_agree,
     wait_until_tips_agree,
 )
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.peer import Peer
 from tests.integration.p2p_conns_test import Conn
 
 if TYPE_CHECKING:
@@ -136,8 +136,8 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message, Version
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_disconnect_falls_back_to_another_peer",
@@ -583,7 +583,7 @@ def _deduplicates_inv(node: NodeAdapter) -> bool:
     Core's own claim for every node, bitcoind before
     `_DEDUPLICATES_INV_VERSION` excepted: that build processes each entry,
     read off its own `getnetworkinfo` `version`
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
     """
     if not isinstance(node, BitcoindAdapter):
         return True

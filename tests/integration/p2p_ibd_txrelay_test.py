@@ -23,7 +23,7 @@ connected during initial block download (bitcoin/bitcoin#34054), so it
 asks for no such coinbase. No probe tells the two behaviours apart, the
 node having no option or RPC for it: that build is asserted to ask for
 nothing, read off its own `getnetworkinfo` `version`
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+([ISS 354](https://github.com/btclib-org/btclib-functional-tests/issues/354)).
 
 Core's run is one sequence, and each body is that whole sequence over
 two fresh nodes. The log half asserts besides what Core's
@@ -72,12 +72,15 @@ from btclib.amount import btc_from_sats, sats_from_btc
 from btclib.p2p import GetData, Inv, Inventory, InventoryType, TxPayload
 from btclib.tx import Tx
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.mini_wallet import RAW_P2PK_SCRIPT_PUB_KEY, build_next_block
-from bitcoin_node_tests.node import connect_nodes, sync_all, wait_until
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.mini_wallet import (
+    RAW_P2PK_SCRIPT_PUB_KEY,
+    build_next_block,
+)
+from btclib_functional_tests.node import connect_nodes, sync_all, wait_until
+from btclib_functional_tests.peer import Peer
 from tests.integration.p2p_conns_test import Conn
 from tests.integration.script_verify_flag_test import bitcoind_version
 
@@ -88,8 +91,8 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message, Version
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["ibd_tx_relay_is_logged", "ibd_tx_relay_is_withheld"]
 
@@ -272,7 +275,7 @@ def _filters_ibd_blocks(node: NodeAdapter) -> bool:
 
     Only a bitcoind before `_IBD_BLOCKS_NOT_FILTERED_VERSION` does, read off
     its own `getnetworkinfo` `version`
-    ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+    ([ISS 354](https://github.com/btclib-org/btclib-functional-tests/issues/354)).
     """
     version = bitcoind_version(node)
     return version is not None and version < _IBD_BLOCKS_NOT_FILTERED_VERSION

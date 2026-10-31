@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""`bitcoin_node_tests.feature_block`, built without a node.
+"""`btclib_functional_tests.feature_block`, built without a node.
 
 What a node makes of the sequence is the subject of
 `tests/integration/feature_block_test.py`. This holds the sequence to
@@ -14,7 +14,7 @@ from __future__ import annotations
 import pytest
 from btclib.block.genesis import genesis_block
 
-from bitcoin_node_tests.feature_block import (
+from btclib_functional_tests.feature_block import (
     BlockStep,
     InvalidateStep,
     MockTimeStep,

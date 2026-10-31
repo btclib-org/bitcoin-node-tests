@@ -7,7 +7,7 @@
 Read from Core's `test/functional/rpc_getblockstats.py` (`b7cbd804284b`,
 2026-05-25) and narrowed to what the MiniWallet and disk families reach
 together
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 `MiniWallet.create_self_transfer`/`generate` (`Capability.MINE`) build a
 chain carrying an `OP_RETURN` output, each coin's serialized `TxOut` plus
 `getblockstats`'s own per-coin overhead computes what its `utxo_size_inc*`
@@ -29,7 +29,7 @@ into one `uint32_t`. Builds older than `v32.0.0`, the first release
 carrying [bitcoin/bitcoin#31449](https://github.com/bitcoin/bitcoin/pull/31449)
 (`5f36e0ff1e76`), charge one byte more, a `bool` for the flag. Which
 build is running is read off `getnetworkinfo`'s own `version`
-([ISS bitcoin-node-tests#35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+([ISS btclib-functional-tests#35](https://github.com/btclib-org/btclib-functional-tests/issues/35)),
 as `feature_torcontrol_bitcoind_test.py` does; a `master` build reporting
 `31.99`, between that merge and the bump to `32.99`, carries the change
 under the older version and fails here.
@@ -73,15 +73,15 @@ from btclib.block.block import Block
 from btclib.tx import TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet, nulldata_script_pub_key
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet, nulldata_script_pub_key
+from btclib_functional_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

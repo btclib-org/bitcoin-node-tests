@@ -23,7 +23,7 @@ from tests.integration.feature_posix_fs_permissions_test import (
 )
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.btcd import BtcdAdapter
+    from btclib_functional_tests.btcd import BtcdAdapter
 
 pytestmark = pytest.mark.integration
 

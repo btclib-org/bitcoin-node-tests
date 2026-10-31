@@ -48,16 +48,16 @@ from btclib.tx.limits import COINBASE_MATURITY
 from btclib_wallet.descriptors import descriptors
 from ecc.curves import secp256k1
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from btclib.key import PubKeyData
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["the_utxo_set_is_searched_by_descriptor"]
 

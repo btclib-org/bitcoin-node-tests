@@ -10,7 +10,7 @@ against bitcoind, which declares every capability it asks for. Whether
 that body expects a null in place of `start`'s scan objects refused as
 Core's pinned file refuses it is read from the running build's own
 `getnetworkinfo` `version`
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)),
 `_NULL_AS_MISSING_VERSION` below having why.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
@@ -29,9 +29,9 @@ from tests.integration.rpc_scantxoutset_test import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.bitcoind import BitcoindAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 pytestmark = pytest.mark.integration
 

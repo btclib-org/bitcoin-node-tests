@@ -1,13 +1,13 @@
 ---
 name: Feature request
-description: Add something to bitcoin-node-tests, or change how it works
+description: Add something to btclib-functional-tests, or change how it works
 type: Feature
 
 body:
   - type: markdown
     attributes:
       value: >
-        bitcoin-node-tests is Bitcoin Core's functional test suite,
+        btclib-functional-tests is Bitcoin Core's functional test suite,
         rewritten on [btclib](https://github.com/btclib-org/btclib), run
         against any node that speaks bitcoin's RPC and p2p. An encoding,
         a consensus rule or a signature scheme belongs in btclib instead;

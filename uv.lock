@@ -132,7 +132,25 @@ wheels = [
 ]
 
 [[package]]
-name = "bitcoin-node-tests"
+name = "btclib"
+version = "2026.10.24"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "ecc" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/87/b1/fab35c5a9a7b08320c6575dbcadd51f4e321f8a6a21cb901725828ed07a0/btclib-2026.10.24.tar.gz", hash = "sha256:b32b45b93489ac3177768ea8f4a0828d64ee9fbb1e2066444b07c5d4655915fa", size = 7477800, upload-time = "2026-10-24T22:29:44.639Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/43/bf/96470d34ce8ef250d329889d3dffb955a72186f32810f15a6f348eb3836e/btclib-2026.10.24-py3-none-any.whl", hash = "sha256:a4a88030aacb32543dc123db4b00baba164ff29990d75e47d42f77a088726a6f", size = 448479, upload-time = "2026-10-24T22:29:43.05Z" },
+]
+
+[package.optional-dependencies]
+bip324 = [
+    { name = "cryptography" },
+]
+
+[[package]]
+name = "btclib-functional-tests"
 version = "0"
 source = { editable = "." }
 dependencies = [
@@ -250,24 +268,6 @@ test = [
     { name = "pytest-randomly", specifier = ">=5.0.0" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
-]
-
-[[package]]
-name = "btclib"
-version = "2026.10.24"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "ecc" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/87/b1/fab35c5a9a7b08320c6575dbcadd51f4e321f8a6a21cb901725828ed07a0/btclib-2026.10.24.tar.gz", hash = "sha256:b32b45b93489ac3177768ea8f4a0828d64ee9fbb1e2066444b07c5d4655915fa", size = 7477800, upload-time = "2026-10-24T22:29:44.639Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/bf/96470d34ce8ef250d329889d3dffb955a72186f32810f15a6f348eb3836e/btclib-2026.10.24-py3-none-any.whl", hash = "sha256:a4a88030aacb32543dc123db4b00baba164ff29990d75e47d42f77a088726a6f", size = 448479, upload-time = "2026-10-24T22:29:43.05Z" },
-]
-
-[package.optional-dependencies]
-bip324 = [
-    { name = "cryptography" },
 ]
 
 [[package]]

@@ -79,15 +79,15 @@ from bitcoin_core_rpc import RpcError
 from btclib.amount import sats_from_btc
 from btclib.tx import Tx
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import DEFAULT_FEE_RATE, FEE, MiniWallet
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import DEFAULT_FEE_RATE, FEE, MiniWallet
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.mini_wallet import Utxo
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.mini_wallet import Utxo
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["mempool_limits_clusters_and_reports_their_chunks"]
 

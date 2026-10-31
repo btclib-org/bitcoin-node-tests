@@ -29,7 +29,7 @@ protocol bump is a later, unrelated commit
 version this suite already reads elsewhere cannot tell the two builds
 apart here. What can, and is read from the running build rather than
 assumed for the whole class
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35),
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35),
 `capability.py`'s own module docstring), is `getnetworkinfo`'s own
 `version` -- Core's `CLIENT_VERSION`,
 `10000 * major + 100 * minor + build` (`src/clientversion.h`) --
@@ -57,8 +57,8 @@ from typing import TYPE_CHECKING, override
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.node import free_port, free_ports, wait_until
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.node import free_port, free_ports, wait_until
 
 if TYPE_CHECKING:
     from pathlib import Path

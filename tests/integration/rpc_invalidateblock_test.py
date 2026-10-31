@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/rpc_invalidateblock.py`
 (`fab352053d6e`, 2026-04-16), a file needing no mechanism the adapter
-lacks ([ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)):
+lacks ([ISS 317](https://github.com/btclib-org/btclib-functional-tests/issues/317)):
 `invalidateblock` and `reconsiderblock` (`Capability.INVALIDATE_BLOCK`)
 mark a block invalid and take the mark back off. The nodes start
 unlinked on a clean chain, and the first and the second node each mine a
@@ -67,15 +67,19 @@ from btclib.block.mining import mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import connect_nodes, wait_until, wait_until_tips_agree
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import (
+    connect_nodes,
+    wait_until,
+    wait_until_tips_agree,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["invalidateblock_and_reconsiderblock_move_the_tip"]
 
@@ -176,7 +180,7 @@ def _reconsiders_ancestors(node: NodeAdapter) -> bool:
     Core's own claim for every node, bitcoind before
     `_ANCESTORS_RECONSIDERED_VERSION` excepted, read off its own
     `getnetworkinfo` `version`
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
     """
     if not isinstance(node, BitcoindAdapter):
         return True

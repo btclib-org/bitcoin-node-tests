@@ -47,22 +47,22 @@ from btclib.p2p import (
     SendCmpct,
 )
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import (
     connect_nodes,
     disconnect_nodes,
     wait_until_tips_agree,
 )
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from btclib.p2p import Message, Payload
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["blocksonly_node_neither_asks_for_nor_takes_compact_blocks"]
 
@@ -173,7 +173,7 @@ def _blocksonly_ignores_cmpctblock(node: NodeAdapter) -> bool:
     Core's own claim for every node, bitcoind before
     `_BLOCKSONLY_IGNORES_CMPCTBLOCK_VERSION` excepted: that build
     reconstructs the block, read off its own `getnetworkinfo` `version`
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
     """
     if not isinstance(node, BitcoindAdapter):
         return True

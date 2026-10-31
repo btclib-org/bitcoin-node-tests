@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_proxy.py` (`fd65406b39a8`,
 2026-10-01), the first file of
-[ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47):
+[ISS 47](https://github.com/btclib-org/btclib-functional-tests/issues/47):
 a node given a SOCKS5 proxy dials its peers through it, `getnetworkinfo`
 reports which proxy each network is reached by, and a start naming no
 usable proxy is refused. `socks5.Socks5Proxy` is the proxy, and each test
@@ -46,7 +46,7 @@ refusal of that port instead.
 
 Core's checks below differ between builds of bitcoind, each read off the
 build's own `getnetworkinfo` `version`
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)),
 a node other than bitcoind being held to Core's file:
 
 - `-onlynet=tor` and a `-proxy` suffix of `tor` are refused from `v31.0`
@@ -87,18 +87,18 @@ from typing import TYPE_CHECKING, NamedTuple
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.socks5 import AddressType, Socks5Proxy, Socks5Request
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.socks5 import AddressType, Socks5Proxy, Socks5Request
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "cjdnsreachable_reaches_cjdns_through_the_proxy",

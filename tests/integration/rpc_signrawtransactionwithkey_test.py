@@ -56,8 +56,8 @@ from btclib.tx import OutPoint, Tx, TxIn, TxOut
 from btclib.tx.limits import COINBASE_MATURITY
 from ecc.curves import secp256k1
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
 from tests.integration.rpc_createmultisig_test import (
     multisig_script,
     multisig_script_pub_key,
@@ -66,8 +66,8 @@ from tests.integration.rpc_createmultisig_test import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_pay_to_anchor_input_is_signed_with_no_key",

@@ -6,7 +6,7 @@ r"""Core's `rpc_whitelist`, as bodies over each node.
 
 Read from Core's `test/functional/rpc_whitelist.py` (`fad441867c9b`,
 2026-10-12), disk-family mechanism alone (issue btclib-org/btclib#2220,
-[ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)):
+[ISS 7](https://github.com/btclib-org/btclib-functional-tests/issues/7)):
 `rpcauth`, `rpcwhitelist` and `rpcwhitelistdefault` are `bitcoin.conf`
 keys, written to the datadir this adapter is given before it ever
 starts -- no `extra_args` and no adapter change, `bitcoin.conf` living
@@ -35,7 +35,7 @@ could forge a log line or every printable special character. A bitcoind
 escapes the newline as `\x0a` from bitcoin/bitcoin#35833, which no tag
 up to `v32.1` carries, and writes it raw before; which of the two is
 asserted is read off the build's own `getnetworkinfo` `version`
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
 
 Each `rpc_whitelist_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -50,18 +50,18 @@ import json
 import secrets
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_ports
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import free_ports
+from btclib_functional_tests.timeout_factor import scaled
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

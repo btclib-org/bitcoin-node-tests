@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import override
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.bitcoind import BitcoindAdapter
 
 __all__ = ["UnboundBitcoindAdapter"]
 

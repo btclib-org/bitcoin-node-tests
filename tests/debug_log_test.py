@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.debug_log import _POLL_INTERVAL, assert_debug_log
-from bitcoin_node_tests.timeout_factor import set_factor
+from btclib_functional_tests.debug_log import _POLL_INTERVAL, assert_debug_log
+from btclib_functional_tests.timeout_factor import set_factor
 
 if TYPE_CHECKING:
     from pathlib import Path

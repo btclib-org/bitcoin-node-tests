@@ -13,7 +13,7 @@ not ported here.
 Core asserts the status of each refusal in bitcoind's log, since the client
 may see the connection close before it reads the answer. The step is split
 as the log family splits it
-([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)). The
+([ISS 5](https://github.com/btclib-org/btclib-functional-tests/issues/5)). The
 wire half reads the answers under the limits, the closed connections over
 them, and a refusal's 400 where it arrives before the close. The log half
 asks for `Capability.DEBUG_LOG` and reads bitcoind's `HTTPResponse` lines,
@@ -24,7 +24,7 @@ a release before `v32.0` does not carry. `31.1`, measured, answers 404
 to a request whose short header lines pass the limit only together, and
 writes no `HTTPResponse` line. The body reads the build's own
 `getnetworkinfo` `version`
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
 On an older build the wire half asserts that 404, and the log half
 asserts no `HTTPResponse` line is written. `_HTTP_SERVER_VERSION`'s own
 comment has the known limit.
@@ -40,17 +40,17 @@ import http.client
 from typing import TYPE_CHECKING, Self
 from urllib.parse import urlsplit
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "excessive_request_size_is_logged",
@@ -96,7 +96,7 @@ def _own_http_server(adapter: NodeAdapter) -> bool:
 
     Core's own claim for every node, bitcoind before `_HTTP_SERVER_VERSION`
     excepted, read off its own `getnetworkinfo` `version`
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
     """
     if not isinstance(adapter, BitcoindAdapter):
         return True

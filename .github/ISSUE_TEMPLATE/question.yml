@@ -1,6 +1,6 @@
 ---
 name: Question
-description: Ask how bitcoin-node-tests does something, or why it does it that way
+description: Ask how btclib-functional-tests does something, or why it does it that way
 type: Task
 
 body:
@@ -9,7 +9,7 @@ body:
       value: >
         Discussions are not enabled here, so a question is an issue: this
         form is what keeps one from having to be filed as a bug. The
-        [README](https://github.com/btclib-org/bitcoin-node-tests/blob/main/README.md)
+        [README](https://github.com/btclib-org/btclib-functional-tests/blob/main/README.md)
         comes first, and for a real-time answer there is the Slack
         channel behind the *Chat with the developers* link on the
         new-issue page.

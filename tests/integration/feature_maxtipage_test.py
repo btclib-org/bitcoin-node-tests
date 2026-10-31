@@ -7,7 +7,7 @@
 Read from Core's `test/functional/feature_maxtipage.py`
 (`fa5f29774872`, 2025-12-16), an option and the clock beside
 node-linking
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node restarted with `-maxtipage` (`Capability.MAX_TIP_AGE`) and
 connected to a miner stays in initial block download while every block
 it receives is older than the maximum age by its clock, and leaves it on
@@ -36,15 +36,18 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import RAW_P2PK_SCRIPT_PUB_KEY, build_next_block
-from bitcoin_node_tests.node import connect_nodes, sync_all
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import (
+    RAW_P2PK_SCRIPT_PUB_KEY,
+    build_next_block,
+)
+from btclib_functional_tests.node import connect_nodes, sync_all
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["ibd_ends_at_the_max_tip_age"]
 

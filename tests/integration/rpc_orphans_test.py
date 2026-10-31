@@ -36,9 +36,9 @@ from bitcoin_core_rpc import RpcError, magic_from_chain
 from btclib.p2p import Inv, Inventory, InventoryType, TxPayload
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -46,8 +46,8 @@ if TYPE_CHECKING:
     from btclib.p2p import Payload
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "getorphantxs_is_hidden_and_refuses_a_boolean_verbosity",

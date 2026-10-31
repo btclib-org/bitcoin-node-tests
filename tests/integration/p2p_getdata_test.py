@@ -37,10 +37,10 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.block import genesis_block
 from btclib.p2p import BlockPayload, GetData, Inventory, Ping, Pong
 
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["invalid_getdata_does_not_stop_a_later_valid_one"]
 

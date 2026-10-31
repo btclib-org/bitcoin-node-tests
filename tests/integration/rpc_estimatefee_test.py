@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/rpc_estimatefee.py`
 (`4056908f0fea`, 2026-09-29), a file needing no mechanism the adapter
-lacks ([ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)):
+lacks ([ISS 317](https://github.com/btclib-org/btclib-functional-tests/issues/317)):
 one clean-chain node refuses `estimatesmartfee` and `estimaterawfee`
 given too few or too many arguments, an argument of the wrong type, an
 unknown estimate mode, fee rate estimator, named parameter or option key,
@@ -16,7 +16,7 @@ message, and answers each valid call without an error
 the wrong types included: Core leaves them out only under `--usecli`.
 
 Two steps are per-build
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)),
 each read off the node's own `help estimatesmartfee` by `_help_names`:
 
 - `estimatesmartfee`'s `options` argument, from bitcoin/bitcoin#34075,
@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.capability import Capability, require
 from tests.integration.wallet_signmessagewithaddress_test import refused
 
 if TYPE_CHECKING:
@@ -44,8 +44,8 @@ if TYPE_CHECKING:
 
     from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["fee_estimates_check_their_arguments"]
 

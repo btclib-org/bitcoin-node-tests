@@ -32,8 +32,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import (
     connect_nodes,
     disconnect_nodes,
     wait_until,
@@ -43,8 +43,8 @@ from bitcoin_node_tests.node import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["reserved_high_bandwidth_slot_for_the_outbound_peer"]
 

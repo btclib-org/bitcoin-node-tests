@@ -23,7 +23,7 @@ from urllib.request import Request
 import pytest
 from bitcoin_core_rpc import BitcoinCoreRpcClient, HttpError
 
-from bitcoin_node_tests.node import NodeAdapter, _ThreadSessions
+from btclib_functional_tests.node import NodeAdapter, _ThreadSessions
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from pathlib import Path
     from socket import socket
 
-    from bitcoin_node_tests.capability import Capability
+    from btclib_functional_tests.capability import Capability
 
 # how long a test waits on the server, and the client's own timeout
 _WAIT = 5.0

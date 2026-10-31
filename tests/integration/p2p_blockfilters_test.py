@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_blockfilters.py` (`3fd68a95e68b`,
 2026-04-07), an option and the log beside node-linking
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node under `-blockfilterindex` and `-peerblockfilters`
 (`Capability.BLOCK_FILTER_INDEX`, `Capability.PEER_BLOCK_FILTERS`)
 signals `NODE_COMPACT_FILTERS` and serves BIP157's `cfcheckpt`,
@@ -72,16 +72,16 @@ from btclib.p2p import (
     ServiceFlags,
 )
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import (
     connect_nodes,
     disconnect_nodes,
     wait_until_tips_agree,
 )
-from bitcoin_node_tests.peer import Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.peer import Peer
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -89,8 +89,8 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Payload
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["TEST_TIMEOUT", "block_filters_are_served_to_peers"]
 

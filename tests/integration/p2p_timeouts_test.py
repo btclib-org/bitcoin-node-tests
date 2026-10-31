@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_timeouts.py` (`fa4cb96bdec2`,
 2026-02-17), the option, clock and log families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node started with `-peertimeout=3` (`Capability.PEER_TIMEOUT`) keeps
 three peers that never finish the handshake -- one sending `version`
 and never `verack`, one sending only `ping`, one sending nothing -- for
@@ -56,18 +56,18 @@ import pytest
 from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import Ping, Version
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from contextlib import AbstractContextManager
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_non_positive_peertimeout_is_refused",

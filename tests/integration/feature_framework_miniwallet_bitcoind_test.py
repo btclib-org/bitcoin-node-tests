@@ -27,8 +27,8 @@ from tests.integration.feature_framework_miniwallet_test import (
 )
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.bitcoind import BitcoindAdapter
+    from btclib_functional_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
 

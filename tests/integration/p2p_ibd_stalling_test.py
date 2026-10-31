@@ -57,7 +57,7 @@ here it starts from the genesis block of a fresh one.
 pauses a stalling `manual` peer rather than dropping it only from
 bitcoin/bitcoin@698b5bbf3a0a0a52d97ae6acce2752769f14a208. Where the
 build's own `help addconnection` names no `manual`
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)),
 the second check's bodies assert the refusal Core's
 `RPC_INVALID_PARAMETER` answers instead.
 
@@ -66,7 +66,7 @@ withheld first is sent (bitcoin/bitcoin#32179, fixed by bitcoin/bitcoin#32180).
 No option or RPC tells such a build apart, so the first check's log half
 reads the build's own `getnetworkinfo` `version` and, there, does not
 assert `Stall started` absent
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+([ISS 354](https://github.com/btclib-org/btclib-functional-tests/issues/354)).
 
 Each `p2p_ibd_stalling_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -89,11 +89,11 @@ from btclib.consensus import CONSENSUS_PARAMS
 from btclib.p2p import BlockPayload, GetData, Headers
 from btclib.p2p.inventory import InventoryType
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Listener
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Listener
 from tests.integration.p2p_add_connections_test import takes_manual
 from tests.integration.p2p_conns_test import Conn
 from tests.integration.script_verify_flag_test import bitcoind_version
@@ -105,9 +105,9 @@ if TYPE_CHECKING:
 
     from btclib.p2p import Message, Payload, Version
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
-    from bitcoin_node_tests.peer import Peer
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
+    from btclib_functional_tests.peer import Peer
 
 __all__ = [
     "manual_peer_stalling_is_logged",
@@ -183,7 +183,7 @@ def _relogs_stall(node: NodeAdapter) -> bool:
     It does once the block withheld first is sent, and only a bitcoind
     before `_STALL_NOT_RELOGGED_VERSION` does, read off its own
     `getnetworkinfo` `version`
-    ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+    ([ISS 354](https://github.com/btclib-org/btclib-functional-tests/issues/354)).
     """
     version = bitcoind_version(node)
     return version is not None and version < _STALL_NOT_RELOGGED_VERSION

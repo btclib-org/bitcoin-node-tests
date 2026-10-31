@@ -7,7 +7,7 @@
 Read from Core's `test/functional/feature_utxo_set_hash.py`
 (`58eeab790d98`, 2026-05-13) and narrowed to what the MiniWallet family
 reaches
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 `MiniWallet.generate`/`send_self_transfer` (`Capability.MINE`) build a
 short chain, `gettxoutsetinfo` is `Capability.UTXO_SET_INFO`, and
 `btclib.coinstats.CoinStats` -- covered in `TF2.md`'s own entry for
@@ -53,12 +53,12 @@ from btclib.tx import OutPoint
 from btclib.tx.coin import Coin
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["independent_muhash_matches_gettxoutsetinfo"]
 

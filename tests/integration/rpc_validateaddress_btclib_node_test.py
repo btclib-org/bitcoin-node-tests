@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
+from btclib_functional_tests.btclib_node import BtclibNodeAdapter
 from tests.integration.rpc_validateaddress_test import (
     invalid_addresses_answer_their_error,
     valid_addresses_answer_their_script_pub_key,
@@ -30,7 +30,7 @@ from tests.integration.rpc_validateaddress_test import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.capability import SkipCounts
     from tests.conftest import AdapterFactory
 
 pytestmark = pytest.mark.integration

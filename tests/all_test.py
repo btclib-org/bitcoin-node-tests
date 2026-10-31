@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Every module and package of bitcoin_node_tests declares an `__all__`.
+"""Every module and package of btclib_functional_tests declares an `__all__`.
 
 A name is public here because a list says so, not because it happens to
 lack a leading underscore. The package root's own `__all__` is empty by
@@ -17,9 +17,9 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-import bitcoin_node_tests
+import btclib_functional_tests
 
-_PACKAGE_DIR = Path(bitcoin_node_tests.__file__).parent
+_PACKAGE_DIR = Path(btclib_functional_tests.__file__).parent
 
 
 def _declares_all(path: Path) -> bool:
@@ -61,4 +61,4 @@ def test_the_root_all_is_empty() -> None:
     declares its own `__all__`; this is what says the root itself holds
     no re-export of any of them.
     """
-    assert bitcoin_node_tests.__all__ == []
+    assert btclib_functional_tests.__all__ == []

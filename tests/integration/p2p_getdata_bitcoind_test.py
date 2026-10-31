@@ -21,7 +21,7 @@ from tests.integration.p2p_getdata_test import (
 )
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.bitcoind import BitcoindAdapter
+    from btclib_functional_tests.bitcoind import BitcoindAdapter
 
 pytestmark = pytest.mark.integration
 

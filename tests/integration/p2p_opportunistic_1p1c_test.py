@@ -144,15 +144,15 @@ from btclib.script.script_pub_key import ScriptPubKey
 from btclib.script.witness import Witness
 from btclib.tx import OutPoint, Tx, TxIn, TxOut
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mempool_util import fill_mempool
-from bitcoin_node_tests.mini_wallet import (
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mempool_util import fill_mempool
+from btclib_functional_tests.mini_wallet import (
     PADDING_DATACARRIER_SIZE,
     MiniWallet,
     Utxo,
 )
-from bitcoin_node_tests.node import wait_until
+from btclib_functional_tests.node import wait_until
 from tests.integration.p2p_conns_test import Clock, RelayConn
 from tests.integration.p2p_private_broadcast_test import malleated_to_invalid_witness
 from tests.integration.p2pk_coins_test import (
@@ -170,8 +170,8 @@ from tests.integration.script_verify_flag_test import bitcoind_version
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_package_is_taken_in_on_top_of_another",

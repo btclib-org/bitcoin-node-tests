@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/rpc_dumptxoutset.py` (`58eeab790d98`,
 2026-05-13), the clock and disk families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node whose clock is set to just past its genesis block
 (`Capability.CLOCK`) mines `COINBASE_MATURITY` blocks
 (`Capability.GENERATE`) and writes its UTXO set to a file in its chain
@@ -55,15 +55,15 @@ import pytest
 from bitcoin_core_rpc import RpcError, magic_from_chain
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import free_ports, wait_until
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import free_ports, wait_until
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["the_utxo_set_is_dumped"]

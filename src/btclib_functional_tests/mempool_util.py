@@ -37,10 +37,10 @@ from typing import TYPE_CHECKING
 from btclib.amount import sats_from_btc
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.mini_wallet import MiniWallet
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "fill_mempool",

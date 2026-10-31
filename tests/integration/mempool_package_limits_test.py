@@ -7,7 +7,7 @@
 Read from Core's `test/functional/mempool_package_limits.py` (`fa5f29774872`,
 2025-12-16) and narrowed to what the option and MiniWallet families reach
 together
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 `-limitclustercount` (`Capability.LIMIT_CLUSTER_COUNT`) caps how many
 transactions one mempool cluster may hold, in-mempool and in-package
 together, and `MiniWallet.send_self_transfer_chain` /
@@ -47,16 +47,16 @@ from typing import TYPE_CHECKING
 
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "in_package_ancestors_count_toward_the_mempool_ancestor_limit",

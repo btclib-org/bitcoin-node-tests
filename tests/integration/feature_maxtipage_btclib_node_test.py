@@ -25,8 +25,8 @@ from tests.integration.feature_maxtipage_test import ibd_ends_at_the_max_tip_age
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-    from bitcoin_node_tests.capability import SkipCounts
+    from btclib_functional_tests.btclib_node import BtclibNodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
 
 pytestmark = pytest.mark.integration
 

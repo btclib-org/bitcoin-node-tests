@@ -17,7 +17,7 @@ from typing import Any
 
 import pytest
 
-from bitcoin_node_tests.socks5 import AddressType, Socks5Proxy, Socks5Request
+from btclib_functional_tests.socks5 import AddressType, Socks5Proxy, Socks5Request
 
 # a `CONNECT` answered with success, bound to 0.0.0.0:0
 _SUCCESS = bytes([5, 0, 0, 1, 0, 0, 0, 0, 0, 0])

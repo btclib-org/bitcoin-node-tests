@@ -13,10 +13,10 @@ from urllib.request import Request
 
 import pytest
 
-from bitcoin_node_tests.btcd import BtcdAdapter, _one_member, _v2_replies
-from bitcoin_node_tests.capability import Capability
-from bitcoin_node_tests.node import NodeAdapter
-from bitcoin_node_tests.timeout_factor import set_factor
+from btclib_functional_tests.btcd import BtcdAdapter, _one_member, _v2_replies
+from btclib_functional_tests.capability import Capability
+from btclib_functional_tests.node import NodeAdapter
+from btclib_functional_tests.timeout_factor import set_factor
 
 if TYPE_CHECKING:
     from pathlib import Path

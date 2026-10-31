@@ -27,8 +27,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.node import free_ports
 from tests.integration.wallet_signmessagewithaddress_test import refused
 
 if TYPE_CHECKING:

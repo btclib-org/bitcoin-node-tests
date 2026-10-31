@@ -7,7 +7,7 @@
 Read from Core's `test/functional/feature_uacomment.py` (`fa5f29774872`,
 2025-12-16) and ported in part, the first test of the option family
 (rule 4 of issue btclib-org/btclib#2220,
-[ISS bitcoin-node-tests#3](https://github.com/btclib-org/bitcoin-node-tests/issues/3)):
+[ISS btclib-functional-tests#3](https://github.com/btclib-org/btclib-functional-tests/issues/3)):
 `-uacomment` appends a comment to the subversion string
 `getnetworkinfo` reports. No other step-5 mechanism is asked for, nor
 `Capability.MINE` nor an outbound connection.
@@ -30,13 +30,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.capability import Capability, require
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["uacomment_appends_to_the_subversion_string"]
 

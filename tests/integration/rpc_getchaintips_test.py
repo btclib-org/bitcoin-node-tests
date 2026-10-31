@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/rpc_getchaintips.py` (`fa16bc53d79c`,
 2026-04-16), a file needing no mechanism the adapter lacks
-([ISS 317](https://github.com/btclib-org/bitcoin-node-tests/issues/317)):
+([ISS 317](https://github.com/btclib-org/btclib-functional-tests/issues/317)):
 four nodes linked in a line, as Core's `setup_network` links them
 (`Capability.CONNECT`), the first reporting its active tip alone
 (`Capability.CHAIN_TIPS`). The network is
@@ -54,8 +54,8 @@ from btclib.block.mining import mine
 from btclib.block.proof_of_work import REGTEST_POW_LIMIT_BITS
 from btclib.consensus import CONSENSUS_PARAMS, subsidy
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.node import (
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.node import (
     connect_nodes,
     disconnect_nodes,
     sync_all,
@@ -65,8 +65,8 @@ from bitcoin_node_tests.node import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["chain_tips_are_reported"]
 

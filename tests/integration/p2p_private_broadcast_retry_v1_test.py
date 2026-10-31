@@ -52,19 +52,19 @@ from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import Ping, Pong, ServiceFlags
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet
-from bitcoin_node_tests.node import free_ports, wait_until
-from bitcoin_node_tests.peer import Listener, Peer
-from bitcoin_node_tests.socks5 import Socks5Proxy
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet
+from btclib_functional_tests.node import free_ports, wait_until
+from btclib_functional_tests.peer import Listener, Peer
+from btclib_functional_tests.socks5 import Socks5Proxy
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
-    from bitcoin_node_tests.socks5 import Socks5Request
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
+    from btclib_functional_tests.socks5 import Socks5Request
     from tests.conftest import AdapterFactory
 
 __all__ = ["v1_retry_goes_through_the_tor_proxy"]

@@ -38,7 +38,7 @@ from typing import TYPE_CHECKING
 
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.capability import Capability, require
 from tests.integration.wallet_signmessagewithaddress_test import refused
 
 if TYPE_CHECKING:
@@ -46,8 +46,8 @@ if TYPE_CHECKING:
 
     from bitcoin_core_rpc import BitcoinCoreRpcClient
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["approx", "simulaterawtransaction_answers_each_wallets_balance_change"]
 

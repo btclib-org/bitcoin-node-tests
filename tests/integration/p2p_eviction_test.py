@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/p2p_eviction.py` (`fa9a9657506d`,
 2026-10-15), the option and MiniWallet families together
-([ISS bitcoin-node-tests#14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS btclib-functional-tests#14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 once `-maxconnections` leaves no inbound slot for a new peer, the node
 evicts an existing inbound one (`Capability.INBOUND_EVICTION`), and never
 one of those its eviction logic protects -- here the peers that sent it
@@ -67,17 +67,17 @@ from btclib.p2p import Headers, Ping, Pong
 from btclib.p2p.data import BlockPayload, TxPayload
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mini_wallet import MiniWallet, build_fork
-from bitcoin_node_tests.node import wait_until
-from bitcoin_node_tests.peer import Peer
-from bitcoin_node_tests.timeout_factor import scaled
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mini_wallet import MiniWallet, build_fork
+from btclib_functional_tests.node import wait_until
+from btclib_functional_tests.peer import Peer
+from btclib_functional_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["the_evicted_inbound_peer_is_never_a_protected_one"]
 

@@ -11,7 +11,7 @@ Core starts its node with `-peerbloomfilters=0`, which is the default, so
 this node takes no option. The file's other steps are not ported here.
 
 The step asserts two facts of one action, so it is split as the log family
-splits them ([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)).
+splits them ([ISS 5](https://github.com/btclib-org/btclib-functional-tests/issues/5)).
 The wire half reads the disconnect. Core's `getconnectioncount` check after
 it is dropped: the closed socket already says the node closed it. The log
 half asks for `Capability.DEBUG_LOG`.
@@ -19,7 +19,7 @@ half asks for `Capability.DEBUG_LOG`.
 The disconnect is in bitcoind from bitcoin/bitcoin#35832, which a
 release before `v32.0` does not carry: there the request is ignored and
 the peer kept. The body reads the build's own `getnetworkinfo` `version`
-([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
 On an older build the wire half asserts the peer is kept, and the log
 half asserts the line is not written. `_DISCONNECT_VERSION`'s own
 comment has the known limit.
@@ -36,14 +36,14 @@ from typing import TYPE_CHECKING
 from bitcoin_core_rpc import magic_from_chain
 from btclib.p2p import GetData, Inventory, InventoryType
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.peer import Peer
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.peer import Peer
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "filtered_block_request_disconnects_the_peer",
@@ -69,7 +69,7 @@ def _disconnects(adapter: NodeAdapter) -> bool:
 
     Core's own claim for every node, bitcoind before `_DISCONNECT_VERSION`
     excepted, read off its own `getnetworkinfo` `version`
-    ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
+    ([ISS 35](https://github.com/btclib-org/btclib-functional-tests/issues/35)).
     """
     if not isinstance(adapter, BitcoindAdapter):
         return True

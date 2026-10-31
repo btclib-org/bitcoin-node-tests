@@ -6,7 +6,7 @@
 
 Read from Core's `test/functional/feature_reindex.py` (`9e6546c517cd`,
 2026-06-21), the option, disk and log families together
-([ISS 14](https://github.com/btclib-org/bitcoin-node-tests/issues/14)):
+([ISS 14](https://github.com/btclib-org/btclib-functional-tests/issues/14)):
 a node restarted with `-reindex` or `-reindex-chainstate`
 (`Capability.REINDEX`) comes back at the height it had; one whose block
 file holds a block ahead of its parent reindexes them all the same,
@@ -49,16 +49,16 @@ from typing import TYPE_CHECKING
 
 from bitcoin_core_rpc import magic_from_chain
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.debug_log import assert_debug_log
-from bitcoin_node_tests.node import free_ports, wait_until
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.debug_log import assert_debug_log
+from btclib_functional_tests.node import free_ports, wait_until
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = [

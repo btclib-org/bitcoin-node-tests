@@ -42,7 +42,7 @@ What differs from Core's file:
   averaging Core's `INBOUND_INVENTORY_BROADCAST_INTERVAL`
   (`src/net_processing.cpp`), so the peer can trail by more than
   `sync_all`'s default wait, half of what Core's `sync_mempools` waits
-  ([ISS 469](https://github.com/btclib-org/bitcoin-node-tests/issues/469));
+  ([ISS 469](https://github.com/btclib-org/btclib-functional-tests/issues/469));
 - Core's `MiniWallet` mines its coins once, for every subtest; here each
   body's own mines, to maturity, the coins that body spends;
 - a block Core's node mines from its own mempool is built here
@@ -69,19 +69,19 @@ from typing import TYPE_CHECKING, Any
 from btclib.amount import btc_from_sats, sats_from_btc
 from btclib.tx.limits import COINBASE_MATURITY
 
-from bitcoin_node_tests.capability import Capability, require
-from bitcoin_node_tests.mempool_util import fill_mempool
-from bitcoin_node_tests.mini_wallet import PADDING_DATACARRIER_SIZE, MiniWallet
-from bitcoin_node_tests.node import connect_nodes, sync_all
+from btclib_functional_tests.capability import Capability, require
+from btclib_functional_tests.mempool_util import fill_mempool
+from btclib_functional_tests.mini_wallet import PADDING_DATACARRIER_SIZE, MiniWallet
+from btclib_functional_tests.node import connect_nodes, sync_all
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from btclib.tx import Tx
 
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.mini_wallet import Utxo
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.mini_wallet import Utxo
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = [
     "a_child_double_spending_its_mempool_ancestor_is_refused",

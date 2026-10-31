@@ -22,7 +22,7 @@ follows `setmocktime` (bitcoin/bitcoin#34328). No probe tells the two
 apart, the node having no option or RPC for it: that build is asserted to
 follow the mock clock, as Core's own file did there, read off its own
 `getnetworkinfo` `version`
-([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)).
+([ISS 354](https://github.com/btclib-org/btclib-functional-tests/issues/354)).
 """
 
 from __future__ import annotations
@@ -30,12 +30,12 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.capability import Capability, require
+from btclib_functional_tests.capability import Capability, require
 from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
-    from bitcoin_node_tests.capability import SkipCounts
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.capability import SkipCounts
+    from btclib_functional_tests.node import NodeAdapter
 
 __all__ = ["uptime_does_not_jump_with_the_wall_clock"]
 

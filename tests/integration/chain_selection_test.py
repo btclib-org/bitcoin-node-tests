@@ -4,7 +4,7 @@
 
 """`NodeAdapter`'s own `chain`, one body over each node.
 
-[ISS 63](https://github.com/btclib-org/bitcoin-node-tests/issues/63):
+[ISS 63](https://github.com/btclib-org/btclib-functional-tests/issues/63):
 a node started on each chain its adapter's `chains` names answers
 `getblockchaininfo` with that chain, writes its log where the adapter
 reads it, accepts a connection on its p2p port, and holds no peer --
@@ -20,15 +20,15 @@ from __future__ import annotations
 import socket
 from typing import TYPE_CHECKING
 
-from bitcoin_node_tests.bitcoind import BitcoindAdapter
-from bitcoin_node_tests.btcd import BtcdAdapter
-from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
-from bitcoin_node_tests.node import free_ports
+from btclib_functional_tests.bitcoind import BitcoindAdapter
+from btclib_functional_tests.btcd import BtcdAdapter
+from btclib_functional_tests.btclib_node import BtclibNodeAdapter
+from btclib_functional_tests.node import free_ports
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bitcoin_node_tests.node import NodeAdapter
+    from btclib_functional_tests.node import NodeAdapter
     from tests.conftest import AdapterFactory
 
 __all__ = ["node_starts_on_the_chain_it_is_given"]

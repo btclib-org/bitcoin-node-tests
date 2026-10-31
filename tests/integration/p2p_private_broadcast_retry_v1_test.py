@@ -18,14 +18,14 @@ IPv4 address it is asked for, and every later request for that address,
 to a `_Sniffer`, which reads the start of what the node sends and
 closes: v1's network magic, or the start of v2's key.
 
-The body asks for `Capability.PRIVATE_BROADCAST`, and for the capability
-of every other option its node is given: `PROXY` for `-proxy` and
-`-onion`, `V2TRANSPORT` for `-v2transport`, and `PEER_TIMEOUT` for the
-`-peertimeout` Core's harness gives every node; `KNOWN_ADDRESSES` for
-Core's own `fill_node_addrman` (`test_framework/test_framework.py`) and
-`MINE` for its `MiniWallet`; and `ADDRESS_TABLES` for Core's
-`-test=addrman`. The `-dnsseed=0` of Core's `write_config` is passed with
-no capability of its own. Every step of Core's file is kept in its order.
+The body asks for `Capability.PRIVATE_BROADCAST`, and for the capability of
+every other option its node is given: `PROXY` for `-proxy` and `-onion`,
+`V2TRANSPORT` for `-v2transport`, `ADDRESS_TABLES` for `-test=addrman`, and
+`PEER_TIMEOUT` for the `-peertimeout` Core's harness gives every node;
+`KNOWN_ADDRESSES` for Core's own `fill_node_addrman`
+(`test_framework/test_framework.py`) and `MINE` for its `MiniWallet`. The
+`-dnsseed=0` of Core's `write_config` is passed with no capability of its own.
+Every step of Core's file is kept in its order.
 
 What differs from Core's file:
 

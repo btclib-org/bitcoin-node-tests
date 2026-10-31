@@ -13,17 +13,16 @@ or height, and keeps it out of its own mempool until a peer sends it
 back. `getprivatebroadcastinfo` lists what it is sending, and
 `abortprivatebroadcast` stops sending one.
 
-The body asks for `Capability.PRIVATE_BROADCAST`, and for the capability
-of every other option its node is given: `PROXY` for `-proxy`, `CJDNS`
-for `-cjdnsreachable`, `I2P_SAM` for `-i2psam`, `V2TRANSPORT` for
-`-v2transport`, and `PEER_TIMEOUT` for the `-peertimeout` Core's harness
-gives every node; `KNOWN_ADDRESSES` for Core's own `fill_node_addrman`
-(`test_framework/test_framework.py`), `MINE` for its `MiniWallet`, `CLOCK`
-for its `setmocktime` and `DEBUG_LOG` for its log lines; and
-`ADDRESS_TABLES` for Core's `-test=addrman`. The `-dnsseed=0` of Core's
-`write_config` is passed with no capability of its own.
-Every step of Core's file is kept in its order, every assertion with it
-but those named below.
+The body asks for `Capability.PRIVATE_BROADCAST`, and for the capability of
+every other option its node is given: `PROXY` for `-proxy`, `CJDNS` for
+`-cjdnsreachable`, `I2P_SAM` for `-i2psam`, `V2TRANSPORT` for `-v2transport`,
+`ADDRESS_TABLES` for `-test=addrman`, and `PEER_TIMEOUT` for the `-peertimeout`
+Core's harness gives every node; `KNOWN_ADDRESSES` for Core's own
+`fill_node_addrman` (`test_framework/test_framework.py`), `MINE` for its
+`MiniWallet`, `CLOCK` for its `setmocktime` and `DEBUG_LOG` for its log lines.
+The `-dnsseed=0` of Core's `write_config` is passed with no capability of its
+own. Every step of Core's file is kept in its order, every assertion with it but
+those named below.
 
 `socks5.Socks5Proxy` is Core's proxy, given a `destinations_factory` that
 reads the connection's type off the node's own `getpeerinfo` and forwards

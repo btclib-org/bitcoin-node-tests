@@ -30,11 +30,14 @@ needs to also cover.
 
 Each body starts its node without `-limitclustersize` and, where the
 node declares the capability, restarts it with the option before any
-block is mined. A build before the cluster mempool (`v31.0`) has no such
-option and limits a chain by its ancestors instead: the tournament runs
-there as it is, within the default ancestor and descendant limits, and
-the chain is the default of 25 and two more, refused as
-`too-long-mempool-chain`.
+block is mined. Which limit a chain meets is read off the node's own
+`help`, as `feature_rbf_test.py` reads it: a node listing
+`getmempoolcluster` runs the cluster mempool, whether or not it takes
+the option. btclib-node lists it and takes no `-limitclustersize`. A
+build before the cluster mempool (`v31.0`) lists neither and limits a
+chain by its ancestors instead: the tournament runs there as it is,
+within the default ancestor and descendant limits, and the chain is the
+default of 25 and two more, refused as `too-long-mempool-chain`.
 
 Each `mempool_updatefromblock_<node>_test.py` module beside this one
 runs each body, `tests/integration/conftest.py`'s own module docstring
@@ -85,6 +88,13 @@ _DEFAULT_CLUSTER_LIMIT = 64
 _DEFAULT_ANCESTOR_LIMIT = 25
 
 
+def _has_cluster_mempool(node: NodeAdapter) -> bool:
+    """Return whether `node` runs the cluster mempool, read off its `help`."""
+    text = node.rpc.call("help")
+    assert isinstance(text, str), text
+    return "getmempoolcluster" in text
+
+
 def _start(
     cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
@@ -93,7 +103,8 @@ def _start(
     """Return one node and whether it runs the cluster mempool.
 
     A node declaring `Capability.LIMIT_CLUSTER_SIZE` is restarted with
-    `-limitclustersize=1000`.
+    `-limitclustersize=1000`. Whether it runs the cluster mempool is
+    `_has_cluster_mempool`'s answer, not the capability.
 
     :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
@@ -105,8 +116,8 @@ def _start(
         require(capability, node.capabilities, skip_counts)
     require(Capability.MINE, node.capabilities, skip_counts)
     require(Capability.MEMPOOL_ENTRY, node.capabilities, skip_counts)
-    clustered = Capability.LIMIT_CLUSTER_SIZE in node.capabilities
-    if clustered:
+    clustered = _has_cluster_mempool(node)
+    if Capability.LIMIT_CLUSTER_SIZE in node.capabilities:
         node.restart(["-limitclustersize=1000"])
     return node, clustered
 

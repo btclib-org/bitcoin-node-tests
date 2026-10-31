@@ -1727,7 +1727,7 @@ def test_served_rpcs_reads_the_probe_s_own_stdout() -> None:
         ["fake-python-main", "-c", btclib_node_module._SERVED_RPCS_PROBE],
         check=False,
         capture_output=True,
-        text=True,
+        encoding="utf-8",
     )
 
 

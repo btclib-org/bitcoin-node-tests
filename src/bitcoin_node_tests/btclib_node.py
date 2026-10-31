@@ -945,7 +945,7 @@ def _served_rpcs(executable: str) -> frozenset[str]:
         [executable, "-c", _SERVED_RPCS_PROBE],
         check=False,
         capture_output=True,
-        text=True,
+        encoding="utf-8",
     )
     if probe.returncode != 0:
         return frozenset()

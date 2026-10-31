@@ -1304,11 +1304,13 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   refusal and its help are not Core's
   ([ISS btclib-node#2126](https://github.com/btclib-org/btclib-node/issues/2126)).
 - `rpc_scantxoutset.py`: fails: `start` with a null scan-object list is
-  refused as a type error, where Core `v32.0` and later refuse it as the
-  missing argument ([ISS btclib-node#2104](https://github.com/btclib-org/btclib-node/issues/2104)).
+  refused as a type error, where the pinned bitcoind refuses it as the
+  missing argument
+  ([ISS btclib-node#2104](https://github.com/btclib-org/btclib-node/issues/2104)).
 - `mining_template_verification.py`: fails: a proposed block whose coinbase
-  input names a non-null prevout is answered "first transaction is not a coinbase",
-  where Core answers `bad-cb-missing` ([ISS btclib-node#2167](https://github.com/btclib-org/btclib-node/issues/2167)).
+  input names a non-null prevout is answered "first transaction is not a
+  coinbase", where Core answers `bad-cb-missing`
+  ([ISS btclib-node#2167](https://github.com/btclib-org/btclib-node/issues/2167)).
 - `mempool_accept_wtxid.py`: a `Peer` stands in for Core's
   `P2PInterface`.
 - `rpc_orphans.py`: Core's claim in full.
@@ -1384,8 +1386,9 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   ([ISS btclib-node#1449](https://github.com/btclib-org/btclib-node/issues/1449)).
 - `rpc_dumptxoutset.py`: every check of Core's file but the hashes it asserts as
   constants, asserted against the same node. Fails: a dump rolled back to a
-  height a fork also reaches is refused, where Core `v32.0` and later roll
-  back without invalidating blocks ([ISS btclib-node#2103](https://github.com/btclib-org/btclib-node/issues/2103)).
+  height a fork also reaches is refused, where the pinned bitcoind rolls
+  back without invalidating blocks
+  ([ISS btclib-node#2103](https://github.com/btclib-org/btclib-node/issues/2103)).
 - `feature_loadblock.py`: Core's claim, the test writing the block file itself
   in the format `linearize-data.py` writes. Skips on `load_block`, left out by
   decision
@@ -1402,8 +1405,9 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   ([ISS btclib-node#1395](https://github.com/btclib-org/btclib-node/issues/1395)).
 - `p2p_getaddr_caching.py`: Core's claim, bitcoind's test running on
   `UnboundBitcoindAdapter`. Skips on `peer_timeout`.
-- `mempool_reorg.py`: Core's claim in full. The (relay) row fails: the node serves a transaction it never
-  announced ([ISS btclib-node#2157](https://github.com/btclib-org/btclib-node/issues/2157)).
+- `mempool_reorg.py`: Core's claim in full. The (relay) row fails: the node
+  serves a transaction it never announced
+  ([ISS btclib-node#2157](https://github.com/btclib-org/btclib-node/issues/2157)).
 - `interface_rpc.py`: the work queue step is read off the HTTP reply, not
   through `bitcoin-cli`
   ([ISS 49](https://github.com/btclib-org/bitcoin-node-tests/issues/49)).
@@ -1474,9 +1478,9 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
 - `rpc_signmessagewithprivkey.py`: Core's claim in full.
 - `feature_chain_tiebreaks.py`: Core's claim in full.
 - `p2p_sendheaders.py`: Core's claim in full. Fails, by a race: after a block
-  node0 mines, the two nodes stay on different tips of equal work
-  ([ISS btclib-node#2172](https://github.com/btclib-org/btclib-node/issues/2172)). A run where they converge reports the
-  row fixed.
+  is mined, the nodes stay on different tips of equal work
+  ([ISS btclib-node#2172](https://github.com/btclib-org/btclib-node/issues/2172)):
+  a run where they converge reports the row fixed.
 - `p2p_fingerprint.py`: Core's claim in full. Once the clock set back is
   released, the node can drop the peer for silence, though it connected
   under a minute ago
@@ -1528,7 +1532,8 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   skips on the capability its cell names.
 - `p2p_blocksonly.py`: the `-blocksonly` rows skip on `blocks_only`, and the
   block-relay-only log row on `debug_log`. The block-relay-only wire row
-  fails: `getnetworkinfo` answers no `localrelay` ([ISS btclib-node#2128](https://github.com/btclib-org/btclib-node/issues/2128)).
+  fails: `getnetworkinfo` answers no `localrelay`
+  ([ISS btclib-node#2128](https://github.com/btclib-org/btclib-node/issues/2128)).
 - `p2p_leak_tx.py`: the (unannounced) row fails: the node answers a
   `getdata` for a transaction it never announced
   ([ISS btclib-node#2157](https://github.com/btclib-org/btclib-node/issues/2157)).
@@ -1550,9 +1555,11 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   ([ISS btclib-node#2161](https://github.com/btclib-org/btclib-node/issues/2161)):
   a run where the announcer is asked reports the row fixed.
 - `p2p_compactblocks.py`: the log rows skip. The optimistic
-  invalid-`cmpctblock` row fails: the node keeps the peer, as `v32.1` does,
-  where Core's `master` drops it ([ISS btclib-node#2170](https://github.com/btclib-org/btclib-node/issues/2170)). Every other row passes: a `cmpctblock` from a peer that
-  sent no `sendcmpct` is ignored
+  invalid-`cmpctblock` row fails: the node keeps the peer, as the pinned
+  bitcoind does, where Core's `master` drops it
+  ([ISS btclib-node#2170](https://github.com/btclib-org/btclib-node/issues/2170)).
+  Every other row passes: a `cmpctblock` from a peer that sent no
+  `sendcmpct` is ignored
   ([ISS btclib-node#1890](https://github.com/btclib-org/btclib-node/issues/1890),
   [ISS btclib-node#1897](https://github.com/btclib-org/btclib-node/issues/1897));
   a block is received as a `cmpctblock` and a high-bandwidth peer selected
@@ -1572,8 +1579,10 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   and on a later capability where it does.
 - `p2p_add_connections.py`: the first row fails, by a race: once the test's
   peers close, `getpeerinfo` lists none of them a moment before
-  `getnetworkinfo` stops counting them ([ISS btclib-node#2168](https://github.com/btclib-org/btclib-node/issues/2168)). A run where the counts
-  catch up first reports the row fixed. The (`manual`) row passes.
+  `getnetworkinfo` stops counting them
+  ([ISS btclib-node#2168](https://github.com/btclib-org/btclib-node/issues/2168)):
+  a run where the counts catch up first reports the row fixed. The
+  (`manual`) row passes.
 - `p2p_block_times.py`: fails: `getpeerinfo` answers no
   `last_block_announcement`, which Core's `master` answers
   ([ISS btclib-node#2171](https://github.com/btclib-org/btclib-node/issues/2171)).

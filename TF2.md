@@ -927,7 +927,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `mempool_dust.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | skip (dust_relay_fee) |
 | `mempool_sigoplimit.py` | `5d25a0c28d19` | 2026-07-07 | pass | skip |
 | `mempool_package_limits.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass; skip (limit_cluster_count) on a build before the cluster mempool | skip (limit_cluster_count) |
-| `mempool_updatefromblock.py` | `fa6b05c96ffb` | 2026-03-12 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS 548](https://github.com/btclib-org/bitcoin-node-tests/issues/548)) |
+| `mempool_updatefromblock.py` | `fa6b05c96ffb` | 2026-03-12 | pass, the limits asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | pass |
 | `p2p_leak_tx.py` (in block) | `fa5f29774872` | 2025-12-16 | pass, the `getpeerinfo` fields asserted per-build ([ISS 354](https://github.com/btclib-org/bitcoin-node-tests/issues/354)) | pass |
 | `p2p_leak_tx.py` (replaced) | same | same | pass | pass |
 | `p2p_leak_tx.py` (unannounced) | same | same | pass | fail ([ISS btclib-node#2157](https://github.com/btclib-org/btclib-node/issues/2157)) |
@@ -1553,9 +1553,6 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   skips on the capability its cell names.
 - `p2p_blocksonly.py`: the `-blocksonly` rows skip on `blocks_only`, the
   block-relay-only rows on `typed_outbound`.
-- `mempool_updatefromblock.py`: the row fails on its chain-limit test,
-  which reads btclib-node's cluster mempool as ancestor-limited
-  ([ISS 548](https://github.com/btclib-org/bitcoin-node-tests/issues/548)).
 - `p2p_leak_tx.py`: the (unannounced) row fails: the node answers a
   `getdata` for a transaction it never announced
   ([ISS btclib-node#2157](https://github.com/btclib-org/btclib-node/issues/2157)).

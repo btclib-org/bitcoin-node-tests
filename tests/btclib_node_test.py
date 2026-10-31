@@ -52,6 +52,8 @@ def test_capabilities_gain_rpc_auth_config_where_the_build_writes_a_cookie(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -81,6 +83,8 @@ def test_capabilities_gain_rpc_auth_negation_where_the_build_negates(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -111,6 +115,8 @@ def test_capabilities_gain_inbound_eviction_where_the_build_evicts(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -140,6 +146,8 @@ def test_capabilities_gain_mine_where_the_build_connects_alone(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -167,6 +175,8 @@ def test_capabilities_gain_ban_where_the_build_serves_a_ban_list(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -194,6 +204,8 @@ def test_capabilities_gain_min_relay_tx_fee_where_the_build_sets_it(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -223,6 +235,8 @@ def test_capabilities_gain_permit_bare_multisig_where_the_build_reads_it(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=True),
     ):
@@ -252,6 +266,8 @@ def test_capabilities_gain_chain_tips_where_the_build_serves_them(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -281,6 +297,8 @@ def test_capabilities_gain_disconnect_where_the_build_serves_it(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -310,6 +328,8 @@ def test_capabilities_gain_package_acceptance_where_the_build_serves_it(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -339,6 +359,8 @@ def test_capabilities_gain_orphanage_where_the_build_serves_it(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -368,6 +390,8 @@ def test_capabilities_gain_cluster_replacement_where_the_build_counts_clusters(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -397,6 +421,8 @@ def test_capabilities_gain_listen_address_where_the_build_reads_bind(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -426,6 +452,8 @@ def test_capabilities_gain_peer_permissions_where_the_build_reads_whitelist(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=True),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -455,6 +483,8 @@ def test_capabilities_gain_v2transport_where_the_build_speaks_bip324(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=True),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -484,6 +514,8 @@ def test_capabilities_are_the_class_set_where_no_probe_holds(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -511,6 +543,8 @@ def test_capabilities_gain_mempool_entry_where_the_build_serves_it(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=True),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -519,6 +553,66 @@ def test_capabilities_gain_mempool_entry_where_the_build_serves_it(
         Capability.MEMPOOL_ENTRY
     }
     assert Capability.INCLUDE_CONF not in adapter.capabilities
+
+
+def test_capabilities_gain_clock_where_the_build_serves_setmocktime(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a `setmocktime`-serving build declares `CLOCK`."""
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=False),
+        patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
+        patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
+        patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_replaces_by_cluster", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
+        patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
+        patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
+        patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=True),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
+    ):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities == BtclibNodeAdapter.capabilities | {Capability.CLOCK}
+
+
+def test_capabilities_gain_generate_where_the_build_serves_it(
+    tmp_path: Path,
+) -> None:
+    """An instance built with a build serving both RPCs declares `GENERATE`."""
+    with (
+        patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
+        patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
+        patch.object(btclib_node_module, "_evicts_inbound", return_value=False),
+        patch.object(btclib_node_module, "_connects_alone", return_value=False),
+        patch.object(btclib_node_module, "_serves_ban_list", return_value=False),
+        patch.object(btclib_node_module, "_sets_min_relay_fee", return_value=False),
+        patch.object(btclib_node_module, "_serves_chain_tips", return_value=False),
+        patch.object(btclib_node_module, "_serves_disconnect", return_value=False),
+        patch.object(btclib_node_module, "_serves_submitpackage", return_value=False),
+        patch.object(btclib_node_module, "_serves_getorphantxs", return_value=False),
+        patch.object(btclib_node_module, "_replaces_by_cluster", return_value=False),
+        patch.object(btclib_node_module, "_binds_address", return_value=False),
+        patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
+        patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
+        patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=True),
+        patch.object(btclib_node_module, "_speaks_v2", return_value=False),
+        patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
+    ):
+        adapter = BtclibNodeAdapter(sys.executable, tmp_path, 18443, 18444)
+    assert adapter.capabilities == BtclibNodeAdapter.capabilities | {
+        Capability.GENERATE
+    }
 
 
 def test_capabilities_gain_include_conf_where_the_build_reads_it(
@@ -541,6 +635,8 @@ def test_capabilities_gain_include_conf_where_the_build_reads_it(
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=True),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=False),
+        patch.object(btclib_node_module, "_serves_generate", return_value=False),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -618,8 +714,10 @@ def test_cookie_and_log_are_the_chain_s_own(
     assert adapter.log_path == tmp_path / subdir / "history.log"
 
 
-def test_capabilities_drop_mine_on_another_chain(tmp_path: Path) -> None:
-    """A build that connects alone still gains no `MINE` off regtest."""
+def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
+    tmp_path: Path,
+) -> None:
+    """Holding probes give no `MINE`, `CLOCK` or `GENERATE` off regtest."""
     with (
         patch.object(btclib_node_module, "_writes_auth_cookie", return_value=False),
         patch.object(btclib_node_module, "_negates_rpcauth", return_value=False),
@@ -636,6 +734,8 @@ def test_capabilities_drop_mine_on_another_chain(tmp_path: Path) -> None:
         patch.object(btclib_node_module, "_reads_whitelist", return_value=False),
         patch.object(btclib_node_module, "_serves_mempool_entry", return_value=False),
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
+        patch.object(btclib_node_module, "_serves_setmocktime", return_value=True),
+        patch.object(btclib_node_module, "_serves_generate", return_value=True),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -1431,3 +1531,91 @@ def test_include_conf_probe_answers_from_the_parse(
         btclib_node_module._reads_includeconf, body, tmp_path, monkeypatch
     )
     assert answer is read
+
+
+def test_serves_setmocktime_reads_the_probe_s_own_return_code() -> None:
+    """`_serves_setmocktime` is `_SETMOCKTIME_PROBE` exiting zero."""
+    btclib_node_module._serves_setmocktime.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._serves_setmocktime("fake-python-main") is True
+    run.assert_called_once_with(
+        ["fake-python-main", "-c", btclib_node_module._SETMOCKTIME_PROBE],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_serves_setmocktime_is_false_where_the_table_lacks_it() -> None:
+    """A nonzero exit -- the RPC missing, or no such table -- is `False`."""
+    btclib_node_module._serves_setmocktime.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
+        assert btclib_node_module._serves_setmocktime("fake-python-release") is False
+
+
+@pytest.mark.parametrize(
+    "callbacks, served",
+    [
+        ('{"setmocktime": None}', True),
+        ('{"getblockcount": None}', False),
+        ('{"getblockcount": "setmocktime"}', False),
+        ("[]", False),
+    ],
+)
+def test_setmocktime_probe_answers_from_the_table_s_keys(
+    callbacks: str, served: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_SETMOCKTIME_PROBE` answers from the keys of a stub `callbacks`."""
+    package = tmp_path / "btclib_node" / "rpc"
+    package.mkdir(parents=True)
+    (tmp_path / "btclib_node" / "__init__.py").write_text("")
+    (package / "__init__.py").write_text("")
+    (package / "callbacks.py").write_text(f"callbacks = {callbacks}\n")
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path))
+    btclib_node_module._serves_setmocktime.cache_clear()
+    answer = btclib_node_module._serves_setmocktime(sys.executable)
+    btclib_node_module._serves_setmocktime.cache_clear()
+    assert answer is served
+
+
+def test_serves_generate_reads_the_probe_s_own_return_code() -> None:
+    """`_serves_generate` is `_GENERATE_PROBE` exiting zero."""
+    btclib_node_module._serves_generate.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert btclib_node_module._serves_generate("fake-python-main") is True
+    run.assert_called_once_with(
+        ["fake-python-main", "-c", btclib_node_module._GENERATE_PROBE],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_serves_generate_is_false_where_the_table_lacks_them() -> None:
+    """A nonzero exit -- an RPC missing, or no such table -- is `False`."""
+    btclib_node_module._serves_generate.cache_clear()
+    with patch("subprocess.run", return_value=SimpleNamespace(returncode=1)):
+        assert btclib_node_module._serves_generate("fake-python-release") is False
+
+
+@pytest.mark.parametrize(
+    "callbacks, served",
+    [
+        ('{"generatetoaddress": None, "generateblock": None}', True),
+        ('{"generatetoaddress": None}', False),
+        ('{"generateblock": None}', False),
+        ("{}", False),
+    ],
+)
+def test_generate_probe_answers_from_the_table_s_keys(
+    callbacks: str, served: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_GENERATE_PROBE` asks for both RPCs in a stub `callbacks`."""
+    package = tmp_path / "btclib_node" / "rpc"
+    package.mkdir(parents=True)
+    (tmp_path / "btclib_node" / "__init__.py").write_text("")
+    (package / "__init__.py").write_text("")
+    (package / "callbacks.py").write_text(f"callbacks = {callbacks}\n")
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path))
+    btclib_node_module._serves_generate.cache_clear()
+    answer = btclib_node_module._serves_generate(sys.executable)
+    btclib_node_module._serves_generate.cache_clear()
+    assert answer is served

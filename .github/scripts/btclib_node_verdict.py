@@ -6,12 +6,13 @@ r"""Compare a btclib-node run of `tests/integration` with `TF2.md`'s column.
 
 `node-integration.yml`'s `btclib-node` and `btclib-node-main` jobs run
 every `*_btclib_node_test.py` module, and some of those tests fail by
-design: a **fail** row of `TF2.md`'s per-test ledger is a disagreement
-filed on btclib-node's own tracker, and a **not ported** one a stub
-ending in `pytest.fail`. So pytest's own exit status says nothing about
-whether anything changed. This script says it instead: each row of the
-ledger's `btclib-node` column against the testcases of the JUnit report
-that row covers, printing every row whose outcome moved.
+design: a **fail** row of `TF2.md`'s per-test ledger names the issue it
+is filed as (that ledger's own legend says which tracker), and a **not
+ported** one is a stub ending in `pytest.fail`. So pytest's own exit
+status says nothing about whether anything changed. This script says it
+instead: each row of the ledger's `btclib-node` column against the
+testcases of the JUnit report that row covers, printing every row whose
+outcome moved.
 
 **Which verdict a cell gives for which build.** A cell is either a
 single verdict, true of every build, or two `; `-separated segments, in

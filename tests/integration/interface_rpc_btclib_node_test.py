@@ -7,12 +7,8 @@
 `interface_rpc_test.py` beside this module is the body, run here against
 the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). `btclib_node.py`'s own docstring has no build
-declaring `Capability.RPC_INFO`, `Capability.GENERATE` or
-`Capability.RPC_WORK_QUEUE`, so the `getrpcinfo` test, the notification
-test past its requests that are no notification, and the work queue
-test are counted skips. A run of the last on this node also needs
-`waitfornewblock`, which `rpc/callbacks.py`'s own dispatch table does
-not name on either build.
+declaring `Capability.RPC_INFO` or `Capability.RPC_WORK_QUEUE`, so the
+`getrpcinfo` test and the work queue test are counted skips.
 
 The batch and the status code tests ask for nothing beyond the node's
 own RPC. A build before

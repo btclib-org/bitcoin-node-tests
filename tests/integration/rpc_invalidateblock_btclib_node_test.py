@@ -6,9 +6,7 @@
 
 `rpc_invalidateblock_test.py` beside this module is the body, run
 here against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). The test is a counted skip on
-`Capability.GENERATE`, which `btclib_node.py`'s own docstring
-has no build declaring.
+btclib-org/btclib#2220). `TF2.md`'s per-test table carries the test's verdict.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/rpc_invalidateblock_btclib_node_test.py

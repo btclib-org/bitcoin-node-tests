@@ -12,7 +12,7 @@ header, once the block is a month or more older than its best header,
 so that a peer cannot fingerprint it by the stale blocks it holds.
 
 With the node's clock set sixty days back (`Capability.CLOCK`), the node
-mines a chain (`Capability.MINE`), and a peer announces by their headers
+mines a chain (`Capability.GENERATE`), and a peer announces by their headers
 a longer fork built with btclib from two blocks below the tip, sending
 each block once the node asks for it. The node reorganises onto the fork.
 
@@ -34,9 +34,6 @@ What differs from Core's file:
   and for the active chain's old block and its header, read a
   `last_message` that a block fetched from the node's own announcement,
   or the same request made just before, may already satisfy;
-- the node mines to an address of its adapter's own choosing rather than
-  to Core's own `get_deterministic_priv_key`'s, the chain being all the
-  run reads of it;
 - each block is built with btclib in the shape of Core's own
   `create_block` and `create_coinbase` (`blocktools.py`), its coinbase
   paying `OP_TRUE`.
@@ -105,6 +102,10 @@ _SERVED_WAIT = 3.0
 
 # how far back Core's file sets the node's clock: sixty days
 _CLOCK_BACK = 60 * 24 * 60 * 60
+
+# Core's own first deterministic address, `TestNode.PRIV_KEYS`
+# (`test_framework/test_node.py`), the one its `generatetoaddress` pays
+_ADDRESS = "mjTkW3DjgyZck4KbiRusZsqTgaYTxdSz6z"
 
 
 class _Conn(Conn):
@@ -257,8 +258,15 @@ def _median_time(node: NodeAdapter, block_hash: bytes) -> int:
 
 
 def _mine(node: _Node, count: int) -> list[bytes]:
-    """Core's own `generatetoaddress`, over `Capability.MINE`."""
-    return [bytes.fromhex(block_hash) for block_hash in node.mine(count)]
+    """Core's own `generatetoaddress`, over `Capability.GENERATE`.
+
+    The node stamps each block with its own clock, as Core's does; a block
+    built client-side would carry the wall clock's time, too new for a
+    node whose clock is set back.
+    """
+    block_hashes = node.rpc.call("generatetoaddress", [count, _ADDRESS])
+    assert isinstance(block_hashes, list)
+    return [bytes.fromhex(block_hash) for block_hash in block_hashes]
 
 
 def stale_blocks_are_withheld(
@@ -271,7 +279,7 @@ def stale_blocks_are_withheld(
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
-    require(Capability.MINE, node.capabilities, skip_counts)
+    require(Capability.GENERATE, node.capabilities, skip_counts)
     require(Capability.CLOCK, node.capabilities, skip_counts)
 
     with ExitStack() as stack:

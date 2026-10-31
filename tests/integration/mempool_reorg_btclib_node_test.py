@@ -6,11 +6,7 @@
 
 `mempool_reorg_test.py` beside this module is the body, run here against
 the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). Each test is a counted skip on every build: on
-PyPI's `2026.9.24`, which declares no `Capability.MINE`, and on a `main`
-past [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071)
-on `Capability.INVALIDATE_BLOCK` and on `Capability.CLOCK` respectively,
-which no build declares (`btclib_node.py`'s own docstring).
+btclib-org/btclib#2220). `TF2.md`'s per-test table carries each test's verdict.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/mempool_reorg_btclib_node_test.py

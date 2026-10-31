@@ -7,9 +7,7 @@
 `p2p_leak_tx_test.py` beside this module is the body, run here against the
 target rather than the oracle (rule 3 of issue btclib-org/btclib#2220).
 Each body asks for `Capability.CLOCK` first and then for `Capability.MINE`.
-`Capability.CLOCK` is not declared on either build (`btclib_node.py`'s own
-docstring is why), so each of these is a counted skip once its node is
-started, before anything is mined.
+`TF2.md`'s per-test table carries each test's verdict.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_leak_tx_btclib_node_test.py

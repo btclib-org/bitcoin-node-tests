@@ -353,8 +353,8 @@ takes BIP23's `proposal` mode (`rpc/mining.py`'s `_proposal`).
 Run live, `getmempoolcluster` answered a three-transaction chain's cluster by
 chunk, `getmempoolfeeratediagram` its diagram and `getmempoolinfo` an `optimal`;
 `getmempoolancestors`, bare and verbose, `getmempooldescendants` and
-`gettxspendingprevout` answered the chain's links. Where a row of `TF2.md` still
-fails on one of these capabilities, its entry there names its issue.
+`gettxspendingprevout` answered the chain's links. Where a row of `TF2.md` fails
+on one of these capabilities, its entry there names its issue.
 
 `Capability.PEER_PERMISSIONS` is declared per instance, by
 `_reads_whitelist`'s own probe: a build whose `cli.py` registers
@@ -385,13 +385,14 @@ included file without the warning Core prints, so an instance built
 against it does not gain the capability.
 
 `Capability.ADDRESS_TABLES` is never declared: `cli.py` registers neither
-`-test` nor `-checkaddrman`, and `rpc/callbacks.py` names neither
-`getrawaddrman`
+`-test` nor `-checkaddrman`
+([ISS btclib-node#2175](https://github.com/btclib-org/btclib-node/issues/2175)),
+and `rpc/callbacks.py` names neither `getrawaddrman`
 ([ISS btclib-node#2126](https://github.com/btclib-org/btclib-node/issues/2126))
 nor `getaddrmaninfo`
 ([ISS btclib-node#2121](https://github.com/btclib-org/btclib-node/issues/2121)),
-measured at the released `2026.10.30` (`30e9573`) and at `main`
-(`995a2b46`) alike.
+measured at the released `2026.10.30` (`30e9573`) and at `main` (`995a2b46`)
+alike.
 """
 
 from __future__ import annotations
@@ -952,9 +953,8 @@ def _served_rpcs(executable: str) -> frozenset[str]:
     return frozenset(json.loads(probe.stdout))
 
 
-# each capability a build declares where `_served_rpcs` holds every RPC
-# named here: the module docstring says what each was measured to give
-# beyond the names
+# each capability a build declares where `_served_rpcs` holds every RPC named
+# here: the module docstring says what was measured beyond the names
 _RPC_CAPABILITIES = {
     Capability.TYPED_OUTBOUND: frozenset({"addconnection"}),
     Capability.SUSPEND_NETWORK: frozenset({"setnetworkactive"}),

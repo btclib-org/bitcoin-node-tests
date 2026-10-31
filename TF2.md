@@ -1482,10 +1482,10 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   ([ISS btclib-node#2172](https://github.com/btclib-org/btclib-node/issues/2172)):
   a run where they converge reports the row fixed.
 - `p2p_fingerprint.py`: Core's claim in full. Once the clock set back is
-  released, the node can drop the peer for silence, though it connected
-  under a minute ago
-  ([ISS btclib-node#2164](https://github.com/btclib-org/btclib-node/issues/2164)):
-  a run losing that race reports the row as a regression.
+  released, the node drops the peer for silence, though it connected under a
+  minute ago, where its silence check runs before the peer next sends
+  ([ISS btclib-node#2164](https://github.com/btclib-org/btclib-node/issues/2164)).
+  A run where the check comes first reports the row as a regression.
 - `rpc_estimatefee.py`: Core's claim in full.
 - `p2p_nobloomfilter_messages.py`: the filtered-block step alone, a wire row
   and a log row ([ISS 5](https://github.com/btclib-org/bitcoin-node-tests/issues/5)).

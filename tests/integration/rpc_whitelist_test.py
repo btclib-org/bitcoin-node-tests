@@ -29,11 +29,11 @@ so a build without it skips before the data directory exists.
 per-executable probe is argued.
 
 Core's `test_rejected_method_logging` is a body of its own, asking for
-`Capability.DEBUG_LOG` besides: a method the whitelist refuses is
-logged as named, sent alone or in a batch, whether it carries a newline
-that could forge a log line or every printable special character. A
-bitcoind escapes the newline as `\x0a` from bitcoin/bitcoin#35833, which
-no release carries, and writes it raw before; which of the two is
+`Capability.DEBUG_LOG` besides: a method the whitelist refuses is logged
+as named, sent alone or in a batch, whether it carries a newline that
+could forge a log line or every printable special character. A bitcoind
+escapes the newline as `\x0a` from bitcoin/bitcoin#35833, which no tag
+up to `v32.1` carries, and writes it raw before; which of the two is
 asserted is read off the build's own `getnetworkinfo` `version`
 ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)).
 
@@ -87,13 +87,13 @@ _REJECTED_METHODS = (
     "getblock!\"#$%&'*+<=>[\\]^`{|}~",
 )
 
-# Core's own `CLIENT_VERSION` (`src/clientversion.h`), the running build's
-# own `getnetworkinfo` `version`, at or past which the log escapes a
-# newline: `32.99`'s, no tag carrying bitcoin/bitcoin#35833. A known
-# limit: a `master` build from the version's move to `32.99`
-# (`f3fec67c3e`, 2026-09-11) until that change's merge (`d4b0e1e4b0`,
-# 2026-09-30) reports `329900` and writes the newline raw, so this test
-# fails against such a build
+# Core's own `CLIENT_VERSION` (`src/clientversion.h`), the running
+# build's own `getnetworkinfo` `version`, at or past which the log
+# escapes a newline: `32.99`'s, no tag up to `v32.1` carrying
+# bitcoin/bitcoin#35833. A known limit: a `master` build from the
+# version's move to `32.99` (`f3fec67c3e`, 2026-09-11) until that
+# change's merge (`d4b0e1e4b0`, 2026-09-30) reports `329900` and writes
+# the newline raw, so this test fails against such a build
 _ESCAPES_NEWLINE_VERSION = 329900
 
 

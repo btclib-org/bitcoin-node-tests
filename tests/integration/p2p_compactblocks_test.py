@@ -153,11 +153,11 @@ version's move to `32.99` reads older and does what the change has it do
 all the same, the constants' own comments having the commits.
 
 An invalid `cmpctblock` on the optimistic path drops the peer from
-bitcoin/bitcoin#35321, which no release carries. A bitcoind whose
-`getnetworkinfo` `version` reads older than `32.99`'s keeps that peer,
-which is asserted there instead. A `master` build at `32.99` from before
-the change's merge keeps it too, and fails the check, its constant's own
-comment having the commits.
+bitcoin/bitcoin#35321, which no tag up to `v32.1` carries. A bitcoind
+whose `getnetworkinfo` `version` reads older than `32.99`'s keeps that
+peer, which is asserted there instead. A `master` build at `32.99` from
+before the change's merge keeps it too, and fails the check, its
+constant's own comment having the commits.
 
 Each `p2p_compactblocks_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -291,12 +291,13 @@ _REFUSES_EMPTY_GETBLOCKTXN_VERSION = 320000
 # fails against such a build
 _IGNORES_UNSOLICITED_CMPCTBLOCK_VERSION = 320000
 
-# Core's own `CLIENT_VERSION`, at or past which an invalid `cmpctblock` on
-# the optimistic reconstruction path drops the peer: `32.99`'s, no tag
-# carrying bitcoin/bitcoin#35321. A known limit: a `master` build from the
-# version's move to `32.99` (`f3fec67c3e`, 2026-09-11) until that change's
-# merge (`0a8e904cee`, 2026-10-20) reports `329900` and keeps the peer, so
-# this test fails against such a build
+# Core's own `CLIENT_VERSION`, at or past which an invalid `cmpctblock`
+# on the optimistic reconstruction path drops the peer: `32.99`'s, no
+# tag up to `v32.1` carrying bitcoin/bitcoin#35321. A known limit: a
+# `master` build from the version's move to `32.99` (`f3fec67c3e`,
+# 2026-09-11) until that change's merge (`0a8e904cee`, 2026-10-20)
+# reports `329900` and keeps the peer, so this test fails against such a
+# build
 _REFUSES_OPTIMISTIC_CMPCTBLOCK_VERSION = 329900
 
 

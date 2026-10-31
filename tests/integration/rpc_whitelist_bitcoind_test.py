@@ -5,7 +5,8 @@
 """Core's `rpc_whitelist`, rewritten on this repository's harness: bitcoind.
 
 `rpc_whitelist_test.py` beside this module is the body, run here against
-bitcoind, the oracle, which declares `Capability.RPC_AUTH_CONFIG`.
+bitcoind, the oracle, which declares `Capability.RPC_AUTH_CONFIG` and
+`Capability.DEBUG_LOG`.
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """

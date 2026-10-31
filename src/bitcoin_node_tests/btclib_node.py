@@ -383,6 +383,15 @@ against it does not gain the capability.
 (`422d2640`) refuses it, and ignores an `includeconf` nested in an
 included file without the warning Core prints, so an instance built
 against it does not gain the capability.
+
+`Capability.ADDRESS_TABLES` is never declared: `cli.py` registers neither
+`-test` nor `-checkaddrman`, and `rpc/callbacks.py` names neither
+`getrawaddrman`
+([ISS btclib-node#2126](https://github.com/btclib-org/btclib-node/issues/2126))
+nor `getaddrmaninfo`
+([ISS btclib-node#2121](https://github.com/btclib-org/btclib-node/issues/2121)),
+measured at the released `2026.10.30` (`30e9573`) and at `main`
+(`995a2b46`) alike.
 """
 
 from __future__ import annotations

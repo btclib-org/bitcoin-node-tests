@@ -19,9 +19,9 @@ for `-cjdnsreachable`, `I2P_SAM` for `-i2psam`, `V2TRANSPORT` for
 `-v2transport`, and `PEER_TIMEOUT` for the `-peertimeout` Core's harness
 gives every node; `KNOWN_ADDRESSES` for Core's own `fill_node_addrman`
 (`test_framework/test_framework.py`), `MINE` for its `MiniWallet`, `CLOCK`
-for its `setmocktime` and `DEBUG_LOG` for its log lines. Core's
-`-test=addrman`, a test-only option of bitcoind's own, and the `-dnsseed=0`
-of Core's `write_config` are passed with no capability of their own.
+for its `setmocktime` and `DEBUG_LOG` for its log lines; and
+`ADDRESS_TABLES` for Core's `-test=addrman`. The `-dnsseed=0` of Core's
+`write_config` is passed with no capability of its own.
 Every step of Core's file is kept in its order, every assertion with it
 but those named below.
 
@@ -788,6 +788,7 @@ def transactions_are_broadcast_privately(
         )
         for capability in (
             Capability.PRIVATE_BROADCAST,
+            Capability.ADDRESS_TABLES,
             Capability.PROXY,
             Capability.CJDNS,
             Capability.I2P_SAM,

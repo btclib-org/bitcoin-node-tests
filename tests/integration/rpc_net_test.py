@@ -21,7 +21,12 @@ step reads what the node asks of it, so no proxy runs. A step given the
 argument asks for `Capability.PROXY`. The steps Core restarts with
 `-cjdnsreachable` ask for `Capability.CJDNS`, those that call
 `addpeeraddress` for `Capability.KNOWN_ADDRESSES`, the one that sets a
-clock for `Capability.CLOCK`, and `addnode` is `Capability.CONNECT`.
+clock for `Capability.CLOCK`, and `addnode` is `Capability.CONNECT`. The
+steps whose node starts with `-test=addrman` ask for
+`Capability.ADDRESS_TABLES`, for that option, the `-checkaddrman` the
+`addpeeraddress` step adds to it, and the `getrawaddrman` and
+`getaddrmaninfo` they read
+([ISS 555](https://github.com/btclib-org/bitcoin-node-tests/issues/555)).
 
 Each step runs on a node of its own, started with the arguments Core's
 node has at that step, where Core runs the steps in turn on two nodes.
@@ -473,7 +478,7 @@ def addpeeraddress_fills_the_address_tables(
         tmp_path,
         skip_counts,
         extra_args,
-        (Capability.KNOWN_ADDRESSES,),
+        (Capability.KNOWN_ADDRESSES, Capability.ADDRESS_TABLES),
     ) as node:
         rpc = node.rpc
         _is_hidden(node, "addpeeraddress")
@@ -609,7 +614,11 @@ def getaddrmaninfo_counts_the_addresses_of_each_network(
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
     """
-    capabilities = (Capability.CJDNS, Capability.KNOWN_ADDRESSES)
+    capabilities = (
+        Capability.CJDNS,
+        Capability.KNOWN_ADDRESSES,
+        Capability.ADDRESS_TABLES,
+    )
     with _node(
         make_adapter,
         cls,
@@ -666,7 +675,12 @@ def getrawaddrman_lists_the_address_tables(
     :param tmp_path: where the node's own data directory goes.
     :param skip_counts: the session's own tally.
     """
-    capabilities = (Capability.CJDNS, Capability.KNOWN_ADDRESSES, Capability.CLOCK)
+    capabilities = (
+        Capability.CJDNS,
+        Capability.KNOWN_ADDRESSES,
+        Capability.ADDRESS_TABLES,
+        Capability.CLOCK,
+    )
     with _node(
         make_adapter,
         cls,

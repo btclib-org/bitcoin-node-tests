@@ -23,10 +23,9 @@ of every other option its node is given: `PROXY` for `-proxy` and
 `-onion`, `V2TRANSPORT` for `-v2transport`, and `PEER_TIMEOUT` for the
 `-peertimeout` Core's harness gives every node; `KNOWN_ADDRESSES` for
 Core's own `fill_node_addrman` (`test_framework/test_framework.py`) and
-`MINE` for its `MiniWallet`. Core's `-test=addrman`, a test-only option of
-bitcoind's own, and the `-dnsseed=0` of Core's `write_config` are passed
-with no capability of their own. Every step of Core's file is kept in its
-order.
+`MINE` for its `MiniWallet`; and `ADDRESS_TABLES` for Core's
+`-test=addrman`. The `-dnsseed=0` of Core's `write_config` is passed with
+no capability of its own. Every step of Core's file is kept in its order.
 
 What differs from Core's file:
 
@@ -313,6 +312,7 @@ def v1_retry_goes_through_the_tor_proxy(
         )
         for capability in (
             Capability.PRIVATE_BROADCAST,
+            Capability.ADDRESS_TABLES,
             Capability.PROXY,
             Capability.V2TRANSPORT,
             Capability.PEER_TIMEOUT,

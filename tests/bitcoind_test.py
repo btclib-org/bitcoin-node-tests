@@ -25,6 +25,7 @@ _has_private_broadcast = bitcoind_module._has_private_broadcast
 _has_cluster_mempool = bitcoind_module._has_cluster_mempool
 _has_reindex_after_failure = bitcoind_module._has_reindex_after_failure
 _has_proxy_per_network = bitcoind_module._has_proxy_per_network
+_has_deterministic_addrman = bitcoind_module._has_deterministic_addrman
 
 
 @pytest.fixture(autouse=True)
@@ -35,6 +36,7 @@ def _any_build() -> Iterator[None]:
         patch.object(bitcoind_module, "_has_cluster_mempool", return_value=True),
         patch.object(bitcoind_module, "_has_reindex_after_failure", return_value=True),
         patch.object(bitcoind_module, "_has_proxy_per_network", return_value=True),
+        patch.object(bitcoind_module, "_has_deterministic_addrman", return_value=True),
     ):
         yield
 
@@ -129,6 +131,7 @@ def test_capabilities_are_every_one_this_repository_names() -> None:
             Capability.INCLUDE_CONF,
             Capability.UTXO_SET_INFO,
             Capability.MEMPOOL_ENTRY,
+            Capability.ADDRESS_TABLES,
         }
     )
 
@@ -329,6 +332,44 @@ def test_has_proxy_per_network_is_false_where_help_shows_no_suffix() -> None:
         assert _has_proxy_per_network("fake-bitcoind-29") is False
 
 
+def test_capabilities_drop_address_tables_where_help_lists_no_addrman_option(
+    tmp_path: Path,
+) -> None:
+    """A build whose `-help-debug` lists no `-test=addrman` loses it alone."""
+    with (
+        patch.object(bitcoind_module, "_has_wallet", return_value=True),
+        patch.object(bitcoind_module, "_has_deterministic_addrman", return_value=False),
+    ):
+        adapter = BitcoindAdapter("bitcoind", tmp_path, 18443, 18444)
+    assert adapter.capabilities == BitcoindAdapter.capabilities - {
+        Capability.ADDRESS_TABLES
+    }
+
+
+def test_has_deterministic_addrman_reads_the_probe_s_own_stdout() -> None:
+    """`_has_deterministic_addrman` is `-help-debug` listing the option."""
+    _has_deterministic_addrman.cache_clear()
+    stdout = (
+        b"  -test=<option>\n       Pass a test-only option. Options include :"
+        b" addrman (use deterministic\n       addrman)."
+    )
+    with patch("subprocess.run", return_value=SimpleNamespace(stdout=stdout)) as run:
+        assert _has_deterministic_addrman("fake-bitcoind-28") is True
+    run.assert_called_once_with(
+        ["fake-bitcoind-28", "-help-debug", "-nosettings"],
+        check=False,
+        capture_output=True,
+    )
+
+
+def test_has_deterministic_addrman_is_false_where_help_lists_addrmantest() -> None:
+    """A build before `v28.0` lists `-addrmantest` and no `-test`."""
+    _has_deterministic_addrman.cache_clear()
+    stdout = b"  -addrmantest\n       Allows to test address relay on localhost\n"
+    with patch("subprocess.run", return_value=SimpleNamespace(stdout=stdout)):
+        assert _has_deterministic_addrman("fake-bitcoind-27") is False
+
+
 def test_command_is_a_loopback_only_ephemeral_regtest(tmp_path: Path) -> None:
     """The argv names regtest, the datadir, both ports, loopback only."""
     with patch.object(bitcoind_module, "_has_wallet", return_value=True):
@@ -444,6 +485,7 @@ def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
         Capability.DNS_SEED,
         Capability.ADDRESS_FETCH,
         Capability.PRIVATE_BROADCAST,
+        Capability.ADDRESS_TABLES,
     }
 
 
@@ -463,6 +505,7 @@ def test_capabilities_drop_the_test_chain_only_ones_on_main(
         Capability.DNS_SEED,
         Capability.ADDRESS_FETCH,
         Capability.PRIVATE_BROADCAST,
+        Capability.ADDRESS_TABLES,
         Capability.ACCEPT_NON_STANDARD,
     }
 

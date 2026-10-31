@@ -6,7 +6,8 @@
 
 Read from Core's `test/functional/rpc_net.py`: `rpc_net_test.py` beside
 this module holds each body, run here against bitcoind, which declares
-every capability they ask for.
+every capability they ask for, `Capability.ADDRESS_TABLES` on a build
+from `v28.0` on (`_has_deterministic_addrman`).
 
     TF2_INTEGRATION=1 uv run pytest tests/integration
 """

@@ -77,6 +77,7 @@ _REGTEST_ONLY = frozenset(
         Capability.DNS_SEED,
         Capability.ADDRESS_FETCH,
         Capability.PRIVATE_BROADCAST,
+        Capability.ADDRESS_TABLES,
     }
 )
 
@@ -231,6 +232,24 @@ def _has_reindex_after_failure(executable: str) -> bool:
         [executable, "-help-debug", "-nosettings"], check=False, capture_output=True
     )
     return b"reindex_after_failure_noninteractive_yes" in probe.stdout
+
+
+@lru_cache
+def _has_deterministic_addrman(executable: str) -> bool:
+    """Return whether `executable` takes `-test=addrman`.
+
+    The option arrives in `v28.0` (bitcoin/bitcoin#29007);
+    `-checkaddrman`, `getrawaddrman` and `getaddrmaninfo` are older. It is
+    debug-only, so `-help-debug` lists it under `-test` and `-help` does
+    not. Probed off the binary as `_has_wallet` is, with `-nosettings` for
+    the same reason.
+
+    :param executable: the `bitcoind` binary to probe.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-help-debug", "-nosettings"], check=False, capture_output=True
+    )
+    return b"addrman (use deterministic" in probe.stdout
 
 
 class BitcoindAdapter(NodeAdapter):
@@ -482,6 +501,12 @@ class BitcoindAdapter(NodeAdapter):
     `Capability.UTXO_SET_INFO` and `Capability.MEMPOOL_ENTRY` are
     unconditional too: `gettxoutsetinfo` and `getmempoolentry` are this
     binary's own RPCs (`src/rpc/blockchain.cpp`, `src/rpc/mempool.cpp`).
+    `Capability.ADDRESS_TABLES` is `getrawaddrman` and `getaddrmaninfo`,
+    this binary's own RPCs (`src/rpc/net.cpp`), with `-test`'s own
+    `addrman` and `-checkaddrman`, its debug-only flags (`src/init.cpp`).
+    It is declared on regtest alone, where `-test` is taken, and only by
+    a build whose `-help-debug` lists `addrman` under `-test`,
+    `_has_deterministic_addrman` being the probe.
 
     Every chain the release runs is in `chains`. On any chain but regtest
     an instance drops `_REGTEST_ONLY`'s capabilities, which only regtest
@@ -577,6 +602,7 @@ class BitcoindAdapter(NodeAdapter):
             Capability.INCLUDE_CONF,
             Capability.UTXO_SET_INFO,
             Capability.MEMPOOL_ENTRY,
+            Capability.ADDRESS_TABLES,
         }
     )
     chains: AbstractSet[str] = frozenset(_CHAIN_DIRS)
@@ -600,9 +626,9 @@ class BitcoindAdapter(NodeAdapter):
         same reason: `_check_extra_args(self._command(), extra_args)`
         needs `self._executable` set before `_command` can be called.
         `_has_wallet`, `_has_private_broadcast`, `_has_cluster_mempool`,
-        `_has_reindex_after_failure` and `_has_proxy_per_network` are then
-        this class's own per-build probes, read once per instance rather
-        than once per `mine` call,
+        `_has_reindex_after_failure`, `_has_proxy_per_network` and
+        `_has_deterministic_addrman` are then this class's own per-build
+        probes, read once per instance rather than once per `mine` call,
         `_REGTEST_ONLY` is what any other `chain` drops, and
         `_TEST_CHAIN_ONLY` what main drops besides.
         """
@@ -626,6 +652,8 @@ class BitcoindAdapter(NodeAdapter):
             self.capabilities = self.capabilities - {Capability.REINDEX_AFTER_FAILURE}
         if not _has_proxy_per_network(executable):
             self.capabilities = self.capabilities - {Capability.PROXY_PER_NETWORK}
+        if not _has_deterministic_addrman(executable):
+            self.capabilities = self.capabilities - {Capability.ADDRESS_TABLES}
         if chain != "regtest":
             self.capabilities = self.capabilities - _REGTEST_ONLY
         if chain == "main":

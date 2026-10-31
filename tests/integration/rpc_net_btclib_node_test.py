@@ -9,10 +9,9 @@ the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). `btclib_node.py`'s own docstring has no build
 declaring `Capability.PROXY` or `Capability.CJDNS`, so every test asking
 for either is a counted skip. The `addpeeraddress` test asks for
-`Capability.KNOWN_ADDRESSES` alone, declared per build
-(`btclib_node.py`'s own docstring), and starts its node with
-options of Core's that btclib-node does not register
-([ISS 555](https://github.com/btclib-org/bitcoin-node-tests/issues/555)).
+`Capability.KNOWN_ADDRESSES`, declared per build, and for
+`Capability.ADDRESS_TABLES`, which no build declares, so it is a counted
+skip too.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/rpc_net_btclib_node_test.py

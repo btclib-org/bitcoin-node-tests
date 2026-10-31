@@ -110,9 +110,9 @@ took from one is not cached again by a later `confirm` naming it; one
 already scanned still drops the cached coins it spends, which an unsent
 parent carried in the same block may just have cached.
 `rescan_utxos` rebuilds the whole cache from `scantxoutset` instead, an
-RPC `BtclibNodeAdapter` does not serve (it never declares
-`Capability.SCAN_UTXO_SET`), and one that would also cache every coin of
-this script that any other `MiniWallet` on the same node holds. Its
+RPC not every node serves (`Capability.SCAN_UTXO_SET`), and one that would
+also cache every coin of this script that any other `MiniWallet` on the
+same node holds. Its
 mempool pass is kept in the one respect that decides a scanned coin: a
 coin the scan adds is left out where a transaction in the node's mempool
 already spends it -- a spend of one of `new_utxos`' own coins, broadcast

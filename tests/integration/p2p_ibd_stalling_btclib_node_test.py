@@ -7,10 +7,9 @@
 `p2p_ibd_stalling_test.py` beside this module is the body, run here
 against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). Each body has the node dial the test, and asks
-for `Capability.TYPED_OUTBOUND`, declared per build
-(`btclib_node.py`'s own docstring); each is a counted
-skip on any other, and each log half on `Capability.DEBUG_LOG`,
-bitcoind's alone.
+for `Capability.TYPED_OUTBOUND`, declared per build (`btclib_node.py`'s
+own docstring): a build without it is a counted skip. Each log half is a
+counted skip on `Capability.DEBUG_LOG`, bitcoind's alone.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_ibd_stalling_btclib_node_test.py

@@ -6,10 +6,10 @@
 
 `p2p_node_network_limited_test.py` beside this module is the body, run
 here against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `Capability.MINE`, `Capability.DISCONNECT`
-and `Capability.SUSPEND_NETWORK` are declared per build
-(`btclib_node.py`'s own docstring), and the test is a counted skip,
-before any node is restarted or mined on, on a build lacking one.
+btclib-org/btclib#2220). `Capability.MINE`, `Capability.DISCONNECT` and
+`Capability.SUSPEND_NETWORK` are declared per build (`btclib_node.py`'s
+own docstring): a build without one is a counted skip, before any node is
+restarted or mined on.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_node_network_limited_btclib_node_test.py

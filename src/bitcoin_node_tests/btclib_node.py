@@ -449,6 +449,7 @@ against it does not gain the capability.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import tempfile
@@ -972,6 +973,67 @@ def _serves_generate(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# prints the names the build's dispatch table holds, as a JSON list
+_SERVED_RPCS_PROBE = """\
+import json
+from btclib_node.rpc.callbacks import callbacks
+print(json.dumps(sorted(callbacks)))
+"""
+
+
+@lru_cache
+def _served_rpcs(executable: str) -> frozenset[str]:
+    """Return the RPC names `executable`'s own btclib-node dispatches.
+
+    Reads the build's own `rpc.callbacks.callbacks`, as `_serves_ban_list`
+    above does, but answers every name it holds rather than whether it
+    holds some: `_SERVED_RPCS_PROBE` above. A build that cannot be
+    imported answers none. Otherwise in the standing of
+    `_writes_auth_cookie` above: no node started, no port bound, and
+    cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _SERVED_RPCS_PROBE],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if probe.returncode != 0:
+        return frozenset()
+    return frozenset(json.loads(probe.stdout))
+
+
+# each capability a build declares where `_served_rpcs` holds every RPC
+# named here: the module docstring says what each was measured to give
+# beyond the names
+_RPC_CAPABILITIES = {
+    Capability.TYPED_OUTBOUND: frozenset({"addconnection"}),
+    Capability.SUSPEND_NETWORK: frozenset({"setnetworkactive"}),
+    Capability.SIGN_RAW_TRANSACTION: frozenset(
+        {"signrawtransactionwithkey", "combinerawtransaction"}
+    ),
+    Capability.INVALIDATE_BLOCK: frozenset({"invalidateblock", "reconsiderblock"}),
+    Capability.SCAN_UTXO_SET: frozenset({"scantxoutset"}),
+    Capability.BLOCK_PROPOSAL: frozenset({"getblocktemplate"}),
+    Capability.KNOWN_ADDRESSES: frozenset({"addpeeraddress", "getnodeaddresses"}),
+    Capability.RPC_INFO: frozenset({"getrpcinfo"}),
+    Capability.CLUSTER_LINEARIZATION: frozenset(
+        {"getmempoolcluster", "getmempoolfeeratediagram"}
+    ),
+    Capability.MEMPOOL_GRAPH: frozenset(
+        {"getmempoolancestors", "getmempooldescendants", "gettxspendingprevout"}
+    ),
+    Capability.PRECIOUS_BLOCK: frozenset({"preciousblock"}),
+    Capability.SIGN_MESSAGE_WITH_PRIVKEY: frozenset(
+        {"signmessagewithprivkey", "verifymessage"}
+    ),
+    Capability.ESTIMATE_SMART_FEE: frozenset({"estimatesmartfee", "estimaterawfee"}),
+    Capability.DUMP_UTXO_SET: frozenset({"dumptxoutset"}),
+}
+
+
 # exits 0 only where `-noincludeconf` is read: a build registering no
 # negated `-includeconf` refuses it and exits nonzero. `-noconf` keeps any
 # `bitcoin.conf` out of it
@@ -1065,6 +1127,7 @@ _REGTEST_ONLY = frozenset(
         Capability.MINE,
         Capability.CLOCK,
         Capability.GENERATE,
+        Capability.TYPED_OUTBOUND,
     }
 )
 
@@ -1165,6 +1228,12 @@ class BtclibNodeAdapter(NodeAdapter):
                 (_connects_alone, Capability.MINE),
             )
             if probe(executable)
+        }
+        served = _served_rpcs(executable)
+        probed |= {
+            capability
+            for capability, rpcs in _RPC_CAPABILITIES.items()
+            if rpcs <= served
         }
         if chain != "regtest":
             probed -= _REGTEST_ONLY

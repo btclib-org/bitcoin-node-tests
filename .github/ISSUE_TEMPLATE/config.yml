@@ -25,8 +25,9 @@ contact_links:
     url: https://github.com/btclib-org/btclib-node/issues
     about: >
       A test passing on bitcoind and failing elsewhere is a finding on
-      the other node's own tracker (rule 3 of issue btclib-org/btclib#2220),
-      unless the test is the defect (TF2.md's per-test ledger).
+      the other node's own tracker (rule 3 of issue btclib-org/btclib#2220).
+      A btclib-node failure where the test is the defect, not the node, is
+      filed in this repository instead (TF2.md's per-test ledger).
   - name: Chat with the developers
     url: https://bbt-training.slack.com/archives/C01CCJ85AES
     about: The Slack channel, for what is faster asked than written up.

@@ -1501,7 +1501,11 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
 - `p2p_sendheaders.py`: Core's claim in full. Skips on `invalidate_block`,
   which the adapter does not declare on a build serving its RPCs
   ([ISS 547](https://github.com/btclib-org/bitcoin-node-tests/issues/547)).
-- `p2p_fingerprint.py`: Core's claim in full.
+- `p2p_fingerprint.py`: Core's claim in full. Once the clock set back is
+  released, the node can drop the peer for silence, though it connected
+  under a minute ago
+  ([ISS btclib-node#2164](https://github.com/btclib-org/btclib-node/issues/2164)):
+  a run losing that race reports the row as a regression.
 - `rpc_estimatefee.py`: Core's claim in full. Skips on `estimate_smart_fee`
   ([ISS btclib-node#1543](https://github.com/btclib-org/btclib-node/issues/1543)).
 - `p2p_nobloomfilter_messages.py`: the filtered-block step alone, a wire row
@@ -1568,9 +1572,10 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   the (parent confirmed) row on an orphan that stays one once its parent
   is mined
   ([ISS btclib-node#2160](https://github.com/btclib-org/btclib-node/issues/2160)),
-  and the (parents change) row, in most runs, on the remaining announcer
-  not being asked for the parents
-  ([ISS btclib-node#2161](https://github.com/btclib-org/btclib-node/issues/2161)).
+  and the (parents change) row on the remaining announcer not being asked
+  for the parents
+  ([ISS btclib-node#2161](https://github.com/btclib-org/btclib-node/issues/2161)):
+  a run winning that race reports the row fixed.
 - `p2p_compactblocks.py`: the log rows skip, and the outbound-`sendcmpct`,
   parallel-reconstruction and optimistic invalid-`cmpctblock` rows skip on
   `typed_outbound`. Every other row passes: a `cmpctblock` from a peer that

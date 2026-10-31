@@ -1575,7 +1575,7 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   and the (parents change) row, by a race, on the remaining announcer not
   being asked for the parents
   ([ISS btclib-node#2161](https://github.com/btclib-org/btclib-node/issues/2161)):
-  a run where it is asked reports the row fixed.
+  a run where the announcer is asked reports the row fixed.
 - `p2p_compactblocks.py`: the log rows skip, and the outbound-`sendcmpct`,
   parallel-reconstruction and optimistic invalid-`cmpctblock` rows skip on
   `typed_outbound`. Every other row passes: a `cmpctblock` from a peer that

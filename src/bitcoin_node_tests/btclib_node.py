@@ -10,7 +10,8 @@ is what this adapter needs already served: `getblock`, `submitblock`,
 `src/btclib_node/rpc/callbacks.py`'s own dispatch table before this
 module was written.
 
-The measurements below are as of the PyPI release `2026.9.24`.
+The measurements below are as of the PyPI release `2026.9.24`, unless a
+paragraph names another build.
 
 `Capability.MINE` is declared per instance, by `_connects_alone`'s
 own probe. `mine` (`NodeAdapter.mine`) builds and solves each block
@@ -23,9 +24,7 @@ asked for. Measured at `main` (`35b26d2e`): a solo node accepts the block
 and `getblockcount`/`getbestblockhash` move onto it. The released
 `2026.9.24` (`422d2640`) answers the same `submitblock` `None` (accepted)
 and leaves both at genesis, so an instance built against it does not gain
-the capability. Neither build names `generatetoaddress`, `generateblock`
-or `getblocktemplate` in `src/btclib_node/rpc/callbacks.py`'s own
-dispatch table, which is why `mine` builds the block itself.
+the capability.
 
 At the released `2026.9.24`, `block_db` never holds the genesis block, so
 neither `getblock` nor a p2p `getdata` can serve the one block a fresh regtest
@@ -60,12 +59,23 @@ so an instance built against it does not gain the capability.
 `_build_parser` at the released `2026.9.24` (`422d2640`) and its `_OPTIONS`
 at `main` (`8ded5494`) alike, `-uacomment` is registered by neither.
 
-`Capability.CLOCK` is not declared: `setmocktime` names no callback in
-`src/btclib_node/rpc/callbacks.py`'s own dispatch table, measured at
-`btclib-node` `18b6ae1e2c74`.
+`Capability.CLOCK` is declared per instance, by `_serves_setmocktime`'s
+own probe: a build whose `rpc/callbacks.py` names `setmocktime` in its
+public `callbacks` -- from btclib-node PR 1927 (`a8263aa`) on, the RPC
+[ISS btclib-node#1479](https://github.com/btclib-org/btclib-node/issues/1479)
+asked for. `Capability.GENERATE` is declared per instance, by
+`_serves_generate`'s own probe: a build whose `rpc/callbacks.py` names
+`generatetoaddress` and `generateblock` -- from btclib-node PR 1643
+(`57fed26`) on, the RPCs
+[ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404)
+and [ISS btclib-node#1396](https://github.com/btclib-org/btclib-node/issues/1396)
+asked for. Both are measured at the released `2026.10.30` (`30e9573`)
+and at `main` (`995a2b46`). The released `2026.9.24` (`422d2640`) names
+none of the three, so an instance built against it gains neither
+capability. Both are regtest's alone, as `_REGTEST_ONLY` below says.
 
 `Capability.RPC_AUTH_CONFIG` is not a class-level fact the way
-`BLK_FILES`, `UA_COMMENT` and `CLOCK` above are, and unlike
+`BLK_FILES` and `UA_COMMENT` above are, and unlike
 them this is not a fact about `btclib-node` itself: `cli.py`'s own
 `_RECOGNIZED_KEYS` at `18b6ae1e2c74` already names `rpcauth`,
 `rpcwhitelist` and `rpcwhitelistdefault`, landed by
@@ -182,14 +192,12 @@ released `2026.9.24` (`422d2640`) and at `main` (`59618462`) alike
 ([ISS btclib-node#1480](https://github.com/btclib-org/btclib-node/issues/1480),
 [ISS btclib-node#1536](https://github.com/btclib-org/btclib-node/issues/1536)).
 
-`Capability.GENERATE` and `Capability.SCAN_UTXO_SET` are never declared
-either: none of `generatetoaddress`, `generateblock`, `help` and
-`scantxoutset` names a callback in that same dispatch table, measured at
-the released `2026.9.24` (`422d2640`) and at `main` (`d2b4efa5`) alike
-([ISS btclib-node#1404](https://github.com/btclib-org/btclib-node/issues/1404),
-[ISS btclib-node#1396](https://github.com/btclib-org/btclib-node/issues/1396),
-[ISS btclib-node#1405](https://github.com/btclib-org/btclib-node/issues/1405),
-[ISS btclib-node#1406](https://github.com/btclib-org/btclib-node/issues/1406)).
+`Capability.SCAN_UTXO_SET` is never declared either: `scantxoutset`
+names no callback in that same dispatch table, measured at the released
+`2026.9.24` (`422d2640`) and at `main` (`d2b4efa5`) alike
+([ISS btclib-node#1406](https://github.com/btclib-org/btclib-node/issues/1406)).
+The released `2026.10.30` (`30e9573`) names it
+([ISS 547](https://github.com/btclib-org/bitcoin-node-tests/issues/547)).
 
 `Capability.REINDEX_AFTER_FAILURE` is never declared either: `cli.py`
 registers no `-test`, measured at the released `2026.9.24` and at `main`
@@ -909,6 +917,61 @@ def _serves_mempool_entry(executable: str) -> bool:
     return probe.returncode == 0
 
 
+# exits 0 only where the dispatch table holds `Capability.CLOCK`'s RPC
+_SETMOCKTIME_PROBE = """\
+from btclib_node.rpc.callbacks import callbacks
+raise SystemExit(0 if "setmocktime" in callbacks else 1)
+"""
+
+
+@lru_cache
+def _serves_setmocktime(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node answers `setmocktime`.
+
+    Asks the build's own `rpc.callbacks.callbacks`, as `_serves_mempool_entry`
+    above does, whether it names `setmocktime`: `_SETMOCKTIME_PROBE` above.
+    Otherwise in the standing of `_writes_auth_cookie` above: no node
+    started, no port bound, and cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _SETMOCKTIME_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
+# exits 0 only where the dispatch table holds each of `Capability.GENERATE`'s
+# RPCs
+_GENERATE_PROBE = """\
+from btclib_node.rpc.callbacks import callbacks
+generate_rpcs = {"generatetoaddress", "generateblock"}
+raise SystemExit(0 if generate_rpcs <= callbacks.keys() else 1)
+"""
+
+
+@lru_cache
+def _serves_generate(executable: str) -> bool:
+    """Return whether `executable`'s own btclib-node builds blocks on request.
+
+    Asks the build's own `rpc.callbacks.callbacks`, as `_serves_ban_list`
+    above does, whether it names `generatetoaddress` and `generateblock`:
+    `_GENERATE_PROBE` above. Otherwise in the standing of
+    `_writes_auth_cookie` above: no node started, no port bound, and
+    cached per executable.
+
+    :param executable: the interpreter `btclib-node` is installed into.
+    """
+    probe = subprocess.run(  # noqa: S603
+        [executable, "-c", _GENERATE_PROBE],
+        check=False,
+        capture_output=True,
+    )
+    return probe.returncode == 0
+
+
 # exits 0 only where `-noincludeconf` is read: a build registering no
 # negated `-includeconf` refuses it and exits nonzero. `-noconf` keeps any
 # `bitcoin.conf` out of it
@@ -992,6 +1055,19 @@ _EVERY_BUILD = frozenset(
     }
 )
 
+# the probed capabilities a node on any chain but regtest lacks: `MiniWallet`
+# builds regtest's own blocks alone; `setmocktime` refuses any other chain
+# (`rpc/callbacks.py`'s own `set_mock_time`); `generatetoaddress` and
+# `generateblock` give up after `maxtries` nonces (`rpc/mining.py`), a bound
+# regtest's own target is met within and another chain's is not in practice
+_REGTEST_ONLY = frozenset(
+    {
+        Capability.MINE,
+        Capability.CLOCK,
+        Capability.GENERATE,
+    }
+)
+
 
 class BtclibNodeAdapter(NodeAdapter):
     """A `btclib-node`, run as `python -m btclib_node`.
@@ -1003,8 +1079,8 @@ class BtclibNodeAdapter(NodeAdapter):
     `python -m` and its own `__main__.py` exempt.
 
     `chains` is every chain `_CHAIN_DIRS` names, `testnet4` not among
-    them. On any chain but regtest an instance drops `Capability.MINE`:
-    `MiniWallet` builds regtest's own blocks alone.
+    them. On any chain but regtest an instance drops `_REGTEST_ONLY`'s
+    capabilities.
     """
 
     capabilities: AbstractSet[Capability] = _EVERY_BUILD
@@ -1047,11 +1123,13 @@ class BtclibNodeAdapter(NodeAdapter):
         `_binds_address` answers `Capability.LISTEN_ADDRESS`,
         `_reads_whitelist` answers `Capability.PEER_PERMISSIONS`,
         `_serves_mempool_entry` answers `Capability.MEMPOOL_ENTRY`,
-        `_reads_includeconf` answers `Capability.INCLUDE_CONF`, and
+        `_reads_includeconf` answers `Capability.INCLUDE_CONF`,
+        `_serves_setmocktime` answers `Capability.CLOCK`,
+        `_serves_generate` answers `Capability.GENERATE`, and
         `_speaks_v2` answers `Capability.V2TRANSPORT`. The
         class-level `capabilities` -- `_EVERY_BUILD` -- is left untouched
         where every probe answers `False`. A `chain` other than regtest
-        drops `Capability.MINE` whatever its probe answers.
+        drops `_REGTEST_ONLY`'s capabilities whatever their probes answer.
         """
         super().__init__(
             executable,
@@ -1081,12 +1159,15 @@ class BtclibNodeAdapter(NodeAdapter):
                 (_reads_whitelist, Capability.PEER_PERMISSIONS),
                 (_serves_mempool_entry, Capability.MEMPOOL_ENTRY),
                 (_reads_includeconf, Capability.INCLUDE_CONF),
+                (_serves_setmocktime, Capability.CLOCK),
+                (_serves_generate, Capability.GENERATE),
                 (_speaks_v2, Capability.V2TRANSPORT),
+                (_connects_alone, Capability.MINE),
             )
             if probe(executable)
         }
-        if _connects_alone(executable) and chain == "regtest":
-            probed.add(Capability.MINE)
+        if chain != "regtest":
+            probed -= _REGTEST_ONLY
         if probed:
             self.capabilities = type(self).capabilities | probed
 

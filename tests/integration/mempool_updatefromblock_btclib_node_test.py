@@ -6,10 +6,10 @@ r"""Core's `mempool_updatefromblock`, rewritten on this harness: btclib-node.
 
 `mempool_updatefromblock_test.py` beside this module holds each body,
 run here against the target rather than the oracle (rule 3 of issue
-btclib-org/btclib#2220). `Capability.GENERATE` is not declared,
-`btclib_node.py`'s own module docstring having the measurement: the
-chain is a counted skip on it. The tournament asks for nothing beyond
-`Capability.MINE`.
+btclib-org/btclib#2220). The chain asks for `Capability.GENERATE`
+(`btclib_node.py`'s own module docstring says which builds declare it).
+The tournament asks for nothing beyond `Capability.MINE`. `TF2.md`'s
+per-test table carries each test's verdict.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest \

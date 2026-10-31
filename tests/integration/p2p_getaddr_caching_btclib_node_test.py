@@ -8,8 +8,7 @@
 against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). `Capability.LISTEN_ADDRESS` is declared
 by both builds (`btclib_node.py`'s own docstring). The test is a counted
-skip on both, on `Capability.KNOWN_ADDRESSES`, which neither declares;
-nor `Capability.CLOCK`, which it asks for besides.
+skip on both, on `Capability.KNOWN_ADDRESSES`, which neither declares.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/p2p_getaddr_caching_btclib_node_test.py

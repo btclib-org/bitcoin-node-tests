@@ -1151,7 +1151,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_invalidateblock.py` | [`fab352053d6e`](https://github.com/bitcoin/bitcoin/commit/fab352053d6e) | 2026-04-16 | pass, the ancestors' check run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | pass |
 | `rpc_signmessagewithprivkey.py` | [`fa5f29774872`](https://github.com/bitcoin/bitcoin/commit/fa5f29774872) | 2025-12-16 | pass | pass |
 | `feature_chain_tiebreaks.py` | [`20ae9b98eab2`](https://github.com/bitcoin/bitcoin/commit/20ae9b98eab2) | 2026-03-04 | pass, the restart's tip check run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | pass |
-| `p2p_sendheaders.py` | [`a7acf277dc39`](https://github.com/bitcoin/bitcoin/commit/a7acf277dc39) | 2026-10-02 | pass | skip (invalidate_block) |
+| `p2p_sendheaders.py` | [`a7acf277dc39`](https://github.com/bitcoin/bitcoin/commit/a7acf277dc39) | 2026-10-02 | pass | fail ([ISS btclib-node#2172](https://github.com/btclib-org/btclib-node/issues/2172)) |
 | `p2p_fingerprint.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass | pass |
 | `rpc_estimatefee.py` | [`4056908f0fea`](https://github.com/bitcoin/bitcoin/commit/4056908f0fea) | 2026-09-29 | pass, the `options` checks and the estimator refusal run per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | pass |
 | `feature_assumevalid.py` | [`fa16bc53d79c`](https://github.com/bitcoin/bitcoin/commit/fa16bc53d79c) | 2026-04-16 | pass, its log lines read per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (assume_valid) |
@@ -1473,9 +1473,10 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
 - `rpc_invalidateblock.py`: Core's claim in full.
 - `rpc_signmessagewithprivkey.py`: Core's claim in full.
 - `feature_chain_tiebreaks.py`: Core's claim in full.
-- `p2p_sendheaders.py`: Core's claim in full. Skips on `invalidate_block`,
-  which the adapter does not declare on a build serving its RPCs
-  ([ISS 547](https://github.com/btclib-org/bitcoin-node-tests/issues/547)).
+- `p2p_sendheaders.py`: Core's claim in full. Fails, by a race: after a block
+  node0 mines, the two nodes stay on different tips of equal work
+  ([ISS btclib-node#2172](https://github.com/btclib-org/btclib-node/issues/2172)). A run where they converge reports the
+  row fixed.
 - `p2p_fingerprint.py`: Core's claim in full. Once the clock set back is
   released, the node can drop the peer for silence, though it connected
   under a minute ago

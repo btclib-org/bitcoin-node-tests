@@ -757,7 +757,11 @@ def test_capabilities_drop_the_regtest_only_ones_on_another_chain(
         patch.object(btclib_node_module, "_reads_includeconf", return_value=False),
         patch.object(btclib_node_module, "_serves_setmocktime", return_value=True),
         patch.object(btclib_node_module, "_serves_generate", return_value=True),
-        patch.object(btclib_node_module, "_served_rpcs", return_value=frozenset({"addconnection"})),
+        patch.object(
+            btclib_node_module,
+            "_served_rpcs",
+            return_value=frozenset({"addconnection"}),
+        ),
         patch.object(btclib_node_module, "_speaks_v2", return_value=False),
         patch.object(btclib_node_module, "_permits_bare_multisig", return_value=False),
     ):
@@ -1667,7 +1671,7 @@ _NO_OTHER_PROBE = (
 
 
 def _adapter_serving(tmp_path: Path, served: frozenset[str]) -> BtclibNodeAdapter:
-    """Return an adapter whose build serves `served` and holds no other probe."""
+    """Return an adapter serving `served`, each other probe false."""
     with ExitStack() as stack:
         for name in _NO_OTHER_PROBE:
             stack.enter_context(

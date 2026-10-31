@@ -362,8 +362,8 @@ BIP23's `proposal` mode (`rpc/mining.py`'s `_proposal`).
 three-transaction chain's cluster by chunk, `getmempoolfeeratediagram`
 its diagram and `getmempoolinfo` an `optimal`; `getmempoolancestors`,
 bare and verbose, `getmempooldescendants` and `gettxspendingprevout`
-answered the chain's links. Where a row of `TF2.md` still fails on one of them, its
-entry there names the btclib-node issue.
+answered the chain's links. Where a row of `TF2.md` still fails on one
+of them, its entry there names the btclib-node issue.
 
 `Capability.PEER_PERMISSIONS` is declared per instance, by
 `_reads_whitelist`'s own probe: a build whose `cli.py` registers
@@ -1068,8 +1068,9 @@ _EVERY_BUILD = frozenset(
 # builds regtest's own blocks alone; `setmocktime` refuses any other chain
 # (`rpc/callbacks.py`'s own `set_mock_time`); `generatetoaddress` and
 # `generateblock` give up after `maxtries` nonces (`rpc/mining.py`), a bound
-# regtest's own target is met within and another chain's is not in practice; `addconnection`
-# refuses any other chain (`rpc/callbacks.py`'s own `add_connection`)
+# regtest's own target is met within and another chain's is not in practice;
+# `addconnection` refuses any other chain (`rpc/callbacks.py`'s own
+# `add_connection`)
 _REGTEST_ONLY = frozenset(
     {
         Capability.MINE,

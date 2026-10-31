@@ -28,7 +28,8 @@ implementation gains an adapter -- a `NodeAdapter` subclass declaring
 what it can do (`src/bitcoin_node_tests/node.py`), the way `bitcoind.py`,
 `btclib_node.py` and `btcd.py` already do. A test passes on `bitcoind`
 before its failure on any other node counts as a finding, filed on that
-node's own tracker, unless the test is the defect (`TF2.md`'s per-test
+node's own tracker. A `btclib-node` failure where the test is the defect,
+not the node, is filed in this repository instead (`TF2.md`'s per-test
 ledger).
 
 It imports [btclib](https://github.com/btclib-org/btclib) and

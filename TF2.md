@@ -1572,10 +1572,10 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   the (parent confirmed) row on an orphan that stays one once its parent
   is mined
   ([ISS btclib-node#2160](https://github.com/btclib-org/btclib-node/issues/2160)),
-  and the (parents change) row on the remaining announcer not being asked
-  for the parents
+  and the (parents change) row, by a race, on the remaining announcer not
+  being asked for the parents
   ([ISS btclib-node#2161](https://github.com/btclib-org/btclib-node/issues/2161)):
-  a run winning that race reports the row fixed.
+  a run where it is asked reports the row fixed.
 - `p2p_compactblocks.py`: the log rows skip, and the outbound-`sendcmpct`,
   parallel-reconstruction and optimistic invalid-`cmpctblock` rows skip on
   `typed_outbound`. Every other row passes: a `cmpctblock` from a peer that

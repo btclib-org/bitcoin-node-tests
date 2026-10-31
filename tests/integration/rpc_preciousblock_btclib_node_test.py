@@ -7,7 +7,7 @@
 `rpc_preciousblock_test.py` beside this module is the body, run
 here against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). The test asks for
-`Capability.PRECIOUS_BLOCK`, declared on a build serving `preciousblock`
+`Capability.PRECIOUS_BLOCK`, declared per build
 (`btclib_node.py`'s own docstring), and is a counted skip on any other.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>

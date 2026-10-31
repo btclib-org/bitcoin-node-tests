@@ -10,7 +10,7 @@ The wire half passes on PyPI's `2026.10.8` and on `main`: both keep the
 connection on a `verack` arriving once it is `Connected`, as Core does.
 The log half is a counted skip on every build, `Capability.DEBUG_LOG` being
 bitcoind's alone. Every other body has the node dial the test, and asks for
-`Capability.TYPED_OUTBOUND`, declared on a build serving `addconnection`
+`Capability.TYPED_OUTBOUND`, declared per build
 (`btclib_node.py`'s own docstring); each is a counted skip on any other.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>

@@ -11,7 +11,7 @@ btclib-org/btclib#2220). The test is a counted skip on every build, on
 `cli.py`'s registered options
 ([ISS btclib-node#1383](https://github.com/btclib-org/btclib-node/issues/1383)).
 `Capability.MEMPOOL_GRAPH` and `Capability.CLUSTER_LINEARIZATION`,
-which it asks for later, are declared on a build serving their RPCs
+which it asks for later, are declared per build
 (`btclib_node.py`'s own docstring).
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>

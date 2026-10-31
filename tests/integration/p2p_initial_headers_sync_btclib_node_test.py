@@ -16,8 +16,8 @@ passes, though `Connection.parse_messages` queues a `ping` ahead of
 messages its peer sent before it
 ([ISS btclib-node#1410](https://github.com/btclib-org/btclib-node/issues/1410)).
 Every timeout check has the node dial the test, and is a counted skip on
-every build: `Capability.TYPED_OUTBOUND` is declared on a build serving
-`addconnection` (`btclib_node.py`'s own docstring), and
+every build: `Capability.TYPED_OUTBOUND` is declared per build
+(`btclib_node.py`'s own docstring), and
 `Capability.PEER_TIMEOUT`, asked for past it, by none.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>

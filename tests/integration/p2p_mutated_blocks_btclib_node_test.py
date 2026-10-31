@@ -11,7 +11,7 @@ PyPI's `2026.9.24`, which declares no `Capability.MINE`, and passes on a
 `main` past
 [ISS btclib-node#1071](https://github.com/btclib-org/btclib-node/issues/1071).
 The mutated-block halves have the node dial the test, and ask for
-`Capability.TYPED_OUTBOUND`, declared on a build serving `addconnection`
+`Capability.TYPED_OUTBOUND`, declared per build
 (`btclib_node.py`'s own docstring); the log half is a counted skip on
 `Capability.DEBUG_LOG`, bitcoind's alone. The missing-parent log half
 asks for `Capability.TEST_ACTIVATION_HEIGHT` and `Capability.DEBUG_LOG`,

@@ -7,9 +7,8 @@
 `feature_chain_tiebreaks_test.py` beside this module is the body, run
 here against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). The test asks for
-`Capability.INVALIDATE_BLOCK`, declared on a build serving
-`invalidateblock` and `reconsiderblock` (`btclib_node.py`'s own
-docstring), and is a counted skip on any other.
+`Capability.INVALIDATE_BLOCK`, declared per build
+(`btclib_node.py`'s own docstring), and is a counted skip on any other.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/feature_chain_tiebreaks_btclib_node_test.py

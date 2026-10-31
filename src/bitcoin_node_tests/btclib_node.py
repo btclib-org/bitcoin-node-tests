@@ -363,7 +363,7 @@ three-transaction chain's cluster by chunk, `getmempoolfeeratediagram`
 its diagram and `getmempoolinfo` an `optimal`; `getmempoolancestors`,
 bare and verbose, `getmempooldescendants` and `gettxspendingprevout`
 answered the chain's links. Where a row of `TF2.md` still fails on one
-of them, its entry there names the btclib-node issue.
+of them, its entry there names its issue.
 
 `Capability.PEER_PERMISSIONS` is declared per instance, by
 `_reads_whitelist`'s own probe: a build whose `cli.py` registers
@@ -1140,10 +1140,10 @@ class BtclibNodeAdapter(NodeAdapter):
         `_serves_generate` answers `Capability.GENERATE`,
         `_speaks_v2` answers `Capability.V2TRANSPORT`, and
         `_served_rpcs` answers each capability `_RPC_CAPABILITIES` names.
-        The
-        class-level `capabilities` -- `_EVERY_BUILD` -- is left untouched
-        where every probe answers `False`. A `chain` other than regtest
-        drops `_REGTEST_ONLY`'s capabilities whatever their probes answer.
+        The class-level `capabilities` -- `_EVERY_BUILD` -- is left
+        untouched where every probe answers `False`. A `chain` other than
+        regtest drops `_REGTEST_ONLY`'s capabilities whatever their probes
+        answer.
         """
         super().__init__(
             executable,

@@ -8,8 +8,8 @@
 against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). `Capability.LISTEN_ADDRESS` is declared
 by both builds (`btclib_node.py`'s own docstring). The test asks for
-`Capability.KNOWN_ADDRESSES`, declared on a build serving
-`addpeeraddress` and `getnodeaddresses`, and later for
+`Capability.KNOWN_ADDRESSES`, declared per build
+(`btclib_node.py`'s own docstring), and later for
 `Capability.PEER_TIMEOUT`, which no build declares, so it is a counted
 skip on every build.
 

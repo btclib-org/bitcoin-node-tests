@@ -7,7 +7,7 @@ r"""Core's `rpc_scantxoutset`, rewritten on tf2's own harness: btclib-node.
 `rpc_scantxoutset_test.py` beside this module is the body, run here against
 the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). `Capability.SCAN_UTXO_SET`, asked for ahead
-of `Capability.MINE`, is declared on a build serving `scantxoutset`
+of `Capability.MINE`, is declared per build
 (`btclib_node.py`'s own docstring), and the test is a counted skip on any
 other.
 

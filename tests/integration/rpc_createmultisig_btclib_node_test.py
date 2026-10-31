@@ -7,8 +7,7 @@ r"""Core's `rpc_createmultisig` spend half, on tf2's own harness: btclib-node.
 `rpc_createmultisig_test.py` beside this module holds the body, run here
 against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). `Capability.SIGN_RAW_TRANSACTION`, asked for
-ahead of `Capability.MINE`, is declared on a build serving
-`signrawtransactionwithkey` and `combinerawtransaction`
+ahead of `Capability.MINE`, is declared per build
 (`btclib_node.py`'s own docstring), and each is a counted skip on any
 other. Construction is
 `rpc_createmultisig_bitcoind_test.py`'s alone, that module's own

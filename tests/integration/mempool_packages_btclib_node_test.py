@@ -8,10 +8,10 @@
 against the target rather than the oracle (rule 3 of issue
 btclib-org/btclib#2220). The test asks for
 `Capability.MEMPOOL_GRAPH` and `Capability.INVALIDATE_BLOCK`, each
-declared on a build serving their RPCs (`btclib_node.py`'s own
-docstring), and is a counted skip on any other. On a build declaring
-both it is a counted skip on `Capability.LIMIT_CLUSTER_COUNT`: btclib-node
-runs the cluster mempool and registers no `-limitclustercount`.
+declared per build (`btclib_node.py`'s own docstring), and is a counted
+skip on any other. On a build declaring both it is a counted skip on
+`Capability.LIMIT_CLUSTER_COUNT`: btclib-node runs the cluster mempool
+and registers no `-limitclustercount`.
 
     export TF2_INTEGRATION=1 TF2_BTCLIB_NODE_PYTHON=<python>
     uv run pytest tests/integration/mempool_packages_btclib_node_test.py

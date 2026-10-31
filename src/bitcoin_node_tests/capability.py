@@ -603,6 +603,16 @@ class Capability(Enum):
     one mempool transaction's size, fees, `wtxid` and ancestors
     (`mempool_accept_wtxid.py`, `mempool_updatefromblock.py`). Named for
     the RPC, as `BLOCK_STATS` is.
+    `ADDRESS_TABLES` -- list the new and tried tables of the addresses it
+    keeps, each entry under its bucket and position, and count each
+    table's entries per network: Core's own `getrawaddrman` and
+    `getaddrmaninfo`; place the addresses deterministically under Core's
+    own `-test=addrman`, and check the tables' consistency every `<n>`
+    operations under its `-checkaddrman=<n>`, both debug-only options
+    (`rpc_net.py`). Not `KNOWN_ADDRESSES`, which hands an address in and
+    lists it back: a node can do that over tables of another shape. One
+    member for the four, as `PROXY` is for its three options:
+    `rpc_net.py`'s `test_addpeeraddress` uses them together.
     """
 
     MINE = "mine"
@@ -691,6 +701,7 @@ class Capability(Enum):
     INCLUDE_CONF = "include_conf"
     UTXO_SET_INFO = "utxo_set_info"
     MEMPOOL_ENTRY = "mempool_entry"
+    ADDRESS_TABLES = "address_tables"
 
 
 class SkipCounts:

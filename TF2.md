@@ -1162,7 +1162,7 @@ gh api --method GET repos/bitcoin/bitcoin/commits \
 | `rpc_net.py` (`addnode`) | [`332c3e8e3e17`](https://github.com/bitcoin/bitcoin/commit/332c3e8e3e17) | 2026-10-01 | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
 | `rpc_net.py` (service flags) | same | same | pass | skip (proxy) |
 | `rpc_net.py` (`getnodeaddresses`) | same | same | pass, the `tor` refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (proxy) |
-| `rpc_net.py` (`addpeeraddress`) | same | same | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | fail ([ISS 555](https://github.com/btclib-org/bitcoin-node-tests/issues/555)) |
+| `rpc_net.py` (`addpeeraddress`) | same | same | pass, the blank address refusal asserted per-build ([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)) | skip (address_tables) |
 | `rpc_net.py` (`getaddrmaninfo`) | same | same | pass | skip (cjdns) |
 | `rpc_net.py` (`getrawaddrman`) | same | same | pass | skip (cjdns) |
 | `feature_config_args.py` (`-proxy`) | [`2630d8e6c9d6`](https://github.com/bitcoin/bitcoin/commit/2630d8e6c9d6) | 2026-09-22 | pass | skip (proxy) |
@@ -1586,10 +1586,6 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
 - `p2p_block_times.py`: fails: `getpeerinfo` answers no
   `last_block_announcement`, which Core's `master` answers
   ([ISS btclib-node#2171](https://github.com/btclib-org/btclib-node/issues/2171)).
-- `rpc_net.py`: the (`addpeeraddress`) row fails: the test starts its node with
-  Core's `-checkaddrman` and `-test=addrman`, which no capability it asks for
-  names, and btclib-node refuses the first
-  ([ISS 555](https://github.com/btclib-org/bitcoin-node-tests/issues/555)).
 - `tool_utxo_to_sqlite.py`: has no row. Its subject is
   `contrib/utxo-tools/utxo_to_sqlite.py`, a script of Core's source tree, not
   a node; what it asks of the node is `rpc_dumptxoutset.py`'s and

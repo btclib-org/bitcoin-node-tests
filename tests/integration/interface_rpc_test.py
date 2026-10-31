@@ -14,7 +14,8 @@ status and the body; Core's own `send_raw_rpc` does the same through its
 harness's `AuthServiceProxy._request`.
 
 - `getrpcinfo` names the one call running, itself, and the node's own
-  debug log (`Capability.RPC_INFO`): Core's `test_getrpcinfo`.
+  log (`Capability.RPC_INFO`): Core's `test_getrpcinfo`. The log is
+  bitcoind's `debug.log` and btclib-node's `history.log`.
 - A batch is answered member by member in each member's own JSON-RPC
   version, a notification's answer left out and a batch of nothing but
   notifications answered 204: Core's `test_batch_requests`.
@@ -59,6 +60,7 @@ from bitcoin_core_rpc.transport import http_request
 from btclib.network import NETWORKS
 
 from bitcoin_node_tests.bitcoind import BitcoindAdapter
+from bitcoin_node_tests.btclib_node import BtclibNodeAdapter
 from bitcoin_node_tests.capability import Capability, require
 
 if TYPE_CHECKING:
@@ -250,24 +252,28 @@ def _expect_status(
 def getrpcinfo_names_the_call_running_and_the_log(
     cluster: _Cluster, skip_counts: SkipCounts
 ) -> None:
-    """Core's `test_getrpcinfo`: the one call running, and the debug log.
+    """Core's `test_getrpcinfo`: the one call running, and the node's log.
 
     :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     :raises TypeError: the node declares `Capability.RPC_INFO` without
-        being the adapter that names a `debug_log_path`.
+        being an adapter that names its log's path.
     """
     (node,) = cluster(1)
     require(Capability.RPC_INFO, node.capabilities, skip_counts)
-    if not isinstance(node, BitcoindAdapter):
-        err_msg = f"{type(node).__name__} declares RPC_INFO, naming no debug.log"
+    if isinstance(node, BitcoindAdapter):
+        log_path = node.debug_log_path
+    elif isinstance(node, BtclibNodeAdapter):
+        log_path = node.log_path
+    else:
+        err_msg = f"{type(node).__name__} declares RPC_INFO, naming no log"
         raise TypeError(err_msg)
     info = node.rpc.call("getrpcinfo")
     assert len(info["active_commands"]) == 1
     command = info["active_commands"][0]
     assert command["method"] == "getrpcinfo"
     assert command["duration"] >= 0
-    assert info["logpath"] == str(node.debug_log_path)
+    assert info["logpath"] == str(log_path)
 
 
 def _batch_request(

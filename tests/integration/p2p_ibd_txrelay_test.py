@@ -4,8 +4,8 @@
 
 """Core's `p2p_ibd_txrelay`, as bodies over each node.
 
-Read from Core's `test/functional/p2p_ibd_txrelay.py` (`fab352053d6e`,
-2026-04-16): transaction relay while a node is in initial block
+Read from Core's `test/functional/p2p_ibd_txrelay.py` (`7777598f87ea`,
+2026-10-22): transaction relay while a node is in initial block
 download. Two linked nodes started with `-minrelaytxfee`
 (`Capability.MIN_RELAY_TX_FEE`) each send the other a `feefilter` of
 `MAX_MONEY` rounded down to `FeeFilterRounder`'s top bucket while in
@@ -48,7 +48,13 @@ What differs from Core's file:
   `Conn.sync_with_ping`;
 - Core's `disconnect_p2ps` waits for the node to count no test peer, and
   here the wait is for the node's own `getpeerinfo` to name the other
-  node alone.
+  node alone;
+- Core's `syncwithvalidationinterfacequeue` after the old block is
+  bitcoind's own RPC (`src/rpc/blockchain.cpp`), so `_sync_validation_queue`
+  calls it on bitcoind alone: the node fills its filter of recently
+  confirmed transactions on events queued behind the block
+  (`src/validationinterface.cpp`), and a late one would put the old
+  block's coinbase there after the node has left initial block download.
 
 Each `p2p_ibd_txrelay_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -255,6 +261,12 @@ def _asks_for(wtxid: bytes) -> Callable[[Message], bool]:
     return predicate
 
 
+def _sync_validation_queue(node: NodeAdapter) -> None:
+    """Core's own `syncwithvalidationinterfacequeue`, on bitcoind alone."""
+    if isinstance(node, BitcoindAdapter):
+        node.rpc.call("syncwithvalidationinterfacequeue")
+
+
 def _filters_ibd_blocks(node: NodeAdapter) -> bool:
     """Whether `node` marks a block connected during IBD as recently confirmed.
 
@@ -295,6 +307,7 @@ def _run(node: NodeAdapter, other: NodeAdapter, log_path: Path | None) -> None:
     node.set_mock_time(mock_time)
     old_block_hash = _submit_block(node, mock_time - _OLD_BLOCK_AGE)
     assert _in_ibd(node)
+    _sync_validation_queue(node)
     old_block = node.rpc.call("getblock", [old_block_hash.hex(), 2])
     ibd_wtxid = bytes.fromhex(old_block["tx"][0]["hash"])
 

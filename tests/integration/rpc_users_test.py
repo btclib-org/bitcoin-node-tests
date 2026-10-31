@@ -4,8 +4,8 @@
 
 """Core's `rpc_users`, one body over each node.
 
-Read from Core's `test/functional/rpc_users.py` (`faf993ee4421`,
-2026-05-26), disk-family mechanism alone (issue btclib-org/btclib#2220,
+Read from Core's `test/functional/rpc_users.py` (`fad441867c9b`,
+2026-10-12), disk-family mechanism alone (issue btclib-org/btclib#2220,
 [ISS 7](https://github.com/btclib-org/bitcoin-node-tests/issues/7)):
 `rpcauth`, `rpcuser`/`rpcpassword` and `rpccookieperms` are each written
 to the datadir this adapter is given, either through `bitcoin.conf`
@@ -96,6 +96,7 @@ import pytest
 
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import free_ports
+from bitcoin_node_tests.timeout_factor import scaled
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -118,6 +119,10 @@ __all__ = [
     "rpccookieperms_sets_posix_permission_bits",
     "rpcuser_rpcpassword_authenticates_without_a_cookie",
 ]
+
+# Core's own `rpc_timeout` (`test_framework.py`), the wait its
+# `HTTPConnection` is given, before `--timeout-factor` scales it
+_RPC_TIMEOUT = 60
 
 # Core's own malformed `-rpcauth` values, minus the bare `-rpcauth`
 # flag with no value at all, dropped: it exercises `argparse`'s own
@@ -195,7 +200,7 @@ def _call(port: int, user: str, password: str, method: str) -> int:
     """
     credentials = base64.b64encode(f"{user}:{password}".encode()).decode()
     headers = {"Authorization": f"Basic {credentials}"}
-    conn = http.client.HTTPConnection("127.0.0.1", port)
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=scaled(_RPC_TIMEOUT))
     try:
         conn.request("POST", "/", json.dumps({"method": method}), headers)
         return conn.getresponse().status

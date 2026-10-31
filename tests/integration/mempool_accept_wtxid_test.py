@@ -5,7 +5,7 @@
 """Core's `mempool_accept_wtxid`, one body over each node.
 
 Read from Core's `test/functional/mempool_accept_wtxid.py`
-(`3f5211cba8e7`, 2026-01-21): two children of one parent share a txid
+(`fa704c5d3caf`, 2026-10-23): two children of one parent share a txid
 and differ only in the witness that spends it. The node admits the first,
 refuses the second at `testmempoolaccept` as a transaction whose
 non-witness data its mempool already holds, and answers the second's own
@@ -31,6 +31,14 @@ ping as `TestNode.add_p2p_connection` does. `_wait_for_broadcast` is its
 names, as `P2PInterface.on_inv` does: that request is what takes a
 transaction out of the node's own unbroadcast set, which
 `getmempoolinfo`'s `unbroadcastcount` then reads as empty.
+
+Core's `noban_tx_relay` starts the node with
+`-whitelist=noban,in,out@127.0.0.1`, so that it announces a transaction
+to its peers at once. Here the node restarts with it where it declares
+`Capability.PEER_PERMISSIONS`. Without it, the node announces to an
+inbound peer after a Poisson delay averaging Core's
+`INBOUND_INVENTORY_BROADCAST_INTERVAL` (`src/net_processing.cpp`),
+which `_wait_for_broadcast`'s own wait outlasts.
 
 Each `mempool_accept_wtxid_<node>_test.py` module beside this one runs
 it, `tests/integration/conftest.py`'s own module docstring having how.
@@ -68,6 +76,9 @@ __all__ = [
 ]
 
 _MAGIC = magic_from_chain("regtest")
+
+# what Core's own `noban_tx_relay` starts the node with
+_NOBAN = "-whitelist=noban,in,out@127.0.0.1"
 
 # Core's own `wait_for_broadcast` default, in seconds
 _BROADCAST_TIMEOUT = 60.0
@@ -214,6 +225,8 @@ def a_child_sharing_a_txid_is_told_apart_by_its_wtxid(
     (node,) = cluster(1)
     require(Capability.MINE, node.capabilities, skip_counts)
     require(Capability.MEMPOOL_ENTRY, node.capabilities, skip_counts)
+    if Capability.PEER_PERMISSIONS in node.capabilities:
+        node.restart([_NOBAN])
     wallet = MiniWallet(node)
     wallet.generate(COINBASE_MATURITY + 1)
     assert node.rpc.call("getmempoolinfo")["size"] == 0

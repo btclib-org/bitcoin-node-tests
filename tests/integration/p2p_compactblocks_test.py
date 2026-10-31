@@ -4,8 +4,8 @@
 
 """Core's `p2p_compactblocks`, as bodies over each node.
 
-Read from Core's `test/functional/p2p_compactblocks.py` (`28641fd195db`,
-2026-07-31): how a node negotiates, builds, serves and takes BIP152's
+Read from Core's `test/functional/p2p_compactblocks.py` (`b9788a5a10bd`,
+2026-09-30): how a node negotiates, builds, serves and takes BIP152's
 compact blocks, and which malformed or invalid ones drop the peer
 sending them. Each of the checks below is one of Core's `test_*`
 methods, a body over a fresh node:
@@ -42,7 +42,10 @@ methods, a body over a fresh node:
   peer;
 - a `cmpctblock` prefilling an index past its block drops the peer,
   sent unasked by a high-bandwidth peer or asked for from a
-  low-bandwidth one;
+  low-bandwidth one, and sent by a high-bandwidth peer for a block
+  already in flight from as many peers as Core's
+  `MAX_CMPCTBLOCKS_INFLIGHT_PER_BLOCK`, which the node reconstructs
+  optimistically;
 - a block a peer announces and does not complete is reconstructed from
   another peer's `cmpctblock`, and one whose coinbase witness the block
   does not commit to leaves the first peer's `blocktxn` to complete it;
@@ -97,9 +100,11 @@ What differs from Core's file besides:
 - the log line Core's `test_getblocktxn_handler` reads beside the
   disconnect for an index past the block is not asserted;
 - Core's `test_invalid_cmpctblock_message` reads `getpeerinfo`'s
-  `bip152_hb_to` and `bip152_hb_from` for its two peers; here the
+  `bip152_hb_to` and `bip152_hb_from` for its first two peers; here the
   `sendcmpct` the node sent each is read, and the peer's own request is
-  not;
+  not. Its check of the optimistic reconstruction is a body of its own,
+  asking for `Capability.TYPED_OUTBOUND`, its outbound peer taking the
+  last slot a block may be in flight from;
 - Core's `test_invalid_tx_in_compactblock` adds the witness commitment
   its transactions do not need before dropping the coinbase's witness;
   here the transactions carry witnesses, so the block already commits to
@@ -146,6 +151,13 @@ instead, the log halves reading the node's own lines for the exchange
 and no `Misbehaving`. A `master` build between a change's merge and the
 version's move to `32.99` reads older and does what the change has it do
 all the same, the constants' own comments having the commits.
+
+An invalid `cmpctblock` on the optimistic path drops the peer from
+bitcoin/bitcoin#35321, which no tag up to `v32.1` carries. A bitcoind
+whose `getnetworkinfo` `version` reads older than `32.99`'s keeps that
+peer, which is asserted there instead. A `master` build at `32.99` from
+before the change's merge keeps it too, and fails the check, its
+constant's own comment having the commits.
 
 Each `p2p_compactblocks_<node>_test.py` module beside this one runs each body,
 `tests/integration/conftest.py`'s own module docstring having how.
@@ -215,6 +227,7 @@ __all__ = [
     "an_empty_getblocktxn_drops_the_peer",
     "an_empty_getblocktxn_is_logged",
     "an_invalid_cmpctblock_drops_the_peer",
+    "an_invalid_optimistic_cmpctblock_drops_the_peer",
     "an_invalid_sendcmpct_announce_drops_the_peer",
     "an_invalid_sendcmpct_announce_is_logged",
     "getblocktxn_is_answered_near_the_tip",
@@ -277,6 +290,15 @@ _REFUSES_EMPTY_GETBLOCKTXN_VERSION = 320000
 # 2026-09-11) reports `319900` and ignores them all the same, so this test
 # fails against such a build
 _IGNORES_UNSOLICITED_CMPCTBLOCK_VERSION = 320000
+
+# Core's own `CLIENT_VERSION`, at or past which an invalid `cmpctblock`
+# on the optimistic reconstruction path drops the peer: `32.99`'s, no
+# tag up to `v32.1` carrying bitcoin/bitcoin#35321. A known limit: a
+# `master` build from the version's move to `32.99` (`f3fec67c3e`,
+# 2026-09-11) until that change's merge (`0a8e904cee`, 2026-10-20)
+# reports `329900` and keeps the peer, so this test fails against such a
+# build
+_REFUSES_OPTIMISTIC_CMPCTBLOCK_VERSION = 329900
 
 
 class _BlockConn(Conn):
@@ -1065,6 +1087,66 @@ def an_invalid_cmpctblock_drops_the_peer(
         lb_peer.send(cmpct)
         lb_peer.peer.wait_for_disconnect()
         assert _tip(node) == block.header.previous_block_hash
+
+
+def an_invalid_optimistic_cmpctblock_drops_the_peer(
+    cluster: _Cluster, skip_counts: SkipCounts
+) -> None:
+    """Core's own `test_invalid_cmpctblock_message`, its optimistic path.
+
+    A block is in flight from a low-bandwidth peer, a high-bandwidth
+    inbound one and the outbound one, every slot Core's
+    `MAX_CMPCTBLOCKS_INFLIGHT_PER_BLOCK` allows; a fourth peer's invalid
+    `cmpctblock` for it is read on the optimistic path.
+
+    :param cluster: a node's own cluster fixture.
+    :param skip_counts: the session's own tally.
+    """
+    node, wallet = _node(cluster, skip_counts, 0, Capability.TYPED_OUTBOUND)
+    refuses = _carries(node, _REFUSES_OPTIMISTIC_CMPCTBLOCK_VERSION)
+    with ExitStack() as stack:
+        outbound_peer = _BlockConn.outbound(stack, node)
+        _request_cb_announcements(outbound_peer, node)
+        stall1 = _BlockConn.inbound(stack, node)
+        stall2 = _BlockConn.inbound(stack, node)
+        bad_peer = _BlockConn.inbound(stack, node)
+        for conn in (stall1, stall2, bad_peer):
+            _request_cb_announcements(conn, node)
+
+        # the outbound peer, stall2 and bad_peer high-bandwidth, stall1 not
+        for conn in (outbound_peer, stall2, bad_peer):
+            _make_high_bandwidth(conn, node, wallet)
+        assert _hb_states(node)[1:] == [(False, True), (True, True), (True, True)]
+
+        # the block's coinbase as a short id, which no mempool holds
+        block = build_next_block(node, wallet.script_pub_key)
+        block_hash = block.header.hash
+        inflight = _cmpctblock(block, prefill=())
+
+        # stall1 announces it solicited, and every slot is taken
+        stall1.send(Headers([block.header], check_validity=False))
+        stall1.wait_for_getdata(block_hash)
+        for conn in (stall1, stall2, outbound_peer):
+            conn.clear("getblocktxn")
+            conn.send_and_ping(inflight)
+            _getblocktxn_expected(conn, block_hash, [0])
+
+        # a cmpctblock prefilling its one transaction at index 1
+        prefilled = PrefilledTransaction(1, block.transactions[0], check_validity=False)
+        cmpct = CmpctBlock(block.header, 0, [], [prefilled], check_validity=False)
+        if refuses:
+            bad_peer.send(cmpct)
+            bad_peer.peer.wait_for_disconnect()
+        else:
+            # an older build ignores it, and keeps the peer
+            bad_peer.send_and_ping(cmpct)
+        assert _tip(node) == block.header.previous_block_hash
+
+        # stall1 completes the block
+        stall1.send_and_ping(
+            BlockTxn(block_hash, [block.transactions[0]], check_validity=False)
+        )
+        assert _tip(node) == block_hash
 
 
 def _multiple_blocktxn(

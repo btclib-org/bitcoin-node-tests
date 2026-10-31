@@ -4,8 +4,8 @@
 
 """Core's `rpc_net`, the steps that need one node, one body per step.
 
-Read from Core's `test/functional/rpc_net.py` (`71c30b608382`,
-2026-09-22), a file of
+Read from Core's `test/functional/rpc_net.py` (`332c3e8e3e17`,
+2026-10-01), a file of
 [ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47):
 `addnode` and `getaddednodeinfo`, the service names of a peer,
 `getnodeaddresses`, `addpeeraddress`, `getaddrmaninfo` and
@@ -53,6 +53,12 @@ the build a call that changes nothing and asserts what that build answers:
   to the blank address, which the step asserts, as Core's file does at
   `v30.3`; that file checks no non-IP name.
 
+`getnodeaddresses` refuses `tor` from `v31.0` on (bitcoin/bitcoin#34031),
+where an older build reads it as `onion`. That refusal is asserted only of a
+build whose `getnetworkinfo` `version` reads `v31.0` or later
+([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)), or
+of a node other than bitcoind.
+
 `p2p_port(2)` (`test_framework/util.py`), the address `addnode` adds, is
 a port of `node.free_ports` here, and Core's `P2P_SERVICES`
 (`test_framework/p2p.py`) is `NODE_NETWORK | NODE_WITNESS`.
@@ -74,6 +80,7 @@ from btclib.p2p import ServiceFlags
 from bitcoin_node_tests.capability import Capability, require
 from bitcoin_node_tests.node import free_ports
 from bitcoin_node_tests.peer import Peer
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -137,6 +144,15 @@ _A_DAY = 86400
 
 # `1st June 2018`, the earliest time `getnodeaddresses` may report
 _JUNE_2018 = 1527811200
+
+# Core's own `CLIENT_VERSION` (`src/clientversion.h`), the running build's
+# own `getnetworkinfo` `version`, at or past which `getnodeaddresses`
+# refuses `tor`: `v31.0`'s, `v31.0rc1` being the first tag carrying
+# bitcoin/bitcoin#34031. A known limit: a `master` build from its merge
+# (`56ce78d5f6`, 2025-12-10) until the version moved to `31.99`
+# (`48b952cbb6`, 2026-03-06) reports `309900` and refuses it all the same,
+# so the `tor` check is not made against such a build
+_TOR_REFUSED_VERSION = 310000
 
 
 @contextlib.contextmanager
@@ -412,7 +428,7 @@ def getnodeaddresses_answers_from_the_address_table(
         assert ipv6[0]["port"] == 8333
         assert ipv6[0]["services"] == _P2P_SERVICES
 
-        for network in ("onion", "i2p", "cjdns"):
+        for network in ("onion", "OnIoN", "i2p", "cjdns"):
             assert rpc.call("getnodeaddresses", [0, network]) == []
 
         _assert_refused(
@@ -422,13 +438,16 @@ def getnodeaddresses_answers_from_the_address_table(
             "getnodeaddresses",
             [-1],
         )
-        _assert_refused(
-            node,
-            _INVALID_PARAMETER,
-            "Network not recognized: Foo",
-            "getnodeaddresses",
-            [1, "Foo"],
-        )
+        version = bitcoind_version(node)
+        refuses_tor = version is None or version >= _TOR_REFUSED_VERSION
+        for network in ("Foo", "tor") if refuses_tor else ("Foo",):
+            _assert_refused(
+                node,
+                _INVALID_PARAMETER,
+                f"Network not recognized: {network}",
+                "getnodeaddresses",
+                [1, network],
+            )
 
 
 def addpeeraddress_fills_the_address_tables(

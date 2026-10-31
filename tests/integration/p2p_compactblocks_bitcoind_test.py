@@ -31,6 +31,7 @@ from tests.integration.p2p_compactblocks_test import (
     an_empty_getblocktxn_drops_the_peer,
     an_empty_getblocktxn_is_logged,
     an_invalid_cmpctblock_drops_the_peer,
+    an_invalid_optimistic_cmpctblock_drops_the_peer,
     an_invalid_sendcmpct_announce_drops_the_peer,
     an_invalid_sendcmpct_announce_is_logged,
     getblocktxn_is_answered_near_the_tip,
@@ -153,6 +154,14 @@ def test_an_invalid_cmpctblock_drops_the_peer(
 ) -> None:
     """The oracle: the body this module's docstring names, over bitcoind."""
     an_invalid_cmpctblock_drops_the_peer(bitcoind_cluster, skip_counts)
+
+
+def test_an_invalid_optimistic_cmpctblock_drops_the_peer(
+    bitcoind_cluster: Callable[[int], list[BitcoindAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """The oracle: the body this module's docstring names, over bitcoind."""
+    an_invalid_optimistic_cmpctblock_drops_the_peer(bitcoind_cluster, skip_counts)
 
 
 def test_an_invalid_sendcmpct_announce_drops_the_peer(

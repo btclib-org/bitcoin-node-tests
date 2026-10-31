@@ -4,8 +4,8 @@
 
 """Core's `feature_proxy`, one body over each node.
 
-Read from Core's `test/functional/feature_proxy.py` (`f82043af507a`,
-2026-06-30), the first file of
+Read from Core's `test/functional/feature_proxy.py` (`fd65406b39a8`,
+2026-10-01), the first file of
 [ISS 47](https://github.com/btclib-org/bitcoin-node-tests/issues/47):
 a node given a SOCKS5 proxy dials its peers through it, `getnetworkinfo`
 reports which proxy each network is reached by, and a start naming no
@@ -44,6 +44,20 @@ by default. A node without `Capability.PROXY_PER_NETWORK` reads a
 `-proxy` suffix as part of the port, so the starts giving one expect its
 refusal of that port instead.
 
+Core's checks below differ between builds of bitcoind, each read off the
+build's own `getnetworkinfo` `version`
+([ISS 35](https://github.com/btclib-org/bitcoin-node-tests/issues/35)),
+a node other than bitcoind being held to Core's file:
+
+- `-onlynet=tor` and a `-proxy` suffix of `tor` are refused from `v31.0`
+  on (bitcoin/bitcoin#34031); an older build reads `tor` as `onion`, so
+  neither start is made there;
+- `-proxy`'s refusal of an unknown network names it as given from `v32.1`
+  on (bitcoin/bitcoin@fd65406b39a8), and lowercased by an older build;
+- the line logged for a connection `addnode` tries names its connection
+  type from `v31.0` on (bitcoin/bitcoin@67696b207f), and is matched in
+  the older build's own wording there.
+
 The start Core's file expects to succeed, `-onlynet=onion`
 beside `-listenonion=1`, is dropped: `BitcoindAdapter._command` sets
 `-listenonion=0` itself, so `_check_extra_args` (`node.py`) refuses the
@@ -73,17 +87,22 @@ from typing import TYPE_CHECKING, NamedTuple
 
 import pytest
 
+from bitcoin_node_tests.bitcoind import BitcoindAdapter
 from bitcoin_node_tests.capability import Capability, require
+from bitcoin_node_tests.debug_log import assert_debug_log
 from bitcoin_node_tests.socks5 import AddressType, Socks5Proxy, Socks5Request
+from tests.integration.script_verify_flag_test import bitcoind_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+    from pathlib import Path
 
     from bitcoin_node_tests.capability import SkipCounts
     from bitcoin_node_tests.node import NodeAdapter
 
 __all__ = [
     "cjdnsreachable_reaches_cjdns_through_the_proxy",
+    "clearing_the_ipv4_proxy_clears_the_name_proxy",
     "i2psam_is_the_proxy_of_i2p_alone",
     "ipv6_loopback_proxy_reaches_every_network_but_onion",
     "malformed_i2psam_is_refused",
@@ -121,9 +140,9 @@ _ONION_PORT = "Error: Invalid port specified in -onion: '192.0.0.1:def'"
 _PROXY_TRAILING_EQUALS = (
     "Error: Invalid -proxy address or hostname, ends with '=': '127.0.0.1:9050='"
 )
-_PROXY_UNKNOWN_NETWORK = (
-    "Error: Unrecognized network in -proxy='127.0.0.1:9050=foo': 'foo'"
-)
+# a `-proxy` suffix's own unknown, removed and non-SOCKS5 networks, Core's
+# own
+_PROXY_UNKNOWN_NETWORKS = ("Foo", "tor", "i2p")
 _PROXY_LONG_UNIX_PATH = (
     f"Error: Invalid -proxy address or hostname: '{_LONG_UNIX_PATH}'"
 )
@@ -146,7 +165,36 @@ _ONLYNET_ONION_MISSING = (
     "proxy for reaching the Tor network is not provided: none of -proxy, "
     "-onion or -listenonion is given"
 )
-_ONLYNET_UNKNOWN = "Error: Unknown network specified in -onlynet: 'abc'"
+# `-onlynet`'s own unknown and removed networks, Core's own
+_ONLYNET_UNKNOWN_NETWORKS = ("abc", "tor")
+
+# Core's own `CLIENT_VERSION` (`src/clientversion.h`), the running build's
+# own `getnetworkinfo` `version`, at or past which `-onlynet` and `-proxy`
+# refuse `tor`: `v31.0`'s, `v31.0rc1` being the first tag carrying
+# bitcoin/bitcoin#34031. A known limit: a `master` build from its merge
+# (`56ce78d5f6`, 2025-12-10) until the version moved to `31.99`
+# (`48b952cbb6`, 2026-03-06) reports `309900` and refuses it all the same,
+# so the `tor` check is not made against such a build
+_TOR_REFUSED_VERSION = 310000
+
+# Core's own `CLIENT_VERSION`, at or past which `-proxy`'s refusal of an
+# unknown network names it as given: `v32.1`'s, the first tag carrying
+# bitcoin/bitcoin@fd65406b39a8, backported as `ad1b5ad48a`. A known limit: a
+# `master` build from the version's move to `32.99` (`f3fec67c3e`,
+# 2026-09-11) until that commit's merge (`06edf05900`, 2026-10-20) reports
+# `329900` and lowercases it, so this test fails against such a build
+_NETWORK_CASE_KEPT_VERSION = 320100
+
+# Core's own `CLIENT_VERSION`, at or past which the line logged for a
+# connection names its type: `v31.0`'s, `v31.0rc1` being the first tag
+# carrying bitcoin/bitcoin@67696b207f. A known limit: a `master` build
+# from its merge (`6b0a980de9`, 2026-03-02) until the version moved to
+# `31.99` (`48b952cbb6`, 2026-03-06) reports `309900` and names it all the
+# same, so this test fails against such a build
+_CONNECTION_TYPE_LOGGED_VERSION = 310000
+
+# the name Core's own file has the node dial once its name proxy is cleared
+_NAME_TARGET = "example.invalid:8333"
 
 
 class _Target(NamedTuple):
@@ -261,6 +309,37 @@ def _refusal(node: NodeAdapter, extra_args: list[str]) -> str:
     assert early_exit is not None
     assert int(early_exit[1]) != 0
     return early_exit[2].strip()
+
+
+def _refuses_tor(node: NodeAdapter) -> bool:
+    """Whether `node` refuses `tor` as a network name, `_TOR_REFUSED_VERSION`.
+
+    :param node: a node the caller has started.
+    """
+    version = bitcoind_version(node)
+    return version is None or version >= _TOR_REFUSED_VERSION
+
+
+def _named_as_given(node: NodeAdapter) -> bool:
+    """Whether `node` names an unknown network as given, not lowercased.
+
+    :param node: a node the caller has started.
+    """
+    version = bitcoind_version(node)
+    return version is None or version >= _NETWORK_CASE_KEPT_VERSION
+
+
+def _debug_log(node: NodeAdapter, skip_counts: SkipCounts) -> Path:
+    """Return the log Core's own lines are read from, or skip.
+
+    :raises TypeError: `node` declares `Capability.DEBUG_LOG` without
+        being the adapter that names a `debug_log_path`.
+    """
+    require(Capability.DEBUG_LOG, node.capabilities, skip_counts)
+    if not isinstance(node, BitcoindAdapter):
+        err_msg = f"{type(node).__name__} declares DEBUG_LOG, naming no debug.log"
+        raise TypeError(err_msg)
+    return node.debug_log_path
 
 
 def proxy_reaches_every_network_through_one_proxy(
@@ -502,13 +581,14 @@ def proxy_network_suffix_sets_the_proxy_of_that_network(
     """Check `-proxy=<proxy>=<network>` sets, or removes, one network's proxy.
 
     Core's own restarts of its node 1: a proxy for IPv6 alone, one each
-    for IPv4 and IPv6, onion's overriding the proxy of every network, and
-    CJDNS's removed from it. Every network's proxy is compared, where
-    Core's file reads only the networks each start names: a proxy for
-    IPv4 given without its suffix, before IPv6's own, leaves IPv4 and
-    IPv6 reading as Core's check expects, and only the networks it does
-    not read tell the two apart. Nothing is dialled, so nothing listens
-    at Core's own addresses.
+    for IPv4 and IPv6, onion's overriding the proxy of every network,
+    its suffix in mixed case, and CJDNS's removed from it. Every
+    network's proxy is compared, where Core's file reads only the
+    networks each start names: a proxy for IPv4 given without its
+    suffix, before IPv6's own, leaves IPv4 and IPv6 reading as Core's
+    check expects, and only the networks it does not read tell the two
+    apart. Nothing is dialled, so nothing listens at Core's own
+    addresses.
 
     :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
@@ -524,7 +604,7 @@ def proxy_network_suffix_sets_the_proxy_of_that_network(
             {"ipv4": "127.4.4.4:4444", "ipv6": "127.6.6.6:6666"},
         ),
         (
-            ["127.1.1.1:1111", "127.2.2.2:2222=onion"],
+            ["127.1.1.1:1111", "127.2.2.2:2222=OnIoN"],
             {
                 "ipv4": "127.1.1.1:1111",
                 "ipv6": "127.1.1.1:1111",
@@ -545,6 +625,37 @@ def proxy_network_suffix_sets_the_proxy_of_that_network(
         assert _proxies(node) == none | expected
 
 
+def clearing_the_ipv4_proxy_clears_the_name_proxy(
+    cluster: Callable[[int], Sequence[NodeAdapter]],
+    skip_counts: SkipCounts,
+) -> None:
+    """Check `-proxy=0=ipv4` after `-proxy` leaves a name no proxy.
+
+    Core's own restart of its node 1 with its first proxy for every
+    network, then `-proxy=0=ipv4` and `-dns=0`: a name `addnode` dials is
+    tried directly, as the node logs it, and never through the proxy.
+    `-dns` asks for no capability, as `-dnsseed` does not.
+
+    :param cluster: a node's own cluster fixture.
+    :param skip_counts: the session's own tally.
+    """
+    (node,) = cluster(1)
+    require(Capability.PROXY, node.capabilities, skip_counts)
+    require(Capability.PROXY_PER_NETWORK, node.capabilities, skip_counts)
+    log_path = _debug_log(node, skip_counts)
+    version = bitcoind_version(node)
+    if version is None or version >= _CONNECTION_TYPE_LOGGED_VERSION:
+        tried = f"trying v1 connection (manual) to {_NAME_TARGET}"
+    else:
+        tried = f"trying v1 connection {_NAME_TARGET}"
+    with Socks5Proxy() as proxy:
+        node.restart(
+            [f"-proxy={proxy.endpoint}", "-proxy=0=ipv4", "-dns=0", "-dnsseed=0"]
+        )
+        with assert_debug_log(log_path, [tried], ["SOCKS5 connecting example.invalid"]):
+            node.rpc.call("addnode", [_NAME_TARGET, "onetry", False])
+
+
 def malformed_proxy_or_onion_is_refused(
     cluster: Callable[[int], Sequence[NodeAdapter]],
     skip_counts: SkipCounts,
@@ -552,37 +663,41 @@ def malformed_proxy_or_onion_is_refused(
     """Check a `-proxy` or `-onion` naming no usable proxy refuses to start.
 
     Core's own invalid hosts and ports for each, a `-proxy` ending in
-    `=`, one naming a network Core does not know, and a unix socket path
-    longer than a socket address holds. A node without
-    `Capability.PROXY_PER_NETWORK` reads a suffix as part of the port, so
-    the `-proxy` starts giving one expect its refusal of that port.
+    `=`, one naming a network Core does not know, has removed or reaches
+    without SOCKS5, and a unix socket path longer than a socket address
+    holds. A node without `Capability.PROXY_PER_NETWORK` reads a suffix as
+    part of the port, so the `-proxy` starts giving one expect its refusal
+    of that port.
 
     :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
     """
     (node,) = cluster(1)
     require(Capability.PROXY, node.capabilities, skip_counts)
+    refuses_tor, named_as_given = _refuses_tor(node), _named_as_given(node)
     node.stop()
-    trailing, unknown = "-proxy=127.0.0.1:9050=", "-proxy=127.0.0.1:9050=foo"
-    if Capability.PROXY_PER_NETWORK in node.capabilities:
-        trailing_expected, unknown_expected = (
-            _PROXY_TRAILING_EQUALS,
-            _PROXY_UNKNOWN_NETWORK,
-        )
-    else:
-        trailing_expected, unknown_expected = (
-            _port_refusal(trailing),
-            _port_refusal(unknown),
-        )
-    for arg, expected in (
+    per_network = Capability.PROXY_PER_NETWORK in node.capabilities
+    trailing = "-proxy=127.0.0.1:9050="
+    starts = [
         ("-proxy=abc..abc:23456", _PROXY_HOST),
         ("-proxy=192.0.0.1:def", _PROXY_PORT),
         ("-onion=xyz..xyz:23456", _ONION_HOST),
         ("-onion=192.0.0.1:def", _ONION_PORT),
-        (trailing, trailing_expected),
-        (unknown, unknown_expected),
-        (f"-proxy={_LONG_UNIX_PATH}", _PROXY_LONG_UNIX_PATH),
-    ):
+        (trailing, _PROXY_TRAILING_EQUALS if per_network else _port_refusal(trailing)),
+    ]
+    for network in _PROXY_UNKNOWN_NETWORKS:
+        if network == "tor" and not refuses_tor:
+            continue
+        value = f"127.0.0.1:9050={network}"
+        shown = network if named_as_given else network.lower()
+        expected = (
+            f"Error: Unrecognized network in -proxy='{value}': '{shown}'"
+            if per_network
+            else _port_refusal(f"-proxy={value}")
+        )
+        starts.append((f"-proxy={value}", expected))
+    starts.append((f"-proxy={_LONG_UNIX_PATH}", _PROXY_LONG_UNIX_PATH))
+    for arg, expected in starts:
         assert _refusal(node, [arg]) == expected
 
 
@@ -616,8 +731,9 @@ def onlynet_refuses_a_network_it_cannot_reach(
     Core's own refusals: I2P without `-i2psam`, CJDNS without
     `-cjdnsreachable`, onion with its proxy forbidden by `-onion=0` or
     `-noonion`, onion with no proxy at all, and a network Core does not
-    know. The wording names the option each network's reach is given by,
-    so each capability behind those options is asked for too.
+    know or has removed. The wording names the option each network's
+    reach is given by, so each capability behind those options is asked
+    for too.
 
     :param cluster: a node's own cluster fixture.
     :param skip_counts: the session's own tally.
@@ -630,13 +746,19 @@ def onlynet_refuses_a_network_it_cannot_reach(
         Capability.CJDNS,
     ):
         require(capability, node.capabilities, skip_counts)
+    refuses_tor = _refuses_tor(node)
     node.stop()
-    for extra_args, expected in (
+    starts = [
         (["-onlynet=i2p"], _ONLYNET_I2P),
         (["-onlynet=cjdns"], _ONLYNET_CJDNS),
         (["-onlynet=onion", "-onion=0"], _ONLYNET_ONION_FORBIDDEN),
         (["-onlynet=onion", "-noonion"], _ONLYNET_ONION_FORBIDDEN),
         (["-onlynet=onion"], _ONLYNET_ONION_MISSING),
-        (["-onlynet=abc"], _ONLYNET_UNKNOWN),
-    ):
+    ]
+    for network in _ONLYNET_UNKNOWN_NETWORKS:
+        if network == "tor" and not refuses_tor:
+            continue
+        expected = f"Error: Unknown network specified in -onlynet: '{network}'"
+        starts.append(([f"-onlynet={network}"], expected))
+    for extra_args, expected in starts:
         assert _refusal(node, extra_args) == expected

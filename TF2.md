@@ -1520,7 +1520,7 @@ no entry here is a `bitcoind only` row, or has its reason in the docstring of
   and passes on a build past
   [ISS btclib-node#1179](https://github.com/btclib-org/btclib-node/issues/1179).
 - `p2p_feefilter.py`: the first row, the `forcerelay` row
-  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320))
+  ([ISS btclib-node#1320](https://github.com/btclib-org/btclib-node/issues/1320)),
   the filtering row and the block-relay-only row pass. The `-blocksonly` row
   skips on `blocks_only`.
 - `p2p_tx_download.py`: the spurious-`notfound`, disconnect, `notfound` and

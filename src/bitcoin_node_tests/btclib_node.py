@@ -336,34 +336,25 @@ no `-incrementalrelayfee`, measured at the released `2026.9.24`
 (`422d2640`) and at `main` (`eb18985c`) alike
 ([ISS btclib-node#1596](https://github.com/btclib-org/btclib-node/issues/1596)).
 
-`Capability.TYPED_OUTBOUND`, `Capability.SUSPEND_NETWORK`,
-`Capability.SIGN_RAW_TRANSACTION`, `Capability.INVALIDATE_BLOCK`,
-`Capability.SCAN_UTXO_SET`, `Capability.BLOCK_PROPOSAL`,
-`Capability.KNOWN_ADDRESSES`, `Capability.RPC_INFO`,
-`Capability.CLUSTER_LINEARIZATION`, `Capability.MEMPOOL_GRAPH`,
-`Capability.PRECIOUS_BLOCK`, `Capability.SIGN_MESSAGE_WITH_PRIVKEY`,
-`Capability.ESTIMATE_SMART_FEE` and `Capability.DUMP_UTXO_SET` are
-declared per instance, by `_served_rpcs`'s own probe: each where the
-build's `rpc/callbacks.py` names every RPC `_RPC_CAPABILITIES` lists for
-it. The released `2026.9.24` (`422d2640`) names none of them, and the
-released `2026.10.30` (`30e9573`) and `main` (`995a2b46`), whose `src/`
-is the same, name all of them
-([ISS 547](https://github.com/btclib-org/bitcoin-node-tests/issues/547)).
-What each capability asks beyond its RPCs' names was measured at
-`2026.10.30`. `addconnection` dials each of `outbound-full-relay`,
-`block-relay-only`, `addr-fetch` and `feeler` (its
-`_ADDCONNECTION_TYPES`), and refuses any chain but regtest, so
-`TYPED_OUTBOUND` is in `_REGTEST_ONLY` below. `getblocktemplate` takes
-BIP23's `proposal` mode (`rpc/mining.py`'s `_proposal`).
+Each capability `_RPC_CAPABILITIES` names is declared per instance, by
+`_served_rpcs`'s own probe: where the build's `rpc/callbacks.py` names every RPC
+`_RPC_CAPABILITIES` lists for it. The released `2026.9.24` (`422d2640`) names
+none of them, and the released `2026.10.30` (`30e9573`) and `main` (`995a2b46`),
+whose `src/` is the same, name all of them
+([ISS 547](https://github.com/btclib-org/bitcoin-node-tests/issues/547)). What
+each capability asks beyond its RPCs' names was measured at `2026.10.30`.
+`addconnection` dials each of `outbound-full-relay`, `block-relay-only`,
+`addr-fetch` and `feeler` (its `_ADDCONNECTION_TYPES`), and refuses any chain
+but regtest, so `TYPED_OUTBOUND` is in `_REGTEST_ONLY` below. `getblocktemplate`
+takes BIP23's `proposal` mode (`rpc/mining.py`'s `_proposal`).
 `setnetworkactive` drops every held connection on a `false`
 (`P2pManager.set_network_active`). `scantxoutset` reads descriptors
-(`rpc/utxo_set.py`), and `dumptxoutset` takes `rollback`
-(`rpc/snapshot.py`). Run live, `getmempoolcluster` answered a
-three-transaction chain's cluster by chunk, `getmempoolfeeratediagram`
-its diagram and `getmempoolinfo` an `optimal`; `getmempoolancestors`,
-bare and verbose, `getmempooldescendants` and `gettxspendingprevout`
-answered the chain's links. Where a row of `TF2.md` still fails on one
-of them, its entry there names its issue.
+(`rpc/utxo_set.py`), and `dumptxoutset` takes `rollback` (`rpc/snapshot.py`).
+Run live, `getmempoolcluster` answered a three-transaction chain's cluster by
+chunk, `getmempoolfeeratediagram` its diagram and `getmempoolinfo` an `optimal`;
+`getmempoolancestors`, bare and verbose, `getmempooldescendants` and
+`gettxspendingprevout` answered the chain's links. Where a row of `TF2.md` still
+fails on one of these capabilities, its entry there names its issue.
 
 `Capability.PEER_PERMISSIONS` is declared per instance, by
 `_reads_whitelist`'s own probe: a build whose `cli.py` registers

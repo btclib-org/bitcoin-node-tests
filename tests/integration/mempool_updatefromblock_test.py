@@ -34,10 +34,11 @@ block is mined. Which limit a chain meets is read off the node's own
 `help`, as `feature_rbf_test.py` reads it: a node listing
 `getmempoolcluster` runs the cluster mempool, whether or not it takes
 the option. btclib-node lists it and takes no `-limitclustersize`. A
-build before the cluster mempool (`v31.0`) lists neither and limits a
-chain by its ancestors instead: the tournament runs there as it is,
-within the default ancestor and descendant limits, and the chain is the
-default of 25 and two more, refused as `too-long-mempool-chain`.
+build before the cluster mempool (`v31.0`) has neither the RPC nor the
+option, and limits a chain by its ancestors instead: the tournament runs
+there as it is, within the default ancestor and descendant limits, and
+the chain is the default of 25 and two more, refused as
+`too-long-mempool-chain`.
 
 Each `mempool_updatefromblock_<node>_test.py` module beside this one
 runs each body, `tests/integration/conftest.py`'s own module docstring

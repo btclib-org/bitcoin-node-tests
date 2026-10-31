@@ -22,20 +22,21 @@ Each of Core's checks is a body over a fresh node:
   flag, and is dialled on the next start once the file names a peer
   offering the services the node asks for.
 
-Core's steps for bitcoin/bitcoin#34213 are in those two bodies: the anchors
-survive a network switched off. A node stopped after `setnetworkactive`
-false still writes the block-relay-only peers it held; one started with
-`-networkactive=0` neither tries nor deletes the file; the anchors are tried
-once the network is switched on; and anchors never tried are discarded at
-the next shutdown with the network active. They ask for
-`Capability.SUSPEND_NETWORK` besides. No release carries the change, so
-they run on a build whose `getnetworkinfo` `version` is `329900` or
-later. A `master` build from `32.99`'s move (`f3fec67c3e`, 2026-09-11) to
-the merge of that change (`802eb7daa9`, 2026-10-02) reports `329900`
-without it, and fails them. Core's `-seednode` given twice, an address
-nothing listens on (`Capability.ADDRESS_FETCH`), and a clock moved past
-the seednode retry timer (`Capability.CLOCK`), both asked for there, show
-the node has passed its connection loop with the network off.
+Core's steps for bitcoin/bitcoin#34213 are in those two bodies: the
+anchors survive a network switched off. A node stopped after
+`setnetworkactive` false still writes the block-relay-only peers it
+held; one started with `-networkactive=0` neither tries nor deletes the
+file; the anchors are tried once the network is switched on; and anchors
+never tried are discarded at the next shutdown with the network active.
+They ask for `Capability.SUSPEND_NETWORK` besides. No tag up to `v32.1`
+carries the change, so they run on a build whose `getnetworkinfo`
+`version` is `329900` or later. A `master` build from `32.99`'s move
+(`f3fec67c3e`, 2026-09-11) to the merge of that change (`802eb7daa9`,
+2026-10-02) reports `329900` without it, and fails them. Core's
+`-seednode` given twice, an address nothing listens on
+(`Capability.ADDRESS_FETCH`), and a clock moved past the seednode retry
+timer (`Capability.CLOCK`), both asked for there, show the node has
+passed its connection loop with the network off.
 
 Every log line is one Core's own file asserts, over `Capability.DEBUG_LOG`.
 
